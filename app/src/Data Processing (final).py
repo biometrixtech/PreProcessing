@@ -8,8 +8,6 @@ Created on Fri Feb 26 11:08:09 2016
 import numpy as np
 import pandas as pd
 
-##In order to test the data run dum_dblsqt_set1.csv through the script and compare to the outputs in databody.csv for the bodyframe data and datasensor.csv for the sensor frame data 
-
 ####Function to compute the product between two quaternions...order matters!
 def QuatProd(q1, q2):
     s1 = q1[0,0] #float
@@ -49,20 +47,13 @@ def yaw_offset(q):
     yaw_fix = np.matrix([q0, 0, 0, q3]) #build yaw offset quaternion
     return yaw_fix
 
-####This section defines how data arrives and is saved on my personal PC (in csv format)...
-####probably irrelevant for our purposes, going to be dependent on how data is received and then output
-datapath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\First Pass CMEs\\Double Leg\\Hips\\vicon2_Hips_dblsquat_set1normal.csv'
-#bodpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Orientation Test\\databody.csv'
-#senspath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\First Pass CMEs\\Double Leg\\Hips\\vicon2_hips_dblsquat_set1normal.csv'
-bodpath = datapath.rsplit('\\v')[0] + '\\databody.csv' 
-senspath = datapath.rsplit('\\v')[0] + '\\datasensor.csv'
-data = pd.read_csv(datapath) #grab csv data
-data = data.dropna()
+####READ IN DATA ~ Will change when we call from the database#####
+data = pd.read_csv(datapath) #read in data; csv read in is just a stand in for now
 mdata = data.as_matrix() #convert csv into matrix
 bodyframe = []
 sensframe = []
 iters = len(mdata)
-print iters
+print(iters)
 
 ###This section takes the t=0 quaternion and computes the yaw in order to create the yaw offset    
 q0 = np.matrix([mdata[0,13], mdata[0,14], mdata[0,15], mdata[0,16]]) #t=0 quaternion
@@ -107,8 +98,5 @@ for i in range(0, iters):
 body = pd.DataFrame(bodyframe, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #body frame column names
 sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #sensor frame column names
 
-####Saves dataframe to personal computer (not to be used in application)
-body.to_csv(bodpath, index=False)
-sens.to_csv(senspath, index=False)   
     
     
