@@ -19,6 +19,15 @@ class DivideByZeroError(ValueError):
 
 ####Function to compute the product between two quaternions...order matters!
 def QuatProd(q1, q2):
+    if 'matrix' not in str(type(q1)) or 'matrix' not in str(type(q2)):
+        raise QuatFormError
+    
+    if q1.shape != (1,4) or q2.shape != (1,4):
+        raise QuatFormError
+    
+    if np.linalg.norm(q1) == 0 or np.linalg.norm(q2) == 0:
+        raise DivideByZeroError
+        
     s1 = q1[0,0] #float
     s2 = q2[0,0] # float
     v1 = q1[0,1:4] # 1x3 vector
@@ -27,6 +36,7 @@ def QuatProd(q1, q2):
     prod = np.zeros((1,4)) # create storage vector for product
     prod[0,0] = s1*s2 - v1.dot(v2.transpose()) #first term of product...contains 1x3 dot 1x3 vec...returns float
     prod[0,1:4] = s1*v2 + s2*v1 + np.cross(v1, v2) #returns 1x3 vector combination of dot and cross product    
+    prod = np.matrix(prod)    
     return prod
 
 ####Function that returns conjugate of input quaternion  
@@ -76,12 +86,12 @@ def yaw_offset(q):
 
 
 ####READ IN DATA ~ Will change when we call from the database#####
+datapath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\First Pass CMEs\\Double Leg\\Hips\\vicon2_Hips_dblsquat_set1normal.csv'
 data = pd.read_csv(datapath) #read in data; csv read in is just a stand in for now
 mdata = data.as_matrix() #convert csv into matrix
 bodyframe = []
 sensframe = []
 iters = len(mdata)
-print(iters)
 
 ###This section takes the t=0 quaternion and computes the yaw in order to create the yaw offset    
 q0 = np.matrix([mdata[0,13], mdata[0,14], mdata[0,15], mdata[0,16]]) #t=0 quaternion
@@ -98,7 +108,7 @@ for i in range(0, iters):
     gyr = np.matrix([0, mdata[i,10], mdata[i,11], mdata[i,12]]) #collect most recent raw gyro from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
     mag = np.matrix([0, mdata[i,7], mdata[i,8], mdata[i,9]]) #collect most recent raw mag from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
     fixed_q = QuatProd(yfix_c, quat) #quaternion product of conjugate of yaw offset and quaternion from data, remember order matters!
-    fixed_q = fixed_q/np.sqrt(fixed_q[0,0]**2 + fixed_q[0,1]**2 + fixed_q[0,2]**2 + fixed_q[0,3]**2) #normalize quaternion, with hard coding of finding norm
+    fixed_q = fixed_q/np.sqrt(fixed_q[0,0]**2 + fixed_q[0,1]**2 + fixed_q[0,2]**2 + fixed_q[0,3]**2)#normalize quaternion, with hard coding of finding norm   
     output_body[0,0:4] = fixed_q #assign corrected quaternion to body output vector
     dcm = q2dcm(fixed_q) #call function to turn corrected quaternion into rotation matrix
     roll = np.arctan2(dcm[2,1], dcm[2,2]) #compute roll...must use arctan2! Inputs come from rotation matrix
