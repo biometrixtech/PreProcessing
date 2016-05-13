@@ -25,8 +25,8 @@ def QuatProd(q1, q2):
     if q1.shape != (1,4) or q2.shape != (1,4):
         raise QuatFormError
     
-    if np.linalg.norm(q1) == 0 or np.linalg.norm(q2) == 0:
-        raise DivideByZeroError
+#    if np.linalg.norm(q1) == 0 or np.linalg.norm(q2) == 0:
+#        raise DivideByZeroError
         
     s1 = q1[0,0] #float
     s2 = q2[0,0] # float
@@ -99,13 +99,13 @@ def rotate_quatdata(data, rot, RemoveGrav=False):
         pass
     return [corr_data[0,1], corr_data[0,2], corr_data[0,3]]
     
-def FrameTransform(data, iquatc):    
+def FrameTransform(data, iquatc):   
     output_body = np.zeros((1,16)) #creates output vector that will house: quaternion, euler angles, acc, gyr, and mag data in body frame
     output_sens = np.zeros((1,9)) #creates output vector that will house: acc (less gravity), gyr, and mag in sensor frame
-    quat = np.matrix([data[13], data[14], data[15], data[16]]) #collect most recent quaternion from dataset (will be arriving in real time)
-    acc = np.matrix([0, data[4], data[5], data[6]]) #collect most recent raw accel from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
-    gyr = np.matrix([0, data[10], data[11], data[12]]) #collect most recent raw gyro from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
-    mag = np.matrix([0, data[7], data[8], data[9]]) #collect most recent raw mag from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
+    quat = np.matrix([data.ix['qW_raw',0], data.ix['qX_raw',0], data.ix['qY_raw',0], data.ix['qZ_raw',0]]) #collect most recent quaternion from dataset (will be arriving in real time)   
+    acc = np.matrix([0, data.ix['accX_raw',0], data.ix['accY_raw',0], data.ix['accZ_raw',0]]) #collect most recent raw accel from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero   
+    gyr = np.matrix([0, data.ix['gyrX_raw',0], data.ix['gyrY_raw',0], data.ix['gyrZ_raw',0]]) #collect most recent raw gyro from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
+    mag = np.matrix([0, data.ix['magX_raw',0], data.ix['magY_raw',0], data.ix['magZ_raw',0]]) #collect most recent raw mag from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
     fixed_q = QuatProd(iquatc, quat) #quaternion product of conjugate of yaw offset and quaternion from data, remember order matters!         
     output_body[0,0:4] = fixed_q #assign corrected quaternion to body output vector
     output_body[0,4:7] = Calc_Euler(fixed_q) #assign set of euler angles to body output vector
@@ -127,7 +127,8 @@ if __name__ == '__main__':
     sensframe = []
     iters = len(mdata)
     
-        ###This section takes the t=0 quaternion and computes the yaw in order to create the yaw offset    
+    ###This section takes the t=0 quaternion and computes the yaw in order to create the yaw offset    
+    start = time.process_time()
     q0 = np.matrix([mdata[0,13], mdata[0,14], mdata[0,15], mdata[0,16]]) #t=0 quaternion
     yaw_fix = yaw_offset(q0) #uses yaw offset function above to compute yaw offset quaternion
     yfix_c = QuatConj(yaw_fix) #uses quaternion conjugate function to return conjugate of yaw offset
@@ -141,5 +142,4 @@ if __name__ == '__main__':
     
     ####Creates dataframe for body and sensor outputs along with adding column names 
     body = pd.DataFrame(bodyframe, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #body frame column names
-    sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #sensor frame column names 
-        
+    sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #sensor frame column names    
