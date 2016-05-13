@@ -44,14 +44,14 @@ class TestQuatProd_KnownValues(unittest.TestCase):
         self.file = self.file.as_matrix()
     
     def test_known_values(self):
-        self.q1 = self.file[0:50, 9:13]
-        self.q2 = self.file[50:100, 9:13]
+        self.q1 = self.file[0:50, 15:19]
+        self.q2 = self.file[50:100, 15:19]
         for i in range(len(self.q1)):
             self.pred = prep.QuatProd(np.matrix(self.q1[i,:]), np.matrix(self.q2[i,:]))
-            self.data = np.matrix([0, self.file[i,0], self.file[i,1], self.file[i,2]])
+            self.data = np.matrix([0, self.file[i,6], self.file[i,7], self.file[i,8]])
             self.datpred = prep.QuatProd(self.data, np.matrix(self.q1[i,:]))
-            self.assertTrue(np.allclose(self.pred, self.qp_file[i+50,:], atol=1e-04))
-            self.assertTrue(np.allclose(self.datpred, self.qp_file[i,:], atol=1e-02))
+            self.assertTrue(np.allclose(self.pred, self.qp_file[i+50,:], atol=1e-03))
+            self.assertTrue(np.allclose(self.datpred, self.qp_file[i,:], atol=1e-01))
     
 class TestTwoQuat_badinput(unittest.TestCase):
     quats = {0:np.matrix([0,0,1]), 1:np.matrix([0,0,1,0]), 2:np.array([0,0,1]), 3:[0,0,1], 4:'string', 5:5}
@@ -59,12 +59,6 @@ class TestTwoQuat_badinput(unittest.TestCase):
         for i in range(1,len(self.quats)):
             self.assertRaises(prep.QuatFormError, prep.QuatProd, self.quats[i-1], self.quats[i])
             self.assertRaises(prep.QuatFormError, prep.rotate_quatdata, self.quats[i-1], self.quats[i])
-            
-    def test_magnitude(self):
-        self.assertRaises(prep.DivideByZeroError, prep.QuatProd, np.matrix([0,0,0,0]), np.matrix([1,0,0,0]))
-        self.assertRaises(prep.DivideByZeroError, prep.QuatProd, np.matrix([1,0,0,0]), np.matrix([0,0,0,0]))
-        self.assertRaises(prep.DivideByZeroError, prep.rotate_quatdata, np.matrix([0,0,0,0]), np.matrix([1,0,0,0]))
-        self.assertRaises(prep.DivideByZeroError, prep.rotate_quatdata, np.matrix([1,0,0,0]), np.matrix([0,0,0,0]))
         
 class Testq2dcm_KnownValues(unittest.TestCase):
     quats = {0:np.matrix([1,0,0,0]), 1:np.matrix([2,0,2,0]), 2:np.matrix([.5, .5, 0, 0]), 3:np.matrix([-1, 0, 0, 1])}
@@ -131,15 +125,15 @@ class TestRotateQuatData_KnownValue(unittest.TestCase):
     
     def test_known_valuesacc(self):
         for i in range(0,len(self.rot_file)):
-            self.acc = np.matrix([0, self.file[i,0], self.file[i,1], self.file[i,2]])
-            self.rot = prep.rotate_quatdata(self.acc, np.matrix(self.file[i,9:13]), RemoveGrav=True)
+            self.acc = np.matrix([0, self.file[i,6], self.file[i,7], self.file[i,8]])
+            self.rot = prep.rotate_quatdata(self.acc, np.matrix(self.file[i,15:19]), RemoveGrav=True)
             self.assertTrue(np.allclose(self.rot, self.rot_file[i,0:3], atol=1e-04))
     
     def test_known_valuesgyr(self):
         for i in range(0,len(self.rot_file)):
-            self.acc = np.matrix([0, self.file[i,3], self.file[i,4], self.file[i,5]])
-            self.rot = prep.rotate_quatdata(self.acc, np.matrix(self.file[i,9:13]))
-            self.assertTrue(np.allclose(self.rot, self.rot_file[i,3:6], atol=1e-03))            
+            self.gyr = np.matrix([0, self.file[i,9], self.file[i,10], self.file[i,11]])
+            self.rot = prep.rotate_quatdata(self.gyr, np.matrix(self.file[i,15:19]))
+            self.assertTrue(np.allclose(self.rot, self.rot_file[i,3:6], atol=1e-02))            
     
 if __name__ == '__main__':
     unittest.main(exit=False)
