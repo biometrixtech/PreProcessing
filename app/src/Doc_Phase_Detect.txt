@@ -1,0 +1,27 @@
+Phase Detect Documentation
+
+GLRT
+Description: This generates the GLRT statistic to be used to decide if the foot is moving or not. The standard deviation of the noise for the gyro and accel
+are first defined. For this function you will need the three axis accel and gyro data. Take the mean of all the accel data vectors to get one vector, normalize it.
+Then create a matrix (W x 3) with each row being that mean vector. Create another matrix out of the accel data (should be W x 3), subtract the mean matrix from
+the raw accel data matrix (tmp). Create a final matrix out of the gyro data (should be W x 3). Square the gyro matrix and divide by the gyro noise, square the tmp
+matrix and divide by accel noise. Add the resulting traces (diagonals) together and you are left with the cumulative statistic. Divide by window size to get avg stat.
+
+Inputs: (1) data object (W x [AccX, AccY, AccZ, gyrX, gyrY, gyrZ]); int W which is the window size of the data being analyzed
+Outputs: float T the test statistic 
+
+Zero_Detect
+Description: Takes the test statistic and compares to threshold. Must choose which test you want to use (for now only GLRT available). If statistic is less than threshold
+we say that the sensor is not in motion and assign it a value of 1.
+
+Inputs: (1) data object (W x [AccX, AccY, AccZ, gyrX, gyrY, gyrZ]); string corresponding to chosen test; int W which is the window size of the data being analyzed
+Outouts: int 1 or 0 (not moving or moving respectively)
+
+Phase Detect
+Description: Adds results of Zero_Detect function to determine if one, two, or no feet are on the ground. W, or the window being tested, is determined by .2* the sampling rate.
+Zero_Detect function is run for each foot and results are summed. If...then...statement makes determination on foot placement.
+
+Inputs: (2) data object* (hz*.2 x [AccX, AccY, AccZ, gyrX, gyrY, gyrZ]) one for right and left foot, int sampling rate
+Outputs: int 0,1,2 for now (no feet, 1 foot, 2 feet)   
+
+*W will also de determined outside the function since one the amount of data points has pooled up to equal W the Phase Detect algo will run
