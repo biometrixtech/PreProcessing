@@ -8,13 +8,12 @@ Created on Thu May  5 12:25:16 2016
 import unittest
 import numpy as np
 import pandas as pd
-from sklearn import linear_model
 import Exercise_Filter as exfilt 
+import data
 
-path = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\'
 class ExFilt_badinput(unittest.TestCase):
     def setUp(self):
-        self.file = pd.read_csv(path + 'postprocessed_unittest.csv')
+        self.file = pd.read_csv(data.postprocessed_unittest.csv)
         self.right = self.file.ix[0:100,:]
     
     def test_correctsize(self):
@@ -49,12 +48,21 @@ class ExFilt_badinput(unittest.TestCase):
     
 class ExFilt_BadOutput(unittest.TestCase):
     def setUp(self):
-        self.file = pd.read_csv(path + 'postprocessed_unittest.csv')
+        self.file = pd.read_csv(data.postprocessed_unittest)
         self.right = self.file.ix[0:100,:]
     
     def test_binaryoutput(self):
         self.assertTrue(exfilt.Exercise_Filter(self.right, 'Double', 250) in [0,1])
         
+class ExFilt_KnownValues(unittest.TestCase):
+    def setUp(self):
+        self.correct = pd.read_csv(data.known_value_exercise)
+        self.test = pd.read_csv(data.postprocessed_unittest)
 
+    def test_known_values(self):
+        self.window = 50
+        for i in range(50,len(self.correct)-50):
+            self.assertTrue(exfilt.Exercise_Filter(self.test.ix[i-self.window:i+self.window,:].reset_index(), 'Double', 250) == self.correct.ix[i-1,0])
+            
 if __name__ == '__main__':
     unittest.main(exit=False)
