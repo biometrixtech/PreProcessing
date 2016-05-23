@@ -9,8 +9,7 @@ import unittest
 import numpy as np
 import pandas as pd
 import Data_Processing as prep
-
-path = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\' 
+import data
 
 class TestSingleQuat_badinput(unittest.TestCase):
     quats = {0:np.matrix([0,0,1]), 1:np.array([0,0,1]), 2:[0,0,1], 3:'string', 4:5}
@@ -38,9 +37,9 @@ class TestQuatFunc_badoutput(unittest.TestCase):
         
 class TestQuatProd_KnownValues(unittest.TestCase):
     def setUp(self):
-        self.qp_file = pd.read_csv(path + 'matlab_quatprod.csv', header=None)
+        self.qp_file = pd.read_csv(data.matlab_quatprod, header=None)
         self.qp_file = self.qp_file.as_matrix()
-        self.file = pd.read_csv(path + 'Preprocess_unittest.csv') 
+        self.file = pd.read_csv(data.Preprocess_unittest) 
         self.file = self.file.as_matrix()
     
     def test_known_values(self):
@@ -70,7 +69,7 @@ class Testq2dcm_KnownValues(unittest.TestCase):
 
 class TestQuatConj_KnownValues(unittest.TestCase):
     def setUp(self):
-        self.file = pd.read_csv(path + 'quatonly_unittest.csv') 
+        self.file = pd.read_csv(data.quatonly_unittest) 
         self.file = self.file.as_matrix()
         
     def test_known_values(self):
@@ -85,7 +84,7 @@ class TestQuatConj_KnownValues(unittest.TestCase):
 
 class TestYawOffset_KnownValues(unittest.TestCase):
     def setUp(self):
-        self.file = pd.read_csv(path + 'quatonly_unittest.csv') 
+        self.file = pd.read_csv(data.quatonly_unittest) 
         self.file = self.file.as_matrix()
         
     def test_known_values(self):
@@ -104,9 +103,9 @@ class TestYawOffset_KnownValues(unittest.TestCase):
             
 class TestEulerCalc_KnownValue(unittest.TestCase):
     def setUp(self):
-        self.eul_file = pd.read_csv(path + 'matlab_euler.csv', header=None)
+        self.eul_file = pd.read_csv(data.matlab_euler, header=None)
         self.eul_file = self.eul_file.as_matrix()
-        self.file = pd.read_csv(path + 'quatonly_unittest.csv') 
+        self.file = pd.read_csv(data.quatonly_unittest) 
         self.file = self.file.as_matrix()
         
     def test_known_values(self):
@@ -118,9 +117,9 @@ class TestEulerCalc_KnownValue(unittest.TestCase):
     
 class TestRotateQuatData_KnownValue(unittest.TestCase):
     def setUp(self):
-        self.rot_file = pd.read_csv(path + 'matlab_rotate.csv', header=None)
+        self.rot_file = pd.read_csv(data.matlab_rotate, header=None)
         self.rot_file = self.rot_file.as_matrix()
-        self.file = pd.read_csv(path + 'Preprocess_unittest.csv')
+        self.file = pd.read_csv(data.Preprocess_unittest)
         self.file = self.file.as_matrix()
     
     def test_known_valuesacc(self):
@@ -133,7 +132,32 @@ class TestRotateQuatData_KnownValue(unittest.TestCase):
         for i in range(0,len(self.rot_file)):
             self.gyr = np.matrix([0, self.file[i,9], self.file[i,10], self.file[i,11]])
             self.rot = prep.rotate_quatdata(self.gyr, np.matrix(self.file[i,15:19]))
-            self.assertTrue(np.allclose(self.rot, self.rot_file[i,3:6], atol=1e-02))            
+            self.assertTrue(np.allclose(self.rot, self.rot_file[i,3:6], atol=1e-02))
+
+class TestFrameTransform_BadIO(unittest.TestCase):
+    def setUp(self):
+        self.file = pd.read_csv(data.Preprocess_unittest)
+    
+    def test_badinput(self):
+        self.assertRaises(prep.ObjectMismatchError, prep.FrameTransform, self.file.ix[0,:].as_matrix(), np.matrix([1,0,0,0]))
+        self.assertRaises(prep.ObjectMismatchError, prep.FrameTransform, self.file.ix[0,:], np.array([1,0,0,0]))
+    
+    def test_badoutput(self):
+        self.obody, self.osens = prep.FrameTransform(self.file.ix[0,:], np.matrix([1,0,0,0]))
+        self.assertTrue(isinstance(self.obody, np.ndarray))
+    
+class TestFrameTransform_KnownValues(unittest.TestCase):
+    def setUp(self):
+        self.input = pd.read_csv(data.Preprocess_unittest)
+        self.output = pd.read_csv(data.postprocessed_unittest)
+        self.q0 = np.matrix([self.input.ix[0,'qW_raw'], self.input.ix[0,'qX_raw'], self.input.ix[0,'qY_raw'], self.input.ix[0,'qZ_raw']]) #t=0 quaternion
+        self.yaw_fix = prep.yaw_offset(self.q0) 
+        self.yfix_c = prep.QuatConj(self.yaw_fix)
+    
+    def test_known_values(self):
+        for i in range(len(self.input)):
+            self.obody, self.osens = prep.FrameTransform(self.input.ix[i,:], self.yfix_c)
+            self.assertTrue(np.allclose(self.obody, self.output.ix[i,:], atol=1e-03))            
     
 if __name__ == '__main__':
     unittest.main(exit=False)
