@@ -11,8 +11,6 @@ import numpy as np
 import pandas as pd
 import data
 
-path = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\'
-
 class TestInputZeroVel(unittest.TestCase):
     def setUp(self):
         self.file = pd.read_csv(data.postprocessed_unittest)
