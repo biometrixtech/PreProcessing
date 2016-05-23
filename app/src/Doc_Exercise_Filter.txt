@@ -1,0 +1,9 @@
+Exercise Filter Documentation:
+
+Description: Returns whether an athlete is currently doing a specified exercise or not. First the window used for the linear regression terms (.4*hz) is defined as well as the lower and upper
+bound indices for the moving average calculation (total size .2*hz). Initialize regression object for accel regression and Euler angle regression. Calculate rolling average of z-axis accel, use lower and upper
+bound to define window to average over. Calculate regression term for z-axis accel and EulerX over whole dataset. Check if rolling mean and both regression terms are below thresholds, if so determine no movement
+under way and exercise not happening, otherwise determine exercise is happening.
+
+Inputs: (1) .4*hz x 2 data object (with rows centered around data point of interest and 2 columns being 'AccZ' and 'EulerX'); string identifying exercise type; int identifying sampling rate (hz)
+Outputs: int 1 or 0 (1 being no exercise, 0 exercise happening)  
