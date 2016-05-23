@@ -9,12 +9,13 @@ import unittest
 import Phase_Detect as phase
 import numpy as np
 import pandas as pd
+import data
 
 path = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\'
 
 class TestInputZeroVel(unittest.TestCase):
     def setUp(self):
-        self.file = pd.read_csv(path + 'postprocessed_unittest.csv')
+        self.file = pd.read_csv(data.postprocessed_unittest)
     
     def test_correctinputtype(self):
         self.right = self.file.ix[0:4,:]
@@ -53,7 +54,7 @@ class TestInputZeroVel(unittest.TestCase):
 
 class TestOutputZeroVel(unittest.TestCase):
     def setUp(self):
-        self.file = pd.read_csv(path + 'postprocessed_unittest.csv')
+        self.file = pd.read_csv(data.postprocessed_unittest.csv)
     
     def testDiscreteOutput(self):
         self.right = self.file.ix[0:4,:]
