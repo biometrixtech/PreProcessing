@@ -1,0 +1,47 @@
+Data Processing Documentation:
+
+QuatProd
+Description: Multiplies two quaternions together. Results in one quaternion output. First term of output is made by multiplying scalar of each quaternion and subtracting the dot product of the imaginary vectors.
+The final three terms are made by multiplying each imaginary vector by the opposites scalar and then taking the cross product of the two imaginary vectors. Resulting quaternion must be returned as a matrix.
+
+Inputs: (2) 1x4 rotation quaternions, order matters since quaternion multiplication is not transitive
+Outputs: (1) 1x4 rotation quaternion (non-normalized)
+
+QuatConj
+Description: Determines the conjugate of a single quaternion. Scalar term is left unchanged, take negative of imaginary vector. Quaternion is normalized.
+Inputs: (1) 1x4 rotation quaternion with a non-zero norm
+Outputs: (1) 1x4 rotation quaternion (normalized)
+
+q2dcm
+Description: Quaternion is normalized in order to ease computation of matrix. Converts a quaternion into a 3x3 rotation matrix. Each term of matrix is determined according to an XYZ rotation sequence.
+Inputs: (1) 1x4 rotation quaternion 
+Outputs: (1) 3x3 data object (matrix should be normalized)
+
+yaw_offset
+Description: Takes the yaw term from a quaternion and returns the resulting quaternion that can be used to offset the yaw rotation. First the quaternion is converted in a matrix using q2dcm.
+The matrix outputs are used to calculate the yaw (according to XYZ rotations). The scalar (or angle of rotation) is then calculated from yaw. In order to return a unit quaternion,
+the yaw component of the quat is determined by setting roll and pitch components equal to 0 and solving for yaw such that the magnitude of the resulting quaternion is equal to one.
+Attention must be paid so that the axis of rotation is pointing is the right direction otherwise you risk doubling the yaw offset instead of canceling it out.
+Inputs: (1) 1x4 rotation quaternion (normalized or unnormalized)
+Outputs: (1) 1x4 rotation quaternion (normalized)
+
+Calc_Euler
+Description: Determines Euler angles of a quaternion according to XYZ rotation standards. First converts quaternion to martix using q2dcm, and then calculates roll (x-axis), pitch (y-axis), and yaw (z-axis).
+Inputs: (1) 1x4 rotation quaternion (normalized or unnormalized)
+Outputs: (1) 1x3 list of values corresponding as such [roll, pitch, yaw]
+
+rotate_quatdata:
+Description: Rotates data quaternions by using a rotation quaternion. Determines corrected data quaternion according to formula: product of rotation quaternion * (data vector * rotation quaternion conjugate).
+Uses QuatProd for multiplication and QuatConj to determine conjugate. Option to have gravity removed, only works if corrected frame is using z-axis as axis that contains gravity vector, also converts mG to m/s^2.
+Returns quaternion where 0 should be value of scalar component (allowing for some computational slippage).
+Inputs: (1) 1x4 data quaternion (contains 0 in scalar term), (1) 1x4 rotation quaternion (normalized), (1) Boolean turning RemoveGrav on or off (default is off) 
+Ouputs: (1) 1x3 list of values corresponding as such [x-axis accel, y-axis accel, z-axis accel]
+
+Frame_Transform
+Description: Takes data vector containing accel, gyro, mag, and global frame quaternion and transforms everything into the body frame. Also creates Euler Angles of body frame quaternion. First transforms each set of data
+(acc, gyr, mag) into data quaternion. Transforms global quaternion into body frame quaternion by multiplying global by iquatc variable (conjugate of yaw offset vector). Euler Angles determined using Calc_Euler with body
+frame quaternion as input. Acc, gyr, and mag are moved into body frame through rotate_quatdata with RemoveGrav being checked for the accel transformtion. The sensor frame acceleration has gravity removed by subtracting a
+gravity vector transformed from the body frame and into the sensor frame from the raw accel values. Body and sensor frame data is returned.
+Inputs: (1) data object that must contain raw accel, gyr, mag, and quat values; (1) 1x4 rotation quaternion that represents the conjugate of the yaw offset
+Outputs: (1) data object that houses body frame data (acc-g, gyr, mag, quat, Euler); (1) data object that houses sensor frame data (acc-g, gyr, mag, quat)
+
