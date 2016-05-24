@@ -128,24 +128,22 @@ if __name__ == '__main__':
     ####READ IN DATA ~ Will change when we call from the database#####
     path = ''
     data = pd.read_csv(path) #read in data; csv read in is just a stand in for now
-    mdata = data.as_matrix() #convert csv into matrix
     bodyframe = []
     sensframe = []
-    iters = len(mdata)
+    iters = len(data)
     
     ###This section takes the t=0 quaternion and computes the yaw in order to create the yaw offset    
-    q0 = np.matrix([mdata[0,13], mdata[0,14], mdata[0,15], mdata[0,16]]) #t=0 quaternion
+    q0 = np.matrix([data.ix[0,13], data.ix[0,14], data.ix[0,15], data.ix[0,16]]) #t=0 quaternion
     yaw_fix = yaw_offset(q0) #uses yaw offset function above to compute yaw offset quaternion
     yfix_c = QuatConj(yaw_fix) #uses quaternion conjugate function to return conjugate of yaw offset
     
     for i in range(iters):
-        obody, osens = FrameTransform(mdata[i,:], yfix_c)  #transform raw data to body frame and sensor frame (less gravity) 
-        
-        #these last couple steps are for immeditely saving the data so may not be relevant
-        ##appends each output vector to respective frame    
+        obody, osens = FrameTransform(data.ix[i,:], yfix_c)
+    
+        ##appends each output vector to respective frame (used for saving to my computer...might be done differently in app)    
         bodyframe.append(obody[0,:]) 
         sensframe.append(osens[0,:])
     
     ####Creates dataframe for body and sensor outputs along with adding column names 
     body = pd.DataFrame(bodyframe, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #body frame column names
-    sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #sensor frame column names    
+    sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #sensor frame column names 
