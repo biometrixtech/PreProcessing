@@ -65,7 +65,7 @@ if __name__ == "__main__":
             if len(shuttle) >= 40: #wait until 40 data points have acrued
                 cv= find_cv(shuttle.ix[i-40:i,:], shuttle[comp].ix[prelim[-1]], .0001, .025) #find critical value (cv)
                 if cv == 1:
-                    prelim.append(i) #add cv to prelim list
+                    prelim.append(i-20) #add cv to prelim list
                 else:
                     None
                 j = 1
