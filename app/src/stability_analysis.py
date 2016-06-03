@@ -18,8 +18,8 @@ if __name__ == '__main__':
     
     score = stability_score.stab_score(p, sens_loc[1]) #remember to change sens_loc[] if you're changing the datasets (hip, left foot, right foot)
     
-#print the stability score 
-#print score 
+    #print the stability score 
+    #print score 
 
 
 
