@@ -9,7 +9,7 @@ def stab_score(rel_peakpos, sens_location):
 
     #declaring threshold variables
     thresh_lfoot = 250
-    thresh_rfoot = 300
+    thresh_rfoot = 250
     thresh_hip = 350
     
     if sens_location == sens_loc[0]:
