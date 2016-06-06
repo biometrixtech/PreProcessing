@@ -19,7 +19,7 @@ def stab_score(rel_peakpos, sens_location):
 
         #filtering the time elapses based on a threshold (thresholds vary for the hip and the foot)
         rel_utime_ehip = np.array([ [x,y] for x,y in zip(utime_elapse_hip[0],utime_elapse_hip[1])  if x <= thresh_hip]) #setting the threshold for the time elapse
-        #to be 350ms for the left foot. 
+        #to be 350ms for the hip. 
 
         #score
         dummy_score = []
@@ -33,7 +33,7 @@ def stab_score(rel_peakpos, sens_location):
 
         #filtering the time elapses based on a threshold (thresholds vary for the hip and the foot)
         rel_utime_elfoot = np.array([ [x,y] for x,y in zip(utime_elapse_lfoot[0],utime_elapse_lfoot[1])  if x <= thresh_lfoot]) #setting the threshold for the time elapse
-        #to be 350ms for the left foot. 
+        #to be 250ms for the left foot. 
 
         #score
         dummy_score = []
@@ -47,7 +47,7 @@ def stab_score(rel_peakpos, sens_location):
 
         #filtering the time elapses based on a threshold (thresholds vary for the hip and the foot)
         rel_utime_erfoot = np.array([ [x,y] for x,y in zip(utime_elapse_rfoot[0],utime_elapse_rfoot[1])  if x <= thresh_rfoot]) #setting the threshold for the time elapse
-        #to be 350ms for the left foot. 
+        #to be 250ms for the right foot. 
 
         #score
         dummy_score = []
