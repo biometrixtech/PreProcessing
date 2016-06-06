@@ -87,8 +87,8 @@ data['Grad_Move'] = Grad_Move(data['mean_aZ'], w)
 data['Comb_Move'] = data.apply(Comb_Move, axis=1)
 #data['Move'] = Move(data[['std_aX', 'std_aY', 'std_aZ']])
 #data['Free Fall'] = data.apply(FreeFall, axis=1)
-up = 4000
-down = 6000
+up = 6000
+down = 8000
 
 mseries = data[comp].ix[up:down]
 #topseries = data['+2sd'].ix[up:down]
