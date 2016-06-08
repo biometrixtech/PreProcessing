@@ -8,11 +8,11 @@ Created on Thu Jun  2 14:01:46 2016
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
 
 def Move(std, w):
     infl = .0001
     
-    std = std.values
     new_u = np.mean(std[w:2*w])
     new_std = (np.std(std[w:2*w])) 
     store = [0]*(2*w)    
@@ -30,12 +30,11 @@ def Move(std, w):
 def Grad_Move(u, w):
     infl = .00015
     
-    u = u.values
     new_u = np.mean(u[w:2*w])
     new_std = (np.std(u[w:2*w])) 
     store = [0]*(2*w)    
     for i in range(2*w, len(u)):
-        if (u[i] > new_u + 1*new_std or u[i] < new_u - 1*new_std) and abs(u[i]) > 2:
+        if (u[i] > new_u + 1*new_std or u[i] < new_u - 1*new_std) and abs(u[i]) > 1.5:
             new_u = (new_u + infl*u[i])/(1+infl)
             new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2))/(1+infl))
             store.append(1)
@@ -45,20 +44,70 @@ def Grad_Move(u, w):
             store.append(0)
     return store
 
-def Comb_Move(row):
-    if row['Move'] == 1 or row['Grad_Move'] == 1:
-        return 40
-    else:
-        return 0
-    
-def FreeFall(row):
-    if row['Move'] == 0 and -11.5 <= row['mean_aZ'] <= -8.5:
-        return -10
-    else:
-        return 0
+def Comb_Move(move, gmove):
+    lst = []
+    for i in range(len(move)):
+        if move[i] == 1 or gmove[i] == 1:
+            lst.append(1)
+        else:
+            lst.append(0)
+    return np.array(lst)
 
-def Fill():
-    pass    
+def Final(mscore):
+    lst = []
+    for i in range(len(mscore)):
+        if mscore[i] > 0:
+            lst.append(10)
+        else:
+            lst.append(0)
+    return np.array(lst)
+
+def Fix_Edges(df):
+    for i in range(1, len(df)):
+        if df[i]-df[i-1] < 0:
+            df[i-50:i] = 0
+        else:
+            None
+    return df
+    
+def FreeFall(move, u):
+    lst = []
+    for i in range(len(move)):
+        if move[i] == 0 and -11.5 <= u[i] <= -8.5:
+            lst.append(-1)
+        else:
+            lst.append(0)
+    return np.array(lst)
+
+def FFinal(score):
+    lst = []
+    for i in range(len(score)):
+        if score[i] < 0:
+            lst.append(-10)
+        else:
+            lst.append(0)
+    return np.array(lst)
+
+def Combine(fff, final):
+    for i in range(len(fff)):
+        if fff[i] == -10:
+            final[i] = 20
+    return final
+        
+def Impact(arr):
+    for i in range(11000):
+        j=0
+        if arr[i] == 20 and arr[i+1] == 10:
+            j = 1
+            while arr[i+j] == 10:
+                arr[i+j] = 30
+                j = j+1
+            if arr[i+j] == 20:
+                arr[i:i+j] = 20
+        i = i+j
+    return arr
+            
+            
     
 ##Subject 3 LESS
 rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
@@ -69,36 +118,44 @@ rdata = pd.read_csv(rpath)
 ldata = pd.read_csv(lpath)
 hdata = pd.read_csv(hpath)
 
+start = time.process_time()
 w = 20
 comp = 'AccZ'
 data = ldata
-seriesx = data['AccX'].ix[:]
-seriesy = data['AccY'].ix[:]
-seriesz = data['AccZ'].ix[:]
-data['mean_aX'] = pd.rolling_mean(seriesx, window=w, center=True)
-data['mean_aY'] = pd.rolling_mean(seriesy, window=w, center=True)
-data['mean_aZ'] = pd.rolling_mean(seriesz, window=w, center=True)
-data['std_aX'] = pd.rolling_std(seriesx, window=w, center=True)
-data['std_aY'] = pd.rolling_std(seriesy, window=w, center=True)
-data['std_aZ'] = pd.rolling_std(seriesz, window=w, center=True)
+#seriesx = data['AccX'].ix[:]
+#seriesy = data['AccY'].ix[:]
+seriesz = data['AccZ'].values
+#data['mean_aX'] = pd.rolling_mean(seriesx, window=w, center=True)
+#data['mean_aY'] = pd.rolling_mean(seriesy, window=w, center=True)
+uaZ = pd.rolling_mean(seriesz, window=w, center=True)
+#data['std_aX'] = pd.rolling_std(seriesx, window=w, center=True)
+#data['std_aY'] = pd.rolling_std(seriesy, window=w, center=True)
+stdaZ = pd.rolling_std(seriesz, window=w, center=True)
 
-data['Move'] = Move(data['std_aZ'], w)
-data['Grad_Move'] = Grad_Move(data['mean_aZ'], w)
-data['Comb_Move'] = data.apply(Comb_Move, axis=1)
-#data['Move'] = Move(data[['std_aX', 'std_aY', 'std_aZ']])
-#data['Free Fall'] = data.apply(FreeFall, axis=1)
-up = 6000
-down = 8000
+move = Move(stdaZ, w)
+gmove = Grad_Move(uaZ, w)
+cmove = Comb_Move(move, gmove)
+mscore = pd.rolling_mean(cmove, window=50)
+trans = Final(mscore)
+final = Fix_Edges(trans)
 
-mseries = data[comp].ix[up:down]
-#topseries = data['+2sd'].ix[up:down]
-#botseries = data['-2sd'].ix[up:down]
-#indic = data['Move'].ix[up:down]
-ff = data['Comb_Move'].ix[up:down]
+ff = FreeFall(move, uaZ)
+ff_score = pd.rolling_mean(ff, window=10, center=True)
+ff_final = FFinal(ff_score)
+final = Combine(ff_final, final)
+final = Impact(final)
+print(time.process_time()-start)
 
-plt.plot(mseries.values)
-#plt.plot(topseries.values)
-#plt.plot(botseries.values)
-#plt.plot(indic.values)
-plt.plot(ff.values)
+###Plotting
+up = 1800
+down = 2000
+
+aseries = data[comp].ix[up:down]
+mseries = uaZ[up:down]
+indic = final[up:down]
+#ff = data['FF_Final'].ix[up:down]
+
+plt.plot(mseries)
+plt.plot(indic)
+plt.plot(aseries.values)
 plt.title(comp)
