@@ -62,10 +62,10 @@ def Final(mscore):
             lst.append(0)
     return np.array(lst)
 
-def Fix_Edges(df):
+def Fix_Edges(df, edge):
     for i in range(1, len(df)):
         if df[i]-df[i-1] < 0:
-            df[i-50:i] = 0
+            df[i-edge:i] = 0
         else:
             None
     return df
@@ -138,7 +138,7 @@ gmove = Grad_Move(uaZ, w)
 cmove = Comb_Move(move, gmove)
 mscore = pd.rolling_mean(cmove, window=edge)
 trans = Final(mscore)
-final = Fix_Edges(trans)
+final = Fix_Edges(trans, edge)
 
 ff = FreeFall(move, uaZ)
 ff_score = pd.rolling_mean(ff, window=4, center=True)
