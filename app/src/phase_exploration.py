@@ -17,7 +17,7 @@ def Move(std, w):
     new_std = (np.std(std[w:2*w])) 
     store = [0]*(2*w)    
     for i in range(2*w, len(std)):
-        if std[i] > new_u + 1*new_std and std[i] >2:
+        if std[i] > new_u + 1*new_std and std[i] >1:
             new_u = (new_u + infl*std[i])/(1+infl)
             new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2))/(1+infl))
             store.append(1)
@@ -95,7 +95,7 @@ def Combine(fff, final):
     return final
         
 def Impact(arr):
-    for i in range(11000):
+    for i in range(500):
         j=0
         if arr[i] == 20 and arr[i+1] == 10:
             j = 1
@@ -119,7 +119,8 @@ ldata = pd.read_csv(lpath)
 hdata = pd.read_csv(hpath)
 
 start = time.process_time()
-w = 20
+w = 8
+edge = 20 
 comp = 'AccZ'
 data = ldata
 #seriesx = data['AccX'].ix[:]
@@ -135,12 +136,12 @@ stdaZ = pd.rolling_std(seriesz, window=w, center=True)
 move = Move(stdaZ, w)
 gmove = Grad_Move(uaZ, w)
 cmove = Comb_Move(move, gmove)
-mscore = pd.rolling_mean(cmove, window=50)
+mscore = pd.rolling_mean(cmove, window=edge)
 trans = Final(mscore)
 final = Fix_Edges(trans)
 
 ff = FreeFall(move, uaZ)
-ff_score = pd.rolling_mean(ff, window=10, center=True)
+ff_score = pd.rolling_mean(ff, window=4, center=True)
 ff_final = FFinal(ff_score)
 final = Combine(ff_final, final)
 final = Impact(final)
