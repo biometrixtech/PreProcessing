@@ -24,7 +24,7 @@ def Move(std, w):
     new_std = (np.std(std[w:2*w])) 
     store = [0]*(2*w)    
     for i in range(2*w, len(std)):
-        if std[i] > new_u + 1*new_std and std[i] >2:
+        if std[i] > new_u + 1*new_std and std[i] >1:
             new_u = (new_u + infl*std[i])/(1+infl)
             new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2))/(1+infl))
             store.append(1)
@@ -102,7 +102,7 @@ def Combine(fff, final):
     return final
         
 def FF_Impact(arr):
-    for i in range(11000):
+    for i in range(len(arr)):
         j=0
         if arr[i] == 20 and arr[i+1] == 10:
             j = 1
@@ -118,11 +118,9 @@ def Impact(arr, series):
     for i in range(len(arr)):
         j=0
         if arr[i] == 10 and arr[i+1] == 0:
-            print(i)
             j = 1
             while arr[i-j] == 10:
                 j=j+1
-            print(j)
             maxtab, mintab = peak_det.peakdet(seriesz[i-j:i], 10)
             if len(mintab) == 0 or len(maxtab) == 0:
                 continue
@@ -130,7 +128,6 @@ def Impact(arr, series):
             if len(low_int) == 0:
                 continue
             peak_int = [ x for x in maxtab[:,0] if x > min(low_int)]
-            print(peak_int+low_int)
             val = min(peak_int + low_int)
             #print(i-j+int(val))
             arr[i-j+int(val):i] = 30
@@ -158,6 +155,7 @@ hdata = pd.read_csv(hpath)
 
 start = time.process_time()
 w = 20
+edge = 50 
 comp = 'AccZ'
 data = ldata
 #seriesx = data['AccX'].ix[:]
@@ -174,7 +172,7 @@ stdaZ = pd.rolling_std(seriesz, window=w, center=True)
 move = Move(stdaZ, w)
 gmove = Grad_Move(uaZ, w)
 cmove = Comb_Move(move, gmove)
-mscore = pd.rolling_mean(cmove, window=50)
+mscore = pd.rolling_mean(cmove, window=edge)
 trans = Final(mscore)
 final = Fix_Edges(trans)
 
@@ -187,8 +185,8 @@ final = Impact(final, seriesz)
 print(time.process_time()-start)
 
 ###Plotting
-up = 0
-down = 2000
+up = 3300
+down = 3500
 
 aseries = data[comp].ix[up:down]
 mseries = daZ[up:down]
