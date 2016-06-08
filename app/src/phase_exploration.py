@@ -8,7 +8,14 @@ Created on Thu Jun  2 14:01:46 2016
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import peak_det
 import time
+
+def Slope(arr):
+    lst = []
+    for i in range(1, len(arr)):
+        lst.append(abs(arr[i]-arr[i-1]))
+    return lst
 
 def Move(std, w):
     infl = .0001
@@ -94,7 +101,7 @@ def Combine(fff, final):
             final[i] = 20
     return final
         
-def Impact(arr):
+def FF_Impact(arr):
     for i in range(11000):
         j=0
         if arr[i] == 20 and arr[i+1] == 10:
@@ -107,7 +114,38 @@ def Impact(arr):
         i = i+j
     return arr
             
-            
+def Impact(arr, series):
+    for i in range(len(arr)):
+        j=0
+        if arr[i] == 10 and arr[i+1] == 0:
+            print(i)
+            j = 1
+            while arr[i-j] == 10:
+                j=j+1
+            print(j)
+            maxtab, mintab = peak_det.peakdet(seriesz[i-j:i], 10)
+            if len(mintab) == 0 or len(maxtab) == 0:
+                continue
+            low_int = [ y for y in mintab[:,0] if y > j-50]
+            if len(low_int) == 0:
+                continue
+            peak_int = [ x for x in maxtab[:,0] if x > min(low_int)]
+            print(peak_int+low_int)
+            val = min(peak_int + low_int)
+            #print(i-j+int(val))
+            arr[i-j+int(val):i] = 30
+    return arr
+
+#def Impact(arr, series):
+#    for i in range(len(arr)):
+#        j=0
+#        if arr[i] == 10 and arr[i+1] ==0:
+#            print(i)
+#            j=1
+#            while arr[i-j] == 10:
+#                j=j+1
+#            
+#    return arr
     
 ##Subject 3 LESS
 rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
@@ -128,6 +166,7 @@ seriesz = data['AccZ'].values
 #data['mean_aX'] = pd.rolling_mean(seriesx, window=w, center=True)
 #data['mean_aY'] = pd.rolling_mean(seriesy, window=w, center=True)
 uaZ = pd.rolling_mean(seriesz, window=w, center=True)
+daZ = Slope(seriesz)
 #data['std_aX'] = pd.rolling_std(seriesx, window=w, center=True)
 #data['std_aY'] = pd.rolling_std(seriesy, window=w, center=True)
 stdaZ = pd.rolling_std(seriesz, window=w, center=True)
@@ -143,15 +182,16 @@ ff = FreeFall(move, uaZ)
 ff_score = pd.rolling_mean(ff, window=10, center=True)
 ff_final = FFinal(ff_score)
 final = Combine(ff_final, final)
-final = Impact(final)
+final = FF_Impact(final)
+final = Impact(final, seriesz)
 print(time.process_time()-start)
 
 ###Plotting
-up = 1800
+up = 0
 down = 2000
 
 aseries = data[comp].ix[up:down]
-mseries = uaZ[up:down]
+mseries = daZ[up:down]
 indic = final[up:down]
 #ff = data['FF_Final'].ix[up:down]
 
