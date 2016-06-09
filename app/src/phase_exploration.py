@@ -101,21 +101,30 @@ def Combine(fff, final):
             final[i] = 20
     return final
         
-def FF_Impact(arr):
-    for i in range(len(arr)):
+def FF_Impact(arr, series):
+    for i in range(len(arr)-1):
         j=0
         if arr[i] == 20 and arr[i+1] == 10:
+            print(i)
             j = 1
             while arr[i+j] == 10:
                 arr[i+j] = 30
                 j = j+1
-            if arr[i+j] == 20:
+                if i+j == len(arr)-1:
+                    continue
+            print(j)
+            maxtab, mintab = peak_det.peakdet(seriesz[i:i+j], 10)
+            print(mintab)
+            if len(mintab) == 0:
                 arr[i:i+j] = 20
+                continue
+            impact = mintab[0][0]
+            arr[i:i+impact] = 20
         i = i+j
     return arr
             
 def Impact(arr, series):
-    for i in range(len(arr)):
+    for i in range(len(arr)-1):
         j=0
         if arr[i] == 10 and arr[i+1] == 0:
             j = 1
@@ -145,6 +154,10 @@ def Impact(arr, series):
 #    return arr
     
 ##Subject 3 LESS
+#rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame jumping\\Rheel_Gabby_jumping_quick_set1.csv'
+#lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame jumping\\Lheel_Gabby_jumping_explosive_set2.csv'
+#hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame jumping\\hips_Gabby_jumping_quick_set1.csv'
+
 rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
 lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
 hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
@@ -177,19 +190,19 @@ trans = Final(mscore)
 final = Fix_Edges(trans, edge)
 
 ff = FreeFall(move, uaZ)
-ff_score = pd.rolling_mean(ff, window=10, center=True)
+ff_score = pd.rolling_mean(ff, window=8, center=True)
 ff_final = FFinal(ff_score)
 final = Combine(ff_final, final)
-final = FF_Impact(final)
+final = FF_Impact(final, seriesz)
 final = Impact(final, seriesz)
 print(time.process_time()-start)
 
 ###Plotting
-up = 3300
-down = 3500
+up = 8000
+down =10000
 
 aseries = data[comp].ix[up:down]
-mseries = daZ[up:down]
+mseries = final[up:down]
 indic = final[up:down]
 #ff = data['FF_Final'].ix[up:down]
 
