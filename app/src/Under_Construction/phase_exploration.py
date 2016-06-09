@@ -64,7 +64,7 @@ def Final(mscore):
     lst = [] #initiate list
     for i in range(len(mscore)):
         if mscore[i] > 0: #if score is greater than 0 mark as moving
-            lst.append(10) #add to list
+            lst.append(1) #add to list
         else:
             lst.append(0) #marked as not moving
     return np.array(lst)
@@ -164,15 +164,30 @@ def Phase_Detect(series, hz):
 #    final = Impact(final, series, hz) #determine impact phases for moving from moving to not moving
     return final #return array
 
-if __name__ == "__main__":    
-    ##Subject 3 LESS
-    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\RHeel_Gabby_walking_heeltoe_set1.csv'
-    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\LHeel_Gabby_walking_heeltoe_set1.csv'
-    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\hips_Gabby_walking_heeltoe_set1.csv'
+def Body_Phase(right, left, hz):
+    r = Phase_Detect(right, hz) #run phase detect on right foot
+    l = Phase_Detect(left, hz) #run phase detect on left foot
     
-#    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
-#    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
-#    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
+    phase = [] #store body phase decisions
+    for i in range(len(r)):
+        if r[i] == 0 and l[i] == 0: #decide in balance phase
+            phase.append(0) #append to list
+        elif r[i] == 1 and l[i] == 0: #decide right foot off ground
+            phase.append(10) #append to list
+        elif r[i] == 0 and l[i] == 1: #decide left foot off ground
+            phase.append(20) #append to list
+        elif r[i] == 1 and l[i] == 1: #decide both feet off ground
+            phase.append(30) #append to list
+    
+    return np.array(phase)
+if __name__ == "__main__":    
+#    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\RHeel_Gabby_walking_heeltoe_set1.csv'
+#    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\LHeel_Gabby_walking_heeltoe_set1.csv'
+#    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\hips_Gabby_walking_heeltoe_set1.csv'
+    
+    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
+    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
+    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
     
     rdata = pd.read_csv(rpath)
     ldata = pd.read_csv(lpath)
@@ -180,15 +195,16 @@ if __name__ == "__main__":
     
     start = time.process_time()
     comp = 'AccZ'
-    data = ldata[comp].values #input AccZ values!
-    output = Phase_Detect(data, 100) #phase detection
+    rdata = rdata[comp].values
+    ldata = ldata[comp].values #input AccZ values!
+    output = Body_Phase(rdata, ldata, 250)
     print(time.process_time()-start)
     
     ###Plotting
-    up = 0
-    down = len(data)
+    up = 2000
+    down = 4000
     
-    aseries = data[up:down]
+    aseries = rdata[up:down]
     indic = output[up:down]
     
     plt.plot(indic)
