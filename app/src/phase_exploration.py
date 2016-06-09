@@ -77,69 +77,71 @@ def Fix_Edges(df, edge):
             None
     return df
     
-def FreeFall(move, u):
-    lst = [] #initiate list
-    for i in range(len(move)):
-        if move[i] == 0 and -11.5 <= u[i] <= -8.5: #if sudden move = 0 and accZ falls in range mark as in free fall
-            lst.append(-1) #add to list (term is NEGATIVE!)
-        else:
-            lst.append(0) #add to list
-    return np.array(lst)
-
-def FFinal(score):
-    lst = []
-    for i in range(len(score)):
-        if score[i] < 0: #if score is less than 0 mark as in free fall
-            lst.append(-10) #add to list
-        else:
-            lst.append(0) #add to list
-    return np.array(lst)
-
-def Combine(fff, final):
-    for i in range(len(fff)):
-        if fff[i] == -10: #translate free fall decisions onto final array
-            final[i] = 20 #add to final array as 20
-    return final
-        
-def FF_Impact(arr, series):
-    for i in range(len(arr)-1):
-        j=0 
-        if arr[i] == 20 and arr[i+1] == 10: #find point where transition from free fall to moving
-            j = 1
-            while arr[i+j] == 10:
-                arr[i+j] = 30 #change following points to "impact"
-                j = j+1 #keep running tally of points in "impact" phase
-                if i+j == len(arr)-1:
-                    break #exit loop if at end of array
-            maxtab, mintab = peak_det.peakdet(series[i:i+j], 10) #peak detect "impact" region
-            if len(mintab) == 0 and i+j == len(arr)-1: #exit for loop if at end of array and no mins 
-                arr[i:i+j] = 20 #reset new "impact" region to free fall
-                break
-            if len(mintab) == 0: #exit for loop if no min (false alarm for end of free fall)
-                arr[i:i+j] = 20 #reset new "impact" region
-                continue
-            impact = mintab[0][0] #find first min
-            arr[i:i+impact] = 20 #reset "impact" region in front of min
-        i = i+j #skip ahead
-    return arr
-            
-def Impact(arr, series, hz):
-    for i in range(len(arr)-1):
-        j=0
-        if arr[i] == 10 and arr[i+1] == 0: #find point where transition from moving to still
-            j = 1
-            while arr[i-j] == 10:
-                j=j+1 #keep running tally of points in "moving" phase
-            maxtab, mintab = peak_det.peakdet(series[i-j:i], 10) #peak detect over moving phase
-            if len(mintab) == 0 or len(maxtab) == 0: #if no min/max that matches threshold
-                continue 
-            low_int = [ y for y in mintab[:,0] if y >= j-int(hz*.24)] #find min within defined window of transition from moving to still 
-            if len(low_int) == 0: #if no min
-                continue
-            peak_int = [ x for x in maxtab[:,0] if x > min(low_int)] #find maxs that follow earliest min
-            val = min(peak_int + low_int) #find min of combined array
-            arr[i-j+int(val):i] = 30 #set impact phase from min found to moving/still transition
-    return arr
+#def FreeFall(move, u):
+#    lst = [] #initiate list
+#    for i in range(len(move)):
+#        if move[i] == 0 and -11.5 <= u[i] <= -8.5: #if sudden move = 0 and accZ falls in range mark as in free fall
+#            lst.append(-1) #add to list (term is NEGATIVE!)
+#        else:
+#            lst.append(0) #add to list
+#    return np.array(lst)
+#
+#def FFinal(score):
+#    lst = []
+#    for i in range(len(score)):
+#        if score[i] < 0: #if score is less than 0 mark as in free fall
+#            lst.append(-10) #add to list
+#        else:
+#            lst.append(0) #add to list
+#    return np.array(lst)
+#
+#def Combine(fff, final):
+#    for i in range(len(fff)):
+#        if fff[i] == -10: #translate free fall decisions onto final array
+#            final[i] = 20 #add to final array as 20
+#    return final
+#        
+#def FF_Impact(arr, series):
+#    for i in range(len(arr)-1):
+#        j=0 
+#        if arr[i] == 20 and arr[i+1] == 10: #find point where transition from free fall to moving
+#            j = 1
+#            while arr[i+j] == 10:
+#                arr[i+j] = 30 #change following points to "impact"
+#                j = j+1 #keep running tally of points in "impact" phase
+#                if i+j == len(arr)-1:
+#                    break #exit loop if at end of array
+#            maxtab, mintab = peak_det.peakdet(series[i:i+j], 10) #peak detect "impact" region
+#            if len(mintab) == 0 and i+j == len(arr)-1: #exit for loop if at end of array and no mins 
+#                arr[i:i+j] = 20 #reset new "impact" region to free fall
+#                break
+#            if len(mintab) == 0: #exit for loop if no min (false alarm for end of free fall)
+#                arr[i:i+j] = 20 #reset new "impact" region
+#                continue
+#            impact = mintab[0][0] #find first min
+#            arr[i:i+impact] = 20 #reset "impact" region in front of min
+#        i = i+j #skip ahead
+#    return arr
+#            
+#def Impact(arr, series, hz):
+#    for i in range(len(arr)-1):
+#        j=0
+#        if arr[i] == 10 and arr[i+1] == 0: #find point where transition from moving to still
+#            print(i)
+#            j = 1
+#            while arr[i-j] == 10:
+#                j=j+1 #keep running tally of points in "moving" phase
+#            print(j)
+#            maxtab, mintab = peak_det.peakdet(series[i-j:i], 10) #peak detect over moving phase
+#            if len(mintab) == 0 or len(maxtab) == 0: #if no min/max that matches threshold
+#                continue 
+#            low_int = [ y for y in mintab[:,0] if y >= j-int(hz*.24)] #find min within defined window of transition from moving to still 
+#            if len(low_int) == 0: #if no min
+#                continue
+#            peak_int = [ x for x in maxtab[:,0] if x > min(low_int)] #find maxs that follow earliest min
+#            val = min(peak_int + low_int) #find min of combined array
+#            arr[i-j+int(val):i] = 30 #set impact phase from min found to moving/still transition
+#    return arr
 
 def Phase_Detect(series, hz):
     w = int(.08*hz) #define rolling mean and st dev window
@@ -154,24 +156,13 @@ def Phase_Detect(series, hz):
     trans = Final(mscore) #determine if in data point is in moving phase
     final = Fix_Edges(trans, edge) #fix right edge since rolling mean wrongly extends moving regions
     
-    ff = FreeFall(move, uaZ) #determine regions of free fall
-    ff_score = pd.rolling_mean(ff, window=8, center=True) #take rolling mean of free fall to handle discontinuities
-    ff_final = FFinal(ff_score) #make determinations on if in free fall or not
-    final = Combine(ff_final, final) #combine moving, free fall, and still phases
-    final = FF_Impact(final, series) #determine impact phases for post free fall states
-    final = Impact(final, series, hz) #determine impact phases for moving from moving to not moving
+#    ff = FreeFall(move, uaZ) #determine regions of free fall
+#    ff_score = pd.rolling_mean(ff, window=8, center=True) #take rolling mean of free fall to handle discontinuities
+#    ff_final = FFinal(ff_score) #make determinations on if in free fall or not
+#    final = Combine(ff_final, final) #combine moving, free fall, and still phases
+#    final = FF_Impact(final, series) #determine impact phases for post free fall states
+#    final = Impact(final, series, hz) #determine impact phases for moving from moving to not moving
     return final #return array
-    
-#def Impact(arr, series):
-#    for i in range(len(arr)):
-#        j=0
-#        if arr[i] == 10 and arr[i+1] ==0:
-#            print(i)
-#            j=1
-#            while arr[i-j] == 10:
-#                j=j+1
-#            
-#    return arr
 
 if __name__ == "__main__":    
     ##Subject 3 LESS
@@ -179,9 +170,9 @@ if __name__ == "__main__":
     lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\LHeel_Gabby_walking_heeltoe_set1.csv'
     hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\hips_Gabby_walking_heeltoe_set1.csv'
     
-    #rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
-    #lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
-    #hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
+#    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
+#    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
+#    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
     
     rdata = pd.read_csv(rpath)
     ldata = pd.read_csv(lpath)
