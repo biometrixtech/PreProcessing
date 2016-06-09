@@ -89,11 +89,11 @@ def Phase_Detect(lfoot, rfoot, hz):
     
     #determine if person standing on one or two legs...or floating
     if left + right == 2:
-        return 0 #both feet on ground
+        return 2 #both feet on ground
     elif left + right == 1:
         return 1 #one foot on ground (not differentiating which one)
     else:
-        return 2 #no feet on the ground...wheeeeee
+        return 0 #no feet on the ground...wheeeeee
     
 
 if __name__ == '__main__':

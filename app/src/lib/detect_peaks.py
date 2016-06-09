@@ -7,7 +7,7 @@
 
 from __future__ import division, print_function
 import numpy as np
-
+import pandas as pd
 #__author__ = "Marcos Duarte, https://github.com/demotu/BMC"
 #__version__ = "1.0.4"
 #__license__ = "MIT"
@@ -178,3 +178,9 @@ def _plot(x, mph, mpd, threshold, edge, valley, ax, ind):
         # plt.grid()
         plt.show()
 
+if __name__ == "__main__":
+    root = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
+    
+    data = pd.read_csv(root)
+    out = detect_peaks(data['EulerX'], valley=True, show=1)
+    print(out)

@@ -82,14 +82,15 @@ def peakdet(v, delta, x = None):
     return array(maxtab), array(mintab)
         
 if __name__=="__main__":
-    pos = 'hip'
+    pos = 'lf'
     root = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\' + pos + 'databody.csv'
+    #root = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame jumping\\Rheel_Gabby_jumping_quick_set1.csv'
     
     data = pd.read_csv(root)
     
-    comp = 'EulerX'
-    series = data[comp].ix[:]
-    maxtab, mintab = peakdet(series,.05)
+    comp = 'AccZ'
+    series = data[comp].ix[4456:4528]
+    maxtab, mintab = peakdet(series,5)
     plt.plot(series.values)
     plt.title(pos + '-' +comp)
 #    print(mintab)
