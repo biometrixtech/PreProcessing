@@ -11,137 +11,157 @@ import matplotlib.pyplot as plt
 import peak_det
 import time
 
-def Slope(arr):
-    lst = []
-    for i in range(1, len(arr)):
-        lst.append(abs(arr[i]-arr[i-1]))
-    return lst
+#def Slope(arr):
+#    lst = []
+#    for i in range(1, len(arr)):
+#        lst.append(abs(arr[i]-arr[i-1]))
+#    return lst
 
-def Move(std, w):
-    infl = .0001
+def Move(std, w): #inputs array of st. devs
+    infl = .0001 #determines how sticky you want the mean and std to be
     
-    new_u = np.mean(std[w:2*w])
-    new_std = (np.std(std[w:2*w])) 
-    store = [0]*(2*w)    
+    new_u = np.mean(std[w:2*w]) #determine initial mean
+    new_std = (np.std(std[w:2*w])) #determine initial mean
+    store = [0]*(2*w) #initialize list with first 2*w terms = 0    
     for i in range(2*w, len(std)):
-        if std[i] > new_u + 1*new_std and std[i] >1:
-            new_u = (new_u + infl*std[i])/(1+infl)
-            new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2))/(1+infl))
-            store.append(1)
+        if std[i] > new_u + 1*new_std and std[i] >1.2: #if data point exceeds 1 SD and is great than 1.2
+            new_u = (new_u + infl*std[i])/(1+infl) #find new mean
+            new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2))/(1+infl)) #find new SD
+            store.append(1) #add to list
         else:
-            new_u = (new_u + infl*std[i])/(1+infl)
-            new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2)))/(1+infl)
-            store.append(0)
+            new_u = (new_u + infl*std[i])/(1+infl) #find new mean
+            new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2)))/(1+infl) #find new SD
+            store.append(0) #add to list
     return store
 
-def Grad_Move(u, w):
-    infl = .00015
+def Grad_Move(u, w): #inputs array of data points
+    infl = .00015 #determines how sticky you want mean and std to be
     
-    new_u = np.mean(u[w:2*w])
-    new_std = (np.std(u[w:2*w])) 
-    store = [0]*(2*w)    
+    new_u = np.mean(u[w:2*w]) #determine initial mean
+    new_std = (np.std(u[w:2*w])) #determine initial mean
+    store = [0]*(2*w)  #initialize list with first 2*w terms = 0  
     for i in range(2*w, len(u)):
-        if (u[i] > new_u + 1*new_std or u[i] < new_u - 1*new_std) and abs(u[i]) > 1.5:
-            new_u = (new_u + infl*u[i])/(1+infl)
-            new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2))/(1+infl))
-            store.append(1)
+        if (u[i] > new_u + 1*new_std or u[i] < new_u - 1*new_std) and abs(u[i]) > 1.5:#if data point exceeds 1 SD and is great than 1.5
+            new_u = (new_u + infl*u[i])/(1+infl) #find new mean
+            new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2))/(1+infl)) #find new SD
+            store.append(1) #add to list
         else:
-            new_u = (new_u + infl*u[i])/(1+infl)
-            new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2)))/(1+infl)
-            store.append(0)
+            new_u = (new_u + infl*u[i])/(1+infl) #find new mean
+            new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2)))/(1+infl) #find new SD
+            store.append(0) #add to list
     return store
 
 def Comb_Move(move, gmove):
-    lst = []
+    lst = [] #initiate list
     for i in range(len(move)):
-        if move[i] == 1 or gmove[i] == 1:
-            lst.append(1)
+        if move[i] == 1 or gmove[i] == 1: #if either move functions = 1 then mark as moving
+            lst.append(1) #add to list
         else:
-            lst.append(0)
+            lst.append(0) #if neither function = 1 dont mark as moving
     return np.array(lst)
 
 def Final(mscore):
-    lst = []
+    lst = [] #initiate list
     for i in range(len(mscore)):
-        if mscore[i] > 0:
-            lst.append(10)
+        if mscore[i] > 0: #if score is greater than 0 mark as moving
+            lst.append(10) #add to list
         else:
-            lst.append(0)
+            lst.append(0) #marked as not moving
     return np.array(lst)
 
 def Fix_Edges(df, edge):
     for i in range(1, len(df)):
-        if df[i]-df[i-1] < 0:
-            df[i-edge:i] = 0
+        if df[i]-df[i-1] < 0: #if point is moving to non-moving fix right edge of moving region
+            df[i-edge:i] = 0 #adjust array
         else:
             None
     return df
     
 def FreeFall(move, u):
-    lst = []
+    lst = [] #initiate list
     for i in range(len(move)):
-        if move[i] == 0 and -11.5 <= u[i] <= -8.5:
-            lst.append(-1)
+        if move[i] == 0 and -11.5 <= u[i] <= -8.5: #if sudden move = 0 and accZ falls in range mark as in free fall
+            lst.append(-1) #add to list (term is NEGATIVE!)
         else:
-            lst.append(0)
+            lst.append(0) #add to list
     return np.array(lst)
 
 def FFinal(score):
     lst = []
     for i in range(len(score)):
-        if score[i] < 0:
-            lst.append(-10)
+        if score[i] < 0: #if score is less than 0 mark as in free fall
+            lst.append(-10) #add to list
         else:
-            lst.append(0)
+            lst.append(0) #add to list
     return np.array(lst)
 
 def Combine(fff, final):
     for i in range(len(fff)):
-        if fff[i] == -10:
-            final[i] = 20
+        if fff[i] == -10: #translate free fall decisions onto final array
+            final[i] = 20 #add to final array as 20
     return final
         
 def FF_Impact(arr, series):
     for i in range(len(arr)-1):
-        j=0
-        if arr[i] == 20 and arr[i+1] == 10:
-            print(i)
+        j=0 
+        if arr[i] == 20 and arr[i+1] == 10: #find point where transition from free fall to moving
             j = 1
             while arr[i+j] == 10:
-                arr[i+j] = 30
-                j = j+1
+                arr[i+j] = 30 #change following points to "impact"
+                j = j+1 #keep running tally of points in "impact" phase
                 if i+j == len(arr)-1:
-                    continue
-            print(j)
-            maxtab, mintab = peak_det.peakdet(seriesz[i:i+j], 10)
-            print(mintab)
-            if len(mintab) == 0:
-                arr[i:i+j] = 20
+                    break #exit loop if at end of array
+            maxtab, mintab = peak_det.peakdet(series[i:i+j], 10) #peak detect "impact" region
+            if len(mintab) == 0 and i+j == len(arr)-1: #exit for loop if at end of array and no mins 
+                arr[i:i+j] = 20 #reset new "impact" region to free fall
+                break
+            if len(mintab) == 0: #exit for loop if no min (false alarm for end of free fall)
+                arr[i:i+j] = 20 #reset new "impact" region
                 continue
-            impact = mintab[0][0]
-            arr[i:i+impact] = 20
-        i = i+j
+            impact = mintab[0][0] #find first min
+            arr[i:i+impact] = 20 #reset "impact" region in front of min
+        i = i+j #skip ahead
     return arr
             
-def Impact(arr, series):
+def Impact(arr, series, hz):
     for i in range(len(arr)-1):
         j=0
-        if arr[i] == 10 and arr[i+1] == 0:
+        if arr[i] == 10 and arr[i+1] == 0: #find point where transition from moving to still
             j = 1
             while arr[i-j] == 10:
-                j=j+1
-            maxtab, mintab = peak_det.peakdet(seriesz[i-j:i], 10)
-            if len(mintab) == 0 or len(maxtab) == 0:
+                j=j+1 #keep running tally of points in "moving" phase
+            maxtab, mintab = peak_det.peakdet(series[i-j:i], 10) #peak detect over moving phase
+            if len(mintab) == 0 or len(maxtab) == 0: #if no min/max that matches threshold
+                continue 
+            low_int = [ y for y in mintab[:,0] if y >= j-int(hz*.24)] #find min within defined window of transition from moving to still 
+            if len(low_int) == 0: #if no min
                 continue
-            low_int = [ y for y in mintab[:,0] if y > j-50]
-            if len(low_int) == 0:
-                continue
-            peak_int = [ x for x in maxtab[:,0] if x > min(low_int)]
-            val = min(peak_int + low_int)
-            #print(i-j+int(val))
-            arr[i-j+int(val):i] = 30
+            peak_int = [ x for x in maxtab[:,0] if x > min(low_int)] #find maxs that follow earliest min
+            val = min(peak_int + low_int) #find min of combined array
+            arr[i-j+int(val):i] = 30 #set impact phase from min found to moving/still transition
     return arr
 
+def Phase_Detect(series, hz):
+    w = int(.08*hz) #define rolling mean and st dev window
+    edge = int(.2*hz) #define window to average moving decisions over
+    uaZ = pd.rolling_mean(series, window=w, center=True) #take rolling mean
+    stdaZ = pd.rolling_std(series, window=w, center=True) #take rolling st dev
+    
+    move = Move(stdaZ, w) #determine if there is sudden move in data
+    gmove = Grad_Move(uaZ, w) #determine if there is gradual move in data
+    cmove = Comb_Move(move, gmove) #combine two types of moves
+    mscore = pd.rolling_mean(cmove, window=edge) #take rolling mean of moves to handle discontinuities
+    trans = Final(mscore) #determine if in data point is in moving phase
+    final = Fix_Edges(trans, edge) #fix right edge since rolling mean wrongly extends moving regions
+    
+    ff = FreeFall(move, uaZ) #determine regions of free fall
+    ff_score = pd.rolling_mean(ff, window=8, center=True) #take rolling mean of free fall to handle discontinuities
+    ff_final = FFinal(ff_score) #make determinations on if in free fall or not
+    final = Combine(ff_final, final) #combine moving, free fall, and still phases
+    final = FF_Impact(final, series) #determine impact phases for post free fall states
+    final = Impact(final, series, hz) #determine impact phases for moving from moving to not moving
+    return final #return array
+    
 #def Impact(arr, series):
 #    for i in range(len(arr)):
 #        j=0
@@ -152,61 +172,34 @@ def Impact(arr, series):
 #                j=j+1
 #            
 #    return arr
+
+if __name__ == "__main__":    
+    ##Subject 3 LESS
+    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\RHeel_Gabby_walking_heeltoe_set1.csv'
+    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\LHeel_Gabby_walking_heeltoe_set1.csv'
+    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\hips_Gabby_walking_heeltoe_set1.csv'
     
-##Subject 3 LESS
-#rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame jumping\\Rheel_Gabby_jumping_quick_set1.csv'
-#lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame jumping\\Lheel_Gabby_jumping_explosive_set2.csv'
-#hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame jumping\\hips_Gabby_jumping_quick_set1.csv'
-
-rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
-lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
-hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
-
-rdata = pd.read_csv(rpath)
-ldata = pd.read_csv(lpath)
-hdata = pd.read_csv(hpath)
-
-start = time.process_time()
-w = 20
-edge = 50 
-comp = 'AccZ'
-data = ldata
-#seriesx = data['AccX'].ix[:]
-#seriesy = data['AccY'].ix[:]
-seriesz = data['AccZ'].values
-#data['mean_aX'] = pd.rolling_mean(seriesx, window=w, center=True)
-#data['mean_aY'] = pd.rolling_mean(seriesy, window=w, center=True)
-uaZ = pd.rolling_mean(seriesz, window=w, center=True)
-daZ = Slope(seriesz)
-#data['std_aX'] = pd.rolling_std(seriesx, window=w, center=True)
-#data['std_aY'] = pd.rolling_std(seriesy, window=w, center=True)
-stdaZ = pd.rolling_std(seriesz, window=w, center=True)
-
-move = Move(stdaZ, w)
-gmove = Grad_Move(uaZ, w)
-cmove = Comb_Move(move, gmove)
-mscore = pd.rolling_mean(cmove, window=edge)
-trans = Final(mscore)
-final = Fix_Edges(trans, edge)
-
-ff = FreeFall(move, uaZ)
-ff_score = pd.rolling_mean(ff, window=8, center=True)
-ff_final = FFinal(ff_score)
-final = Combine(ff_final, final)
-final = FF_Impact(final, seriesz)
-final = Impact(final, seriesz)
-print(time.process_time()-start)
-
-###Plotting
-up = 8000
-down =10000
-
-aseries = data[comp].ix[up:down]
-mseries = final[up:down]
-indic = final[up:down]
-#ff = data['FF_Final'].ix[up:down]
-
-plt.plot(mseries)
-plt.plot(indic)
-plt.plot(aseries.values)
-plt.title(comp)
+    #rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
+    #lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
+    #hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
+    
+    rdata = pd.read_csv(rpath)
+    ldata = pd.read_csv(lpath)
+    hdata = pd.read_csv(hpath)
+    
+    start = time.process_time()
+    comp = 'AccZ'
+    data = ldata[comp].values #input AccZ values!
+    output = Phase_Detect(data, 100) #phase detection
+    print(time.process_time()-start)
+    
+    ###Plotting
+    up = 0
+    down = len(data)
+    
+    aseries = data[up:down]
+    indic = output[up:down]
+    
+    plt.plot(indic)
+    plt.plot(aseries)
+    plt.title(comp)
