@@ -8,7 +8,7 @@ Created on Thu Jun  2 14:01:46 2016
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import peak_det
+#import peak_det
 import time
 
 #def Slope(arr):
@@ -19,11 +19,11 @@ import time
 
 def Move(std, w): #inputs array of st. devs
     infl = .0001 #determines how sticky you want the mean and std to be
-    
-    new_u = np.mean(std[w:2*w]) #determine initial mean
-    new_std = (np.std(std[w:2*w])) #determine initial mean
-    store = [0]*(2*w) #initialize list with first 2*w terms = 0    
-    for i in range(2*w, len(std)):
+    new_u = np.mean(std[int(.5*w):int(1.5*w)]) #determine initial mean
+    print(new_u)
+    new_std = np.std(std[int(.5*w):int(1.5*w)]) #determine initial mean
+    store = [0]*w #initialize list with first 2*w terms = 0    
+    for i in range(w, len(std)):
         if std[i] > new_u + 1*new_std and std[i] >1.2: #if data point exceeds 1 SD and is great than 1.2
             new_u = (new_u + infl*std[i])/(1+infl) #find new mean
             new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2))/(1+infl)) #find new SD
@@ -37,10 +37,10 @@ def Move(std, w): #inputs array of st. devs
 def Grad_Move(u, w): #inputs array of data points
     infl = .00015 #determines how sticky you want mean and std to be
     
-    new_u = np.mean(u[w:2*w]) #determine initial mean
-    new_std = (np.std(u[w:2*w])) #determine initial mean
-    store = [0]*(2*w)  #initialize list with first 2*w terms = 0  
-    for i in range(2*w, len(u)):
+    new_u = np.mean(u[int(.5*w):int(1.5*w)]) #determine initial mean
+    new_std = np.std(u[int(.5*w):int(1.5*w)]) #determine initial mean
+    store = [0]*w  #initialize list with first 2*w terms = 0  
+    for i in range(w, len(u)):
         if (u[i] > new_u + 1*new_std or u[i] < new_u - 1*new_std) and abs(u[i]) > 1.5:#if data point exceeds 1 SD and is great than 1.5
             new_u = (new_u + infl*u[i])/(1+infl) #find new mean
             new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2))/(1+infl)) #find new SD
@@ -198,13 +198,14 @@ if __name__ == "__main__":
     rdata = rdata[comp].values
     ldata = ldata[comp].values #input AccZ values!
     output = Body_Phase(rdata, ldata, 250)
+    #output = Phase_Detect(ldata, 250)
     print(time.process_time()-start)
     
     ###Plotting
-    up = 2000
+    up = 0
     down = 4000
     
-    aseries = rdata[up:down]
+    aseries = ldata[up:down]
     indic = output[up:down]
     
     plt.plot(indic)
