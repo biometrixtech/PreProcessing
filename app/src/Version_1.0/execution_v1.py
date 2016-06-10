@@ -154,11 +154,14 @@ if __name__ == "__main__":
     rfinal = phase.Fix_Edges(rfinal, edge) #fix edges of results
             
     body = phase.Body_Phase(rfinal, final) #create decisions on balance, one foot or no feet
-    body = np.append(body, np.zeros(int(.5*w)) + np.nan) #add nan to match body frame data length
+    body = np.append(body, np.zeros(int(.5*w))) #add nan to match body frame data length
     
+    print(body.shape, hipbf.shape)
     #add decisions to body frame data- body is not appending
-    hipbf = sparse.hstack([hipbf, body])
-    lfbf = sparse.hstack([lfbf, body])
-    rfbf = sparse.hstack([rfbf, body])
+    hipbf = pd.DataFrame(hipbf)
+    lfbf = pd.DataFrame(hipbf)
+    rfbf = pd.DataFrame(hipbf)
+    
+    hipbf['Phase'] = lfbf['Phase'] = rfbf['Phase'] = body
            
             
