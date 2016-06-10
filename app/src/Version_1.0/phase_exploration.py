@@ -9,40 +9,18 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def Move(std, w): #inputs array of st. devs
-    infl = .0001 #determines how sticky you want the mean and std to be
-    
-    new_u = np.mean(std[w:2*w]) #determine initial mean
-    new_std = (np.std(std[w:2*w])) #determine initial mean
-    store = [0]*(2*w) #initialize list with first 2*w terms = 0    
-    for i in range(2*w, len(std)):
-        if std[i] > new_u + 1*new_std and std[i] >1.2: #if data point exceeds 1 SD and is great than 1.2
-            new_u = (new_u + infl*std[i])/(1+infl) #find new mean
-            new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2))/(1+infl)) #find new SD
-            store.append(1) #add to list
-        else:
-            new_u = (new_u + infl*std[i])/(1+infl) #find new mean
-            new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2)))/(1+infl) #find new SD
-            store.append(0) #add to list
-    return store
+def Move(std, w, new_u, new_std): #inputs array of st. devs    
+    if std > new_u + 1*new_std and std >1.2: #if data point exceeds 1 SD and is great than 1.2
+        return 1 #add to list
+    else:
+        return 0 #add to list
 
-def Grad_Move(u, w): #inputs array of data points
-    infl = .00015 #determines how sticky you want mean and std to be
-    
-    new_u = np.mean(u[w:2*w]) #determine initial mean
-    new_std = (np.std(u[w:2*w])) #determine initial mean
-    store = [0]*(2*w)  #initialize list with first 2*w terms = 0  
-    for i in range(2*w, len(u)):
-        if (u[i] > new_u + 1*new_std or u[i] < new_u - 1*new_std) and abs(u[i]) > 1.5:#if data point exceeds 1 SD and is great than 1.5
-            new_u = (new_u + infl*u[i])/(1+infl) #find new mean
-            new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2))/(1+infl)) #find new SD
-            store.append(1) #add to list
-        else:
-            new_u = (new_u + infl*u[i])/(1+infl) #find new mean
-            new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2)))/(1+infl) #find new SD
-            store.append(0) #add to list
-    return store
-
+def Grad_Move(u, w, new_u, new_std): #inputs array of data points 
+    if (u > new_u + 1*new_std or u < new_u - 1*new_std) and abs(u) > 1.5:#if data point exceeds 1 SD and is great than 1.5
+        return 1 #add to list
+    else:
+        return 0 #add to list
+            
 def Comb_Move(move, gmove):
     lst = [] #initiate list
     for i in range(len(move)):
@@ -69,36 +47,19 @@ def Fix_Edges(df, edge):
             None
     return df
 
-def Phase_Detect(series, hz):
-    w = int(.08*hz) #define rolling mean and st dev window
-    edge = int(.2*hz) #define window to average moving decisions over
-    uaZ = pd.rolling_mean(series, window=w, center=True) #take rolling mean
-    stdaZ = pd.rolling_std(series, window=w, center=True) #take rolling st dev
-    
-    move = Move(stdaZ, w) #determine if there is sudden move in data
-    gmove = Grad_Move(uaZ, w) #determine if there is gradual move in data
-    cmove = Comb_Move(move, gmove) #combine two types of moves
-    mscore = pd.rolling_mean(cmove, window=edge) #take rolling mean of moves to handle discontinuities
-    trans = Final(mscore) #determine if in data point is in moving phase
-    final = Fix_Edges(trans, edge) #fix right edge since rolling mean wrongly extends moving regions
-    return final #return array
-
-def Body_Phase(right, left, hz):
-    r = Phase_Detect(right, hz) #run phase detect on right foot
-    l = Phase_Detect(left, hz) #run phase detect on left foot
-    
+def Body_Phase(right, left):
     phase = [] #store body phase decisions
-    for i in range(len(r)):
-        if r[i] == 0 and l[i] == 0: #decide in balance phase
+    for i in range(len(right)):
+        if right[i] == 0 and left[i] == 0: #decide in balance phase
             phase.append(0) #append to list
-        elif r[i] == 1 and l[i] == 0: #decide right foot off ground
+        elif right[i] == 1 and left[i] == 0: #decide right foot off ground
             phase.append(10) #append to list
-        elif r[i] == 0 and l[i] == 1: #decide left foot off ground
+        elif right[i] == 0 and left[i] == 1: #decide left foot off ground
             phase.append(20) #append to list
-        elif r[i] == 1 and l[i] == 1: #decide both feet off ground
+        elif right[i] == 1 and left[i] == 1: #decide both feet off ground
             phase.append(30) #append to list
-    
     return np.array(phase)
+    
 if __name__ == "__main__":    
 #    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\RHeel_Gabby_walking_heeltoe_set1.csv'
 #    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\LHeel_Gabby_walking_heeltoe_set1.csv'
@@ -117,13 +78,3 @@ if __name__ == "__main__":
     ldata = ldata[comp].values #input AccZ values!
     output = Body_Phase(rdata, ldata, 250)
     
-    ###Plotting
-    up = 2000
-    down = 4000
-    
-    aseries = rdata[up:down]
-    indic = output[up:down]
-    
-    plt.plot(indic)
-    plt.plot(aseries)
-    plt.title(comp)
