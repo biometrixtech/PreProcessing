@@ -11,6 +11,16 @@ import phase_exploration as phase
 import Data_Processing as prep
 import peak_det as peak
 
+"""
+#############################################INPUT/OUTPUT####################################################   
+Inputs: data object that must contain raw accel, gyr, mag, and quat values for hip, left heel, and right heel
+sensors.
+
+Outputs: hipbf, lfbf, rfbf (body frames with phases appended; 3 objects); min AND max arrays for each sensor
+and euler angle (18 total objects; 3 sensors x 3 Euler Angles X 2 min/max arrays each)
+#############################################################################################################
+"""
+
 if __name__ == "__main__":
     root = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\' #root path for data folder...reset to your own path
     exercise = "LESS" #Look at file name to find equiv for single squat, double, and LESS
@@ -180,12 +190,10 @@ if __name__ == "__main__":
     body = phase.Body_Phase(rfinal, final) #create decisions on balance, one foot or no feet
     body = np.append(body, np.zeros(int(.5*w))) #add nan to match body frame data length
     
-    #add decisions to body frame data- body is not appending
+    #add decisions to body frame data
     hipbf = pd.DataFrame(hipbf)
     lfbf = pd.DataFrame(hipbf)
     rfbf = pd.DataFrame(hipbf)
     
-    print(lxmintab)
     hipbf['Phase'] = lfbf['Phase'] = rfbf['Phase'] = body
-    #OUTPUTS will be hipbf, lfbf, rfbf, (body frames with phases; 3 objects)  and all min/max arrays for each sensor and euler angle (18 total objects)       
             

@@ -4,36 +4,25 @@ Created on Tue May 31 10:26:09 2016
 
 @author: Brian
 """
-import sys
 import pandas as pd
-import numpy as np
+
 import matplotlib.pyplot as plt
-from numpy import NaN, Inf, arange, isscalar, asarray, array
-    
+from numpy import NaN, Inf, array
+
 """
-Converted from MATLAB script at http://billauer.co.il/peakdet.html
+#############################################INPUT/OUTPUT####################################################   
+Inputs: v, data point (float); i, index of data point (int); mx, current local max value (float);
+mn, current local min value (float); mxpos, indexof current local max (int); mnpos, index of
+current local min (int); maxtab, list of lists containing previous absolute max values and 
+indexes (list);mintab, list of lists containing previous absolute min values and indexes (list)
 
-Returns two arrays
+Outputs: maxtab, list of lists containing previous absolute max values and indexes (list); mintab,
+list of lists containing previous absolute min valuesand indexes (list); mx, current local max value
+(float); mn, current local min value (float); mxpos, index of current local max (int); mnpos, index
+of current local min (int)
+#############################################################################################################
+"""
 
-function [maxtab, mintab]=peakdet(v, delta, x)
-%PEAKDET Detect peaks in a vector
-%        [MAXTAB, MINTAB] = PEAKDET(V, DELTA) finds the local
-%        maxima and minima ("peaks") in the vector V.
-%        MAXTAB and MINTAB consists of two columns. Column 1
-%        contains indices in V, and column 2 the found values.
-%      
-%        With [MAXTAB, MINTAB] = PEAKDET(V, DELTA, X) the indices
-%        in MAXTAB and MINTAB are replaced with the corresponding
-%        X-values.
-%
-%        A point is considered a maximum peak if it has the maximal
-%        value, and was preceded (to the left) by a value lower by
-%        DELTA.
-
-% Eli Billauer, 3.4.05 (Explicitly not copyrighted).
-% This function is released to the public domain; Any use is allowed.
-
-"""   
 def peak_det(v, i, delta, mx, mn, mxpos, mnpos, maxtab, mintab):       
     this = v # value of current data point
     

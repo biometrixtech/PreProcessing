@@ -7,6 +7,15 @@ Created on Fri Feb 26 11:08:09 2016
 
 import numpy as np
 import pandas as pd
+"""
+#############################################INPUT/OUTPUT####################################################
+Inputs: (1) data object that must contain raw accel, gyr, mag, and quat values; (1) 1x4 rotation quaternion 
+that represents the conjugate of the yaw offset.
+
+Outputs: (1) data object that houses body frame data (acc-g, gyr, mag, quat, Euler); (1) data object that
+houses sensor frame data (acc-g, gyr, mag)
+#############################################################################################################
+"""
 
 class WrongShapeError(ValueError):
     pass

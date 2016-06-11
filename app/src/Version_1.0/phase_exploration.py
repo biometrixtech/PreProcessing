@@ -7,7 +7,13 @@ Created on Thu Jun  2 14:01:46 2016
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+
+"""
+#############################################INPUT/OUTPUT####################################################
+Inputs: AccZ data from right and left heel sensors (float) in real time
+Outputs: array, 1 x len(dataset), contains full body moving decisions 
+#############################################################################################################
+"""
 
 def Move(std, w, new_u, new_std): #inputs array of st. devs    
     if std > new_u + 1*new_std and std >1.2: #if data point exceeds 1 SD and is great than 1.2
