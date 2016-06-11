@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import phase_exploration as phase
 import Data_Processing as prep
-from scipy import sparse
+import peak_det as peak
 
 if __name__ == "__main__":
     root = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\' #root path for data folder...reset to your own path
@@ -71,15 +71,25 @@ if __name__ == "__main__":
     ryaw_fix = prep.yaw_offset(rq0) #uses yaw offset function above to compute yaw offset quaternion
     ryfix_c = prep.QuatConj(ryaw_fix) #uses quaternion conjugate function to return conjugate of yaw offset
     
-     #set rolling mean windows
+    #Set peak detection parameters and initiate objects    
+    delta = .1
+    rxmaxtab, rymaxtab, rzmaxtab, lxmaxtab, lymaxtab, lzmaxtab, hxmaxtab, hymaxtab, hzmaxtab = [[] for i in range(9)]
+    rxmintab, rymintab, rzmintab, lxmintab, lymintab, lzmintab, hxmintab, hymintab, hzmintab = [[] for i in range(9)]
+    rxmn, rymn, rzmn, lxmn, lymn, lzmn, hxmn, hymn, hzmn = [np.Inf for i in range(9)] # initiate min, max value variable
+    rxmx, rymx, rzmx, lxmx, lymx, lzmx, hxmx, hymx, hzmx = [-np.Inf for i in range(9)]
+    rxmnpos, rymnpos, rzmnpos, lxmnpos, lymnpos, lzmnpos, hxmnpos, hymnpos, hzmnpos = [np.NaN for i in range(9)] #initiate min, max index variable
+    rxmxpos, rymxpos, rzmxpos, lxmxpos, lymxpos, lzmxpos, hxmxpos, hymxpos, hzmxpos = [np.NaN for i in range(9)]
+    
+    #set rolling mean windows
     w = int(hz*.08) #set rolling mean windows
     edge = int(.2*hz)
-     #initiate lists to hold move decisions
+    #initiate lists to hold move decisions
     movhold = [0]*int(1.5*w)
     gmovhold = [0]*int(1.5*w)
     rmovh = [0]*int(1.5*w)
     rgmovh = [0]*int(1.5*w)
-    for i in range(4500):
+    for i in range(len(lfoot)):
+        #FRAME TRANSFORM
         #frame transforms for all sensors (returns sensor frame data as well but not very relevant)
         hipbod, hipsen = prep.FrameTransform(hip.ix[i,:], hyfix_c)
         lfbod, lfsen = prep.FrameTransform(lfoot.ix[i,:], lyfix_c)
@@ -96,6 +106,7 @@ if __name__ == "__main__":
             lfbf = np.delete(lfbf, 0, axis=0)
             rfbf = np.delete(rfbf, 0, axis=0)
         
+        #PHASE DETECTION
         #set stickiness of weighted rolling means
         infl = .0001
         inflg = .00015
@@ -142,6 +153,19 @@ if __name__ == "__main__":
             #append move functions decisions
             rmovh.append(phase.Move(rstdaZ[-1], w, rnew_u, rnew_std))
             rgmovh.append(phase.Grad_Move(ruaZ[-1], w, rgnew_u, rgnew_std))
+        
+        #PEAK DETECTION- run for each sensor and each euler rotation (9 times)
+        rxmaxtab, rxmintab, rxmx, rxmn, rxmxpos, rxmnpos = peak.peak_det(rfbod[0,4], i, .1, rxmx, rxmn, rxmxpos, rxmnpos, rxmaxtab, rxmintab)
+        rymaxtab, rymintab, rymx, rymn, rymxpos, rymnpos = peak.peak_det(rfbod[0,5], i, .1, rymx, rymn, rymxpos, rymnpos, rymaxtab, rymintab)
+        rzmaxtab, rzmintab, rzmx, rzmn, rzmxpos, rzmnpos = peak.peak_det(rfbod[0,6], i, .1, rzmx, rzmn, rzmxpos, rzmnpos, rzmaxtab, rzmintab)
+
+        lxmaxtab, lxmintab, lxmx, lxmn, lxmxpos, lxmnpos = peak.peak_det(lfbod[0,4], i, .1, lxmx, lxmn, lxmxpos, lxmnpos, lxmaxtab, lxmintab)
+        lymaxtab, lymintab, lymx, lymn, lymxpos, lymnpos = peak.peak_det(lfbod[0,5], i, .1, lymx, lymn, lymxpos, lymnpos, lymaxtab, lymintab)
+        lzmaxtab, lzmintab, lzmx, lzmn, lzmxpos, lzmnpos = peak.peak_det(lfbod[0,6], i, .1, lzmx, lzmn, lzmxpos, lzmnpos, lzmaxtab, lzmintab)
+
+        hxmaxtab, hxmintab, hxmx, hxmn, hxmxpos, hxmnpos = peak.peak_det(hipbod[0,4], i, .1, hxmx, hxmn, hxmxpos, hxmnpos, hxmaxtab, hxmintab)
+        hymaxtab, hymintab, hymx, hymn, hymxpos, hymnpos = peak.peak_det(hipbod[0,5], i, .1, hymx, hymn, hymxpos, hymnpos, hymaxtab, hymintab)
+        hzmaxtab, hzmintab, hzmx, hzmn, hzmxpos, hzmnpos = peak.peak_det(hipbod[0,6], i, .1, hzmx, hzmn, hzmxpos, hzmnpos, hzmaxtab, hzmintab)
     
     cmove = phase.Comb_Move(movhold, gmovhold)  #combine move fxn results for left foot      
     mscore = pd.rolling_mean(cmove, window=edge) #smooth results
@@ -156,12 +180,12 @@ if __name__ == "__main__":
     body = phase.Body_Phase(rfinal, final) #create decisions on balance, one foot or no feet
     body = np.append(body, np.zeros(int(.5*w))) #add nan to match body frame data length
     
-    print(body.shape, hipbf.shape)
     #add decisions to body frame data- body is not appending
     hipbf = pd.DataFrame(hipbf)
     lfbf = pd.DataFrame(hipbf)
     rfbf = pd.DataFrame(hipbf)
     
+    print(lxmintab)
     hipbf['Phase'] = lfbf['Phase'] = rfbf['Phase'] = body
-           
+    #OUTPUTS will be hipbf, lfbf, rfbf, (body frames with phases; 3 objects)  and all min/max arrays for each sensor and euler angle (18 total objects)       
             
