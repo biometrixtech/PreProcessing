@@ -1,0 +1,18 @@
+Peak Detection v1.0 Documentation:
+
+Modules Imported: numpy, pandas
+
+peak_det
+Description: Provides minima and maxima that exceed a threshold value from peak to trough. Data point is checked against currently marked local minimum
+and maximum. If maximum is exceeded data point is marked as new local max, vice versa for the minimum. The position of the newly marked point is stored
+in the associated maxpos and minpos variable. If this new point is either less than the local max minus the threshold or is greater than the local
+min plus the threshold the local max/min is marked as an absolute max and min and is stored in the requisite max/min list along with its index. The
+local max and min are then set to infinity (for max) or negative infinity (for min).
+
+Inputs: v, data point (float); i, index of data point (int); mx, current local max value (float); mn, current local min value (float); mxpos, index
+of current local max (int); mnpos, index of current local min (int); maxtab, list of lists containing previous absolute max values and indexes (list);
+mintab, list of lists containing previous absolute min values and indexes (list)
+
+Outputs: maxtab, list of lists containing previous absolute max values and indexes (list); mintab, list of lists containing previous absolute min values
+and indexes (list); mx, current local max value (float); mn, current local min value (float); mxpos, index of current local max (int); mnpos, index of current
+local min (int)

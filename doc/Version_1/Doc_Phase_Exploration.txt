@@ -1,0 +1,54 @@
+Phase Exploration v1.0 Documentation:
+
+Modules imported: numpy, pandas
+
+Move
+Description: Built for real time use. Makes decision on if a sudden movement is happening by seeing if the standard deviation of the underlying data
+exceeds one standard deviation of the underlying's standard deviation. The underlying's standard deviation as well as the subsequent mean and standard
+deviation of the standard deviation are taken on a rolling .08*sampling rate basis. The standard deviation is then evaluated to see if it exceeds a
+magnitude of 1.2. If both conditions are met, the data point is marked as part of a "moving" phase.
+
+Inputs: std, data point (float); w, window size (int) *will be removed in future releases, not necessary for this release*; new_u, updated mean (float);
+new_std, updated standard deviation (float)
+
+Outputs: int (1 (moving) or 0 (still))
+
+Grad_Move
+Description: Built for real time use. Makes decision on if a sudden movement is happening by seeing if the underlying data point exceeds one standard
+deviation of the rolling mean in either the positive or negative direction. The standard deviation and mean of the underlying's men are taken on a rolling
+.08*sampling rate basis. The mean is then evaluated to see if it exceeds a magnitude of 1.5m/s^2. If both conditions are met, the data point is marked
+as part of a "moving" phase.
+
+Inputs: u, data point (float); w, window size (int) *will be removed in future releases, not necessary for this release*; new_u, updated mean (float);
+new_std, updated standard deviation (float)
+Outputs: int (1 (moving) or 0 (still))
+
+Comb_Move
+Description: Takes list containing Move and Grad_Move decisions and combined them such that, if either function marked a data point as moving, the
+data point is marked as moving.
+
+Inputs: move (list, 1 x len(dataset)); gmove (list, 1 x len(dataset))
+Outputs: array, 1 x len(dataset), contains moving not moving decisions (1=moving, 0=not moving)
+
+Final
+Decsription: Takes smoothed moving decisions and marks all corresponding data points that have a score exceeding zero as moving (1) or not moving (0).
+
+Inputs: mscore (list, 1 x len(dataset))
+Outputs: array, 1 x len(dataset), contains moving not moving decisions (1=moving, 0=not moving)
+
+Fix_Edges
+Description: Fixes the edges of moving regions based on the assumption that the smoothing added extra data points equivalent to .2*hz to the end of
+the moving region window. Searches for parts of array where data transitions from 1 to 0 and then replaces the last .2*hz of the moving region with
+0s to mark as not moving.
+
+Inputs: df, contains moving decisions (array, 1 x len(dataset)); edge, window the moving decisions were smoothed over(int)
+Outputs: array, 1 x len(dataset), contains trimmed moving not moving decisions (1=moving, 0=not moving)
+
+Body_Phase
+Description: Makes decisions on if the athlete is in a double leg balance, single leg balance (for each leg), or moving phase. Each data point is put
+through a series of logic gates. If both legs are still the person is in double leg balance (0). If right leg moving the athlete is in left leg
+balance (10). If left leg is moving the athlete is in right leg balance (20). If both legs are moving the person is moving (40).
+
+Inputs: right, moving decisions for right foot (array, 1 x len(dataset)); left, moving decisions for left foot (array, 1 x len(dataset))
+Outputs: array, 1 x len(dataset), contains full body moving decisions
+ 
