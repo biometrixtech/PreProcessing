@@ -31,7 +31,7 @@ def impact_phase(az, sampl_rate): #input: array of data points & the sampling ra
     for i in numbers:
         if az[i] > 2*az_std+az_mean or az[i+1] > 2*az_std+az_mean or az[i+2] > 2*az_std+az_mean or az[i+3] > 2*az_std+az_mean: #checking if atleast one of the data points from AccZ[i] to AccZ[i+4] is greater than 2 times the standard deviation of AccZ
             start_imp.append(i) #storing the index (i) when the impact phase begins
-            end_imp.append(i+w) #storing the index (i+w; w=20) of when the impact phase ends
+            end_imp.append(i+w) #storing the index (i+w) of when the impact phase ends
             next(islice(numbers, w, 1 ), None) #skip the next 'w' iterations
         
     #combining the impact phases that are really close to eachother (within 20-40 data points) in order to obtain a continuous impact phase
