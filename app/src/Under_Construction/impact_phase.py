@@ -24,7 +24,7 @@ def impact_phase(az, sampl_rate): #input: array of data points
     #detecting the start and end points of an impact phase    
     start_imp = [] #stores the index of the start of the impact phase
     end_imp = []   #stores the index of the end of the impact phase 
-    w = 0.08*sampl_rate #a window of 20 data points to determine impact phase
+    w = 0.08*sampl_rate #a rolling window to determine impact phase
     
     numbers = iter(range(len(az)-3)) #creating an iterator variable. iter() returns an iterator object. Subtracting 3 else, error: 'Index out of range' in the following for loop.
     
