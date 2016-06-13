@@ -16,7 +16,7 @@ Outputs: array, len(Accz dataset), contains impact phase decisions
 #############################################################################################################
 """
 
-def impact_phase(az, sampl_rate): #input: array of data points
+def impact_phase(az, sampl_rate): #input: array of data points & the sampling rate
     
     az_mean = np.mean(az) #determining the mean of the AccZ data points
     az_std = np.std(az) #determining the standard deviation of the AccZ data points
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     rdata = rdata[comp].values
     ldata = ldata[comp].values #input AccZ values!
     sampl_rate = 250 #sampling rate, remember to change it when using data sets of different sampling rate
-    output = impact_phase(ldata, sampl_rate)
+    output = impact_phase(ldata, sampl_rate) #passing an array of data points and the sampling rate
     
     plt.plot(output)
     plt.plot(ldata)
