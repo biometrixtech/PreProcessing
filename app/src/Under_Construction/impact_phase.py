@@ -84,7 +84,7 @@ if __name__ == '__main__':
     comp = 'AccZ'
     rdata = rdata[comp].values
     ldata = ldata[comp].values #input AccZ values!
-    sampl_rate = 250 #sampling rate, remember to change it when using different sampling rate data sets
+    sampl_rate = 250 #sampling rate, remember to change it when using data sets of different sampling rate
     output = impact_phase(ldata, sampl_rate)
     
     plt.plot(output)
