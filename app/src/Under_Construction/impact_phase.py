@@ -11,12 +11,12 @@ import pandas as pd
 
 """
 #############################################INPUT/OUTPUT####################################################
-Inputs: AccZ data (float) from right and left heel sensors 
+Inputs: AccZ data (float) from right or left heel sensors & the sampling rate
 Outputs: array, len(Accz dataset), contains impact phase decisions 
 #############################################################################################################
 """
 
-def impact_phase(az): #input: array of data points
+def impact_phase(az, sampl_rate): #input: array of data points
     
     az_mean = np.mean(az) #determining the mean of the AccZ data points
     az_std = np.std(az) #determining the standard deviation of the AccZ data points
@@ -24,7 +24,7 @@ def impact_phase(az): #input: array of data points
     #detecting the start and end points of an impact phase    
     start_imp = [] #stores the index of the start of the impact phase
     end_imp = []   #stores the index of the end of the impact phase 
-    w = 20 #a window of 20 data points to determine impact phase
+    w = 0.08*sampl_rate #a window of 20 data points to determine impact phase
     
     numbers = iter(range(len(az)-3)) #creating an iterator variable. iter() returns an iterator object. Subtracting 3 else, error: 'Index out of range' in the following for loop.
     
@@ -37,7 +37,7 @@ def impact_phase(az): #input: array of data points
     #combining the impact phases that are really close to eachother (within 20-40 data points) in order to obtain a continuous impact phase
     cstart_imp = [] #stores the new index of the start of a combined impact phase
     cend_imp = [] #stores the new index of the end of a combined impact phase
-    cw = 30 #number of data points within which impact phases are combined
+    cw = 0.12*sampl_rate #number of data points within which impact phases are combined
     s = 10 #a value is assigned when impact phase is detected. 
     
     for i,j in zip(range(1, len(start_imp[:])), range(len(end_imp[:])-1)):
@@ -53,8 +53,8 @@ def impact_phase(az): #input: array of data points
     for i, j in zip(cstart_imp, cend_imp):
         h[i:j] = s #assigning a value to the index points of an impact phase
         
-    #eliminating false impact phases
-    thresh = 3 #setting a threshold value to eliminate false impact phases        
+    #eliminating false positives
+    thresh = 3 #setting a threshold value to eliminate false positives        
         
     for k,l in zip(cstart_imp[:], cend_imp[:]):
         dummy = [] #initiating a dummy list
@@ -84,7 +84,8 @@ if __name__ == '__main__':
     comp = 'AccZ'
     rdata = rdata[comp].values
     ldata = ldata[comp].values #input AccZ values!
-    output = impact_phase(ldata)
+    sampl_rate = 250 #sampling rate, remember to change it when using different sampling rate data sets
+    output = impact_phase(ldata, sampl_rate)
     
     plt.plot(output)
     plt.plot(ldata)
