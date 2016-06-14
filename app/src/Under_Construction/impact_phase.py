@@ -34,7 +34,7 @@ def impact_phase(az, sampl_rate): #input: array of data points & the sampling ra
             end_imp.append(i+w) #storing the index (i+w) of when the impact phase ends
             next(islice(numbers, w, 1 ), None) #skip the next 'w' iterations
         
-    #combining the impact phases that are really close to eachother (within 20-40 data points) in order to obtain a continuous impact phase
+    #combining the impact phases that are close to eachother in order to obtain a continuous impact phase
     cstart_imp = [] #stores the new index of the start of a combined impact phase
     cend_imp = [] #stores the new index of the end of a combined impact phase
     cw = 0.12*sampl_rate #number of data points within which impact phases are combined
