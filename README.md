@@ -24,6 +24,8 @@ X-------Code Freeze for Alpha--------X
 
 7/1 - Fatigue Reporting Mechanism, V2 Load
 
+7/8 - Anatomical Reference for Body Frame Trasformation, Anything needed for Firmware Update 
+
 7/X - Execution Reporting Mechanism, Constructive/Destructive Load Reporting Mechanism
 
 
