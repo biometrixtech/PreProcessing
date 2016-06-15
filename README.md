@@ -2,7 +2,7 @@
 Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
 
 ####In Progress - expected 6/17:
-Phase Detection, Impact (status: code review) identifies the impact phase, the second relevant phase
+Phase Detection, Impact (status: released) identifies the impact phase, the second relevant phase
 
 Load (status: discovery) major variable for reporting, contextualizes CMEs
 
