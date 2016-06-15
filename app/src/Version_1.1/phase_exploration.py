@@ -59,11 +59,11 @@ def Body_Phase(right, left):
         if right[i] == 0 and left[i] == 0: #decide in balance phase
             phase.append(0) #append to list
         elif right[i] == 1 and left[i] == 0: #decide right foot off ground
-            phase.append(10) #append to list
+            phase.append(1) #append to list
         elif right[i] == 0 and left[i] == 1: #decide left foot off ground
-            phase.append(20) #append to list
+            phase.append(2) #append to list
         elif right[i] == 1 and left[i] == 1: #decide both feet off ground
-            phase.append(30) #append to list
+            phase.append(3) #append to list
     return np.array(phase)
     
 if __name__ == "__main__":    
