@@ -17,7 +17,7 @@ import time
 #        lst.append(abs(arr[i]-arr[i-1]))
 #    return lst
 
-def Move(std, w): #inputs array of st. devs
+def Move(std, pitch, w): #inputs array of st. devs
     infl = .0001 #determines how sticky you want the mean and std to be
     new_u = np.mean(std[int(.5*w):int(1.5*w)]) #determine initial mean
     print(new_u)
@@ -31,10 +31,13 @@ def Move(std, w): #inputs array of st. devs
         else:
             new_u = (new_u + infl*std[i])/(1+infl) #find new mean
             new_std = (new_std + infl*(np.sqrt((std[i]-new_u)**2)))/(1+infl) #find new SD
-            store.append(0) #add to list
+            if pitch[i] >= .9: 
+                store.append(1) #add to list
+            else:
+                store.append(0)
     return store
 
-def Grad_Move(u, w): #inputs array of data points
+def Grad_Move(u, pitch, w): #inputs array of data points
     infl = .00015 #determines how sticky you want mean and std to be
     
     new_u = np.mean(u[int(.5*w):int(1.5*w)]) #determine initial mean
@@ -48,7 +51,10 @@ def Grad_Move(u, w): #inputs array of data points
         else:
             new_u = (new_u + infl*u[i])/(1+infl) #find new mean
             new_std = (new_std + infl*(np.sqrt((u[i]-new_u)**2)))/(1+infl) #find new SD
-            store.append(0) #add to list
+            if pitch[i] >= .9: 
+                store.append(1) #add to list
+            else:
+                store.append(0)
     return store
 
 def Comb_Move(move, gmove):
@@ -143,14 +149,14 @@ def Fix_Edges(df, edge):
 #            arr[i-j+int(val):i] = 30 #set impact phase from min found to moving/still transition
 #    return arr
 
-def Phase_Detect(series, hz):
+def Phase_Detect(series, pitch, hz):
     w = int(.08*hz) #define rolling mean and st dev window
     edge = int(.2*hz) #define window to average moving decisions over
     uaZ = pd.rolling_mean(series, window=w, center=True) #take rolling mean
     stdaZ = pd.rolling_std(series, window=w, center=True) #take rolling st dev
     
-    move = Move(stdaZ, w) #determine if there is sudden move in data
-    gmove = Grad_Move(uaZ, w) #determine if there is gradual move in data
+    move = Move(stdaZ, pitch, w) #determine if there is sudden move in data
+    gmove = Grad_Move(uaZ, pitch, w) #determine if there is gradual move in data
     cmove = Comb_Move(move, gmove) #combine two types of moves
     mscore = pd.rolling_mean(cmove, window=edge) #take rolling mean of moves to handle discontinuities
     trans = Final(mscore) #determine if in data point is in moving phase
@@ -164,9 +170,9 @@ def Phase_Detect(series, hz):
 #    final = Impact(final, series, hz) #determine impact phases for moving from moving to not moving
     return final #return array
 
-def Body_Phase(right, left, hz):
-    r = Phase_Detect(right, hz) #run phase detect on right foot
-    l = Phase_Detect(left, hz) #run phase detect on left foot
+def Body_Phase(right, left, rpitch, lpitch, hz):
+    r = Phase_Detect(right, rpitch, hz) #run phase detect on right foot
+    l = Phase_Detect(left, lpitch, hz) #run phase detect on left foot
     
     phase = [] #store body phase decisions
     for i in range(len(r)):
@@ -178,16 +184,16 @@ def Body_Phase(right, left, hz):
             phase.append(20) #append to list
         elif r[i] == 1 and l[i] == 1: #decide both feet off ground
             phase.append(30) #append to list
-    
     return np.array(phase)
-if __name__ == "__main__":    
-#    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\RHeel_Gabby_walking_heeltoe_set1.csv'
-#    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\LHeel_Gabby_walking_heeltoe_set1.csv'
-#    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\hips_Gabby_walking_heeltoe_set1.csv'
     
-    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
-    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
-    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
+if __name__ == "__main__":    
+    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\RHeel_Gabby_walking_heeltoe_set1.csv'
+    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\LHeel_Gabby_walking_heeltoe_set1.csv'
+    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\hips_Gabby_walking_heeltoe_set1.csv'
+    
+#    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
+#    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
+#    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
     
     rdata = pd.read_csv(rpath)
     ldata = pd.read_csv(lpath)
@@ -195,19 +201,23 @@ if __name__ == "__main__":
     
     start = time.process_time()
     comp = 'AccZ'
-    rdata = rdata[comp].values
-    ldata = ldata[comp].values #input AccZ values!
-    output = Body_Phase(rdata, ldata, 250)
+    ptch = 'EulerY'
+    racc = rdata[comp].values
+    lacc = ldata[comp].values #input AccZ values!
+    rpitch = rdata[ptch].values
+    lpitch = ldata[ptch].values
+    output = Body_Phase(racc, lacc, rpitch, lpitch,  100)
     #output = Phase_Detect(ldata, 250)
     print(time.process_time()-start)
     
     ###Plotting
     up = 0
-    down = 4000
+    down = len(rdata)
     
     aseries = ldata[up:down]
     indic = output[up:down]
     
-    plt.plot(indic)
-    plt.plot(aseries)
+    plt.plot(output)
+    plt.plot(racc)
     plt.title(comp)
+    plt.show()
