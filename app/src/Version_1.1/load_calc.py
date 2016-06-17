@@ -73,17 +73,17 @@ if __name__ == '__main__':
     ldata = ldata[acc]
     hdata = hdata[acc]
     
-    mass = 75 #in kilograms
-    exmass = 0 #in kilograms
     ph = pe.Body_Phase(rdata['AccZ'], ldata['AccZ'], 100) #array containing the full body moving decisions
     rdata['Phase'] = ph
     ldata['Phase'] = ph
     hdata['Phase'] = ph    
 
-    op_rf, op_lf = load_balance(rdata, ldata, hdata, mass, exmass) #passing an array of data points and the sampling rate
+    mass = 75 #in kilograms
+    exmass = 0 #in kilograms
+    ld_rf, ld_lf = load_balance(rdata, ldata, hdata, mass, exmass) #passing the right foot, left foot, hip, user mass and extra mass data
     
-    plt.plot(op_rf)
-    plt.plot(op_lf)
+    plt.plot(ld_rf)
+    plt.plot(ld_lf)
     #plt.plot(ldata['AccZ'])
     #plt.plot(ph)
     plt.show()
