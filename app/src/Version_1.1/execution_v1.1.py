@@ -12,6 +12,7 @@ import Data_Processing as prep
 import peak_det as peak
 import impact_phase as impact
 import CME_rotate as cmer
+import load_calc
 
 """
 #############################################INPUT/OUTPUT####################################################   
@@ -227,3 +228,7 @@ if __name__ == "__main__":
         dbl_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 0) #peak detect hips z-axis double leg balance
         lsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 1) #peak detect hips z-axis single leg left
         rsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 2) #peak detect hips z-axis single leg right
+        
+    #LOAD: BALANCE PHASE - not real time, run for each sensor
+    req_fields = ['AccX', 'AccY', 'AccZ', 'Phase'] #all acceleration data and phase data for the right foot, left foot and the hip are required to be passed to the load_balance function
+    ldbal_rfoot, ldbal_lfoot = load_calc.load_balance(rfbf[req_fields], lfbf[req_fields], hipbf[req_fields], m_user, em_user) #m_user is the mass (kg) of the user and em_user is the extra mass (kg) that the user has strapped on
