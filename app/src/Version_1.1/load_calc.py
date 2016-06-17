@@ -29,8 +29,8 @@ def calc_force(ma, ema, a):
 Inputs: Acceleration and phase exploration data (AccX, AccY, AccZ, Phase) of the right heel, left heel and hip 
         sensors; the mass of the user in kilograms; any extra mass the user has strapped on in kilograms
 Outputs: array of the load during balance phase, on the right foot (rf_bal) and on the left foot (lf_bal) 
-Datasets: PreProcessing\data\load_calc; 3 input files (lbal_hip_in.csv, lbal_lfoot_in.csv, lbal_rfoot_in.csv
-          -> load_balance(rdata, ldata, hipdata, user_mass, user_extramass)
+Datasets: 3 input files (lbal_hip_in.csv, lbal_lfoot_in.csv, lbal_rfoot_in.csv)
+          -> load_balance(rdata, ldata, hipdata, 75, 0) # 75 and 0 are sample values for the mass and extra mass variables
           -> 2 output files (lbal_lfoot_out.csv, lbal_rfoot_out.csv)
 #############################################################################################################
 """
