@@ -20,7 +20,7 @@ Outputs: a single force value (float)
 
 def calc_force(ma, ema, a):
     
-    f = (((ma + ema)*g) + abs((ma + ema)*a))/1000
+    f = (((ma + ema)*g) + abs((ma + ema)*a))/1000 #dividing by a 1000 to convert Newton to Kilonewton
     
     return f
     
@@ -44,9 +44,11 @@ def load_balance(rf, lf, hip, m, em):
             rf_bal.append(calc_force(m/2, em/2, res_hipacc))
             lf_bal.append(calc_force(m/2, em/2, res_hipacc))
         elif rf['Phase'][i] == 1: #checking if the right foot is off the ground
+            rf_bal.append(0)
             lf_bal.append(calc_force(m, em, res_hipacc))
         elif rf['Phase'][i] == 2: #checking if the left foot is off the ground
             rf_bal.append(calc_force(m, em, res_hipacc))
+            lf_bal.append(0)
             
     return np.array(rf_bal), np.array(lf_bal)
     
