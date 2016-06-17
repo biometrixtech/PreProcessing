@@ -8,6 +8,7 @@ Load (status: released) major variable for reporting, contextualizes CMEs
 
 Quantifying Balance CMEs (status: released) lying on top of the peak detect script, quantify max rotations for ie pronation, hip drop etc
 
+Phase Detection, Balance (status: released) changed output values for body_phase function from [0,10,20,30] to [0,1,2,3]
 ####Release 1.0 (6/10/16)
 Data Processing (status: released) transform sensor frame to body frame
 
