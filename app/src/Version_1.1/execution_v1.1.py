@@ -11,6 +11,7 @@ import phase_exploration as phase
 import Data_Processing as prep
 import peak_det as peak
 import impact_phase as impact
+import CME_rotate as cmer
 
 """
 #############################################INPUT/OUTPUT####################################################   
@@ -205,4 +206,25 @@ if __name__ == "__main__":
     lfbf['Impact'] = limpact
     rfbf['Impact'] = rimpact
     print(lfbf)
-            
+    
+    #ROTATION CME DETECTION - not real time, batched at the end
+    #Pronation/Supination
+    if len(lxmaxtab) != 0 and len(lxmintab) != 0:
+        dbl_lprosup = cmer.rot_CME(lxmaxtab, lxmintab, body, .14, 0) #left foot double leg balance
+        sin_lprosup = cmer.rot_CME(lxmaxtab, lxmintab, body, .14, 1) #left foot single leg left balance
+
+    if len(rxmaxtab) != 0 and len(rxmintab) != 0:
+        dbl_rprosup = cmer.rot_CME(rxmaxtab, rxmintab, body, .14, 0) #right foot double leg balance
+        sin_rprosup = cmer.rot_CME(rxmaxtab, rxmintab, body, .14, 2) #right foot single leg right balance
+    
+    #Contralateral Hip Drop
+    if len(hymaxtab) != 0 and len(hymintab) != 0:
+        dbl_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 0) #double leg balance
+        lsin_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 1) #single leg left
+        rsin_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 2) #single leg right
+    
+    #Lateral Hip Rotation
+    if len(hzmaxtab) != 0 and len(hzmintab) != 0:
+        dbl_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 0) #double leg balance
+        lsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 1) #single leg left
+        rsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 2) #single leg right
