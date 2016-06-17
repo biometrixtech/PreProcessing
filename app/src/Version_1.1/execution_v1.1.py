@@ -205,26 +205,25 @@ if __name__ == "__main__":
     hipbf['Phase'] = lfbf['Phase'] = rfbf['Phase'] = body
     lfbf['Impact'] = limpact
     rfbf['Impact'] = rimpact
-    print(lfbf)
     
     #ROTATION CME DETECTION - not real time, batched at the end
     #Pronation/Supination
     if len(lxmaxtab) != 0 and len(lxmintab) != 0:
-        dbl_lprosup = cmer.rot_CME(lxmaxtab, lxmintab, body, .14, 0) #left foot double leg balance
-        sin_lprosup = cmer.rot_CME(lxmaxtab, lxmintab, body, .14, 1) #left foot single leg left balance
+        dbl_lprosup = cmer.rot_CME(lxmaxtab, lxmintab, body, .14, 0) #peak detect left foot x-axis double leg balance 
+        sin_lprosup = cmer.rot_CME(lxmaxtab, lxmintab, body, .14, 1) #peak detect left foot x-axis single leg left balance
 
     if len(rxmaxtab) != 0 and len(rxmintab) != 0:
-        dbl_rprosup = cmer.rot_CME(rxmaxtab, rxmintab, body, .14, 0) #right foot double leg balance
-        sin_rprosup = cmer.rot_CME(rxmaxtab, rxmintab, body, .14, 2) #right foot single leg right balance
+        dbl_rprosup = cmer.rot_CME(rxmaxtab, rxmintab, body, .14, 0) #peak detect right foot x-axis double leg balance
+        sin_rprosup = cmer.rot_CME(rxmaxtab, rxmintab, body, .14, 2) #peak detect right foot x-axis single leg right balance
     
     #Contralateral Hip Drop
     if len(hymaxtab) != 0 and len(hymintab) != 0:
-        dbl_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 0) #double leg balance
-        lsin_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 1) #single leg left
-        rsin_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 2) #single leg right
+        dbl_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 0) #peak detect hips y-axis double leg balance
+        lsin_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 1) #peak detect hips y-axis single leg left
+        rsin_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 2) #peak detect hips y-axis single leg right
     
     #Lateral Hip Rotation
     if len(hzmaxtab) != 0 and len(hzmintab) != 0:
-        dbl_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 0) #double leg balance
-        lsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 1) #single leg left
-        rsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 2) #single leg right
+        dbl_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 0) #peak detect hips z-axis double leg balance
+        lsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 1) #peak detect hips z-axis single leg left
+        rsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 2) #peak detect hips z-axis single leg right
