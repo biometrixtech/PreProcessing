@@ -17,32 +17,26 @@ Inputs: peak detection for each sensor on each axis, body phase detection
 
 Outputs: lists with angular displacement changes for pronation/supination on each foot(2) and for each balance
 phase(3), lists with angular displacement changes for Lateral Hip Rotation for each balance phase (3), lists
-with angular displacement changes for Contralateral Hip Drop for each balance phase (3)  
+with angular displacement changes for Contralateral Hip Drop for each balance phase (3)
+
+Datasets: phase_inputs.csv, peak_inputs.csv (contains both peak and trough values) ->
+rot_CME(maxtab, mintab, output, .1, 1, 250) -> outputs.csv 
 #############################################################################################################
 """
 
-def rot_CME(maxtab, mintab, states, thresh, state):
-    combine = np.concatenate((maxtab, mintab))
-    combine = combine[combine[:,0].argsort()]
-    mags = [[(180/np.pi)*(combine[i,1]-combine[i-1,1]), combine[i,0]] for i in range(1,len(combine)) if abs(combine[i,1]-combine[i-1,1]) > thresh]
-    tdiff = [combine[i,0] for i in range(1,len(combine)) if (combine[i,0]-combine[i-1,0]) < 400]
-    mdiff = [combine[i] for i in range(1,len(combine)) if abs(combine[i,1]-combine[i-1,1]) > thresh] 
+def rot_CME(maxtab, mintab, states, thresh, state, hz):
+    combine = np.concatenate((maxtab, mintab)) #combine min and max arrays
+    combine = combine[combine[:,0].argsort()] #sort by index to get in chronological order
+    mags = [[(180/np.pi)*(combine[i,1]-combine[i-1,1]), combine[i,0]] for i in range(1,len(combine)) if abs(combine[i,1]-combine[i-1,1]) > thresh] #convert peak to trough diff to degrees filtered by threshold 
+    tdiff = [combine[i,0] for i in range(1,len(combine)) if (combine[i,0]-combine[i-1,0]) < 1.6*hz] #make sure time the critical value is time relevant (i.e. peak doesn't happen 5 seconds after trough)
+    mdiff = [combine[i] for i in range(1,len(combine)) if abs(combine[i,1]-combine[i-1,1]) > thresh] #filter list by threshold 
     if len(tdiff) > 0 and len(mdiff) > 0: 
-        diff = [mdiff[i] for i in range(len(mdiff)) if mdiff[i][0] in tdiff]
-        diff = np.array([diff[i] for i in range(len(diff)) if states[int(diff[i][0])] == state])
+        diff = [mdiff[i] for i in range(len(mdiff)) if mdiff[i][0] in tdiff] #make list of points that satisfy time and threshold conditions
+        diff = np.array([diff[i] for i in range(len(diff)) if states[int(diff[i][0])] == state]) #refine list by removing points not in relevant phase
         if len(diff) > 0:
-            #print(diff[:,0])
-            final = [mags[i][0] for i in range(len(mags)) if mags[i][1] in diff[:,0]]
-            return final, diff
-    return [], []
-
-def rel_rot_CME(maxtab, mintab, states, thresh, state, rel):
-    combine = np.concatenate((maxtab, mintab))
-    combine = combine[combine[:,0].argsort()]
-    pos = [[combine[i,1]-rel, combine[i,0]] for i in range(len(combine)) if combine[i,1]-rel > thresh]
-    neg = [[combine[i,1]-rel, combine[i,0]] for i in range(len(combine)) if combine[i,1]-rel < -thresh]
-    print(pos, neg)       
-    return pos,neg
+            final = [mags[i][0] for i in range(len(mags)) if mags[i][1] in diff[:,0]] #create list of degree values of movements
+            return final
+    return [], [] #if no peaks meet requirement return empty list
     
 if __name__ == "__main__":
     pos = 'lf'
@@ -59,10 +53,7 @@ if __name__ == "__main__":
     lseries = ldata['AccZ'].values #input AccZ values!
     rpitch = rdata['EulerY'].values
     lpitch = ldata['EulerY'].values
-    output = phase.Body_Phase(rseries, lseries, rpitch, lpitch, 250)
-    ldata['Phase'] = output
-    rdata['Phase'] = output
-    hdata['Phase'] = output    
+    output = phase.Body_Phase(rseries, lseries, rpitch, lpitch, 250)    
     
     #Peak Detection- Right Foot Pronation
     peak_series = hdata['EulerZ'].values
@@ -70,7 +61,7 @@ if __name__ == "__main__":
     
     ###THE GOOD STUFF!!!####
     if len(maxtab) != 0 or len(mintab) != 0:
-        out, run = rot_CME(maxtab, mintab, output, .1, 0)
+        out= rot_CME(maxtab, mintab, output, .1, 1, 250)
     
     
     
