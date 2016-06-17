@@ -4,9 +4,9 @@ Analytics R&D: python scripts developed to clean, mark, and quanitify biomechani
 ####In Progress - expected 6/17:
 Phase Detection, Impact (status: released) identifies the impact phase, the second relevant phase
 
-Load (status: discovery) major variable for reporting, contextualizes CMEs
+Load (status: released) major variable for reporting, contextualizes CMEs
 
-Quantifying Balance CMEs (status: testing) lying on top of the peak detect script, quantify max rotations for ie pronation, hip drop etc
+Quantifying Balance CMEs (status: released) lying on top of the peak detect script, quantify max rotations for ie pronation, hip drop etc
 
 ####Release 1.0 (6/10/16)
 Data Processing (status: released) transform sensor frame to body frame
