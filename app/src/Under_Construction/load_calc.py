@@ -50,6 +50,10 @@ def load_balance(rf, lf, hip, m, em):
             
     return np.array(rf_bal), np.array(lf_bal)
     
+def load_impact(rf, lf, hip, m, em):
+        
+    return
+    
     
 if __name__ == '__main__':
     
@@ -80,7 +84,7 @@ if __name__ == '__main__':
     ldata['Phase'] = ph
     hdata['Phase'] = ph    
 
-    op_rf, op_lf = load_balance(rdata, ldata, hdata, mass, exmass) #passing an array of data points and the sampling rate
+    op_rf, op_lf = load_balance(rdata, ldata, hdata, mass, exmass) 
     
     plt.plot(op_rf)
     plt.plot(op_lf)
