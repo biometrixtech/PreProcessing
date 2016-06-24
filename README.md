@@ -12,7 +12,7 @@ Phase Detection, Update (status: released) now differentiates between a still fo
 
 CME_Detect, Update (status: released) now does not filter for changes beyond a threshold nor changes that exceed a time limit. Purely filters by finding phases deemed "relevant" for the specific CME
 
-Load Calc, Update (stats: code review) now calculates the distribution of the load for CME errors (outputs in percentage of load on left leg)
+Load Distribution CME, Update (stats: code review) now calculates the distribution of the load for CME errors (outputs in percentage of load on left leg)
 
 ####Release 1.1 (6/17/16):
 Phase Detection, Impact (status: released) identifies the impact phase, the second relevant phase
