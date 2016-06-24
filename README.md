@@ -6,11 +6,11 @@ Quantifying Impact CMEs (status: code review) determines the impact angle and ti
 
 Execution Reporting Mechanism (status:method selected) provides a metric that quantifies the athlete's ability to execute a "good" regimen, weighted by load
 
-Anatomical Reference for Body Frame Transformation (status: code review) makes sure each sensor's body frame is now oriented close-to-forward even during dynamic activities
+Anatomical Reference for Body Frame Transformation (status: Released) makes sure each sensor's body frame is now oriented close-to-forward even during dynamic activities
 
-Phase Detection, Update (status: code review) now differentiates between a still foot off the ground and a still foot on the ground
+Phase Detection, Update (status: Released) now differentiates between a still foot off the ground and a still foot on the ground
 
-CME_Detect, Update (status: code review) now does not filter for changes beyond a threshold nor changes that exceed a time limit. Purely filters by finding phases deemed "relevant" for the specific CME
+CME_Detect, Update (status: Released) now does not filter for changes beyond a threshold nor changes that exceed a time limit. Purely filters by finding phases deemed "relevant" for the specific CME
 
 Load Calc, Update (stats: code review) now calculates the distribution of the load for CME errors (outputs in percentage of load on left leg)
 
