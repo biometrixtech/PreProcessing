@@ -14,6 +14,8 @@ that represents the conjugate of the yaw offset.
 
 Outputs: (1) data object that houses body frame data (acc-g, gyr, mag, quat, Euler); (1) data object that
 houses sensor frame data (acc-g, gyr, mag)
+
+Datasets: Preprocess_unittest.csv -> __main__ -> postprocessed_unittest.csv
 #############################################################################################################
 """
 
@@ -136,7 +138,7 @@ def FrameTransform(data, iquatc, head):
     
 if __name__ == '__main__':
     ####READ IN DATA ~ Will change when we call from the database#####
-    path = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\sanity_test.csv'
+    path = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\Preprocess_unittest.csv'
     data = pd.read_csv(path) #read in data; csv read in is just a stand in for now
     bodyframe = []
     sensframe = []
@@ -161,3 +163,5 @@ if __name__ == '__main__':
     ####Creates dataframe for body and sensor outputs along with adding column names 
     body = pd.DataFrame(bodyframe, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #body frame column names
     sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
+    
+    body.to_csv('C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\postprocessed_unittest.csv')
