@@ -124,7 +124,7 @@ def FrameTransform(data, iquatc, head):
     fixed_q = QuatProd(iquatc,quat) #quaternion product of conjugate of yaw offset and quaternion from data, remember order matters!         
     output_body[0,0:4] = fixed_q #assign corrected quaternion to body output vector
     output_body[0,4:7] = Calc_Euler(fixed_q) #assign set of euler angles to body output vector
-    output_body[0,6] = Calc_Euler(head)[2]
+    output_body[0,6] = Calc_Euler(head)[2] #calculate yaw from heading quaternion
     output_body[0,7:10] = rotate_quatdata(acc, fixed_q, RemoveGrav=True) #add corrected accel data to body output vector
     output_body[0,10:13] = rotate_quatdata(gyr, fixed_q) #add corrected gyro data to body output vector
     output_body[0,13:16] = rotate_quatdata(mag, fixed_q) #add corrected mag data to body output vector   
@@ -149,11 +149,10 @@ if __name__ == '__main__':
     
     for i in range(iters):
         q0 = np.matrix([data.ix[i,'qW_raw'], data.ix[i,'qX_raw'], data.ix[i,'qY_raw'], data.ix[i,'qZ_raw']]) #t=0 quaternion
-        yaw_fix = yaw_offset(q0) #uses yaw offset function above to compute yaw offset quaternion
-        yfix_c = QuatConj(yaw_fix) #uses quaternion conjugate function to return conjugate of yaw offset
-        head = QuatProd(init_head, yaw_fix)
+        yaw_fix = yaw_offset(q0) #uses yaw offset function above to body frame quaternion
+        yfix_c = QuatConj(yaw_fix) #uses quaternion conjugate function to return conjugate of body frame
+        head = QuatProd(init_head, yaw_fix) #heading quaternion (yaw difference from t=0)
         obody, osens = FrameTransform(data.ix[i,:], yfix_c, head)
-#        obody, osens = FrameTransform(data.ix[i,:], yfix_c)
     
         ##appends each output vector to respective frame (used for saving to my computer...might be done differently in app)    
         bodyframe.append(obody[0,:]) 
