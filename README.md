@@ -1,16 +1,20 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
 
-####Release (In Progress):
-Quantifying Impact CMEs (status: discovery) determines the impact angle and timing of impact differences
+####Release 1.2 (In Progress):
+Quantifying Impact CMEs (status: code review) determines the impact angle and timing of impact differences
 
-Symmetry Reporting Mechanism (status:discovery) provides a metric that describes differences in orientation, rotation, or loading between two sides of the body
+Execution Reporting Mechanism (status:method selected) provides a metric that quantifies the athlete's ability to execute a "good" regimen, weighted by load
 
-Anatomical Reference for Body Frame Transformation (status: discovery) identifies a "anatomically neutral" orientation for each sensor on the athlete
+Anatomical Reference for Body Frame Transformation (status: code review) makes sure each sensor's body frame is now oriented close-to-forward even during dynamic activities
 
-Weight Shift CME, Balance Phase (status: discovery) find if weight shifts can be quantified and identified
+Phase Detection, Update (status: code review) now differentiates between a still foot off the ground and a still foot on the ground
 
-####Release 1.1 6/17:
+CME_Detect, Update (status: code review) now does not filter for changes beyond a threshold nor changes that exceed a time limit. Purely filters by finding phases deemed "relevant" for the specific CME
+
+Load Calc, Update (stats: code review) now calculates the distribution of the load for CME errors (outputs in percentage of load on left leg)
+
+####Release 1.1 (6/17/16):
 Phase Detection, Impact (status: released) identifies the impact phase, the second relevant phase
 
 Load (status: released) major variable for reporting, contextualizes CMEs
