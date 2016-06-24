@@ -2,17 +2,19 @@
 Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
 
 ####Release 1.2 (In Progress):
+Body Frame Transformation (status: released) preped for anatomical calibration, X component of body frame now fixed to body part rather than gobal coordinate frame
+
+Phase Detection, Update (status: released) now differentiates between a still foot off the ground and a still foot on the ground
+
+Quantifying Balance CMEs, Update (status: released) now does not filter for changes beyond a threshold nor changes that exceed a time limit. Purely filters by finding phases deemed "relevant" for the specific CME
+
 Quantifying Impact CMEs (status: code review) determines the impact angle and timing of impact differences
 
 Execution Reporting Mechanism (status:method selected) provides a metric that quantifies the athlete's ability to execute a "good" regimen, weighted by load
 
-Anatomical Reference for Body Frame Transformation (status: released) makes sure each sensor's body frame is now oriented close-to-forward even during dynamic activities
+Load Distribution CME, Balance Phase (stats: discovery) percent weight distribution, currently basic 100% or 50% based on phase id logic (outputs in percentage of load on left leg)
 
-Phase Detection, Update (status: released) now differentiates between a still foot off the ground and a still foot on the ground
-
-CME_Detect, Update (status: released) now does not filter for changes beyond a threshold nor changes that exceed a time limit. Purely filters by finding phases deemed "relevant" for the specific CME
-
-Load Distribution CME, Update (stats: code review) now calculates the distribution of the load for CME errors (outputs in percentage of load on left leg)
+Load, Updated (status: ???) updates made with true data comparison
 
 ####Release 1.1 (6/17/16):
 Phase Detection, Impact (status: released) identifies the impact phase, the second relevant phase
