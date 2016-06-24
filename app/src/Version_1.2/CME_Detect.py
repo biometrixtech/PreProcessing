@@ -25,7 +25,8 @@ def rot_CME(maxtab, mintab, states, state):
     combine = combine[combine[:,0].argsort()] #sort by index to get in chronological order
     mags = [[(180/np.pi)*(combine[i,1]-combine[i-1,1]), combine[i,0], combine[i-1,0]] for i in range(1,len(combine))] #calculate magnitude of change and pass time stamps    
     final = [mags[i] for i in range(1,len(mags)) if states[int(mags[i][1])] in state] #filter out by state
-    return np.array(final)
+    final = np.array(final)
+    return final[:,0], final[:,1], final[:,2]
     
 if __name__ == "__main__":
     pos = 'lf'
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     
     ###THE GOOD STUFF!!!####
     if len(maxtab) != 0 or len(mintab) != 0:
-        final = rot_CME(maxtab, mintab, output, [1,0])
+        rot_mag, upper_lim, lower_lim = rot_CME(maxtab, mintab, output, [1,0])
 
     
     
