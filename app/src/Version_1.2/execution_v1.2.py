@@ -158,8 +158,8 @@ if __name__ == "__main__":
                 gnew_std = (gnew_std + inflg*(np.sqrt((uaZ[-1]-gnew_u)**2))/(1+inflg)) #find new SD
             
             #append move functions decisions
-            movhold.append(phase.Move(stdaZ[-1], w, new_u, new_std))
-            gmovhold.append(phase.Grad_Move(uaZ[-1], w, gnew_u, gnew_std))
+            movhold.append(phase.Move(stdaZ[-1], w, new_u, new_std, lfbf[i, 5]))
+            gmovhold.append(phase.Grad_Move(uaZ[-1], w, gnew_u, gnew_std, lfbf[i, 5]))
         
         if len(rfbf) >= 2*w +1:
             rarr = rfbf[i-2*w+1:i+2, 9] #create array holding raw data
@@ -180,8 +180,8 @@ if __name__ == "__main__":
                 rgnew_std = (rgnew_std + inflg*(np.sqrt((ruaZ[-1]-rgnew_u)**2))/(1+inflg)) #find new SD
             
             #append move functions decisions
-            rmovh.append(phase.Move(rstdaZ[-1], w, rnew_u, rnew_std))
-            rgmovh.append(phase.Grad_Move(ruaZ[-1], w, rgnew_u, rgnew_std))
+            rmovh.append(phase.Move(rstdaZ[-1], w, rnew_u, rnew_std, rfbf[i, 5]))
+            rgmovh.append(phase.Grad_Move(ruaZ[-1], w, rgnew_u, rgnew_std, rfbf[i, 5]))
         
         #PEAK DETECTION- run for each sensor and each euler rotation (9 times)
         rxmaxtab, rxmintab, rxmx, rxmn, rxmxpos, rxmnpos = peak.peak_det(rfbod[0,4], i, .1, rxmx, rxmn, rxmxpos, rxmnpos, rxmaxtab, rxmintab)
