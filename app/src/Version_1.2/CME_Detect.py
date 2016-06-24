@@ -17,6 +17,9 @@ Inputs: peak detection for each sensor on each axis, body phase detection, list 
 
 Outputs: 3 lists with [angular displacement change], [upper time interval], [lower time interval] for each CME
 and each foot
+
+Datasets: phase_inputs.csv, peak_inputs.csv (contains both peak and trough values) ->
+rot_CME(maxtab, mintab, output, [0,1]) -> outputs.csv
 #############################################################################################################
 """
 def rot_CME(maxtab, mintab, states, state):
