@@ -13,11 +13,10 @@ import phase_exploration as phase
 
 """
 #############################################INPUT/OUTPUT####################################################   
-Inputs: peak detection for each sensor on each axis, body phase detection
+Inputs: peak detection for each sensor on each axis, body phase detection, list of states for evaluation
 
-Outputs: lists with angular displacement changes for pronation/supination on each foot(2) and for each balance
-phase(3), lists with angular displacement changes for Lateral Hip Rotation for each balance phase (3), lists
-with angular displacement changes for Contralateral Hip Drop for each balance phase (3)  
+Outputs: 3 lists with [angular displacement change], [upper time interval], [lower time interval] for each CME
+and each foot
 #############################################################################################################
 """
 def rot_CME(maxtab, mintab, states, state):
