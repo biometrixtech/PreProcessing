@@ -12,7 +12,8 @@ import numpy as np
 #############################################INPUT/OUTPUT####################################################
 Function: sync_time
 Inputs: impact phase data for the right and left foot; sampling rate
-Outputs: difference between, the first instant (time point) of the impact phases, of the right and left feet
+Outputs: difference between, the first instant (time point) of the impact phases, of the right and left feet;
+         starting time of the impact phase of the right foot; starting time of the impact phase of the left foot;
          
 Function: landing_pattern
 Inputs: EulerY of the right and left feet; first instant (time point) of the impact phases of the right foot;
@@ -20,7 +21,9 @@ Inputs: EulerY of the right and left feet; first instant (time point) of the imp
 Outputs: difference between EulerY of the right and left feet at the first instant of the impact phases
          
 Datsets for both the functions: -> 2 input files (sym_impact_input_rfoot.csv; sym_impact_input_lfoot.csv
-                                -> sync_time(rdata['Impact'], ldata['Impact'], 250); 
+                                -> sync_time(rdata['Impact'], ldata['Impact'], 250); the starting points of 
+                                the impact phases of the right and left feet are passed on to the landing_pattern
+                                function.
                                 -> landing_pattern(rdata['EulerY'], ldata['EulerY'], rf_time, lf_time)
                                 -> 2 output files (sym_impact_output_time.csv; sym_impact_output_eulery.csv)
 #############################################################################################################
@@ -46,19 +49,25 @@ def sync_time(imp_rf, imp_lf, sampl_rate): #passing the time intervals of the im
     lf_start = imp_start_time(imp_lf) #obtaining the first instant of the impact phases of the left foot
     
     diff = [] #initializing a list to store the difference in impact times
+    rf_time = [] #refined starting time of the impact phase for the right foot
+    lf_time = [] #refined starting time of the impact phase for the left foot
     numbers = iter(range(len(lf_start))) #creating an iterator variable. iter() returns an iterator object. 
     
     for i,j in zip(numbers, range(len(rf_start))):
         if abs(lf_start[i] - rf_start[j]) <= 0.3*sampl_rate: #checking for false impact phases
             diff.append(abs(lf_start[i] - rf_start[j])/float(sampl_rate)) #appending the difference of the time of impact between the left and right feet, dividing by the sampling rate to convert the time difference to seconds
+            rf_time.append(rf_start[j]) #refined starting time of the impact phase for the right foot (not in seconds)
+            lf_time.append(lf_start[i]) #refined starting time of the impact phase for the left foot (not in seconds)
         else:
             for k in range(len(lf_start)): #this loop helps to compare relevant impact phases of the right and left feet
                 if abs(lf_start[k] - rf_start[j]) <= 0.3*sampl_rate: #checking for false impact phases
                     diff.append(abs(lf_start[k] - rf_start[j])/float(sampl_rate))
+                    rf_time.append(rf_start[j]) #refined starting time of the impact phase for the right foot (not in seconds)
+                    lf_time.append(lf_start[i]) #refined starting time of the impact phase for the left foot (not in seconds)
                     break #if the relevant impact phase is found then break from the 'for' loop
             next(islice(numbers, k+1, 1 ), None) #skip the next 'k+1' iterations
             
-    return diff #returning the difference in impact times
+    return diff, rf_time, lf_time #returning the difference in impact times, the starting point of the impact phase of the right foot, the starting point of the impact phase of the left foot
     
 def landing_pattern(rf_euly, lf_euly, rft, lft): # passing the EulerY data of the right and left feet, and the refined first instances of impact phases of the right and left feet
     
@@ -105,8 +114,8 @@ if __name__ == '__main__':
     #output_lf = impact_phase(ldata, sampl_rate)
     #output_rf = impact_phase(rdata, sampl_rate)
     
-    time_diff = sync_time(rdata1['Impact'], ldata1['Impact'], sampl_rate)
-    pdiff = landing_pattern(rdata1['EulerY'], ldata1['EulerY'], rf_time, lf_time)
+    time_diff, rfoot_time, lfoot_time = sync_time(rdata1['Impact'], ldata1['Impact'], sampl_rate)
+    pdiff = landing_pattern(rdata1['EulerY'], ldata1['EulerY'], rfoot_time, lfoot_time)
     
     print time_diff, pdiff
     
