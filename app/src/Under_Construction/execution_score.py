@@ -129,7 +129,7 @@ def exec_score(pcon, pps, phr):
     #DETERMINING THE EXECUTION SCORE
     s = ((pcon*lambda_contra) + (pps*lambda_prosup) + (phr*lambda_hiprot))/(lambda_contra + lambda_prosup + lambda_hiprot)
     
-    return s
+    return s*100
 
 def exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass):
     
@@ -145,18 +145,18 @@ def exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass):
     
     #PEAK DETECTION - run for each sensor and each euler rotation (9 times)
     for i in range(len(ldata)):
-        rxmaxtab, rxmintab, rxmx, rxmn, rxmxpos, rxmnpos = peak.peak_det(rdata[0,4], i, .05, rxmx, rxmn, rxmxpos, rxmnpos, rxmaxtab, rxmintab)
-        rymaxtab, rymintab, rymx, rymn, rymxpos, rymnpos = peak.peak_det(rdata[0,5], i, .05, rymx, rymn, rymxpos, rymnpos, rymaxtab, rymintab)
-        rzmaxtab, rzmintab, rzmx, rzmn, rzmxpos, rzmnpos = peak.peak_det(rdata[0,6], i, .05, rzmx, rzmn, rzmxpos, rzmnpos, rzmaxtab, rzmintab)
+        rxmaxtab, rxmintab, rxmx, rxmn, rxmxpos, rxmnpos = peak.peak_det(rdata.ix[i,4], i, .05, rxmx, rxmn, rxmxpos, rxmnpos, rxmaxtab, rxmintab)
+        rymaxtab, rymintab, rymx, rymn, rymxpos, rymnpos = peak.peak_det(rdata.ix[i,5], i, .05, rymx, rymn, rymxpos, rymnpos, rymaxtab, rymintab)
+        rzmaxtab, rzmintab, rzmx, rzmn, rzmxpos, rzmnpos = peak.peak_det(rdata.ix[i,6], i, .05, rzmx, rzmn, rzmxpos, rzmnpos, rzmaxtab, rzmintab)
 
-        lxmaxtab, lxmintab, lxmx, lxmn, lxmxpos, lxmnpos = peak.peak_det(ldata[0,4], i, .05, lxmx, lxmn, lxmxpos, lxmnpos, lxmaxtab, lxmintab)
-        lymaxtab, lymintab, lymx, lymn, lymxpos, lymnpos = peak.peak_det(ldata[0,5], i, .05, lymx, lymn, lymxpos, lymnpos, lymaxtab, lymintab)
-        lzmaxtab, lzmintab, lzmx, lzmn, lzmxpos, lzmnpos = peak.peak_det(ldata[0,6], i, .05, lzmx, lzmn, lzmxpos, lzmnpos, lzmaxtab, lzmintab)
+        lxmaxtab, lxmintab, lxmx, lxmn, lxmxpos, lxmnpos = peak.peak_det(ldata.ix[i,4], i, .05, lxmx, lxmn, lxmxpos, lxmnpos, lxmaxtab, lxmintab)
+        lymaxtab, lymintab, lymx, lymn, lymxpos, lymnpos = peak.peak_det(ldata.ix[i,5], i, .05, lymx, lymn, lymxpos, lymnpos, lymaxtab, lymintab)
+        lzmaxtab, lzmintab, lzmx, lzmn, lzmxpos, lzmnpos = peak.peak_det(ldata.ix[i,6], i, .05, lzmx, lzmn, lzmxpos, lzmnpos, lzmaxtab, lzmintab)
 
-        hxmaxtab, hxmintab, hxmx, hxmn, hxmxpos, hxmnpos = peak.peak_det(hdata[0,4], i, .05, hxmx, hxmn, hxmxpos, hxmnpos, hxmaxtab, hxmintab)
-        hymaxtab, hymintab, hymx, hymn, hymxpos, hymnpos = peak.peak_det(hdata[0,5], i, .05, hymx, hymn, hymxpos, hymnpos, hymaxtab, hymintab)
-        hzmaxtab, hzmintab, hzmx, hzmn, hzmxpos, hzmnpos = peak.peak_det(hdata[0,6], i, .05, hzmx, hzmn, hzmxpos, hzmnpos, hzmaxtab, hzmintab)
-    
+        hxmaxtab, hxmintab, hxmx, hxmn, hxmxpos, hxmnpos = peak.peak_det(hdata.ix[i,4], i, .05, hxmx, hxmn, hxmxpos, hxmnpos, hxmaxtab, hxmintab)
+        hymaxtab, hymintab, hymx, hymn, hymxpos, hymnpos = peak.peak_det(hdata.ix[i,5], i, .05, hymx, hymn, hymxpos, hymnpos, hymaxtab, hymintab)
+        hzmaxtab, hzmintab, hzmx, hzmn, hzmxpos, hzmnpos = peak.peak_det(hdata.ix[i,6], i, .05, hzmx, hzmn, hzmxpos, hzmnpos, hzmaxtab, hzmintab)
+        
     #DETERMINING THE ROTATIONAL MAGNITUDE AND, UPPER AND LOWER TIME INTERVALS FOR EACH CME
     #Pronation/Supination
     if len(lxmaxtab) != 0 and len(lxmintab) != 0:
@@ -178,9 +178,9 @@ def exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass):
         
     #Lateral Hip Rotation
     if len(hzmaxtab) != 0 and len(hzmintab) != 0:
-        rdbl_hiprot_mag, rdbl_hiprot_uppert, rdbl_hiprot_lowert = ldbl_hiprot_mag, ldbl_hiprot_uppert, ldbl_hiprot_lowert = cmed.rot_CME(hzmaxtab, hzmintab, ph, 0) #peak detect hips z-axis double leg balance (right and left feet)
-        lsin_hiprot_mag, lsin_hiprot_uppert, lsin_hiprot_lowert = cmed.rot_CME(hzmaxtab, hzmintab, ph, 1) #peak detect hips z-axis single leg left
-        rsin_hiprot_mag, rsin_hiprot_uppert, rsin_hiprot_lowert = cmed.rot_CME(hzmaxtab, hzmintab, ph, 2) #peak detect hips z-axis single leg right
+        rdbl_hiprot_mag, rdbl_hiprot_uppert, rdbl_hiprot_lowert = ldbl_hiprot_mag, ldbl_hiprot_uppert, ldbl_hiprot_lowert = cmed.rot_CME(hzmaxtab, hzmintab, ph, [0]) #peak detect hips z-axis double leg balance (right and left feet)
+        lsin_hiprot_mag, lsin_hiprot_uppert, lsin_hiprot_lowert = cmed.rot_CME(hzmaxtab, hzmintab, ph, [1]) #peak detect hips z-axis single leg left
+        rsin_hiprot_mag, rsin_hiprot_uppert, rsin_hiprot_lowert = cmed.rot_CME(hzmaxtab, hzmintab, ph, [2]) #peak detect hips z-axis single leg right
     else:
         rdbl_hiprot_mag = rdbl_hiprot_uppert = rdbl_hiprot_lowert = ldbl_hiprot_mag = ldbl_hiprot_uppert = ldbl_hiprot_lowert = lsin_hiprot_mag = lsin_hiprot_uppert = lsin_hiprot_lowert = rsin_hiprot_mag = rsin_hiprot_uppert = rsin_hiprot_lowert = [0] #if error doesn't exist, then initialize magnitude and time intervals to zero
         
@@ -189,6 +189,8 @@ def exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass):
     #DETERMINING THE NORMALIZED SCORES OF "GOODNESS"    
     #nr_contra = nl_contra = nr_prosup = nl_prosup = nr_hiprot = nl_hiprot = nrdbl_hiprot = nldbl_hiprot = [0] #initializing all the normalized scores of "goodness"
     nr_contra, nl_contra, nr_prosup, nl_prosup, nr_hiprot, nl_hiprot, nrdbl_hiprot, nldbl_hiprot = normalize_good (lsin_prosup_mag, rsin_prosup_mag, lsin_contra_mag, rsin_contra_mag, rdbl_hiprot_mag, ldbl_hiprot_mag, lsin_hiprot_mag, rsin_hiprot_mag) #normalizing the "goodness" of each movement made by the user
+    print nr_contra, nl_contra, nr_prosup, nl_prosup, nr_hiprot, nl_hiprot, nrdbl_hiprot, nldbl_hiprot
+    print 'STEP II WORKS!'
     
     #XXXXXXXXXXXXXXXXXXXXXXXXXXXX STEP III - WEIGHTING BY LOAD XXXXXXXXXXXXXXXXXXXXXXXXXXX
     
@@ -200,3 +202,44 @@ def exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass):
     
     return score
     
+if __name__ == "__main__":
+    
+    import pe_v1
+    import pandas as pd
+    
+    rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
+    lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Lheel_Gabby_changedirection_set1.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
+    hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\hips_Gabby_walking_heeltoe_set1.csv'
+
+    rdata = pd.read_csv(rpath)
+    ldata = pd.read_csv(lpath)
+    hdata = pd.read_csv(hpath)
+    
+    #acc = ['AccX', 'AccY', 'AccZ']
+    #rdata = rdata[acc]
+    #ldata = ldata[acc]
+    #hdata = hdata[acc]
+    
+    ph = pe_v1.Body_Phase(rdata['AccZ'], ldata['AccZ'], 100) #array containing the full body moving decisions
+    rdata['Phase'] = ph
+    ldata['Phase'] = ph
+    hdata['Phase'] = ph
+    
+    mass = 75
+    extra_mass = 0
+    
+    the_score = exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass)  
+    
+    print the_score
+    
+    #XXXXXXXXXXXXXXXXXXXXXXXXXXXX STEP II - NORMALIZATION OF CME "GOODNESS" XXXXXXXXXXXXXXXXXXXXXXXXXXX
+    
+    #DETERMINING THE NORMALIZED SCORES OF "GOODNESS"    
+    #nr_contra = nl_contra = nr_prosup = nl_prosup = nr_hiprot = nl_hiprot = nrdbl_hiprot = nldbl_hiprot = [0] #initializing all the normalized scores of "goodness"
+    #nr_contra, nl_contra, nr_prosup, nl_prosup, nr_hiprot, nl_hiprot, nrdbl_hiprot, nldbl_hiprot = normalize_good (lsin_prosup_mag, rsin_prosup_mag, lsin_contra_mag, rsin_contra_mag, rdbl_hiprot_mag, ldbl_hiprot_mag, lsin_hiprot_mag, rsin_hiprot_mag) #normalizing the "goodness" of each movement made by the user
+    
+        
