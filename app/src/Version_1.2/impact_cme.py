@@ -63,7 +63,7 @@ def sync_time(imp_rf, imp_lf, sampl_rate): #passing the time intervals of the im
                 if abs(lf_start[k] - rf_start[j]) <= 0.3*sampl_rate: #checking for false impact phases
                     diff.append(abs(lf_start[k] - rf_start[j])/float(sampl_rate))
                     rf_time.append(rf_start[j]) #refined starting time of the impact phase for the right foot (not in seconds)
-                    lf_time.append(lf_start[i]) #refined starting time of the impact phase for the left foot (not in seconds)
+                    lf_time.append(lf_start[k]) #refined starting time of the impact phase for the left foot (not in seconds)
                     break #if the relevant impact phase is found then break from the 'for' loop
             next(islice(numbers, k+1, 1 ), None) #skip the next 'k+1' iterations
             
