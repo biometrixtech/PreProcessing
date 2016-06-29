@@ -19,8 +19,8 @@ Inputs: data object that must contain raw accel, gyr, mag, and quat values for h
 sensors; (9) quaternions from the anatomical fix module representing 2 different transforms and 1 "neutral"
 orientation per sensor
 
-Outputs: hipbf, lfbf, rfbf (body frames with phases appended; 3 objects); min AND max arrays for each sensor
-and euler angle (18 total objects; 3 sensors x 3 Euler Angles X 2 min/max arrays each)
+Outputs: hipbf, lfbf, rfbf (sensor-body frames with phases appended; 3 objects); raw dataframes with gravity
+removed; execution score (0-100)
 #############################################################################################################
 """
 
