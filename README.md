@@ -1,7 +1,7 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
 
-####Release 1.2 (In Progress):
+####Release 1.2 (6/29/16):
 Body Frame Transformation (status: released) prepped for anatomical calibration, X component of body frame now fixed to body part rather than gobal coordinate frame
 
 Anatomical Calibration (status: released) Separate module used to find quaternions that represent two necessary rotations and one orientation per sensor
