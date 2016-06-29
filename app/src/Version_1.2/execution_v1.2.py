@@ -13,11 +13,13 @@ import peak_det as peak
 import impact_phase as impact
 import CME_rotate as cmer
 import load_calc
+import anatomical_fix as anatom
 
 """
 #############################################INPUT/OUTPUT####################################################   
 Inputs: data object that must contain raw accel, gyr, mag, and quat values for hip, left heel, and right heel
-sensors.
+sensors; (9) quaternions from the anatomical fix module representing 2 different transforms and 1 "neutral"
+orientation per sensor
 
 Outputs: hipbf, lfbf, rfbf (body frames with phases appended; 3 objects); min AND max arrays for each sensor
 and euler angle (18 total objects; 3 sensors x 3 Euler Angles X 2 min/max arrays each)
@@ -46,6 +48,22 @@ if __name__ == "__main__":
     hip = pd.read_csv(pathip)
     lfoot = pd.read_csv(pathlf)
     rfoot = pd.read_csv(pathrf)
+    
+    ###Reference Quaternions from Anatomical Fix module
+    #aligning along foot axis
+    hana_yaw_offset = anatom.hfx_q   
+    lana_yaw_offset = anatom.yaw_alignl_q   
+    rana_yaw_offset = anatom.yaw_alignr_q
+    
+    #correcting sensor-body frame for sensor placement
+    hsens_offset = anatom.alignh_q  
+    lsens_offset = anatom.alignl_q  
+    rsens_offset = anatom.alignr_q
+    
+    #anatomically neutral reference quaternions
+    neutral_h = anatom.neutral_hq
+    neutral_l = anatom.neutral_lq
+    neutral_r = anatom.neutral_rq    
     
 #    #filter out non-set data
 #    hip = hip[hip['set'] == num]
@@ -84,15 +102,6 @@ if __name__ == "__main__":
     ryaw_fix = prep.yaw_offset(rq0) #uses yaw offset function above to compute initial heading quaternion
     init_head_r = prep.QuatConj(ryaw_fix) #store quaternion with conjugate of intial heading
     
-    #Set peak detection parameters and initiate objects    
-    delta = .1
-    rxmaxtab, rymaxtab, rzmaxtab, lxmaxtab, lymaxtab, lzmaxtab, hxmaxtab, hymaxtab, hzmaxtab = [[] for i in range(9)]
-    rxmintab, rymintab, rzmintab, lxmintab, lymintab, lzmintab, hxmintab, hymintab, hzmintab = [[] for i in range(9)]
-    rxmn, rymn, rzmn, lxmn, lymn, lzmn, hxmn, hymn, hzmn = [np.Inf for i in range(9)] # initiate min, max value variable
-    rxmx, rymx, rzmx, lxmx, lymx, lzmx, hxmx, hymx, hzmx = [-np.Inf for i in range(9)]
-    rxmnpos, rymnpos, rzmnpos, lxmnpos, lymnpos, lzmnpos, hxmnpos, hymnpos, hzmnpos = [np.NaN for i in range(9)] #initiate min, max index variable
-    rxmxpos, rymxpos, rzmxpos, lxmxpos, lymxpos, lzmxpos, hxmxpos, hymxpos, hzmxpos = [np.NaN for i in range(9)]
-    
     #set rolling mean windows
     w = int(hz*.08) #set rolling mean windows
     edge = int(.2*hz)
@@ -107,22 +116,25 @@ if __name__ == "__main__":
         hq0 = np.matrix([hip.ix[i,'qW_raw'], hip.ix[i,'qX_raw'], hip.ix[i,'qY_raw'], hip.ix[i,'qZ_raw']]) #t=0 quaternion
         hyaw_fix = prep.yaw_offset(hq0) #uses yaw offset function above to compute body frame quaternion
         hyfix_c = prep.QuatConj(hyaw_fix) #uses quaternion conjugate function to return body frame quaternion transform
+        hyfix_c = prep.QuatProd(prep.QuatConj(hana_yaw_offset), hyfix_c) #align reference frame straight forward
         head_h = prep.QuatProd(init_head_h, hyaw_fix) #heading quaternion (yaw difference from t=0)       
         
         lq0 = np.matrix([lfoot.ix[i,'qW_raw'], lfoot.ix[i,'qX_raw'], lfoot.ix[i,'qY_raw'], lfoot.ix[i,'qZ_raw']]) #t=0 quaternion
         lyaw_fix = prep.yaw_offset(lq0) #uses yaw offset function above to compute body frame quaternion
         lyfix_c = prep.QuatConj(lyaw_fix) #uses quaternion conjugate function to return body frame quaternion transform
+        lyfix_c = prep.QuatProd(prep.QuatConj(lana_yaw_offset), lyfix_c) #align reference frame flush with left foot
         head_l = prep.QuatProd(init_head_l, lyaw_fix) #heading quaternion (yaw difference from t=0)
         
         rq0 = np.matrix([rfoot.ix[i,'qW_raw'], rfoot.ix[i,'qX_raw'], rfoot.ix[i,'qY_raw'], rfoot.ix[i,'qZ_raw']]) #t=0 quaternion
         ryaw_fix = prep.yaw_offset(rq0) #uses yaw offset function above to compute body frame quaternion
         ryfix_c = prep.QuatConj(ryaw_fix) #uses quaternion conjugate function to return body frame quaternion transform
+        ryfix_c = prep.QuatProd(prep.QuatConj(rana_yaw_offset), ryfix_c) #align reference frame flush with right foot
         head_r = prep.QuatProd(init_head_r, ryaw_fix) #heading quaternion (yaw difference from t=0)
         
         #frame transforms for all sensors (returns sensor frame data as well but not very relevant)
-        hipbod, hipsen = prep.FrameTransform(hip.ix[i,:], hyfix_c, head_h)
-        lfbod, lfsen = prep.FrameTransform(lfoot.ix[i,:], lyfix_c, head_l)
-        rfbod, rfsen = prep.FrameTransform(rfoot.ix[i,:], ryfix_c, head_r)
+        hipbod, hipsen = prep.FrameTransform(hip.ix[i,:], hyfix_c, head_h, hsens_offset)
+        lfbod, lfsen = prep.FrameTransform(lfoot.ix[i,:], lyfix_c, head_l, lsens_offset)
+        rfbod, rfsen = prep.FrameTransform(rfoot.ix[i,:], ryfix_c, head_r, rsens_offset)
         
         hipbf = np.vstack([hipbf, hipbod[0,:]]) #body frame hip
         hipsf = np.vstack([hipsf, hipsen[0,:]]) #sensor frame hip
@@ -182,19 +194,6 @@ if __name__ == "__main__":
             #append move functions decisions
             rmovh.append(phase.Move(rstdaZ[-1], w, rnew_u, rnew_std, rfbf[i, 5]))
             rgmovh.append(phase.Grad_Move(ruaZ[-1], w, rgnew_u, rgnew_std, rfbf[i, 5]))
-        
-        #PEAK DETECTION- run for each sensor and each euler rotation (9 times)
-        rxmaxtab, rxmintab, rxmx, rxmn, rxmxpos, rxmnpos = peak.peak_det(rfbod[0,4], i, .1, rxmx, rxmn, rxmxpos, rxmnpos, rxmaxtab, rxmintab)
-        rymaxtab, rymintab, rymx, rymn, rymxpos, rymnpos = peak.peak_det(rfbod[0,5], i, .1, rymx, rymn, rymxpos, rymnpos, rymaxtab, rymintab)
-        rzmaxtab, rzmintab, rzmx, rzmn, rzmxpos, rzmnpos = peak.peak_det(rfbod[0,6], i, .1, rzmx, rzmn, rzmxpos, rzmnpos, rzmaxtab, rzmintab)
-
-        lxmaxtab, lxmintab, lxmx, lxmn, lxmxpos, lxmnpos = peak.peak_det(lfbod[0,4], i, .1, lxmx, lxmn, lxmxpos, lxmnpos, lxmaxtab, lxmintab)
-        lymaxtab, lymintab, lymx, lymn, lymxpos, lymnpos = peak.peak_det(lfbod[0,5], i, .1, lymx, lymn, lymxpos, lymnpos, lymaxtab, lymintab)
-        lzmaxtab, lzmintab, lzmx, lzmn, lzmxpos, lzmnpos = peak.peak_det(lfbod[0,6], i, .1, lzmx, lzmn, lzmxpos, lzmnpos, lzmaxtab, lzmintab)
-
-        hxmaxtab, hxmintab, hxmx, hxmn, hxmxpos, hxmnpos = peak.peak_det(hipbod[0,4], i, .1, hxmx, hxmn, hxmxpos, hxmnpos, hxmaxtab, hxmintab)
-        hymaxtab, hymintab, hymx, hymn, hymxpos, hymnpos = peak.peak_det(hipbod[0,5], i, .1, hymx, hymn, hymxpos, hymnpos, hymaxtab, hymintab)
-        hzmaxtab, hzmintab, hzmx, hzmn, hzmxpos, hzmnpos = peak.peak_det(hipbod[0,6], i, .1, hzmx, hzmn, hzmxpos, hzmnpos, hzmaxtab, hzmintab)
     
     ###Finalize Phase Detection
     cmove = phase.Comb_Move(movhold, gmovhold)  #combine move fxn results for left foot      
