@@ -7,6 +7,7 @@ Created on Fri Jun 24 09:47:48 2016
 
 import numpy as np
 import CME_Detect as cmed
+import anatomical_fix as anatom
 from load_calc import load_bal_imp
 from impact_cme import sync_time, landing_pattern
 
@@ -23,9 +24,10 @@ def weight_load(nrf_contra, nlf_contra, nrf_prosup, nlf_prosup, nrf_hiprot, nlf_
     lambda_landtime = 2.5
     #Landing Pattern
     lambda_landpattern = 2.5
-        
+  
     #DETERMINING THE LOAD ON THE RIGHT AND LEFT FEET FOR EACH CME
     load = load_bal_imp(r, l, h, ma, exm)
+    
     #Contralateral Hip Drop   
     pos = loadrf_sum = loadlf_sum = br = bl = 0
     #Right foot
@@ -169,7 +171,7 @@ def weight_load(nrf_contra, nlf_contra, nrf_prosup, nlf_prosup, nrf_hiprot, nlf_
     #s = ((pcon*lambda_contra) + (pps*lambda_prosup) + (phr*lambda_hiprot))/(lambda_contra + lambda_prosup + lambda_hiprot)
     s = (pcontra + pprosup + phiprot + plandtime + plandpattern)/(lambda_contra + lambda_prosup + lambda_hiprot + lambda_landtime + lambda_landpattern)    
     
-    print pcontra, pprosup, phiprot, plandtime, plandpattern
+    print(pcontra, pprosup, phiprot, plandtime, plandpattern)
     
     return s*100
             
@@ -194,19 +196,24 @@ def exec_score(pcon, pps, phr, plt, plp):
     return s*100
 
 def exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass, sampl_rate):
-        
-    quat = np.array([1.9, 0, 0])
+    cme_dict = cmed.cme_dict
+
+    neutral_h = anatom.neutral_hq
+    neutral_l = anatom.neutral_lq
+    neutral_r = anatom.neutral_rq
+    
     #Contralateral Hip Drop
-    nr_contra = cmed.cont_rot_CME(hdata['EulerY'], ph, [2,0], quat[1])
-    nl_contra = cmed.cont_rot_CME(hdata['EulerY'], ph, [1,0], quat[1])
+    nr_contra = cmed.cont_rot_CME(hdata['EulerY'], ph, [2,0], neutral_h[1], cme_dict['hipdropr'])
+    nl_contra = cmed.cont_rot_CME(hdata['EulerY'], ph, [1,0], neutral_h[1], cme_dict['hipdropl'])
     #Pronation/Supination
-    nr_prosup = cmed.cont_rot_CME(rdata['EulerX'], ph, [2,0], quat[0])
-    nl_prosup = cmed.cont_rot_CME(ldata['EulerX'], ph, [1,0], quat[0])
+    nr_prosup = cmed.cont_rot_CME(rdata['EulerX'], ph, [2,0], neutral_r[0], cme_dict['prosupr'])
+    nl_prosup = cmed.cont_rot_CME(ldata['EulerX'], ph, [1,0], neutral_l[0], cme_dict['prosupl'])
     #Lateral Hip Rotation
-    nr_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [2], quat[2])
-    nrdbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [0], quat[2])
-    nl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [1], quat[2])
-    nldbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [0], quat[2])
+    nr_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [2], neutral_h[2], cme_dict['hiprotr'])
+    nrdbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [0], neutral_h[2], cme_dict['hiprotd'])
+    nl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [1], neutral_h[2], cme_dict['hiprotl'])
+    nldbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [0], neutral_h[2], cme_dict['hiprotd'])
+    
     #Landing Time
     n_landtime = sync_time(rdata['Impact'], ldata['Impact'], sampl_rate)
     #Landing Pattern
@@ -225,15 +232,15 @@ if __name__ == "__main__":
     import pandas as pd
     from impact_phase import impact_phase
     
-    rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_LESS.csv'
+    rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
     #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_snglsquat_set1.csv'
-    lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_LESS.csv'
+    lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_lfdatabody_LESS.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_snglsquat_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Lheel_Gabby_changedirection_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
-    hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_LESS.csv'
+    hpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_hipdatabody_LESS.csv'
     #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_snglsquat_set1.csv'
 
     rdata = pd.read_csv(rpath)
@@ -262,7 +269,7 @@ if __name__ == "__main__":
         
     the_score = exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass, sampl_rate)  
     
-    print the_score
+    print(the_score)
     
     #XXXXXXXXXXXXXXXXXXXXXXXXXXXX STEP II - NORMALIZATION OF CME "GOODNESS" XXXXXXXXXXXXXXXXXXXXXXXXXXX
     
