@@ -8,8 +8,24 @@ Created on Fri Jun 24 09:47:48 2016
 import numpy as np
 import CME_Detect as cmed
 import anatomical_fix as anatom
+import Data_Processing as prep
 from load_calc import load_bal_imp
-from impact_cme import sync_time, landing_pattern
+from impact_cme import *
+
+"""
+#############################################INPUT/OUTPUT####################################################
+Function:execution_score_mechanism
+Inputs: The right foot; left foot; and hip data; the mass of the user in kilograms; any extra mass the user 
+        has strapped on in kilograms; sampling rate
+Outputs: THE EXECUTION SCORE!
+
+Function: weight_load
+Inputs: normalized scores for, contralateral hip drop (right and left feet); pronation/supination (right and
+        left feet); lateral hip rotation (right and left feet, both single and double); landing time; landing
+        pattern; mass of the user; extra mass the user has strapped on; right foot; left foot; and hip data
+Outputs: THE SCORE!
+#############################################################################################################
+"""
 
 def weight_load(nrf_contra, nlf_contra, nrf_prosup, nlf_prosup, nrf_hiprot, nlf_hiprot, nrfdbl_hiprot, nlfdbl_hiprot, nlndtme, nlndptn, ma, exm, r, l, h):
     
@@ -171,54 +187,44 @@ def weight_load(nrf_contra, nlf_contra, nrf_prosup, nlf_prosup, nrf_hiprot, nlf_
     #s = ((pcon*lambda_contra) + (pps*lambda_prosup) + (phr*lambda_hiprot))/(lambda_contra + lambda_prosup + lambda_hiprot)
     s = (pcontra + pprosup + phiprot + plandtime + plandpattern)/(lambda_contra + lambda_prosup + lambda_hiprot + lambda_landtime + lambda_landpattern)    
     
-    print(pcontra, pprosup, phiprot, plandtime, plandpattern)
+    print pcontra, pprosup, phiprot, plandtime, plandpattern
     
-    return s*100
-            
-def exec_score(pcon, pps, phr, plt, plp):
-    
-    #ASSIGNING THE POINTS TO EACH CME
-    #Contralateral Hip Drop
-    lambda_contra = 10.0
-    #Pronation/Supination
-    lambda_prosup = 15.0
-    #Lateral Hip Drop
-    lambda_hiprot = 5.0
-    #Landing Time
-    lambda_landtime = 2.5
-    #Landing Pattern
-    lambda_landpattern = 2.5
-    
-    #DETERMINING THE EXECUTION SCORE
-    #s = ((pcon*lambda_contra) + (pps*lambda_prosup) + (phr*lambda_hiprot))/(lambda_contra + lambda_prosup + lambda_hiprot)
-    s = ((pcon*lambda_contra) + (pps*lambda_prosup) + (phr*lambda_hiprot) + (plt*lambda_landtime) + (plp*lambda_landpattern))/(lambda_contra + lambda_prosup + lambda_hiprot + lambda_landtime + lambda_landpattern)
-
     return s*100
 
 def exec_score_mechanism(rdata, ldata, hdata, mass, extra_mass, sampl_rate):
-    cme_dict = cmed.cme_dict
+    
+    #Balance CME thresdholds
+    cme_dict = {'prosupl':[-1, -4, 2, 8], 'hiprotl':[-1, -4, 2, 8], 'hipdropl':[-1, -4, 2, 8],
+                'prosupr':[-1, -4, 2, 8], 'hiprotr':[-1, -4, 2, 8], 'hipdropr':[-1, -4, 2, 8],
+                'hiprotd':[-1, -4, 2, 8]}
+    #Impact CME thresholds
+    cme_dict_imp = {'landtime':[0.2, 0.25], 'landpattern':[12, -50]}
 
-    neutral_h = anatom.neutral_hq
-    neutral_l = anatom.neutral_lq
-    neutral_r = anatom.neutral_rq
+    neutral_h = np.matrix([0.582,0.813,0,0]) # will come from anatomical_fix module as such anatom.neutral_hq
+    neutral_l = np.matrix([0.582,0.813,0,0]) # will come from anatomical_fix module as such anatom.neutral_lq
+    neutral_r = np.matrix([0.582,0.813,0,0]) # will come from anatomical_fix module as such anatom.neutral_rq
+    #get "neutral" euler angles from quaternions    
+    neutral_eulh = prep.Calc_Euler(neutral_h)
+    neutral_eull = prep.Calc_Euler(neutral_l)
+    neutral_eulr = prep.Calc_Euler(neutral_r)
     
     #Contralateral Hip Drop
-    nr_contra = cmed.cont_rot_CME(hdata['EulerY'], rdata['Phase'], [2,0], neutral_h[1], cme_dict['hipdropr'])
-    nl_contra = cmed.cont_rot_CME(hdata['EulerY'], rdata['Phase'], [1,0], neutral_h[1], cme_dict['hipdropl'])
+    nr_contra = cmed.cont_rot_CME(hdata['EulerY'], rdata['Phase'], [2,0], neutral_eulh[1], cme_dict['hipdropr'])
+    nl_contra = cmed.cont_rot_CME(hdata['EulerY'], rdata['Phase'], [1,0], neutral_eulh[1], cme_dict['hipdropl'])
     #Pronation/Supination
-    nr_prosup = cmed.cont_rot_CME(rdata['EulerX'], rdata['Phase'], [2,0], neutral_r[0], cme_dict['prosupr'])
-    nl_prosup = cmed.cont_rot_CME(ldata['EulerX'], rdata['Phase'], [1,0], neutral_l[0], cme_dict['prosupl'])
+    nr_prosup = cmed.cont_rot_CME(rdata['EulerX'], rdata['Phase'], [2,0], neutral_eulr[0], cme_dict['prosupr'])
+    nl_prosup = cmed.cont_rot_CME(ldata['EulerX'], rdata['Phase'], [1,0], neutral_eull[0], cme_dict['prosupl'])
     #Lateral Hip Rotation
-    nr_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [2], neutral_h[2], cme_dict['hiprotr'])
-    nrdbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [0], neutral_h[2], cme_dict['hiprotd'])
-    nl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [1], neutral_h[2], cme_dict['hiprotl'])
-    nldbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [0], neutral_h[2], cme_dict['hiprotd'])
+    nr_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [2], neutral_eulh[2], cme_dict['hiprotr'])
+    nrdbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [0], neutral_eulh[2], cme_dict['hiprotd'])
+    nl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [1], neutral_eulh[2], cme_dict['hiprotl'])
+    nldbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [0], neutral_eulh[2], cme_dict['hiprotd'])
     
     #Landing Time
-    n_landtime = sync_time(rdata['Impact'], ldata['Impact'], sampl_rate)
+    n_landtime = sync_time(rdata['Impact'], ldata['Impact'], sampl_rate, cme_dict_imp['landtime'])
     #Landing Pattern
     if len(n_landtime) != 0:
-        n_landpattern = landing_pattern(rdata['EulerY'], ldata['EulerY'], n_landtime[:,0], n_landtime[:,1])
+        n_landpattern = landing_pattern(rdata['EulerY'], ldata['EulerY'], n_landtime[:,0], n_landtime[:,1], cme_dict_imp['landpattern'])
     else:
         n_landpattern = np.array([])
     
@@ -269,12 +275,4 @@ if __name__ == "__main__":
         
     the_score = exec_score_mechanism(rdata, ldata, hdata, mass, extra_mass, sampl_rate)  
     
-    print(the_score)
-    
-    #XXXXXXXXXXXXXXXXXXXXXXXXXXXX STEP II - NORMALIZATION OF CME "GOODNESS" XXXXXXXXXXXXXXXXXXXXXXXXXXX
-    
-    #DETERMINING THE NORMALIZED SCORES OF "GOODNESS"    
-    #nr_contra = nl_contra = nr_prosup = nl_prosup = nr_hiprot = nl_hiprot = nrdbl_hiprot = nldbl_hiprot = [0] #initializing all the normalized scores of "goodness"
-    #nr_contra, nl_contra, nr_prosup, nl_prosup, nr_hiprot, nl_hiprot, nrdbl_hiprot, nldbl_hiprot = normalize_good (lsin_prosup_mag, rsin_prosup_mag, lsin_contra_mag, rsin_contra_mag, rdbl_hiprot_mag, ldbl_hiprot_mag, lsin_hiprot_mag, rsin_hiprot_mag) #normalizing the "goodness" of each movement made by the user
-    
-        
+    print the_score
