@@ -12,20 +12,14 @@ import numpy as np
 #############################################INPUT/OUTPUT####################################################
 Function: sync_time
 Inputs: impact phase data for the right and left foot; sampling rate
-Outputs: difference between, the first instant (time point) of the impact phases, of the right and left feet;
-         starting time of the impact phase of the right foot; starting time of the impact phase of the left foot;
+Outputs: an array containing the right foot impact time, left foot impact time, right foot normalized score and
+         left foot normalized score respectively
          
 Function: landing_pattern
 Inputs: EulerY of the right and left feet; first instant (time point) of the impact phases of the right foot;
         first instant (time point) of the impact phases of the left foot;
-Outputs: difference between EulerY of the right and left feet at the first instant of the impact phases
-         
-Datsets for both the functions: -> 2 input files (sym_impact_input_rfoot.csv; sym_impact_input_lfoot.csv
-                                -> sync_time(rdata['Impact'], ldata['Impact'], 250); the starting points of 
-                                the impact phases of the right and left feet are passed on to the landing_pattern
-                                function.
-                                -> landing_pattern(rdata['EulerY'], ldata['EulerY'], rf_time, lf_time)
-                                -> 2 output files (sym_impact_output_time.csv; sym_impact_output_eulery.csv)
+Outputs: an array containing the right foot impact time, left foot impact time, right foot normalized score and
+         left foot normalized score for the Euler angles respectively
 #############################################################################################################
 """
 
