@@ -12,22 +12,27 @@ import numpy as np
 #############################################INPUT/OUTPUT####################################################
 Function: sync_time
 Inputs: impact phase data for the right and left foot; sampling rate
-Outputs: difference between, the first instant (time point) of the impact phases, of the right and left feet;
-         starting time of the impact phase of the right foot; starting time of the impact phase of the left foot;
+Outputs: an array containing the right foot impact time, left foot impact time, right foot normalized score and
+         left foot normalized score respectively
          
 Function: landing_pattern
 Inputs: EulerY of the right and left feet; first instant (time point) of the impact phases of the right foot;
         first instant (time point) of the impact phases of the left foot;
-Outputs: difference between EulerY of the right and left feet at the first instant of the impact phases
-         
-Datsets for both the functions: -> 2 input files (sym_impact_input_rfoot.csv; sym_impact_input_lfoot.csv
-                                -> sync_time(rdata['Impact'], ldata['Impact'], 250); the starting points of 
-                                the impact phases of the right and left feet are passed on to the landing_pattern
-                                function.
-                                -> landing_pattern(rdata['EulerY'], ldata['EulerY'], rf_time, lf_time)
-                                -> 2 output files (sym_impact_output_time.csv; sym_impact_output_eulery.csv)
+Outputs: an array containing the right foot impact time, left foot impact time, right foot normalized score and
+         left foot normalized score for the Euler angles respectively
 #############################################################################################################
 """
+
+def cont_norm_score(mag, cme):
+    ua = cme[0]
+    ue = cme[1]
+    dev = mag
+    if 0 < dev <= ua:
+        return 1
+    elif ua < dev < ue:
+        return 1 - ((dev-ua)/(ue-ua))
+    elif dev >= ue:
+        return 0
 
 def imp_start_time(imp_time): #passing the impact phase data (its an array of 0's and 1's)
     
@@ -43,7 +48,7 @@ def imp_start_time(imp_time): #passing the impact phase data (its an array of 0'
             
     return s #returning the list that contains the first instant of the impact phases
     
-def sync_time(imp_rf, imp_lf, sampl_rate): #passing the time intervals of the imapct phases of the right and left feet, and the sampling rate
+def sync_time(imp_rf, imp_lf, sampl_rate, cme_landtime): #passing the time intervals of the imapct phases of the right and left feet, and the sampling rate
     
     rf_start = imp_start_time(imp_rf) #obtaining the first instant of the impact phases of the right foot
     lf_start = imp_start_time(imp_lf) #obtaining the first instant of the impact phases of the left foot
@@ -55,33 +60,54 @@ def sync_time(imp_rf, imp_lf, sampl_rate): #passing the time intervals of the im
     
     for i,j in zip(numbers, range(len(rf_start))):
         if abs(lf_start[i] - rf_start[j]) <= 0.3*sampl_rate: #checking for false impact phases
-            diff.append(abs(lf_start[i] - rf_start[j])/float(sampl_rate)) #appending the difference of the time of impact between the left and right feet, dividing by the sampling rate to convert the time difference to seconds
+            diff.append((lf_start[i] - rf_start[j])/float(sampl_rate)) #appending the difference of the time of impact between the left and right feet, dividing by the sampling rate to convert the time difference to seconds
             rf_time.append(rf_start[j]) #refined starting time of the impact phase for the right foot (not in seconds)
             lf_time.append(lf_start[i]) #refined starting time of the impact phase for the left foot (not in seconds)
         else:
             for k in range(len(lf_start)): #this loop helps to compare relevant impact phases of the right and left feet
                 if abs(lf_start[k] - rf_start[j]) <= 0.3*sampl_rate: #checking for false impact phases
-                    diff.append(abs(lf_start[k] - rf_start[j])/float(sampl_rate))
+                    diff.append((lf_start[k] - rf_start[j])/float(sampl_rate))
                     rf_time.append(rf_start[j]) #refined starting time of the impact phase for the right foot (not in seconds)
                     lf_time.append(lf_start[k]) #refined starting time of the impact phase for the left foot (not in seconds)
                     break #if the relevant impact phase is found then break from the 'for' loop
             next(islice(numbers, k+1, 1 ), None) #skip the next 'k+1' iterations
             
-    return diff, rf_time, lf_time #returning the difference in impact times, the starting point of the impact phase of the right foot, the starting point of the impact phase of the left foot
+    #NORMALIZING THE TIME DIFFERENCE IN IMPACT
+    out_time = []
+    nr = nl = 0
     
-def landing_pattern(rf_euly, lf_euly, rft, lft): # passing the EulerY data of the right and left feet, and the refined first instances of impact phases of the right and left feet
+    for i,j,k in zip(diff, rf_time, lf_time):
+        if i < 0:
+            nl = 1
+            nr = cont_norm_score(abs(i), cme_landtime)
+            out_time.append([j,k,nr,nl])
+        elif i > 0:
+            nl = cont_norm_score(abs(i), cme_landtime)
+            nr = 1
+            out_time.append([j,k,nr,nl])
+        elif i == 0:
+            nl = 1
+            nr = 1
+            out_time.append([j,k,nr,nl])
+            
+    return np.array(out_time) 
     
-    pitch_diff = [] #initializing a list to store the difference between the EulerY angles 
+def landing_pattern(rf_euly, lf_euly, rft, lft, cme_landpattern): # passing the EulerY data of the right and left feet, and the refined first instances of impact phases of the right and left feet
+        
+    out_pattern = []
+    nr = nl = 0
     
     for i, j in zip(rft, lft):
-        pitch_diff.append(np.rad2deg(abs(rf_euly[i] - lf_euly[j]))) #appending the difference between the EulerY angles, converting radians to degrees
-        
-    return np.array(pitch_diff) #returning the differences between the EulerY angles
+        nr = cont_norm_score(np.rad2deg(rf_euly[int(i)]), cme_landpattern)
+        nl = cont_norm_score(np.rad2deg(lf_euly[int(j)]), cme_landpattern)
+        out_pattern.append([i, j, nr, nl])
+    
+    return np.array(out_pattern) #returning the differences between the EulerY angles
     
 if __name__ == '__main__':
     
     import pandas as pd
-    #import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
     #from impact_phase import impact_phase
     
     #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Rheel_Gabby_jumping_explosive_set2.csv'
@@ -96,11 +122,11 @@ if __name__ == '__main__':
 
     #rdata1 = pd.read_csv(rpath)
     #ldata1 = pd.read_csv(lpath)
-    hdata1 = pd.read_csv(hpath)
+    #hdata1 = pd.read_csv(hpath)
     
     #reading the test datasets
-    rdata1 = pd.read_csv('C:\\Users\\Ankur\\Desktop\\sym_impact_input_rfoot.csv')
-    ldata1 = pd.read_csv('C:\\Users\\Ankur\\Desktop\\sym_impact_input_lfoot.csv')
+    rdata1 = pd.read_csv('C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\impact cme\sym_impact_input_rfoot.csv')
+    ldata1 = pd.read_csv('C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\impact cme\sym_impact_input_lfoot.csv')
 
     comp = 'AccZ'
     rdata = rdata1[comp].values
@@ -114,14 +140,20 @@ if __name__ == '__main__':
     #output_lf = impact_phase(ldata, sampl_rate)
     #output_rf = impact_phase(rdata, sampl_rate)
     
-    time_diff, rfoot_time, lfoot_time = sync_time(rdata1['Impact'], ldata1['Impact'], sampl_rate)
-    pdiff = landing_pattern(rdata1['EulerY'], ldata1['EulerY'], rfoot_time, lfoot_time)
+    cme_dict_imp = {'landtime':[0.2, 0.25], 'landpattern':[12, -50]}
     
-    print time_diff, pdiff
+    output = sync_time(rdata1['Impact'], ldata1['Impact'], sampl_rate, cme_dict_imp['landtime'])
+    pdiff = landing_pattern(rdata1['EulerY'], ldata1['EulerY'], output[:,0], output[:,1], cme_dict_imp['landpattern'])
+    
+    print output
+    print pdiff
     
     #plt.figure(1)
     #plt.plot(output_lf)
-    #plt.plot(ldata)
+    #plt.hist(ldata, bins = 20)
+    #plt.figure(2)
+    #plt.plot(elf)
+    #plt.show()
     
     #plt.figure(2)
     #plt.plot(output_rf)
