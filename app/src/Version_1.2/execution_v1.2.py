@@ -9,11 +9,9 @@ import numpy as np
 import pandas as pd
 import phase_exploration as phase
 import Data_Processing as prep
-import peak_det as peak
 import impact_phase as impact
-import CME_rotate as cmer
-import load_calc
 import anatomical_fix as anatom
+import execution_score as exec_score
 
 """
 #############################################INPUT/OUTPUT####################################################   
@@ -33,6 +31,7 @@ if __name__ == "__main__":
     num = 0 #which set you want to evaluate
     sens_loc = ["hips", "rightheel", "leftheel"] #list holding sensor location
     hz = 250 #smapling rate
+    
     #concatenated paths for all sensors
     pathip = root + subject + '_' + sens_loc[0] + '_42116_' + exercise + '.csv'
     pathrf = root + subject + '_' + sens_loc[1] + '_42116_' + exercise + '.csv'
@@ -58,17 +57,11 @@ if __name__ == "__main__":
     #correcting sensor-body frame for sensor placement
     hsens_offset = anatom.alignh_q  
     lsens_offset = anatom.alignl_q  
-    rsens_offset = anatom.alignr_q
+    rsens_offset = anatom.alignr_q   
     
-    #anatomically neutral reference quaternions
-    neutral_h = anatom.neutral_hq
-    neutral_l = anatom.neutral_lq
-    neutral_r = anatom.neutral_rq    
-    
-#    #filter out non-set data
-#    hip = hip[hip['set'] == num]
-#    lfoot = lfoot[lfoot['set'] == num]
-#    rfoot = rfoot[rfoot['set'] == num]
+    #set body weight and any extra mass variables
+    mass = 75
+    extra_mass = 0
     
     #make sure all datasets are off same length
     if len(hip) != len(lfoot) or len(hip) != len(rfoot):
@@ -222,28 +215,4 @@ if __name__ == "__main__":
     lfbf['Impact'] = limpact
     rfbf['Impact'] = rimpact
     
-    #ROTATION CME DETECTION - not real time, batched at the end
-    #Pronation/Supination
-    if len(lxmaxtab) != 0 and len(lxmintab) != 0:
-        dbl_lprosup = cmer.rot_CME(lxmaxtab, lxmintab, body, .14, 0) #peak detect left foot x-axis double leg balance 
-        sin_lprosup = cmer.rot_CME(lxmaxtab, lxmintab, body, .14, 1) #peak detect left foot x-axis single leg left balance
-
-    if len(rxmaxtab) != 0 and len(rxmintab) != 0:
-        dbl_rprosup = cmer.rot_CME(rxmaxtab, rxmintab, body, .14, 0) #peak detect right foot x-axis double leg balance
-        sin_rprosup = cmer.rot_CME(rxmaxtab, rxmintab, body, .14, 2) #peak detect right foot x-axis single leg right balance
-    
-    #Contralateral Hip Drop
-    if len(hymaxtab) != 0 and len(hymintab) != 0:
-        dbl_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 0) #peak detect hips y-axis double leg balance
-        lsin_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 1) #peak detect hips y-axis single leg left
-        rsin_contra = cmer.rot_CME(hymaxtab, hymintab, body, .1, 2) #peak detect hips y-axis single leg right
-    
-    #Lateral Hip Rotation
-    if len(hzmaxtab) != 0 and len(hzmintab) != 0:
-        dbl_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 0) #peak detect hips z-axis double leg balance
-        lsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 1) #peak detect hips z-axis single leg left
-        rsin_hiprot = cmer.rot_CME(hzmaxtab, hzmintab, body, .1, 2) #peak detect hips z-axis single leg right
-        
-    #LOAD: BALANCE PHASE - not real time, run for each sensor
-    req_fields = ['AccX', 'AccY', 'AccZ', 'Phase'] #all acceleration data and phase data for the right foot, left foot and the hip are required to be passed to the load_balance function
-    ldbal_rfoot, ldbal_lfoot = load_calc.load_balance(rfbf[req_fields], lfbf[req_fields], hipbf[req_fields], m_user, em_user) #m_user is the mass (kg) of the user and em_user is the extra mass (kg) that the user has strapped on
+    the_score = exec_score.exec_score_mechanism(rfbf, lfbf, hipbf, mass, extra_mass, hz)
