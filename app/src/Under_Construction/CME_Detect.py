@@ -108,7 +108,7 @@ if __name__ == "__main__":
     if len(maxtab) != 0 or len(mintab) != 0:
         #final1, final2, final3 = rot_CME(maxtab, mintab, output, [1,0])
         #pro, sup = rel_rot_CME(maxtab, mintab, output, [2,0], quat)
-        out = cont_rot_CME(peak_series, output, [1,0], quat[0])
+        out = cont_rot_CME(peak_series, output, [0,1], quat[0])
     
     up = 0
     down = len(peak_series)
@@ -116,7 +116,4 @@ if __name__ == "__main__":
     plt.plot(peak_series[up:down])
     plt.plot(out[:,1][up:down])
     plt.plot(out[:,2][up:down])
-#    plt.scatter(np.array(maxtab)[:,0], np.array(maxtab)[:,1], color='blue')
-#    plt.scatter(np.array(mintab)[:,0], np.array(mintab)[:,1], color='red')
-#    plt.scatter(np.array(final)[:,1], np.array(final)[:,0], color='red')
     plt.show()    

@@ -81,7 +81,6 @@ def calc_norm_score(mag, a, e):
             n.append((-(i-a)/(e - a))+1)
         elif i>= e or i == 0:
             n.append(0)
-    
     return np.array(n)
         
 def normalize_good(lsin_mag_prosup, rsin_mag_prosup, lsin_mag_contra, rsin_mag_contra, rdbl_mag_hiprot, ldbl_mag_hiprot, lsin_mag_hiprot, rsin_mag_hiprot):
