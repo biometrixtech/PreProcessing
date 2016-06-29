@@ -195,7 +195,7 @@ def exec_score(pcon, pps, phr, plt, plp):
 
     return s*100
 
-def exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass, sampl_rate):
+def exec_score_mechanism(rdata, ldata, hdata, mass, extra_mass, sampl_rate):
     cme_dict = cmed.cme_dict
 
     neutral_h = anatom.neutral_hq
@@ -203,16 +203,16 @@ def exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass, sampl_rate):
     neutral_r = anatom.neutral_rq
     
     #Contralateral Hip Drop
-    nr_contra = cmed.cont_rot_CME(hdata['EulerY'], ph, [2,0], neutral_h[1], cme_dict['hipdropr'])
-    nl_contra = cmed.cont_rot_CME(hdata['EulerY'], ph, [1,0], neutral_h[1], cme_dict['hipdropl'])
+    nr_contra = cmed.cont_rot_CME(hdata['EulerY'], rdata['Phase'], [2,0], neutral_h[1], cme_dict['hipdropr'])
+    nl_contra = cmed.cont_rot_CME(hdata['EulerY'], rdata['Phase'], [1,0], neutral_h[1], cme_dict['hipdropl'])
     #Pronation/Supination
-    nr_prosup = cmed.cont_rot_CME(rdata['EulerX'], ph, [2,0], neutral_r[0], cme_dict['prosupr'])
-    nl_prosup = cmed.cont_rot_CME(ldata['EulerX'], ph, [1,0], neutral_l[0], cme_dict['prosupl'])
+    nr_prosup = cmed.cont_rot_CME(rdata['EulerX'], rdata['Phase'], [2,0], neutral_r[0], cme_dict['prosupr'])
+    nl_prosup = cmed.cont_rot_CME(ldata['EulerX'], rdata['Phase'], [1,0], neutral_l[0], cme_dict['prosupl'])
     #Lateral Hip Rotation
-    nr_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [2], neutral_h[2], cme_dict['hiprotr'])
-    nrdbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [0], neutral_h[2], cme_dict['hiprotd'])
-    nl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [1], neutral_h[2], cme_dict['hiprotl'])
-    nldbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], ph, [0], neutral_h[2], cme_dict['hiprotd'])
+    nr_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [2], neutral_h[2], cme_dict['hiprotr'])
+    nrdbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [0], neutral_h[2], cme_dict['hiprotd'])
+    nl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [1], neutral_h[2], cme_dict['hiprotl'])
+    nldbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [0], neutral_h[2], cme_dict['hiprotd'])
     
     #Landing Time
     n_landtime = sync_time(rdata['Impact'], ldata['Impact'], sampl_rate)
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     mass = 75
     extra_mass = 0
         
-    the_score = exec_score_mechanism(ph, rdata, ldata, hdata, mass, extra_mass, sampl_rate)  
+    the_score = exec_score_mechanism(rdata, ldata, hdata, mass, extra_mass, sampl_rate)  
     
     print(the_score)
     
