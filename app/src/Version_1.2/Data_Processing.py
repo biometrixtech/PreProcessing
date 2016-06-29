@@ -10,10 +10,11 @@ import pandas as pd
 """
 #############################################INPUT/OUTPUT####################################################
 Inputs: (1) data object that must contain raw accel, gyr, mag, and quat values; (1) 1x4 rotation quaternion 
-that represents the conjugate of the yaw offset.
+that represents the conjugate of the global yaw offset, (1) 1x4 rotation quaternion that represents the local
+yaw offset, (1) 1x4 quaternion that represents the correction of for pitch and the local yaw offset
 
-Outputs: (1) data object that houses body frame data (acc-g, gyr, mag, quat, Euler); (1) data object that
-houses sensor frame data (acc-g, gyr, mag)
+Outputs: (1) data object that houses adjusted inertial frame data (Euler is sensor-body frame) (acc-g, gyr,
+mag, quat, Euler); (1) data object that houses sensor frame data (acc-g, gyr, mag)
 
 Datasets: Preprocess_unittest.csv -> __main__ -> postprocessed_unittest.csv
 #############################################################################################################
@@ -110,7 +111,7 @@ def rotate_quatdata(data, rot, RemoveGrav=False):
         pass
     return [corr_data[0,1], corr_data[0,2], corr_data[0,3]]
     
-def FrameTransform(data, iquatc, head):
+def FrameTransform(data, iquatc, head, sensfr):
     if isinstance(data, pd.Series) == False:
         raise ObjectMismatchError
     
@@ -123,9 +124,10 @@ def FrameTransform(data, iquatc, head):
     acc = np.matrix([0, data.ix['accX_raw',0], data.ix['accY_raw',0], data.ix['accZ_raw',0]]) #collect most recent raw accel from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero   
     gyr = np.matrix([0, data.ix['gyrX_raw',0], data.ix['gyrY_raw',0], data.ix['gyrZ_raw',0]]) #collect most recent raw gyro from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
     mag = np.matrix([0, data.ix['magX_raw',0], data.ix['magY_raw',0], data.ix['magZ_raw',0]]) #collect most recent raw mag from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
-    fixed_q = QuatProd(iquatc,quat) #quaternion product of conjugate of yaw offset and quaternion from data, remember order matters!         
+    fixed_q = QuatProd(iquatc,quat) #quaternion product of conjugate of yaw offset and quaternion from data, remember order matters!
+    sens_frame = QuatProd(QuatConj(sensfr), quat) #calculate body-sensor frame orientation        
     output_body[0,0:4] = fixed_q #assign corrected quaternion to body output vector
-    output_body[0,4:7] = Calc_Euler(fixed_q) #assign set of euler angles to body output vector
+    output_body[0,4:7] = Calc_Euler(sens_frame) #assign set of euler angles (frome body-sensor frame) to body output vector
     output_body[0,6] = Calc_Euler(head)[2] #calculate yaw from heading quaternion
     output_body[0,7:10] = rotate_quatdata(acc, fixed_q, RemoveGrav=True) #add corrected accel data to body output vector
     output_body[0,10:13] = rotate_quatdata(gyr, fixed_q) #add corrected gyro data to body output vector
@@ -144,6 +146,9 @@ if __name__ == '__main__':
     sensframe = []
     iters = len(data)
     
+    ana_yaw_offset = np.matrix([1,0,0,0])   #comes from anatomical fix module 
+    sens_offset = np.matrix([1,0,0,0])  #comes from anatomical fix module
+    
     #This section takes the t=0 quaternion and computes the yaw in order to create the yaw offset    
     q0 = np.matrix([data.ix[0,'qW_raw'], data.ix[0,'qX_raw'], data.ix[0,'qY_raw'], data.ix[0,'qZ_raw']]) #t=0 quaternion
     yaw_fix = yaw_offset(q0) #uses yaw offset function above to compute yaw offset quaternion
@@ -153,8 +158,9 @@ if __name__ == '__main__':
         q0 = np.matrix([data.ix[i,'qW_raw'], data.ix[i,'qX_raw'], data.ix[i,'qY_raw'], data.ix[i,'qZ_raw']]) #t=0 quaternion
         yaw_fix = yaw_offset(q0) #uses yaw offset function above to body frame quaternion
         yfix_c = QuatConj(yaw_fix) #uses quaternion conjugate function to return conjugate of body frame
+        yfix_c = QuatProd(QuatConj(ana_yaw_offset), yfix_c) #align reference frame flush with body part
         head = QuatProd(init_head, yaw_fix) #heading quaternion (yaw difference from t=0)
-        obody, osens = FrameTransform(data.ix[i,:], yfix_c, head)
+        obody, osens = FrameTransform(data.ix[i,:], yfix_c, head, sens_offset)
     
         ##appends each output vector to respective frame (used for saving to my computer...might be done differently in app)    
         bodyframe.append(obody[0,:]) 
