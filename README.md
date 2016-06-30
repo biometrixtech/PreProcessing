@@ -1,6 +1,17 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
 
+####Release 1.2 (expected - 7/8/16):
+Anatomical Calibration (status: updating) reviewing rotation methods for 100% accuracy, improving anatomical fixes
+
+Phase ID (status: updating) merging balance and impact phase methods, improving accuracy of boundaries
+
+Constructive/Destructive Load: (status: method selected) ready to be coded up
+
+Symmetry Score (status: discovery) defining method very similar to execution score
+
+fatigue Score (status: discovery) we will see... mechE or signal processing method for quantifying decay
+
 ####Release 1.2 (6/29/16):
 Body Frame Transformation (status: released) prepped for anatomical calibration, X component of body frame now fixed to body part rather than gobal coordinate frame
 
@@ -39,11 +50,10 @@ Execution (status: released) Data Processing > Phase Detection > Peak Detection
 
 X-------Code Freeze for Alpha--------X
 
-7/1 - Fatigue Reporting Mechanism, V2 Load
-
-7/8 - Anatomical Reference for Body Frame Trasformation, Anything needed for Firmware Update 
-
-7/X - Execution Reporting Mechanism, Constructive/Destructive Load Reporting Mechanism
+- Load calculation for Impact phase
+- Distribution of Load for balance phace
+- Anterior Pelvic Tilt
+- Correct CMEs of sensor placement off center at hips and inside/outside heel
 
 
 #####(Statuses: discovery, method selected, testing, code review, released)
