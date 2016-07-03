@@ -184,7 +184,6 @@ def weight_load(nrf_contra, nlf_contra, nrf_prosup, nlf_prosup, nrf_hiprot, nlf_
         plandtime = plandpattern = 0
         
     #DETERMINING THE EXECUTION SCORE
-    #s = ((pcon*lambda_contra) + (pps*lambda_prosup) + (phr*lambda_hiprot))/(lambda_contra + lambda_prosup + lambda_hiprot)
     s = (pcontra + pprosup + phiprot + plandtime + plandpattern)/(lambda_contra + lambda_prosup + lambda_hiprot + lambda_landtime + lambda_landpattern)    
     
     print pcontra, pprosup, phiprot, plandtime, plandpattern

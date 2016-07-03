@@ -1,20 +1,33 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
 
-####Release 1.2 (In Progress):
-Body Frame Transformation (status: released) preped for anatomical calibration, X component of body frame now fixed to body part rather than gobal coordinate frame
+####Release 1.2 (expected - 7/8/16):
+Anatomical Calibration (status: updating) reviewing rotation methods for 100% accuracy, improving anatomical fixes
+
+Phase ID (status: updating) merging balance and impact phase methods, improving accuracy of boundaries
+
+Constructive/Destructive Load: (status: method selected) ready to be coded up
+
+Symmetry Score (status: discovery) defining method very similar to execution score
+
+fatigue Score (status: discovery) we will see... mechE or signal processing method for quantifying decay
+
+####Release 1.2 (6/29/16):
+Body Frame Transformation (status: released) prepped for anatomical calibration, X component of body frame now fixed to body part rather than gobal coordinate frame
+
+Anatomical Calibration (status: released) Separate module used to find quaternions that represent two necessary rotations and one orientation per sensor
 
 Phase Detection, Update (status: released) now differentiates between a still foot off the ground and a still foot on the ground
 
-Quantifying Balance CMEs, Update (status: released) now does not filter for changes beyond a threshold nor changes that exceed a time limit. Purely filters by finding phases deemed "relevant" for the specific CME
+Quantifying Balance CMEs, Update (status: released) now does not filter for changes beyond a threshold nor changes that exceed a time limit. Purely filters by finding phases deemed "relevant" for the specific CME. Also provides a "continuous" stream of normalized and raw cme values, instead of discretized.
 
-Quantifying Impact CMEs (status: code review) determines the impact angle and timing of impact differences
+Quantifying Impact CMEs (status: released) determines the impact angle and timing of impact differences
 
-Execution Reporting Mechanism (status:method selected) provides a metric that quantifies the athlete's ability to execute a "good" regimen, weighted by load
+Execution Reporting Mechanism (status: released) provides a metric that quantifies the athlete's ability to execute a "good" regimen, weighted by load
 
-Load Distribution CME, Balance Phase (stats: discovery) percent weight distribution, currently basic 100% or 50% based on phase id logic (outputs in percentage of load on left leg)
+Load Distribution CME, Balance Phase (stats: released) percent weight distribution, currently basic 100% or 50% based on phase id logic (outputs in percentage of load on left leg)
 
-Load, Updated (status: ???) updates made with true data comparison
+Load, Updated (status: released) updated data structure of output
 
 ####Release 1.1 (6/17/16):
 Phase Detection, Impact (status: released) identifies the impact phase, the second relevant phase
@@ -37,11 +50,10 @@ Execution (status: released) Data Processing > Phase Detection > Peak Detection
 
 X-------Code Freeze for Alpha--------X
 
-7/1 - Fatigue Reporting Mechanism, V2 Load
-
-7/8 - Anatomical Reference for Body Frame Trasformation, Anything needed for Firmware Update 
-
-7/X - Execution Reporting Mechanism, Constructive/Destructive Load Reporting Mechanism
+- Load calculation for Impact phase
+- Distribution of Load for balance phace
+- Anterior Pelvic Tilt
+- Correct CMEs of sensor placement off center at hips and inside/outside heel
 
 
 #####(Statuses: discovery, method selected, testing, code review, released)
