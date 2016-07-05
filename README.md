@@ -10,7 +10,10 @@ Constructive/Destructive Load - ready to be coded up
 
 Symmetry Score - defining method very similar to execution score
 
-fatigue Score - we will see... mechE or signal processing method for quantifying decay
+Fatigue Score - we will see... mechE or signal processing method for quantifying decay
+
+####Release 1.2.1 (expected - 7/6/16):
+Execution Score - Moving CME and loading calculation outside the scoring mechanism.
 
 ####Release 1.2 (6/29/16):
 Body Frame Transformation - prepped for anatomical calibration, X component of body frame now fixed to body part rather than gobal coordinate frame
