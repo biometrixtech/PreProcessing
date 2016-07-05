@@ -4,13 +4,11 @@ Analytics R&D: python scripts developed to clean, mark, and quanitify biomechani
 ####Release 1.3 (expected - 7/8/16):
 Anatomical Calibration - reviewing rotation methods for 100% accuracy, improving anatomical fixes
 
-Phase ID - merging balance and impact phase methods, improving accuracy of boundaries
+Phase Detection - merging balance and impact phase methods, improving accuracy of boundaries
 
 Constructive/Destructive Load - ready to be coded up
 
 Symmetry Score - defining method very similar to execution score
-
-Fatigue Score - we will see... mechE or signal processing method for quantifying decay
 
 ####Release 1.2.1 (expected - 7/6/16):
 Execution Score - Moving CME and loading calculation outside the scoring mechanism.
@@ -57,5 +55,6 @@ X-------Code Freeze for Alpha--------X
 
 - Load calculation for Impact phase
 - Distribution of Load for balance phace
+- Fatigue Score
 - Anterior Pelvic Tilt
 - Correct CMEs of sensor placement off center at hips and inside/outside heel
