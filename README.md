@@ -15,6 +15,8 @@ Fatigue Score - we will see... mechE or signal processing method for quantifying
 ####Release 1.2.1 (expected - 7/6/16):
 Execution Score - Moving CME and loading calculation outside the scoring mechanism.
 
+General - Script name changes
+
 ####Release 1.2 (6/29/16):
 Body Frame Transformation - prepped for anatomical calibration, X component of body frame now fixed to body part rather than gobal coordinate frame
 
