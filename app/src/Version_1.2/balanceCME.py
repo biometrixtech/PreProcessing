@@ -7,8 +7,8 @@ Created on Sun Jun 12 11:41:49 2016
 
 import numpy as np
 import pandas as pd
-import phase_exploration as phase
-import Data_Processing as prep
+import phaseDetection as phase
+import coordinateFrameTransformation as prep
 
 """
 #############################################INPUT/OUTPUT####################################################   
