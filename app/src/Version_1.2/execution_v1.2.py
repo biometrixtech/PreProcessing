@@ -8,10 +8,13 @@ Created on Thu Jun  9 14:48:17 2016
 import numpy as np
 import pandas as pd
 import phase_exploration as phase
-import Data_Processing as prep
+import coordinateFrameTransformation as prep
 import impact_phase as impact
-import anatomical_fix as anatom
-import execution_score as exec_score
+import anatomicalCalibration as anatom
+import executionScore as exec_score
+import balanceCME as cmed
+from impactCME import *
+import loadCalc as ldcalc
 
 """
 #############################################INPUT/OUTPUT####################################################   
@@ -215,4 +218,47 @@ if __name__ == "__main__":
     lfbf['Impact'] = limpact
     rfbf['Impact'] = rimpact
     
-    the_score = exec_score.exec_score_mechanism(rfbf, lfbf, hipbf, mass, extra_mass, hz)
+    #Mass and extra mass to test the load function    
+    #mass = 75
+    #extra_mass = 0
+    
+    #Balance CME thresdholds
+    cme_dict = {'prosupl':[-1, -4, 2, 8], 'hiprotl':[-1, -4, 2, 8], 'hipdropl':[-1, -4, 2, 8],
+                'prosupr':[-1, -4, 2, 8], 'hiprotr':[-1, -4, 2, 8], 'hipdropr':[-1, -4, 2, 8],
+                'hiprotd':[-1, -4, 2, 8]}
+    #Impact CME thresholds
+    cme_dict_imp = {'landtime':[0.2, 0.25], 'landpattern':[12, -50]}
+
+    neutral_h = np.matrix([0.582,0.813,0,0]) # will come from anatomical_fix module as such anatom.neutral_hq
+    neutral_l = np.matrix([0.582,0.813,0,0]) # will come from anatomical_fix module as such anatom.neutral_lq
+    neutral_r = np.matrix([0.582,0.813,0,0]) # will come from anatomical_fix module as such anatom.neutral_rq
+    #get "neutral" euler angles from quaternions    
+    neutral_eulh = prep.Calc_Euler(neutral_h)
+    neutral_eull = prep.Calc_Euler(neutral_l)
+    neutral_eulr = prep.Calc_Euler(neutral_r)
+    
+    #Contralateral Hip Drop
+    nr_contra = cmed.cont_rot_CME(hipbf['EulerY'], rfbf['Phase'], [2,0], neutral_eulh[1], cme_dict['hipdropr'])
+    nl_contra = cmed.cont_rot_CME(hipbf['EulerY'], rfbf['Phase'], [1,0], neutral_eulh[1], cme_dict['hipdropl'])
+    #Pronation/Supination
+    nr_prosup = cmed.cont_rot_CME(rfbf['EulerX'], rfbf['Phase'], [2,0], neutral_eulr[0], cme_dict['prosupr'])
+    nl_prosup = cmed.cont_rot_CME(lfbf['EulerX'], rfbf['Phase'], [1,0], neutral_eull[0], cme_dict['prosupl'])
+    #Lateral Hip Rotation
+    nr_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [2], neutral_eulh[2], cme_dict['hiprotr'])
+    nrdbl_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [0], neutral_eulh[2], cme_dict['hiprotd'])
+    nl_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [1], neutral_eulh[2], cme_dict['hiprotl'])
+    nldbl_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [0], neutral_eulh[2], cme_dict['hiprotd'])
+    
+    #Landing Time
+    n_landtime = sync_time(rfbf['Impact'], lfbf['Impact'], hz, cme_dict_imp['landtime'])
+    #Landing Pattern
+    if len(n_landtime) != 0:
+        n_landpattern = landing_pattern(rfbf['EulerY'], lfbf['EulerY'], n_landtime[:,0], n_landtime[:,1], cme_dict_imp['landpattern'])
+    else:
+        n_landpattern = np.array([])
+        
+    #Determining the load            
+    load = ldcalc.load_bal_imp(rfbf, lfbf, hipbf, mass, extra_mass)
+
+    #Execution Score
+    score = exec_score.weight_load(nr_contra, nl_contra, nr_prosup, nl_prosup, nr_hiprot, nl_hiprot, nrdbl_hiprot, nldbl_hiprot, n_landtime, n_landpattern, load)
