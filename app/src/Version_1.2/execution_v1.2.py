@@ -219,8 +219,8 @@ if __name__ == "__main__":
     rfbf['Impact'] = rimpact
     
     #Mass and extra mass to test the load function    
-    #mass = 75
-    #extra_mass = 0
+    mass = 75
+    extra_mass = 0
     
     #Balance CME thresdholds
     cme_dict = {'prosupl':[-1, -4, 2, 8], 'hiprotl':[-1, -4, 2, 8], 'hipdropl':[-1, -4, 2, 8],
