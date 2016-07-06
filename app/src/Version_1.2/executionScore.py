@@ -9,16 +9,11 @@ import numpy as np
 
 """
 #############################################INPUT/OUTPUT####################################################
-Function:execution_score_mechanism
-Inputs: The right foot; left foot; and hip data; the mass of the user in kilograms; any extra mass the user 
-        has strapped on in kilograms; sampling rate
-Outputs: THE EXECUTION SCORE!
-
 Function: weight_load
 Inputs: normalized scores for, contralateral hip drop (right and left feet); pronation/supination (right and
         left feet); lateral hip rotation (right and left feet, both single and double); landing time; landing
-        pattern; mass of the user; extra mass the user has strapped on; right foot; left foot; and hip data
-Outputs: THE SCORE!
+        pattern; load array (output of the load_bal_imp function)
+Outputs: THE EXECUTION SCORE!
 #############################################################################################################
 """
 
