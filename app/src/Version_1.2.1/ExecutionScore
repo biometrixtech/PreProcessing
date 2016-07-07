@@ -219,7 +219,6 @@ if __name__ == "__main__":
     lpitch = ldata[ptch].values
     ph = Body_Phase(racc, lacc, rpitch, lpitch,  sampl_rate)
     
-    #ph = pe_v1.Body_Phase(rdata['AccZ'], ldata['AccZ'], sampl_rate) #array containing the full body moving decisions
     rdata['Phase'] = ph
     ldata['Phase'] = ph
     hdata['Phase'] = ph
