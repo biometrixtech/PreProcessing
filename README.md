@@ -10,7 +10,7 @@ Constructive/Destructive Load - ready to be coded up
 
 Symmetry Score - defining method very similar to execution score
 
-####Release 1.2.1 (expected - 7/6/16):
+####Release 1.2.1 (7/6/16):
 Execution Score - Moving CME and loading calculation outside the scoring mechanism.
 
 General - Script name changes
