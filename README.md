@@ -4,6 +4,8 @@ Analytics R&D: python scripts developed to clean, mark, and quanitify biomechani
 ####Release 1.3 (expected - 7/8/16):
 Anatomical Calibration - reviewing rotation methods for 100% accuracy, improving anatomical fixes
 
+Coordinate Frame Transformation - Removed reliance on heading variable, now filters through using yaw offset from Anatomical Calibration
+
 Phase Detection - merging balance and impact phase methods, improving accuracy of boundaries
 
 ####Release 1.2.1 (7/6/16):
