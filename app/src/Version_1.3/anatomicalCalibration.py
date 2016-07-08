@@ -226,7 +226,7 @@ def test_errors(hdata, rdata, ldata, hz):
             pass
 
 if __name__ == "__main__":    
-    hroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\bow8.csv'
+    hroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\bow13.csv'
     rroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\rbow13.csv'
     lroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\lbow13.csv'
     
