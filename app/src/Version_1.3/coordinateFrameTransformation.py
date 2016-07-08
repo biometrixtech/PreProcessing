@@ -162,5 +162,3 @@ if __name__ == '__main__':
     ####Creates dataframe for body and sensor outputs along with adding column names 
     body = pd.DataFrame(bodyframe, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #body frame column names
     sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
-    
-    body.to_csv('C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\postprocessed_unittest.csv')

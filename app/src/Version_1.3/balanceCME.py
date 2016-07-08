@@ -68,9 +68,6 @@ if __name__ == "__main__":
     
     ###THE GOOD STUFF!!!####
     out = cont_rot_CME(peak_series, output, [0,1], neutral_eul[0], cme_dict['prosupl'])
-    
-    out = pd.DataFrame(out)
-    out.to_csv('C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\balanceCME\\output.csv')
 
     
     
