@@ -217,7 +217,7 @@ def test_errors(hdata, rdata, ldata, hz):
             pass
 
 if __name__ == "__main__":    
-    hroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\bow13.csv'
+    hroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\bow8.csv'
     rroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\rbow13.csv'
     lroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\lbow13.csv'
     
@@ -257,6 +257,7 @@ if __name__ == "__main__":
     #find feet offset to true forward
     yaw_alignl_q = orient_feet(l_q, fixed_h)
     yaw_alignr_q = orient_feet(r_q, fixed_h)
+    yaw_alignh_q = prep.QuatProd(xy_switch, hfx_q)
     
     #combine true forward offset and pitch offset 
     alignl_q = prep.QuatProd(pitch_alignl_q, yaw_alignl_q)
