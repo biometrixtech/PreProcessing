@@ -130,6 +130,8 @@ def bound_det_lf(p):
         elif p[i] == 3 and p[i+1] == 1:
             end_move.append(i)
             
+    #print start_move, end_move
+            
     return start_move, end_move
     
 def bound_det_rf(p):
@@ -200,9 +202,9 @@ def impact_detect(start_move, end_move, az, hz):
     imp = []
     imp = np.array([ [i,j] for i,j in zip(start_imp, end_imp) ])
     
-    return imp
+    return np.array(imp)
 
-def impact_phase(raccz, laccz, rpitch, lpitch, hz):
+def impact_phase(laccz, raccz, rpitch, lpitch, hz):
     
     ph = Body_Phase(raccz, laccz, rpitch, lpitch, hz)
     
@@ -212,10 +214,34 @@ def impact_phase(raccz, laccz, rpitch, lpitch, hz):
     lf_imp = impact_detect(lf_sm, lf_em, laccz, hz) #starting and ending point of the impact phase for the left foot
     rf_imp = impact_detect(rf_sm, rf_em, raccz, hz) #starting and ending points of the impact phase for the right foot
     
-    #work to be done (here the impact phase and the balance phase will be merged)    
-    #for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
+    print lf_imp    
+    
+    #work to be done (here the impact phase and the balance phase will be merged) 
+    lf_ph = rf_ph = []
+    
+    lf_ph = ph
+    rf_ph = ph
+    
+    #plt.figure(1)
+    #plt.plot(lf_ph)
+    #plt.plot(laccz)
+    #plt.show()
+    
+    for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
+        print i,j
+        lf_ph[i:j] = 4 #decide impact phase for the left foot
+    
+    for i,j in zip(rf_imp[:,0], rf_imp[:,1]):
+        rf_ph[i:j] = 4 #decide impact phase for the right foot
         
-    return None
+    #plt.figure(2)
+    #plt.plot(lf_ph)
+    #plt.plot(laccz)
+    #plt.show()
+        
+    phe = [ [i,j] for i,j in zip(lf_ph, rf_ph) ]
+        
+    return np.array(phe)
     
 if __name__ == "__main__":    
     
@@ -255,7 +281,7 @@ if __name__ == "__main__":
     indic = phase[up:down]
     
     plt.figure(5)    
-    plt.plot(phase)
+    plt.plot(phase[:,0])
     plt.plot(ldata['AccZ'])
     #plt.title(comp)
     plt.show()
