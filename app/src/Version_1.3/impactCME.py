@@ -39,20 +39,20 @@ def imp_start_time(imp_time): #passing the impact phase data (its an array of 0'
     s = [] #initializing a list
     count = 0 #initializing a count variable
     for i in range(len(imp_time)):
-        if imp_time[i] == 1: #checking if an impact phase exists 
+        if imp_time[i] == 4 or imp_time[i] == 5: #checking if an impact phase exists (4 for left foot; 5 for right foot)
             if count < 1:
                 s.append(i) #appending the first instant of an impact phase to a list
                 count = count + 1
-        elif imp_time[i] == 0:
+        elif imp_time[i] == 0 or imp_time[i] == 1 or imp_time[i] == 2 or imp_time[i] == 3:
             count = 0
-            
+                        
     return s #returning the list that contains the first instant of the impact phases
     
 def sync_time(imp_rf, imp_lf, sampl_rate, cme_landtime): #passing the time intervals of the imapct phases of the right and left feet, and the sampling rate
     
     rf_start = imp_start_time(imp_rf) #obtaining the first instant of the impact phases of the right foot
     lf_start = imp_start_time(imp_lf) #obtaining the first instant of the impact phases of the left foot
-    
+
     diff = [] #initializing a list to store the difference in impact times
     rf_time = [] #refined starting time of the impact phase for the right foot
     lf_time = [] #refined starting time of the impact phase for the left foot
@@ -71,7 +71,7 @@ def sync_time(imp_rf, imp_lf, sampl_rate, cme_landtime): #passing the time inter
                     lf_time.append(lf_start[k]) #refined starting time of the impact phase for the left foot (not in seconds)
                     break #if the relevant impact phase is found then break from the 'for' loop
             next(islice(numbers, k+1, 1 ), None) #skip the next 'k+1' iterations
-            
+        
     #NORMALIZING THE TIME DIFFERENCE IN IMPACT
     out_time = []
     nr = nl = 0
@@ -109,6 +109,7 @@ if __name__ == '__main__':
     import pandas as pd
     import matplotlib.pyplot as plt
     #from impact_phase import impact_phase
+    from phasedetection_v1 import *
     
     #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Rheel_Gabby_jumping_explosive_set2.csv'
     rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_LESS.csv'
@@ -120,29 +121,43 @@ if __name__ == '__main__':
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
     hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\hips_Gabby_stomp_set1.csv'
 
-    #rdata1 = pd.read_csv(rpath)
-    #ldata1 = pd.read_csv(lpath)
+    rdata1 = pd.read_csv(rpath)
+    ldata1 = pd.read_csv(lpath)
     #hdata1 = pd.read_csv(hpath)
     
     #reading the test datasets
-    rdata1 = pd.read_csv('C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\impact cme\sym_impact_input_rfoot.csv')
-    ldata1 = pd.read_csv('C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\impact cme\sym_impact_input_lfoot.csv')
+    #rdata1 = pd.read_csv('C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\impact cme\sym_impact_input_rfoot.csv')
+    #ldata1 = pd.read_csv('C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\impact cme\sym_impact_input_lfoot.csv')
 
-    comp = 'AccZ'
-    rdata = rdata1[comp].values
-    ldata = ldata1[comp].values
-    hdata = hdata1[comp].values
-    comp2 = 'EulerY'
-    erf = rdata1[comp2].values
-    elf = ldata1[comp2].values
-    sampl_rate = 250 #sampling rate, remember to change it when using data sets of different sampling rate
+    sampl_rate = 250
+    #comp = 'AccZ'
+    ptch = 'EulerY'
+    #racc = rdata[comp].values
+    #lacc = ldata[comp].values #input AccZ values!
+    rpitch = rdata1[ptch].values
+    lpitch = ldata1[ptch].values
+    #ph = Body_Phase(racc, lacc, rpitch, lpitch, sampl_rate)
+    
+    lf_phase, rf_phase = combine_phase(ldata1['AccZ'].values, rdata1['AccZ'].values, rpitch, lpitch, sampl_rate)
+    
+    rdata1['Phase'] = rf_phase
+    ldata1['Phase'] = lf_phase
+
+    #comp = 'AccZ'
+    #rdata = rdata1[comp].values
+    #ldata = ldata1[comp].values
+    #hdata = hdata1[comp].values
+    #comp2 = 'EulerY'
+    #erf = rdata1[comp2].values
+    #elf = ldata1[comp2].values
+    #sampl_rate = 250 #sampling rate, remember to change it when using data sets of different sampling rate
     
     #output_lf = impact_phase(ldata, sampl_rate)
     #output_rf = impact_phase(rdata, sampl_rate)
     
     cme_dict_imp = {'landtime':[0.2, 0.25], 'landpattern':[12, -50]}
     
-    output = sync_time(rdata1['Impact'], ldata1['Impact'], sampl_rate, cme_dict_imp['landtime'])
+    output = sync_time(rdata1['Phase'], ldata1['Phase'], sampl_rate, cme_dict_imp['landtime'])
     pdiff = landing_pattern(rdata1['EulerY'], ldata1['EulerY'], output[:,0], output[:,1], cme_dict_imp['landpattern'])
     
     print output
