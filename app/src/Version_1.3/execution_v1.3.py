@@ -82,15 +82,7 @@ if __name__ == "__main__":
     hipbf, rfbf, lfbf, hipfinal, rffinal, lffinal = [np.zeros((1,16)) for i in range(6)]
     hipsf, rfsf, lfsf = [np.empty((1,9)) for i in range(3)]
     iters = len(hip) #find how many data vectors
-    
-    #set rolling mean windows
-    w = int(hz*.08) #set rolling mean windows
-    edge = int(.2*hz)
-    #initiate lists to hold move decisions
-    movhold = [0]*int(1.5*w)
-    gmovhold = [0]*int(1.5*w)
-    rmovh = [0]*int(1.5*w)
-    rgmovh = [0]*int(1.5*w)
+
     for i in range(len(lfoot)):
         #FRAME TRANSFORM
         #frame transforms for all sensors (returns sensor frame data as well but not very relevant)
