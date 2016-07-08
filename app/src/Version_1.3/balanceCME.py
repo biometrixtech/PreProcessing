@@ -7,7 +7,6 @@ Created on Sun Jun 12 11:41:49 2016
 
 import numpy as np
 import pandas as pd
-import phaseDetection as phase
 import coordinateFrameTransformation as prep
 
 """
@@ -17,8 +16,8 @@ axis, list of thresholds
 
 Outputs: array [time stamp, normalization score, indic of positive or negative, angle difference from neutral]
 
-Datasets: phase_inputs.csv, peak_inputs.csv (contains both peak and trough values) ->
-rot_CME(maxtab, mintab, output, [0,1]) -> outputs.csv
+Datasets: inputs.csv (contains both peak and trough values) -> cont_rot_CME(inputs['EulerX'], inputs['Phase'],
+[0,1], neutral_eul[0], cme_dict['prosupl']) -> outputs.csv
 #############################################################################################################
 """
 def cont_norm_score(mag, quat, cme):
@@ -53,39 +52,25 @@ def cont_rot_CME(series, states, state, rel, cme):
     
 if __name__ == "__main__":
     pos = 'lf'
-    lroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
-    rroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
-    hroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
-    
-#    lroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\Lheel_Gabby_walking_heeltoe_set1.csv'
-#    rroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\Rheel_Gabby_walking_heeltoe_set1.csv'
-#    hroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\BodyFrame walking\\hips_Gabby_walking_heeltoe_set1.csv'    
+    lroot = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\balanceCME\\input.csv' 
     
     cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15], 'hipdropl':[-4, -7, 4, 15],
                 'prosupr':[-4, -15, 4, 7], 'hiprotr':[-4, -15, 4, 7], 'hipdropr':[-4, -15, 4, 7],
                 'hiprotd':[-4, -7, 4, 7]}    
     
-    rdata = pd.read_csv(rroot)
     ldata = pd.read_csv(lroot)
-    hdata = pd.read_csv(hroot)
     
-    neutral = np.matrix([1,0,0,0]) # stand-in, will come from anatomical fix module    
-    
-    ##Phase Detection
-    rseries = rdata['AccZ'].values
-    lseries = ldata['AccZ'].values #input AccZ values!
-    rpitch = rdata['EulerY'].values
-    lpitch = ldata['EulerY'].values
-    output = phase.Body_Phase(rseries, lseries, rpitch, lpitch, 250)
-    ldata['Phase'] = output
-    rdata['Phase'] = output
-    hdata['Phase'] = output 
+    neutral = np.matrix([0.582,0.813,0,0]) # stand-in, will come from anatomical fix module    
     
     peak_series = ldata['EulerX'].values
+    output = ldata['Phase'].values
     neutral_eul = prep.Calc_Euler(neutral)
     
     ###THE GOOD STUFF!!!####
     out = cont_rot_CME(peak_series, output, [0,1], neutral_eul[0], cme_dict['prosupl'])
+    
+    out = pd.DataFrame(out)
+    out.to_csv('C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\balanceCME\\output.csv')
 
     
     
