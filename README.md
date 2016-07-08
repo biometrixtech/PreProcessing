@@ -8,6 +8,8 @@ Coordinate Frame Transformation - Removed reliance on heading variable, now filt
 
 Phase Detection - merging balance and impact phase methods, improving accuracy of boundaries
 
+Impact CME, Execution Score, Load Calc - updated to match changes in the Phase Detection script
+
 ####Release 1.2.1 (7/6/16):
 Execution Score - Moving CME and loading calculation outside the scoring mechanism.
 
