@@ -6,10 +6,6 @@ Anatomical Calibration - reviewing rotation methods for 100% accuracy, improving
 
 Phase Detection - merging balance and impact phase methods, improving accuracy of boundaries
 
-Constructive/Destructive Load - ready to be coded up
-
-Symmetry Score - defining method very similar to execution score
-
 ####Release 1.2.1 (7/6/16):
 Execution Score - Moving CME and loading calculation outside the scoring mechanism.
 
@@ -53,8 +49,10 @@ Peak Detection - id for max and min orientation values to input into CME detecti
 
 X-------Code Freeze for Alpha--------X
 
+- Symmetry Score
+- Constructive/Destructive Load
 - Load calculation for Impact phase
 - Distribution of Load for balance phace
-- Fatigue Score
 - Anterior Pelvic Tilt
 - Correct CMEs of sensor placement off center at hips and inside/outside heel
+- Fatigue Score
