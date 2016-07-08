@@ -11,9 +11,12 @@ import coordinateFrameTransformation as prep
 """
 #############################################INPUT/OUTPUT####################################################   
 Inputs: raw gyro and quaternions for all three sensors collected during Anatomical Alignment method
+
 Outputs: alignl_q, alignr_q, alignh_q ---> for sensor-body frame alignment; yaw_alignl_q, yaw_alignr_q, hfx_q
 ---> for adjusted inertial frame; neutral_lq, neutral_rq, neutral_hq ---> anatomic neutral for comparing 
 against body frame alignment in CMEs, yaw is relative to hip sensor
+
+Datasets: hip, right, left -> __main__ -> output
 #############################################################################################################
 """
 
