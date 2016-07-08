@@ -38,74 +38,81 @@ def load_bal_imp(rf, lf, hip, m, em):
     rf_bal = [] #load on the right foot during balance phase is determined in Kilonewtons
     lf_bal = [] #load on the left foot during balance phase is determined in Kilonewtons
         
-    #determining the load during the balance phase    
-    for i in range(len(hip)):
+    #determining the load during the balance and impact phases for the right foot    
+    for i in range(len(rf)):
         res_hipacc = np.sqrt( hip['AccX'][i]**2 + hip['AccY'][i]**2 + hip['AccZ'][i]**2) #magnitude of the resultant acceleration vector of the hip during the balance phase
-        if hip['Phase'][i] == 0: #checking if both feet are on the ground
+        if rf['Phase'][i] == 0: #checking if both feet are on the ground
             rf_bal.append(calc_force(m/2, em/2, res_hipacc))
-            lf_bal.append(calc_force(m/2, em/2, res_hipacc))
-        elif hip['Phase'][i] == 1: #checking if the right foot is off the ground
+        elif rf['Phase'][i] == 1: #checking if the right foot is off the ground
             rf_bal.append(0)
-            lf_bal.append(calc_force(m, em, res_hipacc))
-        elif hip['Phase'][i] == 2: #checking if the left foot is off the ground
+        elif rf['Phase'][i] == 2: #checking if the left foot is off the ground
             rf_bal.append(calc_force(m, em, res_hipacc))
-            lf_bal.append(0)  
-        elif hip['Phase'][i] == 3: #checking if both feet are off the ground
+        elif rf['Phase'][i] == 3: #checking if both feet are off the ground
             rf_bal.append(0)
-            lf_bal.append(0)
-            
-    load = [ [i, j, k, k] for i, j, k in zip(rf_bal, lf_bal, hip['Phase']) ] #creating a single array with right load, left load, right foot phase, left foot phase
-    load = np.array(load)
+        elif rf['Phase'][i] == 5: #checking for right foot impact
+            rf_bal.append(5) #assigning a load value for when impact phase occurs (future work would involved determining the actual impact load)
     
-    #adding in the impact phases     
-    for i in range(len(hip)):
-        if rf['Impact'][i] == 1:
-            load[i,0] = 5 #assigning a load value for when impact phase occurs (future work would involved determining the actual impact load)
-            load[i,2] = 4 #assigning the 4 to indicate an impact phase
-        elif lf['Impact'][i] == 1:
-            load[i,1] = 5
-            load[i,3] = 4        
+    #determining the load during the balance and impact phases for the left foot     
+    for i in range(len(lf)):
+        res_hipacc = np.sqrt( hip['AccX'][i]**2 + hip['AccY'][i]**2 + hip['AccZ'][i]**2) #magnitude of the resultant acceleration vector of the hip during the balance phase
+        if lf['Phase'][i] == 0: #checking if both feet are on the ground
+            lf_bal.append(calc_force(m/2, em/2, res_hipacc))
+        elif lf['Phase'][i] == 1: #checking if the right foot is off the ground
+            lf_bal.append(calc_force(m, em, res_hipacc))
+        elif lf['Phase'][i] == 2: #checking if the left foot is off the ground
+            lf_bal.append(0)  
+        elif lf['Phase'][i] == 3: #checking if both feet are off the ground
+            lf_bal.append(0)
+        elif lf['Phase'][i] == 4: #checking for left foot impact
+            lf_bal.append(5) #assigning a load value for when impact phase occurs (future work would involved determining the actual impact load)
+        
+    
+    load = [ [i, j, k, l] for i, j, k, l in zip(rf_bal, lf_bal, rf['Phase'], lf['Phase']) ] #creating a single array with right load, left load, right foot phase, left foot phase
+    load = np.array(load)
         
     return load
     
 if __name__ == '__main__':
     
     import matplotlib.pyplot as plt   
-    import pe_v1
-    from impact_phase import impact_phase
+    from phaseDetection import *
     
-    rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_snglsquat_set1.csv'
-    lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_snglsquat_set1.csv'
+    rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_LESS.csv'
+    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Rheel_Gabby_changedirection_set1.csv'
+    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'   
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Lheel_Gabby_changedirection_set1.csv'
+    lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_LESS.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
-    hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_snglsquat_set1.csv'
+    #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
+    hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_LESS.csv'
 
     rdata = pd.read_csv(rpath)
     ldata = pd.read_csv(lpath)
     hdata = pd.read_csv(hpath)
     
-    #acc = ['AccX', 'AccY', 'AccZ']
-    #rdata = rdata[acc]
-    #ldata = ldata[acc]
-    #hdata = hdata[acc]
-    
     sampl_rate = 250
+    comp = 'AccZ'
+    ptch = 'EulerY'
+    racc = rdata[comp].values
+    lacc = ldata[comp].values #input AccZ values!
+    rpitch = rdata[ptch].values
+    lpitch = ldata[ptch].values
+    #ph = Body_Phase(racc, lacc, rpitch, lpitch, sampl_rate)
     
-    ph = pe_v1.Body_Phase(rdata['AccZ'], ldata['AccZ'], 250) #array containing the full body moving decisions
-    rdata['Phase'] = ph
-    ldata['Phase'] = ph
-    hdata['Phase'] = ph 
+    lf_phase, rf_phase = combine_phase(ldata['AccZ'].values, rdata['AccZ'].values, rpitch, lpitch, sampl_rate)
     
-    lf_impact = impact_phase(ldata['AccZ'], sampl_rate)
-    rf_impact = impact_phase(rdata['AccZ'], sampl_rate)
-    rdata['Impact'] = rf_impact
-    ldata['Impact'] = lf_impact
+    rdata['Phase'] = rf_phase
+    ldata['Phase'] = lf_phase
     
-    print len(lf_impact), len(rf_impact)
+    print len(rf_phase), len(rdata), len(ldata)
     
-    print len(ldata)
+    #for i in range(len(rdata)):
+    #    if rdata['Phase'][i] == 5:
+    #        print 'hello'
 
     mass = 75 #in kilograms
     exmass = 0 #in kilograms
@@ -123,7 +130,7 @@ if __name__ == '__main__':
     #plt.plot(ph)
     #plt.show()
     
-    print len(hdata), len(ld), len(ph)
+    print len(ldata), len(ld), len(lf_phase), len(rf_phase)
     print ld
     
     #plt.figure(3)

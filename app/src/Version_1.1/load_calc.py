@@ -51,9 +51,11 @@ def load_balance(rf, lf, hip, m, em):
             lf_bal.append(calc_force(m, em, res_hipacc))
         elif rf['Phase'][i] == 2: #checking if the left foot is off the ground
             rf_bal.append(calc_force(m, em, res_hipacc))
-            lf_bal.append(0)
+            lf_bal.append(0)    
+    
+    lf_pctload = [ j/(i+j) for i,j in zip(rf_bal, lf_bal) ] #a list that stores the percent load on the left foot
             
-    return np.array(rf_bal), np.array(lf_bal)
+    return np.array(lf_pctload)
     
     
 if __name__ == '__main__':
@@ -85,12 +87,12 @@ if __name__ == '__main__':
 
     mass = 75 #in kilograms
     exmass = 0 #in kilograms
-    ld_rf, ld_lf = load_balance(rdata, ldata, hdata, mass, exmass) #passing the right foot, left foot, hip, user mass and extra mass data
+    lf_percentload = load_balance(rdata, ldata, hdata, mass, exmass) #passing the right foot, left foot, hip, user mass and extra mass data
     
     #plt.plot(ld_rf)
     #plt.plot(ld_lf)
-    #plt.plot(ldata['AccZ'])
-    #plt.plot(ph)
-    #plt.show()
+    plt.plot(ldata['AccZ'])
+    plt.plot(ph)
+    plt.show()
     
     
