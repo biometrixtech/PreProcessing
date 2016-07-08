@@ -207,20 +207,16 @@ def impact_detect(start_move, end_move, az, hz):
 def impact_phase(laccz, raccz, rpitch, lpitch, hz):
     
     ph = Body_Phase(raccz, laccz, rpitch, lpitch, hz)
+    lf_ph = list(ph)
+    rf_ph = list(ph)
     
-    lf_sm, lf_em = bound_det_lf(ph) #detecting the start and end points of the left foot movement phase
-    rf_sm, rf_em = bound_det_rf(ph) #detecting the start and end points of the right foot movement phase
+    lf_sm, lf_em = bound_det_lf(lf_ph) #detecting the start and end points of the left foot movement phase
+    rf_sm, rf_em = bound_det_rf(rf_ph) #detecting the start and end points of the right foot movement phase
     
     lf_imp = impact_detect(lf_sm, lf_em, laccz, hz) #starting and ending point of the impact phase for the left foot
     rf_imp = impact_detect(rf_sm, rf_em, raccz, hz) #starting and ending points of the impact phase for the right foot
     
-    print lf_imp    
-    
-    #work to be done (here the impact phase and the balance phase will be merged) 
-    lf_ph = rf_ph = []
-    
-    lf_ph = ph
-    rf_ph = ph
+    print(lf_imp)    
     
     #plt.figure(1)
     #plt.plot(lf_ph)
@@ -228,16 +224,17 @@ def impact_phase(laccz, raccz, rpitch, lpitch, hz):
     #plt.show()
     
     for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
-        print i,j
-        lf_ph[i:j] = 4 #decide impact phase for the left foot
+        print(i,j, "l")
+        lf_ph[i:j] = [4]*int(j-i) #decide impact phase for the left foot
     
-    for i,j in zip(rf_imp[:,0], rf_imp[:,1]):
-        rf_ph[i:j] = 4 #decide impact phase for the right foot
+    for x,y in zip(rf_imp[:,0], rf_imp[:,1]):
+        print(x,y, "r")
+        rf_ph[x:y] = [5]*int(y-x) #decide impact phase for the right foot
         
-    #plt.figure(2)
-    #plt.plot(lf_ph)
-    #plt.plot(laccz)
-    #plt.show()
+    plt.figure(2)
+    plt.plot(rf_ph[2000:4000])
+    #plt.plot(raccz[2000:4000])
+    plt.show()
         
     phe = [ [i,j] for i,j in zip(lf_ph, rf_ph) ]
         
@@ -245,18 +242,9 @@ def impact_phase(laccz, raccz, rpitch, lpitch, hz):
     
 if __name__ == "__main__":    
     
-    rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_LESS.csv'
-    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Rheel_Gabby_changedirection_set1.csv'
-    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'   
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Lheel_Gabby_changedirection_set1.csv'
-    lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_LESS.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
-    #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
-    hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_LESS.csv'
+    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
+    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
+    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
 
     rdata = pd.read_csv(rpath)
     ldata = pd.read_csv(lpath)
@@ -280,8 +268,8 @@ if __name__ == "__main__":
     aseries = ldata[up:down]
     indic = phase[up:down]
     
-    plt.figure(5)    
-    plt.plot(phase[:,0])
-    plt.plot(ldata['AccZ'])
-    #plt.title(comp)
-    plt.show()
+#    plt.figure(5)    
+#    plt.plot(phase[4500:6000,0])
+#    plt.plot(rdata['AccZ'].values[4500:6000])
+#    plt.title(comp)
+#    plt.show()
