@@ -129,9 +129,7 @@ def bound_det_lf(p):
             end_move.append(i)
         elif p[i] == 3 and p[i+1] == 1:
             end_move.append(i)
-            
-    #print start_move, end_move
-            
+                        
     return start_move, end_move
     
 def bound_det_rf(p):
@@ -170,10 +168,8 @@ def impact_detect(start_move, end_move, az, hz):
     end_imp = []
 
     for i,j in zip(start_move, end_move):
-        #print i,j
         arr_len = []
         dummy_start_imp = []
-        #count = 0
         acc = az[i:j]
         arr_len = range(len(acc)-win)
         numbers = iter(arr_len)
@@ -182,12 +178,8 @@ def impact_detect(start_move, end_move, az, hz):
                 for l in range(win):
                     if acc[k+l] >= pos_thresh:
                         dummy_start_imp.append(i+k)
-                        #count = count + 1
-                        #end_imp.append(i+j)
                         break
                 next(islice(numbers, win, 1 ), None) #skip 0.05*hz data points in the second 'for' loop
-        #print dummy_start_imp
-        #print count, 'this is the count'
         if len(dummy_start_imp) == 1:
             start_imp.append(dummy_start_imp[0])
             end_imp.append(j)
@@ -196,17 +188,17 @@ def impact_detect(start_move, end_move, az, hz):
                 if (((j-i)/2)+i) < dummy_start_imp[m] <= j:
                     start_imp.append(dummy_start_imp[m])
                     end_imp.append(j)
-                    #print start_imp, 'when count > 1'
                     break
                 
     imp = []
-    imp = np.array([ [i,j] for i,j in zip(start_imp, end_imp) ])
+    imp = [ [i,j] for i,j in zip(start_imp, end_imp) ]
     
     return np.array(imp)
 
-def impact_phase(laccz, raccz, rpitch, lpitch, hz):
+def combine_phase(laccz, raccz, rpitch, lpitch, hz):
     
     ph = Body_Phase(raccz, laccz, rpitch, lpitch, hz)
+    
     lf_ph = list(ph)
     rf_ph = list(ph)
     
@@ -215,36 +207,31 @@ def impact_phase(laccz, raccz, rpitch, lpitch, hz):
     
     lf_imp = impact_detect(lf_sm, lf_em, laccz, hz) #starting and ending point of the impact phase for the left foot
     rf_imp = impact_detect(rf_sm, rf_em, raccz, hz) #starting and ending points of the impact phase for the right foot
-    
-    print(lf_imp)    
-    
-    #plt.figure(1)
-    #plt.plot(lf_ph)
-    #plt.plot(laccz)
-    #plt.show()
-    
+
     for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
-        print(i,j, "l")
+        #print i,j, "l"
         lf_ph[i:j] = [4]*int(j-i) #decide impact phase for the left foot
     
     for x,y in zip(rf_imp[:,0], rf_imp[:,1]):
-        print(x,y, "r")
-        rf_ph[x:y] = [5]*int(y-x) #decide impact phase for the right foot
-        
-    plt.figure(2)
-    plt.plot(rf_ph[2000:4000])
-    #plt.plot(raccz[2000:4000])
-    plt.show()
-        
-    phe = [ [i,j] for i,j in zip(lf_ph, rf_ph) ]
-        
-    return np.array(phe)
+        #print x,y, "r"
+        rf_ph[x:y] = [5]*int(y-x) #decide impact phase for the right foot            
+            
+    return np.array(lf_ph), np.array(rf_ph)
     
 if __name__ == "__main__":    
     
-    hpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\hipdatabody.csv'
-    rpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\rfdatabody.csv'
-    lpath = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\By Exercise\\lfdatabody.csv'
+    rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_LESS.csv'
+    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Rheel_Gabby_changedirection_set1.csv'
+    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'   
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Lheel_Gabby_changedirection_set1.csv'
+    lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_LESS.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
+    #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
+    hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_LESS.csv'
 
     rdata = pd.read_csv(rpath)
     ldata = pd.read_csv(lpath)
@@ -259,17 +246,20 @@ if __name__ == "__main__":
     lpitch = ldata[ptch].values
     #ph = Body_Phase(racc, lacc, rpitch, lpitch, sampl_rate)
     
-    phase = impact_phase(ldata['AccZ'].values, rdata['AccZ'].values, rpitch, lpitch, sampl_rate)
+    lf_phase, rf_phase = combine_phase(ldata['AccZ'].values, rdata['AccZ'].values, rpitch, lpitch, sampl_rate)
+    
+    #print lf_phase
+    #print rf_phase    
     
     ###Plotting
     up = 0
     down = len(rdata)
     
     aseries = ldata[up:down]
-    indic = phase[up:down]
+    #indic = phase[up:down]
     
-#    plt.figure(5)    
-#    plt.plot(phase[4500:6000,0])
-#    plt.plot(rdata['AccZ'].values[4500:6000])
-#    plt.title(comp)
-#    plt.show()
+    plt.figure(5)    
+    plt.plot(lf_phase)
+    plt.plot(ldata['AccZ'])
+    #plt.title(comp)
+    #plt.show()
