@@ -248,18 +248,22 @@ if __name__ == "__main__":
     hglob = pd.DataFrame(bodyframe, columns=["gyrX", "gyrY", "gyrZ", "EulerZ"]) #create dataframe of corrected gyro, and heading data
     hfx_q = hip_orientation_fix(hglob, prep.Calc_Euler(h_q)[2], hz) #find degree offset of hip sensor from forward
     fixed_h = prep.QuatProd(prep.QuatConj(xy_switch), prep.QuatProd(prep.QuatConj(hfx_q), h_q)) #correct heading of hip sensor
+    
     #find pitch offset of anatomically neutral position of each sensor
     pitch_alignl_q = pitch_offset(l_q)
     pitch_alignr_q = pitch_offset(r_q)
     pitch_alignh_q = pitch_offset(h_q)
+    
     #find feet offset to true forward
     yaw_alignl_q = orient_feet(l_q, fixed_h)
     yaw_alignr_q = orient_feet(r_q, fixed_h)
+    
     #combine true forward offset and pitch offset 
     alignl_q = prep.QuatProd(pitch_alignl_q, yaw_alignl_q)
     alignr_q = prep.QuatProd(pitch_alignr_q, yaw_alignr_q)
-    alignh_q = prep.QuatProd(prep.QuatConj(pitch_alignh_q), prep.QuatConj(hfx_q))
-
+    alignh_q = prep.QuatProd(xy_switch, prep.QuatProd(pitch_alignh_q, hfx_q))
+    
+    #create neutral quaternions for CME comparison
     neutral_lq = prep.QuatProd(yaw_alignl_q, prep.QuatProd(prep.QuatConj(pitch_alignl_q),prep.QuatProd(prep.QuatConj(prep.yaw_offset(l_q)), l_q)))
     neutral_rq = prep.QuatProd(yaw_alignr_q, prep.QuatProd(prep.QuatConj(pitch_alignr_q),prep.QuatProd(prep.QuatConj(prep.yaw_offset(r_q)), r_q)))
     neutral_hq = prep.QuatProd(hfx_q, prep.QuatProd(prep.QuatConj(pitch_alignh_q),prep.QuatProd(prep.QuatConj(prep.yaw_offset(h_q)), h_q)))
