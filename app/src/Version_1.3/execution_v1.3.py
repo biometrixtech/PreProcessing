@@ -123,7 +123,7 @@ if __name__ == "__main__":
     rfbf = pd.DataFrame(rfbf, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
     
     ##PHASE DETECTION
-    lf_phase, rf_phase = phase.combine_phase(lfbf['AccZ'].values, rfbf['AccZ'].values, rfbf['gyrZ'].values, lfbf['gyrZ'].values, hz)
+    lf_phase, rf_phase = phase.combine_phase(lfbf['AccZ'].values, rfbf['AccZ'].values, rfbf['EulerY'].values, lfbf['EulerY'].values, hz)
     
     lfbf['Phase'] =  lf_phase
     rfbf['Phase'] = rf_phase
