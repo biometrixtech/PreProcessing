@@ -7,13 +7,12 @@ Created on Thu Jul  7 12:34:12 2016
 
 import numpy as np
 import pandas as pd
-import phase_exploration as phase
+import phaseDetection as phase
 import coordinateFrameTransformation as prep
-import impact_phase as impact
 import anatomicalCalibration as anatom
 import executionScore as exec_score
 import balanceCME as cmed
-from impactCME import *
+import impactCME as impact
 import loadCalc as ldcalc
 
 """
@@ -125,81 +124,17 @@ if __name__ == "__main__":
             hipbf = np.delete(hipbf, 0, axis=0)
             lfbf = np.delete(lfbf, 0, axis=0)
             rfbf = np.delete(rfbf, 0, axis=0)
-        
-        #PHASE DETECTION
-        #set stickiness of weighted rolling means
-        infl = .0001
-        inflg = .00015
-        if len(lfbf) >= 2*w +1:
-            larr = lfbf[i-2*w+1:i+2, 9] #create array holding raw data
-            uaZ = pd.rolling_mean(larr, window=w, center=True) #rolling mean of raw data
-            stdaZ = pd.rolling_std(larr, window=w, center=True) #rolling std of raw data
-            uaZ = uaZ[~np.isnan(uaZ)] #remove nan
-            stdaZ = stdaZ[~np.isnan(stdaZ)] #remove nan
-            
-            if i == 2*w: #set initial means and stds for move functions
-                new_u = np.mean(stdaZ)
-                new_std = np.std(stdaZ)
-                gnew_u = np.mean(uaZ)
-                gnew_std = np.std(uaZ)
-            else: #update new means and stds for move functions as points roll in
-                new_u = (new_u + infl*stdaZ[-1])/(1+infl) #find new mean
-                new_std = (new_std + infl*(np.sqrt((stdaZ[-1]-new_u)**2))/(1+infl)) #find new SD
-                gnew_u = (gnew_u + inflg*uaZ[-1])/(1+inflg) #find new mean
-                gnew_std = (gnew_std + inflg*(np.sqrt((uaZ[-1]-gnew_u)**2))/(1+inflg)) #find new SD
-            
-            #append move functions decisions
-            movhold.append(phase.Move(stdaZ[-1], w, new_u, new_std, lfbf[i, 5]))
-            gmovhold.append(phase.Grad_Move(uaZ[-1], w, gnew_u, gnew_std, lfbf[i, 5]))
-        
-        if len(rfbf) >= 2*w +1:
-            rarr = rfbf[i-2*w+1:i+2, 9] #create array holding raw data
-            ruaZ = pd.rolling_mean(rarr, window=w, center=True) #rolling mean of raw data
-            rstdaZ = pd.rolling_std(rarr, window=w, center=True) #rolling std of raw data
-            ruaZ = ruaZ[~np.isnan(ruaZ)] #remove nan
-            rstdaZ = rstdaZ[~np.isnan(rstdaZ)] #remove nan
-            
-            if i == 2*w: #set initial means and stds for move functions
-                rnew_u = np.mean(rstdaZ)
-                rnew_std = np.std(rstdaZ)
-                rgnew_u = np.mean(ruaZ)
-                rgnew_std = np.std(ruaZ)
-            else: #update new means and stds for move functions as points roll in
-                rnew_u = (rnew_u + infl*rstdaZ[-1])/(1+infl) #find new mean
-                rnew_std = (rnew_std + infl*(np.sqrt((rstdaZ[-1]-rnew_u)**2))/(1+infl)) #find new SD
-                rgnew_u = (rgnew_u + inflg*ruaZ[-1])/(1+inflg) #find new mean
-                rgnew_std = (rgnew_std + inflg*(np.sqrt((ruaZ[-1]-rgnew_u)**2))/(1+inflg)) #find new SD
-            
-            #append move functions decisions
-            rmovh.append(phase.Move(rstdaZ[-1], w, rnew_u, rnew_std, rfbf[i, 5]))
-            rgmovh.append(phase.Grad_Move(ruaZ[-1], w, rgnew_u, rgnew_std, rfbf[i, 5]))
     
-    ###Finalize Phase Detection
-    cmove = phase.Comb_Move(movhold, gmovhold)  #combine move fxn results for left foot      
-    mscore = pd.rolling_mean(cmove, window=edge) #smooth results
-    final = phase.Final(mscore) #mark smoothed results 
-    final = phase.Fix_Edges(final, edge) #fix edges of results
-
-    rcmove = phase.Comb_Move(rmovh, rgmovh) #combine move fxn results for rightt foot
-    rmscore = pd.rolling_mean(rcmove, window=edge) #smooth results
-    rfinal = phase.Final(rmscore) #mark smoothed results
-    rfinal = phase.Fix_Edges(rfinal, edge) #fix edges of results
-            
-    body = phase.Body_Phase(rfinal, final) #create decisions on balance, one foot or no feet
-    body = np.append(body, np.zeros(int(.5*w))) #add nan to match body frame data length
+    #create dataframes of adjusted data
+    hipbf = pd.DataFrame(hipbf, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
+    lfbf = pd.DataFrame(lfbf, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
+    rfbf = pd.DataFrame(rfbf, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
     
-    #IMPACT PHASE DETECTION- not real time, run for each heel sensor
-    limpact = impact.impact_phase(lfbf[:,9],hz)  
-    rimpact = impact.impact_phase(rfbf[:,9], hz)
+    ##PHASE DETECTION
+    lf_phase, rf_phase = phase.combine_phase(lfbf['AccZ'].values, rfbf['AccZ'].values, rfbf['gyrZ'].values, lfbf['gyrZ'].values, hz)
     
-    #add decisions to body frame data
-    hipbf = pd.DataFrame(hipbf)
-    lfbf = pd.DataFrame(hipbf)
-    rfbf = pd.DataFrame(hipbf)
-    
-    hipbf['Phase'] = lfbf['Phase'] = rfbf['Phase'] = body
-    lfbf['Impact'] = limpact
-    rfbf['Impact'] = rimpact
+    lfbf['Phase'] =  lf_phase
+    rfbf['Phase'] = rf_phase
     
     #Mass and extra mass to test the load function    
     mass = 75
@@ -222,21 +157,21 @@ if __name__ == "__main__":
     
     #Contralateral Hip Drop
     nr_contra = cmed.cont_rot_CME(hipbf['EulerY'], rfbf['Phase'], [2,0], neutral_eulh[1], cme_dict['hipdropr'])
-    nl_contra = cmed.cont_rot_CME(hipbf['EulerY'], rfbf['Phase'], [1,0], neutral_eulh[1], cme_dict['hipdropl'])
+    nl_contra = cmed.cont_rot_CME(hipbf['EulerY'], lfbf['Phase'], [1,0], neutral_eulh[1], cme_dict['hipdropl'])
     #Pronation/Supination
     nr_prosup = cmed.cont_rot_CME(rfbf['EulerX'], rfbf['Phase'], [2,0], neutral_eulr[0], cme_dict['prosupr'])
-    nl_prosup = cmed.cont_rot_CME(lfbf['EulerX'], rfbf['Phase'], [1,0], neutral_eull[0], cme_dict['prosupl'])
+    nl_prosup = cmed.cont_rot_CME(lfbf['EulerX'], lfbf['Phase'], [1,0], neutral_eull[0], cme_dict['prosupl'])
     #Lateral Hip Rotation
     nr_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [2], neutral_eulh[2], cme_dict['hiprotr'])
     nrdbl_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [0], neutral_eulh[2], cme_dict['hiprotd'])
-    nl_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [1], neutral_eulh[2], cme_dict['hiprotl'])
+    nl_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], lfbf['Phase'], [1], neutral_eulh[2], cme_dict['hiprotl'])
     nldbl_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [0], neutral_eulh[2], cme_dict['hiprotd'])
     
     #Landing Time
-    n_landtime = sync_time(rfbf['Phase'], lfbf['Phase'], hz, cme_dict_imp['landtime'])
+    n_landtime = impact.sync_time(rfbf['Phase'], lfbf['Phase'], hz, cme_dict_imp['landtime'])
     #Landing Pattern
     if len(n_landtime) != 0:
-        n_landpattern = landing_pattern(rfbf['EulerY'], lfbf['EulerY'], n_landtime[:,0], n_landtime[:,1], cme_dict_imp['landpattern'])
+        n_landpattern = impact.landing_pattern(rfbf['EulerY'], lfbf['EulerY'], n_landtime[:,0], n_landtime[:,1], cme_dict_imp['landpattern'])
     else:
         n_landpattern = np.array([])
         
