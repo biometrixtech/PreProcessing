@@ -124,9 +124,9 @@ def weight_load(nrf_contra, nlf_contra, nrf_prosup, nlf_prosup, nrf_hiprot, nlf_
         for i in range(len(nlndtme)):
             pos = int(nlndtme[i,0])
             for j,k in zip(load[pos:,0], load[pos:,2]):
-                if k == 4:
+                if k == 5:
                     loadrfdbl_sum = loadrfdbl_sum + j
-                elif k != 4:
+                elif k != 5:
                     break
             brdbl = loadrfdbl_sum * nlndtme[i,2] * lambda_landtime + brdbl
             total_loadrfdbl_sum = loadrfdbl_sum + total_loadrfdbl_sum
@@ -149,9 +149,9 @@ def weight_load(nrf_contra, nlf_contra, nrf_prosup, nlf_prosup, nrf_hiprot, nlf_
         for i in range(len(nlndptn)):
             pos = int(nlndptn[i,0])
             for j,k in zip(load[pos:,0], load[pos:,2]):
-                if k == 4:
+                if k == 5:
                     loadrfdbl_sum = loadrfdbl_sum + j
-                elif k != 4:
+                elif k != 5:
                     break
             brdbl = loadrfdbl_sum * nlndptn[i,2] + brdbl
             total_loadrfdbl_sum = loadrfdbl_sum + total_loadrfdbl_sum
@@ -180,12 +180,11 @@ def weight_load(nrf_contra, nlf_contra, nrf_prosup, nlf_prosup, nrf_hiprot, nlf_
 if __name__ == "__main__":
     
     import pandas as pd
-    from impact_phase import impact_phase
-    from phase_exploration import *
-    import CME_Detect as cmed
-    import Data_Processing as prep
-    from load_calc import load_bal_imp
-    from impact_cme import *
+    from phaseDetection import *
+    import balanceCME as cmed
+    import coordinateFrameTransformation as prep
+    from loadCalc import load_bal_imp
+    from impactCME import *
     
     rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
     #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_snglsquat_set1.csv'
@@ -202,31 +201,21 @@ if __name__ == "__main__":
     ldata = pd.read_csv(lpath)
     hdata = pd.read_csv(hpath)
     
-    #print len(rdata), len(ldata)
-    
-    #acc = ['AccX', 'AccY', 'AccZ']
-    #rdata = rdata[acc]
-    #ldata = ldata[acc]
-    #hdata = hdata[acc]
+    print len(rdata), len(ldata)
     
     sampl_rate = 250
-    
     comp = 'AccZ'
     ptch = 'EulerY'
     racc = rdata[comp].values
     lacc = ldata[comp].values #input AccZ values!
     rpitch = rdata[ptch].values
     lpitch = ldata[ptch].values
-    ph = Body_Phase(racc, lacc, rpitch, lpitch,  sampl_rate)
+    #ph = Body_Phase(racc, lacc, rpitch, lpitch, sampl_rate)
     
-    rdata['Phase'] = ph
-    ldata['Phase'] = ph
-    hdata['Phase'] = ph
-        
-    lf_impact = impact_phase(ldata['AccZ'], sampl_rate)
-    rf_impact = impact_phase(rdata['AccZ'], sampl_rate)
-    rdata['Impact'] = rf_impact
-    ldata['Impact'] = lf_impact
+    lf_phase, rf_phase = combine_phase(ldata['AccZ'].values, rdata['AccZ'].values, rpitch, lpitch, sampl_rate)
+    
+    rdata['Phase'] = rf_phase
+    ldata['Phase'] = lf_phase
         
     mass = 75
     extra_mass = 0
@@ -259,7 +248,7 @@ if __name__ == "__main__":
     nldbl_hiprot = cmed.cont_rot_CME(hdata['EulerZ'], rdata['Phase'], [0], neutral_eulh[2], cme_dict['hiprotd'])
     
     #Landing Time
-    n_landtime = sync_time(rdata['Impact'], ldata['Impact'], sampl_rate, cme_dict_imp['landtime'])
+    n_landtime = sync_time(rdata['Phase'], ldata['Phase'], sampl_rate, cme_dict_imp['landtime'])
     #Landing Pattern
     if len(n_landtime) != 0:
         n_landpattern = landing_pattern(rdata['EulerY'], ldata['EulerY'], n_landtime[:,0], n_landtime[:,1], cme_dict_imp['landpattern'])
