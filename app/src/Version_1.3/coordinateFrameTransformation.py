@@ -148,11 +148,6 @@ if __name__ == '__main__':
     ana_yaw_offset = np.matrix([1,0,0,0])   #comes from anatomical fix module 
     sens_offset = np.matrix([1,0,0,0])  #comes from anatomical fix module
     
-    #This section takes the t=0 quaternion and computes the yaw in order to create the yaw offset    
-    q0 = np.matrix([data.ix[0,'qW_raw'], data.ix[0,'qX_raw'], data.ix[0,'qY_raw'], data.ix[0,'qZ_raw']]) #t=0 quaternion
-    yaw_fix = yaw_offset(q0) #uses yaw offset function above to compute yaw offset quaternion
-    init_head = QuatConj(yaw_fix)
-    
     for i in range(iters):
         q0 = np.matrix([data.ix[i,'qW_raw'], data.ix[i,'qX_raw'], data.ix[i,'qY_raw'], data.ix[i,'qZ_raw']]) #t=0 quaternion
         yaw_fix = yaw_offset(q0) #uses yaw offset function above to body frame quaternion
