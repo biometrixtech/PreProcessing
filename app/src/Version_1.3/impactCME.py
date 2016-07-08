@@ -11,7 +11,7 @@ import numpy as np
 """
 #############################################INPUT/OUTPUT####################################################
 Function: sync_time
-Inputs: impact phase data for the right and left foot; sampling rate
+Inputs: phase data for the right and left foot; sampling rate
 Outputs: an array containing the right foot impact time, left foot impact time, right foot normalized score and
          left foot normalized score respectively
          
