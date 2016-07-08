@@ -84,19 +84,6 @@ if __name__ == "__main__":
     hipsf, rfsf, lfsf = [np.empty((1,9)) for i in range(3)]
     iters = len(hip) #find how many data vectors
     
-    #yaw offsets for various sensors
-    hq0 = np.matrix([hip.ix[0,'qW_raw'], hip.ix[0,'qX_raw'], hip.ix[0,'qY_raw'], hip.ix[0,'qZ_raw']]) #t=0 quaternion
-    hyaw_fix = prep.yaw_offset(hq0) #uses yaw offset function above to compute initial heading quaternion
-    init_head_h = prep.QuatConj(hyaw_fix) #store quaternion with conjugate of intial heading
-    
-    lq0 = np.matrix([lfoot.ix[0,'qW_raw'], lfoot.ix[0,'qX_raw'], lfoot.ix[0,'qY_raw'], lfoot.ix[0,'qZ_raw']]) #t=0 quaternion
-    lyaw_fix = prep.yaw_offset(lq0) #uses yaw offset function above to compute initial heading quaternion
-    init_head_l = prep.QuatConj(lyaw_fix) #store quaternion with conjugate of intial heading
-     
-    rq0 = np.matrix([rfoot.ix[0,'qW_raw'], rfoot.ix[0,'qX_raw'], rfoot.ix[0,'qY_raw'], rfoot.ix[0,'qZ_raw']]) #t=0 quaternion
-    ryaw_fix = prep.yaw_offset(rq0) #uses yaw offset function above to compute initial heading quaternion
-    init_head_r = prep.QuatConj(ryaw_fix) #store quaternion with conjugate of intial heading
-    
     #set rolling mean windows
     w = int(hz*.08) #set rolling mean windows
     edge = int(.2*hz)
@@ -111,25 +98,22 @@ if __name__ == "__main__":
         hq0 = np.matrix([hip.ix[i,'qW_raw'], hip.ix[i,'qX_raw'], hip.ix[i,'qY_raw'], hip.ix[i,'qZ_raw']]) #t=0 quaternion
         hyaw_fix = prep.yaw_offset(hq0) #uses yaw offset function above to compute body frame quaternion
         hyfix_c = prep.QuatConj(hyaw_fix) #uses quaternion conjugate function to return body frame quaternion transform
-        hyfix_c = prep.QuatProd(prep.QuatConj(hana_yaw_offset), hyfix_c) #align reference frame straight forward
-        head_h = prep.QuatProd(init_head_h, hyaw_fix) #heading quaternion (yaw difference from t=0)       
+        hyfix_c = prep.QuatProd(prep.QuatConj(hana_yaw_offset), hyfix_c) #align reference frame straight forward      
         
         lq0 = np.matrix([lfoot.ix[i,'qW_raw'], lfoot.ix[i,'qX_raw'], lfoot.ix[i,'qY_raw'], lfoot.ix[i,'qZ_raw']]) #t=0 quaternion
         lyaw_fix = prep.yaw_offset(lq0) #uses yaw offset function above to compute body frame quaternion
         lyfix_c = prep.QuatConj(lyaw_fix) #uses quaternion conjugate function to return body frame quaternion transform
         lyfix_c = prep.QuatProd(prep.QuatConj(lana_yaw_offset), lyfix_c) #align reference frame flush with left foot
-        head_l = prep.QuatProd(init_head_l, lyaw_fix) #heading quaternion (yaw difference from t=0)
         
         rq0 = np.matrix([rfoot.ix[i,'qW_raw'], rfoot.ix[i,'qX_raw'], rfoot.ix[i,'qY_raw'], rfoot.ix[i,'qZ_raw']]) #t=0 quaternion
         ryaw_fix = prep.yaw_offset(rq0) #uses yaw offset function above to compute body frame quaternion
         ryfix_c = prep.QuatConj(ryaw_fix) #uses quaternion conjugate function to return body frame quaternion transform
         ryfix_c = prep.QuatProd(prep.QuatConj(rana_yaw_offset), ryfix_c) #align reference frame flush with right foot
-        head_r = prep.QuatProd(init_head_r, ryaw_fix) #heading quaternion (yaw difference from t=0)
         
         #frame transforms for all sensors (returns sensor frame data as well but not very relevant)
-        hipbod, hipsen = prep.FrameTransform(hip.ix[i,:], hyfix_c, head_h, hsens_offset)
-        lfbod, lfsen = prep.FrameTransform(lfoot.ix[i,:], lyfix_c, head_l, lsens_offset)
-        rfbod, rfsen = prep.FrameTransform(rfoot.ix[i,:], ryfix_c, head_r, rsens_offset)
+        hipbod, hipsen = prep.FrameTransform(hip.ix[i,:], hyfix_c, hsens_offset)
+        lfbod, lfsen = prep.FrameTransform(lfoot.ix[i,:], lyfix_c, lsens_offset)
+        rfbod, rfsen = prep.FrameTransform(rfoot.ix[i,:], ryfix_c, rsens_offset)
         
         hipbf = np.vstack([hipbf, hipbod[0,:]]) #body frame hip
         hipsf = np.vstack([hipsf, hipsen[0,:]]) #sensor frame hip
