@@ -5,6 +5,14 @@ Created on Thu Jul 07 16:27:47 2016
 @author: Ankur
 """
 
+"""
+#############################################INPUT/OUTPUT####################################################
+Function: combine_phase
+Inputs: AccZ right and left feet; EulerY angles for right and left feet; sampling rate
+Outputs: 2 arrays; left foot phase; right foot phase
+#############################################################################################################
+"""
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
