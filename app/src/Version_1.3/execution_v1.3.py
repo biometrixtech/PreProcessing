@@ -233,7 +233,7 @@ if __name__ == "__main__":
     nldbl_hiprot = cmed.cont_rot_CME(hipbf['EulerZ'], rfbf['Phase'], [0], neutral_eulh[2], cme_dict['hiprotd'])
     
     #Landing Time
-    n_landtime = sync_time(rfbf['Impact'], lfbf['Impact'], hz, cme_dict_imp['landtime'])
+    n_landtime = sync_time(rfbf['Phase'], lfbf['Phase'], hz, cme_dict_imp['landtime'])
     #Landing Pattern
     if len(n_landtime) != 0:
         n_landpattern = landing_pattern(rfbf['EulerY'], lfbf['EulerY'], n_landtime[:,0], n_landtime[:,1], cme_dict_imp['landpattern'])
