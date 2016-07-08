@@ -205,7 +205,7 @@ def impact_detect(start_move, end_move, az, hz):
 
 def combine_phase(laccz, raccz, rpitch, lpitch, hz):
     
-    ph = Body_Phase(raccz, laccz, rpitch, lpitch, hz)
+    ph = Body_Phase(raccz, laccz, rpitch, lpitch, hz) #balance phase for both the right and left feet
     
     lf_ph = list(ph)
     rf_ph = list(ph)
@@ -217,11 +217,9 @@ def combine_phase(laccz, raccz, rpitch, lpitch, hz):
     rf_imp = impact_detect(rf_sm, rf_em, raccz, hz) #starting and ending points of the impact phase for the right foot
 
     for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
-        #print i,j, "l"
         lf_ph[i:j] = [4]*int(j-i) #decide impact phase for the left foot
     
     for x,y in zip(rf_imp[:,0], rf_imp[:,1]):
-        #print x,y, "r"
         rf_ph[x:y] = [5]*int(y-x) #decide impact phase for the right foot            
             
     return np.array(lf_ph), np.array(rf_ph)
