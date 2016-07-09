@@ -258,7 +258,7 @@ if __name__ == "__main__":
     else:
         n_landpattern = np.array([])
             
-    ldd = load_bal_imp(rdata, ldata, hdata, mass, extra_mass)
+    ldd = load_bal_imp(rdata['Phase'], ldata['Phase'], hdata['AccX'],hdata['AccY'],hdata['AccZ'], mass, extra_mass)
 
     score = weight_load(nr_contra, nl_contra, nr_prosup, nl_prosup, nr_hiprot, nl_hiprot, nrdbl_hiprot, nldbl_hiprot,n_landtime, n_landpattern, ldd)
     
