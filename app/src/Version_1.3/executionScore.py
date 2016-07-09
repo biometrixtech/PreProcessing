@@ -13,6 +13,9 @@ Inputs: normalized scores for, contralateral hip drop (right and left feet); pro
         left feet); lateral hip rotation (right and left feet, both single and double); landing time; landing
         pattern; load array (output of the load_bal_imp function)
 Outputs: THE EXECUTION SCORE!
+
+Datasets: csvs are labeled by their input value -> weight_load(nr_contra, nl_contra, nr_prosup, nl_prosup,
+nr_hiprot, nl_hiprot, nrdbl_hiprot, nldbl_hiprot,n_landtime, n_landpattern, ldd) -> 18.0694270502
 #############################################################################################################
 """
 
