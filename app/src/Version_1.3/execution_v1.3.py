@@ -128,6 +128,11 @@ if __name__ == "__main__":
     lfbf['Phase'] =  lf_phase
     rfbf['Phase'] = rf_phase
     
+    #Determining the load            
+    load = ldcalc.load_bal_imp(rfbf['Phase'], lfbf['Phase'],  hip['AccX'], hip['AccY'], hip['AccZ'], mass, extra_mass)
+    
+    #NOTE: this might be an ideal place to save the dataframe to the database
+    
     #Mass and extra mass to test the load function    
     mass = 75
     extra_mass = 0
@@ -167,8 +172,7 @@ if __name__ == "__main__":
     else:
         n_landpattern = np.array([])
         
-    #Determining the load            
-    load = ldcalc.load_bal_imp(rfbf, lfbf, hipbf, mass, extra_mass)
+
 
     #Execution Score
     score = exec_score.weight_load(nr_contra, nl_contra, nr_prosup, nl_prosup, nr_hiprot, nl_hiprot, nrdbl_hiprot, nldbl_hiprot, n_landtime, n_landpattern, load)
