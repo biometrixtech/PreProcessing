@@ -15,7 +15,6 @@ Outputs: 2 arrays; left foot phase; right foot phase
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from itertools import islice
 from phaseID import phase_id
 
@@ -225,38 +224,40 @@ def combine_phase(laccz, raccz, rpitch, lpitch, hz):
             
     return np.array(lf_ph), np.array(rf_ph)
     
-if __name__ == "__main__":    
+if __name__ == "__main__": 
     
-    rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_LESS.csv'
+    import matplotlib.pyplot as plt
+    
+    rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
     #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Rheel_Gabby_changedirection_set1.csv'
     #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'   
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Lheel_Gabby_changedirection_set1.csv'
-    lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_LESS.csv'
+    lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\Subject5_lfdatabody_LESS.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
     #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
-    hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_LESS.csv'
+    hpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_hipdatabody_LESS.csv'
 
-    rdata = pd.read_csv(rpath)
-    ldata = pd.read_csv(lpath)
-    hdata = pd.read_csv(hpath)
+    rdata = np.genfromtxt(rpath, delimiter = ",", dtype = float, names = True)
+    ldata = np.genfromtxt(lpath, delimiter = ",", dtype = float, names = True)
+    
+    #rdata = pd.read_csv(rpath)
+    #ldata = pd.read_csv(lpath)
+    #hdata = pd.read_csv(hpath)
         
     sampl_rate = 250
     comp = 'AccZ'
     ptch = 'EulerY'
-    racc = rdata[comp].values
-    lacc = ldata[comp].values #input AccZ values!
-    rpitch = rdata[ptch].values
-    lpitch = ldata[ptch].values
+    racc = rdata[comp]
+    lacc = ldata[comp] #input AccZ values!
+    rpitch = rdata[ptch]
+    lpitch = ldata[ptch]
     #ph = Body_Phase(racc, lacc, rpitch, lpitch, sampl_rate)
     
-    lf_phase, rf_phase = combine_phase(ldata['AccZ'].values, rdata['AccZ'].values, rpitch, lpitch, sampl_rate)
-    
-    #print lf_phase
-    #print rf_phase    
+    lf_phase, rf_phase = combine_phase(ldata['AccZ'], rdata['AccZ'], rpitch, lpitch, sampl_rate)
     
     ###Plotting
     up = 0
@@ -269,4 +270,4 @@ if __name__ == "__main__":
     plt.plot(lf_phase)
     plt.plot(ldata['AccZ'])
     #plt.title(comp)
-    #plt.show()
+    plt.show()

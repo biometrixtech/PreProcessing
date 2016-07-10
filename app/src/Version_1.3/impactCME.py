@@ -5,7 +5,6 @@ Created on Wed Jun 22 12:11:52 2016
 @author: Ankur
 """
 
-from itertools import islice #'islice' helps to skip specified number of iterations in 'for' loop
 import numpy as np
 from phaseID import phase_id
 
@@ -57,21 +56,13 @@ def sync_time(imp_rf, imp_lf, sampl_rate, cme_landtime): #passing the time inter
     diff = [] #initializing a list to store the difference in impact times
     rf_time = [] #refined starting time of the impact phase for the right foot
     lf_time = [] #refined starting time of the impact phase for the left foot
-    numbers = iter(range(len(lf_start))) #creating an iterator variable. iter() returns an iterator object. 
-    
-    for i,j in zip(numbers, range(len(rf_start))):
-        if abs(lf_start[i] - rf_start[j]) <= 0.3*sampl_rate: #checking for false impact phases
-            diff.append((lf_start[i] - rf_start[j])/float(sampl_rate)) #appending the difference of the time of impact between the left and right feet, dividing by the sampling rate to convert the time difference to seconds
-            rf_time.append(rf_start[j]) #refined starting time of the impact phase for the right foot (not in seconds)
-            lf_time.append(lf_start[i]) #refined starting time of the impact phase for the left foot (not in seconds)
-        else:
-            for k in range(len(lf_start)): #this loop helps to compare relevant impact phases of the right and left feet
-                if abs(lf_start[k] - rf_start[j]) <= 0.3*sampl_rate: #checking for false impact phases
-                    diff.append((lf_start[k] - rf_start[j])/float(sampl_rate))
-                    rf_time.append(rf_start[j]) #refined starting time of the impact phase for the right foot (not in seconds)
-                    lf_time.append(lf_start[k]) #refined starting time of the impact phase for the left foot (not in seconds)
-                    break #if the relevant impact phase is found then break from the 'for' loop
-            next(islice(numbers, k+1, 1 ), None) #skip the next 'k+1' iterations
+
+    for i in range(len(rf_start)):
+        for j in range(len(lf_start)):
+            if abs(lf_start[j] - rf_start[i]) <= 0.3*sampl_rate: #checking for false impact phases
+                diff.append((lf_start[j] - rf_start[i])/float(sampl_rate)) #appending the difference of the time of impact between the left and right feet, dividing by the sampling rate to convert the time difference to seconds
+                rf_time.append(rf_start[i]) #refined starting time of the impact phase for the right foot (not in seconds)
+                lf_time.append(lf_start[j]) #refined starting time of the impact phase for the left foot (not in seconds)
         
     #NORMALIZING THE TIME DIFFERENCE IN IMPACT
     out_time = []
@@ -110,20 +101,27 @@ if __name__ == '__main__':
     import pandas as pd
     import matplotlib.pyplot as plt
     #from impact_phase import impact_phase
-    from phasedetection_v1 import *
+    from phaseDetection import combine_phase
     
-    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Rheel_Gabby_jumping_explosive_set2.csv'
-    rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_rfdatabody_LESS.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
-    lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_LESS.csv'
+    rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
+    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Rheel_Gabby_changedirection_set1.csv'
+    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'   
+    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Lheel_Gabby_changedirection_set1.csv'
+    lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\Subject5_lfdatabody_LESS.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
-    hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\hips_Gabby_stomp_set1.csv'
+    #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
+    hpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_hipdatabody_LESS.csv'
 
-    rdata1 = pd.read_csv(rpath)
-    ldata1 = pd.read_csv(lpath)
+    rdata1 = np.genfromtxt(rpath, delimiter = ",", dtype = float, names = True)
+    ldata1 = np.genfromtxt(lpath, delimiter = ",", dtype = float, names = True)
+    hdata1 = np.genfromtxt(hpath, delimiter = ",", dtype = float, names = True)
+    
+    #rdata1 = pd.read_csv(rpath)
+    #ldata1 = pd.read_csv(lpath)
     #hdata1 = pd.read_csv(hpath)
     
     #reading the test datasets
@@ -135,11 +133,11 @@ if __name__ == '__main__':
     ptch = 'EulerY'
     #racc = rdata[comp].values
     #lacc = ldata[comp].values #input AccZ values!
-    rpitch = rdata1[ptch].values
-    lpitch = ldata1[ptch].values
+    rpitch = rdata1[ptch]
+    lpitch = ldata1[ptch]
     #ph = Body_Phase(racc, lacc, rpitch, lpitch, sampl_rate)
     
-    lf_phase, rf_phase = combine_phase(ldata1['AccZ'].values, rdata1['AccZ'].values, rpitch, lpitch, sampl_rate)
+    lf_phase, rf_phase = combine_phase(ldata1['AccZ'], rdata1['AccZ'], rpitch, lpitch, sampl_rate)
     
     rdata1['Phase'] = rf_phase
     ldata1['Phase'] = lf_phase
@@ -161,8 +159,8 @@ if __name__ == '__main__':
     output = sync_time(rdata1['Phase'], ldata1['Phase'], sampl_rate, cme_dict_imp['landtime'])
     pdiff = landing_pattern(rdata1['EulerY'], ldata1['EulerY'], output[:,0], output[:,1], cme_dict_imp['landpattern'])
     
-    print output
-    print pdiff
+    print(output)
+    print(pdiff)
     
     #plt.figure(1)
     #plt.plot(output_lf)
