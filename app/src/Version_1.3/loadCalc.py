@@ -7,6 +7,7 @@ Created on Fri Jun 24 14:59:52 2016
 
 import numpy as np
 import pandas as pd
+from phaseID import phase_id
 
 g = 9.80665 #acceleration due to gravity (m/s^2), global variable
 
@@ -39,35 +40,35 @@ def load_bal_imp(rfPhase, lfPhase, hipAccX, hipAccY, hipAccZ, m, em):
     lf_bal = [] #load on the left foot during balance phase is determined in Kilonewtons
         
     #determining the load during the balance and impact phases for the right foot    
-    for i in range(len(rf)):
+    for i in range(len(rfPhase)):
         res_hipacc = np.sqrt( hipAccX[i]**2 + hipAccY[i]**2 +hipAccZ[i]**2) #magnitude of the resultant acceleration vector of the hip during the balance phase
-        if rf[i] == 0: #checking if both feet are on the ground
+        if rfPhase[i] == phase_id.rflf_ground.value: #checking if both feet are on the ground
             rf_bal.append(calc_force(m/2, em/2, res_hipacc))
-        elif rf[i] == 1: #checking if the right foot is off the ground
+        elif rfPhase[i] == phase_id.lf_ground.value: #checking if the left foot is on the ground
             rf_bal.append(0)
-        elif rf[i] == 2: #checking if the left foot is off the ground
+        elif rfPhase[i] == phase_id.rf_ground.value: #checking if the right foot is on the ground
             rf_bal.append(calc_force(m, em, res_hipacc))
-        elif rf[i] == 3: #checking if both feet are off the ground
+        elif rfPhase[i] == phase_id.rflf_offground.value: #checking if both feet are off the ground
             rf_bal.append(0)
-        elif rf[i] == 5: #checking for right foot impact
+        elif rfPhase[i] == phase_id.rf_imp.value: #checking for right foot impact
             rf_bal.append(5) #assigning a load value for when impact phase occurs (future work would involved determining the actual impact load)
     
     #determining the load during the balance and impact phases for the left foot     
-    for i in range(len(lf)):
+    for i in range(len(lfPhase)):
         res_hipacc = np.sqrt( hipAccX[i]**2 + hipAccY[i]**2 + hipAccZ[i]**2) #magnitude of the resultant acceleration vector of the hip during the balance phase
-        if lf[i] == 0: #checking if both feet are on the ground
+        if lfPhase[i] == phase_id.rflf_ground.value: #checking if both feet are on the ground
             lf_bal.append(calc_force(m/2, em/2, res_hipacc))
-        elif lf[i] == 1: #checking if the right foot is off the ground
+        elif lfPhase[i] == phase_id.lf_ground.value: #checking if the left foot is on the ground
             lf_bal.append(calc_force(m, em, res_hipacc))
-        elif lf[i] == 2: #checking if the left foot is off the ground
+        elif lfPhase[i] == phase_id.rf_ground.value: #checking if the right foot is on the ground
             lf_bal.append(0)  
-        elif lf[i] == 3: #checking if both feet are off the ground
+        elif lfPhase[i] == phase_id.rflf_offground.value: #checking if both feet are off the ground
             lf_bal.append(0)
-        elif lf[i] == 4: #checking for left foot impact
+        elif lfPhase[i] == phase_id.lf_imp.value: #checking for left foot impact
             lf_bal.append(5) #assigning a load value for when impact phase occurs (future work would involved determining the actual impact load)
         
     
-    load = [ [i, j, k, l] for i, j, k, l in zip(rf_bal, lf_bal, rf, lf) ] #creating a single array with right load, left load, right foot phase, left foot phase
+    load = [ [i, j, k, l] for i, j, k, l in zip(rf_bal, lf_bal, rfPhase, lfPhase) ] #creating a single array with right load, left load, right foot phase, left foot phase
     load = np.array(load)
         
     return load
@@ -109,18 +110,10 @@ if __name__ == '__main__':
     ldata['Phase'] = lf_phase
     
     print len(rf_phase), len(rdata), len(ldata)
-    
-    #for i in range(len(rdata)):
-    #    if rdata['Phase'][i] == 5:
-    #        print 'hello'
 
     mass = 75 #in kilograms
     exmass = 0 #in kilograms
     ld = load_bal_imp(rdata['Phase'], ldata['Phase'], hdata['AccX'],hdata['AccY'],hdata['AccZ'], mass, exmass) #passing the hip, user mass and extra mass data
-    
-    #load_check = pd.DataFrame()
-    #load_check = pd.Series(ld[:,0])
-    #load_check.to_csv('C:\Users\Ankur\Desktop\load_calc.csv')
     
     #plt.figure(4) 
     #plt.plot(ld[:,0])

@@ -7,6 +7,7 @@ Created on Wed Jun 22 12:11:52 2016
 
 from itertools import islice #'islice' helps to skip specified number of iterations in 'for' loop
 import numpy as np
+from phaseID import phase_id
 
 """
 #############################################INPUT/OUTPUT####################################################
@@ -39,11 +40,11 @@ def imp_start_time(imp_time): #passing the impact phase data (its an array of 0'
     s = [] #initializing a list
     count = 0 #initializing a count variable
     for i in range(len(imp_time)):
-        if imp_time[i] == 4 or imp_time[i] == 5: #checking if an impact phase exists (4 for left foot; 5 for right foot)
+        if imp_time[i] == phase_id.lf_imp.value or imp_time[i] == phase_id.rf_imp.value: #checking if an impact phase exists (4 for left foot; 5 for right foot)
             if count < 1:
                 s.append(i) #appending the first instant of an impact phase to a list
                 count = count + 1
-        elif imp_time[i] == 0 or imp_time[i] == 1 or imp_time[i] == 2 or imp_time[i] == 3:
+        elif imp_time[i] == phase_id.rflf_ground.value or imp_time[i] == phase_id.lf_ground.value or imp_time[i] == phase_id.rf_ground.value or imp_time[i] == phase_id.rflf_offground.value:
             count = 0
                         
     return s #returning the list that contains the first instant of the impact phases

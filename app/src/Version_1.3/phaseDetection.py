@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from itertools import islice
+from phaseID import phase_id
 
 def Move(std, pitch, w): #inputs array of st. devs
     infl = .0001 #determines how sticky you want the mean and std to be
@@ -106,13 +107,13 @@ def Body_Phase(right, left, rpitch, lpitch, hz):
     phase = [] #store body phase decisions
     for i in range(len(r)):
         if r[i] == 0 and l[i] == 0: #decide in balance phase
-            phase.append(0) #append to list
-        elif r[i] == 1 and l[i] == 0: #decide right foot off ground
-            phase.append(1) #append to list
-        elif r[i] == 0 and l[i] == 1: #decide left foot off ground
-            phase.append(2) #append to list
+            phase.append(phase_id.rflf_ground.value) #append to list
+        elif r[i] == 1 and l[i] == 0: #decide left foot on the ground
+            phase.append(phase_id.lf_ground.value) #append to list
+        elif r[i] == 0 and l[i] == 1: #decide right foot on the ground
+            phase.append(phase_id.rf_ground.value) #append to list
         elif r[i] == 1 and l[i] == 1: #decide both feet off ground
-            phase.append(3) #append to list
+            phase.append(phase_id.rflf_offground.value) #append to list
     return np.array(phase)
     
 def bound_det_lf(p):
@@ -121,21 +122,21 @@ def bound_det_lf(p):
     end_move = []
     
     for i in range(len(p)-1):
-        if p[i] == 0 and p[i+1] == 2:
+        if p[i] == phase_id.rflf_ground.value and p[i+1] == phase_id.rf_ground.value:
             start_move.append(i+1)
-        elif p[i] == 1 and p[i+1] == 2:
+        elif p[i] == phase_id.lf_ground.value and p[i+1] == phase_id.rf_ground.value:
             start_move.append(i+1)
-        elif p[i] == 0 and p[i+1] == 3:
+        elif p[i] == phase_id.rflf_ground.value and p[i+1] == phase_id.rflf_offground.value:
             start_move.append(i+1)
-        elif p[i] == 1 and p[i+1] == 3:
+        elif p[i] == phase_id.lf_ground.value and p[i+1] == phase_id.rflf_offground.value:
             start_move.append(i+1)
-        elif p[i] == 2 and p[i+1] == 0:
+        elif p[i] == phase_id.rf_ground.value and p[i+1] == phase_id.rflf_ground.value:
             end_move.append(i)
-        elif p[i] == 2 and p[i+1] == 1:
+        elif p[i] == phase_id.rf_ground.value and p[i+1] == phase_id.lf_ground.value:
             end_move.append(i)
-        elif p[i] == 3 and p[i+1] == 0:
+        elif p[i] == phase_id.rflf_offground.value and p[i+1] == phase_id.rflf_ground.value:
             end_move.append(i)
-        elif p[i] == 3 and p[i+1] == 1:
+        elif p[i] == phase_id.rflf_offground.value and p[i+1] == phase_id.lf_ground.value:
             end_move.append(i)
                         
     return start_move, end_move
@@ -146,21 +147,21 @@ def bound_det_rf(p):
     end_move = [] 
     
     for i in range(len(p)-1):
-        if p[i] == 0 and p[i+1] == 1:
+        if p[i] == phase_id.rflf_ground.value and p[i+1] == phase_id.lf_ground.value:
             start_move.append(i+1)
-        elif p[i] == 2 and p[i+1] == 1:
+        elif p[i] == phase_id.rf_ground.value and p[i+1] == phase_id.lf_ground.value:
             start_move.append(i+1)
-        elif p[i] == 0 and p[i+1] == 3:
+        elif p[i] == phase_id.rflf_ground.value and p[i+1] == phase_id.rflf_offground.value:
             start_move.append(i+1)
-        elif p[i] == 2 and p[i+1] == 3:
+        elif p[i] == phase_id.rf_ground.value and p[i+1] == phase_id.rflf_offground.value:
             start_move.append(i+1)
-        elif p[i] == 1 and p[i+1] == 0:
+        elif p[i] == phase_id.lf_ground.value and p[i+1] == phase_id.rflf_ground.value:
             end_move.append(i)
-        elif p[i] == 1 and p[i+1] == 2:
+        elif p[i] == phase_id.lf_ground.value and p[i+1] == phase_id.rf_ground.value:
             end_move.append(i)
-        elif p[i] == 3 and p[i+1] == 0:
+        elif p[i] == phase_id.rflf_offground.value and p[i+1] == phase_id.rflf_ground.value:
             end_move.append(i)
-        elif p[i] == 3 and p[i+1] == 2:
+        elif p[i] == phase_id.rflf_offground.value and p[i+1] == phase_id.rf_ground.value:
             end_move.append(i)
             
     return start_move, end_move
@@ -217,10 +218,10 @@ def combine_phase(laccz, raccz, rpitch, lpitch, hz):
     rf_imp = impact_detect(rf_sm, rf_em, raccz, hz) #starting and ending points of the impact phase for the right foot
 
     for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
-        lf_ph[i:j] = [4]*int(j-i) #decide impact phase for the left foot
+        lf_ph[i:j] = [phase_id.lf_imp.value]*int(j-i) #decide impact phase for the left foot
     
     for x,y in zip(rf_imp[:,0], rf_imp[:,1]):
-        rf_ph[x:y] = [5]*int(y-x) #decide impact phase for the right foot            
+        rf_ph[x:y] = [phase_id.rf_imp.value]*int(y-x) #decide impact phase for the right foot            
             
     return np.array(lf_ph), np.array(rf_ph)
     
@@ -242,7 +243,7 @@ if __name__ == "__main__":
     rdata = pd.read_csv(rpath)
     ldata = pd.read_csv(lpath)
     hdata = pd.read_csv(hpath)
-    
+        
     sampl_rate = 250
     comp = 'AccZ'
     ptch = 'EulerY'
