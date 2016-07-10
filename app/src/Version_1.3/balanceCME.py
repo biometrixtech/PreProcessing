@@ -6,7 +6,6 @@ Created on Sun Jun 12 11:41:49 2016
 """
 
 import numpy as np
-import pandas as pd
 import coordinateFrameTransformation as prep
 
 """
@@ -58,12 +57,12 @@ if __name__ == "__main__":
                 'prosupr':[-4, -15, 4, 7], 'hiprotr':[-4, -15, 4, 7], 'hipdropr':[-4, -15, 4, 7],
                 'hiprotd':[-4, -7, 4, 7]}    
     
-    ldata = pd.read_csv(lroot)
+    ldata = np.genfromtxt(lroot, dtype=float, delimiter=',', names=True)
     
     neutral = np.matrix([0.582,0.813,0,0]) # stand-in, will come from anatomical fix module    
     
-    peak_series = ldata['EulerX'].values
-    output = ldata['Phase'].values
+    peak_series = ldata['EulerX']
+    output = ldata['Phase']
     neutral_eul = prep.Calc_Euler(neutral)
     
     ###THE GOOD STUFF!!!####
