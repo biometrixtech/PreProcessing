@@ -19,7 +19,27 @@ mag, quat, Euler); (1) data object that houses sensor frame data (acc-g, gyr, ma
 Datasets: Preprocess_unittest.csv -> __main__ -> postprocessed_unittest.csv
 #############################################################################################################
 """
+class ColumnMismatchError(ValueError):
+    pass
 
+class DataObject():
+    def __init__(self, data=None, columns=None):
+        if data is None:
+            return {}
+        
+        if isinstance(data, np.ndarray):
+            if columns is None:
+                for i in range(len(data.transpose())):
+                    setattr(self, 'var_' + str(i), data[:,i])
+            if columns is not None:
+                if len(columns) != len(data.transpose()):
+                    raise ColumnMismatchError
+                else:
+                    for i in range(len(data.transpose())):
+                        setattr(self, columns[i], data[:,i])
+        else:
+            return None
+        
 class WrongShapeError(ValueError):
     pass
 
@@ -112,18 +132,20 @@ def rotate_quatdata(data, rot, RemoveGrav=False):
     return [corr_data[0,1], corr_data[0,2], corr_data[0,3]]
     
 def FrameTransform(data, iquatc, sensfr):
-    if isinstance(data, pd.Series) == False:
-        raise ObjectMismatchError
     
     if isinstance(iquatc, np.matrix) ==  False:
         raise ObjectMismatchError
     
-    output_body = np.zeros((1,16)) #creates output vector that will house: quaternion, euler angles, acc, gyr, and mag data in body frame
+    #creates output vector that will house: quaternion, euler angles, acc, gyr, and mag data in body frame
+#    output_body = np.zeros((1,16), dtype=[("qW", 'f4'), ("qX", 'f4'), ("qY", 'f4'), ("qZ", 'f4'), ("EulerX", 'f4'), 
+#                                   ("EulerY", 'f4'), ("EulerZ",'f4'), ("AccX", 'f4'), ("AccY", 'f4'), ("AccZ", 'f4'),
+#                                    ("gyrX", 'f4'), ("gyrY", 'f4'), ("gyrZ", 'f4'), ("magX", 'f4'), ("magY", 'f4'), ("magZ", 'f4')])
+    output_body = np.zeros((1,16))
     output_sens = np.zeros((1,9)) #creates output vector that will house: acc (less gravity), gyr, and mag in sensor frame
-    quat = np.matrix([data.ix['qW_raw',0], data.ix['qX_raw',0], data.ix['qY_raw',0], data.ix['qZ_raw',0]]) #collect most recent quaternion from dataset (will be arriving in real time)   
-    acc = np.matrix([0, data.ix['accX_raw',0], data.ix['accY_raw',0], data.ix['accZ_raw',0]]) #collect most recent raw accel from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero   
-    gyr = np.matrix([0, data.ix['gyrX_raw',0], data.ix['gyrY_raw',0], data.ix['gyrZ_raw',0]]) #collect most recent raw gyro from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
-    mag = np.matrix([0, data.ix['magX_raw',0], data.ix['magY_raw',0], data.ix['magZ_raw',0]]) #collect most recent raw mag from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
+    quat = np.matrix([data['qW_raw'], data['qX_raw'], data['qY_raw'], data['qZ_raw']]) #collect most recent quaternion from dataset (will be arriving in real time)   
+    acc = np.matrix([0, data['accX_raw'], data['accY_raw'], data['accZ_raw']]) #collect most recent raw accel from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero   
+    gyr = np.matrix([0, data['gyrX_raw'], data['gyrY_raw'], data['gyrZ_raw']]) #collect most recent raw gyro from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
+    mag = np.matrix([0, data['magX_raw'], data['magY_raw'], data['magZ_raw']]) #collect most recent raw mag from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
     fixed_q = QuatProd(iquatc,quat) #quaternion product of conjugate of yaw offset and quaternion from data, remember order matters!
     sens_frame = QuatProd(QuatConj(sensfr), quat) #calculate body-sensor frame orientation        
     output_body[0,0:4] = fixed_q #assign corrected quaternion to body output vector
@@ -139,26 +161,33 @@ def FrameTransform(data, iquatc, sensfr):
     
 if __name__ == '__main__':
     ####READ IN DATA ~ Will change when we call from the database#####
-    path = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\Preprocess_unittest.csv'
-    data = pd.read_csv(path) #read in data; csv read in is just a stand in for now
-    bodyframe = []
-    sensframe = []
+    path = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\coordinateFrameTransformation\\Preprocess_unittest.csv'
+    data = np.genfromtxt(path, dtype=float, delimiter=',', names=True) #read in data; csv read in is just a stand in for now
+    bodyframe = np.zeros((1,16))
+    sensframe = np.zeros((1,9))
     iters = len(data)
     
     ana_yaw_offset = np.matrix([1,0,0,0])   #comes from anatomical fix module 
     sens_offset = np.matrix([1,0,0,0])  #comes from anatomical fix module
     
-    for i in range(iters):
-        q0 = np.matrix([data.ix[i,'qW_raw'], data.ix[i,'qX_raw'], data.ix[i,'qY_raw'], data.ix[i,'qZ_raw']]) #t=0 quaternion
+    for i in range(20):
+        q0 = np.matrix([data[i]['qW_raw'], data[i]['qX_raw'], data[i]['qY_raw'], data[i]['qZ_raw']]) #t=0 quaternion
         yaw_fix = yaw_offset(q0) #uses yaw offset function above to body frame quaternion
         yfix_c = QuatConj(yaw_fix) #uses quaternion conjugate function to return conjugate of body frame
         yfix_c = QuatProd(QuatConj(ana_yaw_offset), yfix_c) #align reference frame flush with body part
-        obody, osens = FrameTransform(data.ix[i,:], yfix_c, sens_offset)
+        obody, osens = FrameTransform(data[i], yfix_c, sens_offset)
     
         ##appends each output vector to respective frame (used for saving to my computer...might be done differently in app)    
-        bodyframe.append(obody[0,:]) 
-        sensframe.append(osens[0,:])
+        bodyframe = np.vstack([bodyframe, obody[0,:]])
+        sensframe = np.vstack([sensframe, osens[0,:]])
+        if i == 0:
+            bodyframe = np.delete(bodyframe, 0, axis=0)
+            sensframe = np.delete(sensframe, 0, axis=0)
+    
+    body = DataObject(bodyframe,  columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
+    print(body.EulerX)
+    
     
     ####Creates dataframe for body and sensor outputs along with adding column names 
-    body = pd.DataFrame(bodyframe, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #body frame column names
-    sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
+#    body = pd.DataFrame(bodyframe, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #body frame column names
+#    sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
