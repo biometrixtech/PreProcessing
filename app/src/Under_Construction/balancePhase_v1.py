@@ -40,8 +40,14 @@ acc = 0
 acc = rdata['AccX']
 std_acc = 0
 mean_acc = 0
-a = []
-win = 20
+
+#when sampling rate is 100Hz
+hz = 100
+win = int(0.2*hz)
+
+#when sampling rate is 250Hz
+hz = 250
+win = int(0.4*hz)
 
 #a = acc[:win]
 mean_acc = pd.rolling_mean(acc, window = win, center=True)
