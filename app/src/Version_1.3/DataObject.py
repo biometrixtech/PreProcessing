@@ -9,7 +9,7 @@ import abc
 
 class ColumnMismatchError(ValueError):
     pass
-
+    
 class DataObject(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self, data=None, columns=None):
@@ -18,6 +18,8 @@ class DataObject(object, metaclass=abc.ABCMeta):
         
         if isinstance(data, np.ndarray):
             if columns is None:
+                if np.isnan(data[0,:]).any() == True:
+                    data = data[1:]
                 for i in range(len(data.transpose())):
                     setattr(self, 'var_' + str(i), data[:,i])
             if columns is not None:
@@ -27,6 +29,8 @@ class DataObject(object, metaclass=abc.ABCMeta):
                     for i in range(len(data.transpose())):
                         setattr(self, columns[i], data[i])
                 else:
+                    if np.isnan(data[0,:]).any() == True:
+                        data = data[1:]
                     for i in range(len(data.transpose())):
                         setattr(self, columns[i], data[:,i])
         else:
@@ -40,15 +44,7 @@ class DataObject(object, metaclass=abc.ABCMeta):
 
 class InertialFrame(DataObject):
     def __init__(self, data=None):
-        self.columns = ["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]
-        DataObject.__init__(self, data, self.columns)
-    
-    def row(self, key):
-        return DataObject.row(key, self.columns)
-
-class SensorFrame(DataObject):
-    def __init__(self, data=None):
-        self.columns = ["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]
+        self.columns = ["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ"]
         DataObject.__init__(self, data, self.columns)
     
     def row(self, key):
@@ -56,22 +52,33 @@ class SensorFrame(DataObject):
 
 class AnatomicalFrame(DataObject):
     def __init__(self, data=None):
-        self.columns = ["gyrX", "gyrY", "gyrZ", "EulerZ"]
+        self.columns = ["gX", "gY", "gZ", "EulerZ"]
         DataObject.__init__(self, data, self.columns)
     
     def row(self, key):
         return DataObject.row(key, self.columns)
 
 class RawFrame(DataObject):
-    #self.columns = columns = ['regimenAcitivityId', 'sensorId', 'sensorLocationId', 'logMode', 'logFreg', 'timestamp', 'accX_raw', 'accY_raw', 'accZ_raw', 'gyrX_raw', 'gyrY_raw', 'gyrZ_raw', 'magX_raw', 'magY_raw', 'magZ_raw', 'qW_raw', 'qX_raw', 'qY_raw', 'qZ_raw', 'set']
-    
-    def __init__(self, data=None):
-        self.columns = ['regimenAcitivityId', 'sensorId', 'sensorLocationId', 'logMode', 'logFreg', 'timestamp', 'accX_raw', 'accY_raw', 'accZ_raw', 'gyrX_raw', 'gyrY_raw', 'gyrZ_raw', 'magX_raw', 'magY_raw', 'magZ_raw', 'qW_raw', 'qX_raw', 'qY_raw', 'qZ_raw', 'set']
+    def __init__(self, data=None, columns=None, yaw_q=None, align_q=None, neutral_q=None):
+        self.columns = columns
         DataObject.__init__(self, data, self.columns)
+
+        if yaw_q is None:
+            self.yaw_q = np.matrix([1,0,0,0])
+        else:
+            self.yaw_q = yaw_q
+        if align_q is None:
+            self.align_q = np.matrix([1,0,0,0])
+        else:
+            self.align_q = align_q
+        if neutral_q is None:
+            self.neutral_q = np.matrix([0.582,0.813,0,0])
+        else:
+            self.neutral_q = neutral_q
     
     def row(self, key):
         return DataObject.row(self, key, self.columns)
-
+    
 class RowFrame(DataObject):
     def __init__(self, data=None, columns=None):
         DataObject.__init__(self, data, columns)
