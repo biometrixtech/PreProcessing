@@ -10,11 +10,8 @@ import runAnatomical as rana
 
 """
 #############################################INPUT/OUTPUT####################################################   
-Inputs: data object that must contain raw accel, gyr, mag, and quat values for hip, left heel, and right heel
-sensors; (9) quaternions from the anatomical fix module representing 2 different transforms and 1 "neutral"
-orientation per sensor
-Outputs: hipbf, lfbf, rfbf (sensor-body frames with phases appended; 3 objects); raw dataframes with gravity
-removed; execution score (0-100)
+Inputs: filepath to anatomical calibration and analytics datasets, sampling rates for each, mass, and extra mass
+Outputs: object holding anatomical corrections, object with CMEs, execution score
 #############################################################################################################
 """
 

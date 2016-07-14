@@ -11,6 +11,13 @@ import coordinateFrameTransformation as prep
 import dataObject as do
 import numpy as np
 
+"""
+#############################################INPUT/OUTPUT####################################################   
+Inputs: filepath to anatomical calibration dataset, sampling rate
+Outputs: object holding attributes for anatomical corrections on each sensor
+#############################################################################################################
+"""
+
 class RunAnatomical(object):
     def __init__(self, path, hz):
         data = su.Anatomical(path, hz)
@@ -48,17 +55,17 @@ class RunAnatomical(object):
         pitch_alignr_q = ac.pitch_offset(r_q)
         pitch_alignh_q = ac.pitch_offset(h_q)
         
-        #find feet offset to true forward
+        #find feet offset to true forward attributes
         self.yaw_alignl_q = ac.orient_feet(l_q, fixed_h)
         self.yaw_alignr_q = ac.orient_feet(r_q, fixed_h)
         self.yaw_alignh_q = prep.QuatProd(xy_switch, hfx_q)
         
-        #combine true forward offset and pitch offset 
+        #combine true forward offset and pitch offset attributes
         self.alignl_q = prep.QuatProd(self.yaw_alignl_q, pitch_alignl_q)
         self.alignr_q = prep.QuatProd(self.yaw_alignr_q, pitch_alignr_q)
         self.alignh_q = prep.QuatProd(self.yaw_alignh_q, pitch_alignh_q)
         
-        #create neutral quaternions for CME comparison
+        #create neutral quaternions attributes for CME comparison
         self.neutral_lq = prep.QuatProd(self.yaw_alignl_q, prep.QuatProd(prep.QuatConj(pitch_alignl_q),prep.QuatProd(prep.QuatConj(prep.yaw_offset(l_q)), l_q)))
         self.neutral_rq = prep.QuatProd(self.yaw_alignr_q, prep.QuatProd(prep.QuatConj(pitch_alignr_q),prep.QuatProd(prep.QuatConj(prep.yaw_offset(r_q)), r_q)))
         self.neutral_hq = prep.QuatProd(hfx_q, prep.QuatProd(prep.QuatConj(pitch_alignh_q),prep.QuatProd(prep.QuatConj(prep.yaw_offset(h_q)), h_q)))
