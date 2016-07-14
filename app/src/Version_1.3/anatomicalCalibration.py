@@ -88,9 +88,9 @@ def dcm2q(dcm):
     return q
     
 def hip_orientation_fix(hips, ref, hz):
-    gyr_x = hips['gyrX'].values
-    gyr_y = hips['gyrY'].values
-    eul = hips['EulerZ'].values
+    gyr_x = hips.gX
+    gyr_y = hips.gY
+    eul = hips.EulerZ
     
     expect = []
     length = []
@@ -143,10 +143,10 @@ def init_orientation(data, err_tol):
     ptch_val = []
     yaw_val = []
     indic = []
-    for i in range(len(data)):
+    for i in range(len(data.gX)):
         #consider points that can be classified as not moving
-        if np.sqrt(data.ix[i,'gyrX_raw']**2 + data.ix[i,'gyrY_raw']**2 + data.ix[i,'gyrZ_raw']**2) < 10:
-            q = np.matrix([data.ix[i,'qW_raw'], data.ix[i,'qX_raw'], data.ix[i,'qY_raw'], data.ix[i,'qZ_raw']]) #get quaternion 
+        if np.sqrt(data.gX[i]**2 + data.gY[i]**2 + data.gZ[i]**2) < 10:
+            q = np.matrix([data.qW[i], data.qX[i], data.qY[i], data.qZ[i]]) #get quaternion 
             eul = prep.Calc_Euler(q) #calculate euler angle
             #append euler angles to respective lists
             roll_val.append(eul[0])
@@ -156,7 +156,7 @@ def init_orientation(data, err_tol):
             #keep track of how many points involved movement
             indic.append(0)
     #if movement time exceeds expected amount ask to stop moving
-    if len(indic) > err_tol*len(data):
+    if len(indic) > err_tol*len(data.gX):
         print('Do not move during calibration')
         raise MovementError
     else:
@@ -196,9 +196,9 @@ def pitch_offset(q):
 def test_errors(hdata, rdata, ldata, hz):
     thresh = .3
     #calculate euler angles of t=0 data point
-    hq0 = np.matrix([hdata.ix[0,'qW_raw'], hdata.ix[0,'qX_raw'], hdata.ix[0,'qY_raw'], hdata.ix[0,'qZ_raw']])
-    rq0 = np.matrix([rdata.ix[0,'qW_raw'], rdata.ix[0,'qX_raw'], rdata.ix[0,'qY_raw'], rdata.ix[0,'qZ_raw']])
-    lq0 = np.matrix([ldata.ix[0,'qW_raw'], ldata.ix[0,'qX_raw'], ldata.ix[0,'qY_raw'], ldata.ix[0,'qZ_raw']])
+    hq0 = np.matrix([hdata.qW[0], hdata.qX[0], hdata.qY[0], hdata.qZ[0]])
+    rq0 = np.matrix([rdata.qW[0], rdata.qX[0], rdata.qY[0], rdata.qZ[0]])
+    lq0 = np.matrix([ldata.qW[0], ldata.qX[0], ldata.qY[0], ldata.qZ[0]])
     thetah = prep.Calc_Euler(hq0)
     thetar = prep.Calc_Euler(rq0)
     thetal = prep.Calc_Euler(lq0)
@@ -206,9 +206,9 @@ def test_errors(hdata, rdata, ldata, hz):
     #test for quaternion convergence
     for i in range(1,hz):
         #calc euler angles for each sensor at time=i
-        hq = np.matrix([hdata.ix[i,'qW_raw'], hdata.ix[i,'qX_raw'], hdata.ix[i,'qY_raw'], hdata.ix[i,'qZ_raw']])
-        rq = np.matrix([rdata.ix[i,'qW_raw'], rdata.ix[i,'qX_raw'], rdata.ix[i,'qY_raw'], rdata.ix[i,'qZ_raw']])
-        lq = np.matrix([ldata.ix[i,'qW_raw'], ldata.ix[i,'qX_raw'], ldata.ix[i,'qY_raw'], ldata.ix[i,'qZ_raw']])
+        hq = np.matrix([hdata.qW[i], hdata.qX[i], hdata.qY[i], hdata.qZ[i]])
+        rq = np.matrix([rdata.qW[i], rdata.qX[i], rdata.qY[i], rdata.qZ[i]])
+        lq = np.matrix([ldata.qW[i], ldata.qX[i], ldata.qY[i], ldata.qZ[i]])
         hang = prep.Calc_Euler(hq)
         rang = prep.Calc_Euler(rq)
         lang = prep.Calc_Euler(lq)
@@ -229,14 +229,10 @@ def test_errors(hdata, rdata, ldata, hz):
             pass
 
 if __name__ == "__main__":    
-    hroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\bow13.csv'
-    rroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\rbow13.csv'
-    lroot = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\lbow13.csv'
-    
+    root = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Alignment test\\bow13comb.csv'
     hz = 100
-    hdata = pd.read_csv(hroot)
-    rdata = pd.read_csv(rroot)
-    ldata = pd.read_csv(lroot)
+    
+    
     #create vector that represents 90 degree heading rotation
     xy_switch = np.matrix([1,0,0,-1])/np.linalg.norm([1,0,0,-1]) 
     
@@ -247,16 +243,17 @@ if __name__ == "__main__":
     r_q = init_orientation(rdata, .03)
     l_q = init_orientation(ldata, .03)
     
-    bodyframe = []
+    bodyframe = np.zeros((1,4))
     for i in range(len(hdata)):
-        gyro = np.matrix([0, hdata.ix[i,'gyrX_raw'], hdata.ix[i,'gyrY_raw'], hdata.ix[i,'gyrZ_raw']]) #get gyr quaternion
-        q = np.matrix([hdata.ix[i,'qW_raw'], hdata.ix[i,'qX_raw'], hdata.ix[i,'qY_raw'], hdata.ix[i,'qZ_raw']]) #get orientation quaternion
+        gyro = np.matrix([0, hdata[i]['gyrX_raw'], hdata[i]['gyrY_raw'], hdata[i]['gyrZ_raw']]) #get gyr quaternion
+        q = np.matrix([hdata[i]['qW_raw'], hdata[i]['qX_raw'], hdata[i]['qY_raw'], hdata[i]['qZ_raw']]) #get orientation quaternion
         yaw_fix = prep.yaw_offset(q) #uses yaw offset function above to compute yaw offset quaternion
         yfix_c = prep.QuatConj(yaw_fix) #offset the yaw at every point
         qf = prep.QuatProd(yfix_c, q) #create new orient quat with yaw offset
         yaw = prep.Calc_Euler(q)[2] #calculate yaw of original orientation quaternion to track heading
         bodyframe.append(np.append(prep.rotate_quatdata(gyro,qf),yaw))
     
+    #####How are we going to handle changing arrays to structured arrays?
     hglob = pd.DataFrame(bodyframe, columns=["gyrX", "gyrY", "gyrZ", "EulerZ"]) #create dataframe of corrected gyro, and heading data
     hfx_q = hip_orientation_fix(hglob, prep.Calc_Euler(h_q)[2], hz) #find degree offset of hip sensor from forward
     fixed_h = prep.QuatProd(prep.QuatConj(xy_switch), prep.QuatProd(prep.QuatConj(hfx_q), h_q)) #correct heading of hip sensor
@@ -272,9 +269,9 @@ if __name__ == "__main__":
     yaw_alignh_q = prep.QuatProd(xy_switch, hfx_q)
     
     #combine true forward offset and pitch offset 
-    alignl_q = prep.QuatProd(pitch_alignl_q, yaw_alignl_q)
-    alignr_q = prep.QuatProd(pitch_alignr_q, yaw_alignr_q)
-    alignh_q = prep.QuatProd(xy_switch, prep.QuatProd(pitch_alignh_q, hfx_q))
+    alignl_q = prep.QuatProd(yaw_alignl_q, pitch_alignl_q)
+    alignr_q = prep.QuatProd(yaw_alignr_q, pitch_alignr_q)
+    alignh_q = prep.QuatProd(yaw_alignh_q, pitch_alignh_q)
     
     #create neutral quaternions for CME comparison
     neutral_lq = prep.QuatProd(yaw_alignl_q, prep.QuatProd(prep.QuatConj(pitch_alignl_q),prep.QuatProd(prep.QuatConj(prep.yaw_offset(l_q)), l_q)))
