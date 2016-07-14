@@ -81,7 +81,6 @@ start_bal = np.unique(dummy_start_bal)
         
 print(start_bal)
 
-#This is the end of the algorithm to determine the balance phase
 
 # In[]:
 
@@ -90,6 +89,8 @@ bal_phase = [10]*len(acc)
 
 for i in start_bal:
     bal_phase[i] = 0
+    
+#This is the end of the algorithm to determine the balance phase
     
 plt.figure(3)
 plt.plot(bal_phase)
