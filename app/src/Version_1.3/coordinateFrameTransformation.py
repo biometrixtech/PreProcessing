@@ -6,8 +6,9 @@ Created on Fri Feb 26 11:08:09 2016
 """
 
 import numpy as np
-import DataObject as do
-import time
+import setUp as su
+import dataObject as do
+
 """
 #############################################INPUT/OUTPUT####################################################
 Inputs: (1) data object that must contain raw accel, gyr, mag, and quat values; (1) 1x4 rotation quaternion 
@@ -116,56 +117,39 @@ def FrameTransform(data, iquatc, sensfr):
     if isinstance(iquatc, np.matrix) ==  False:
         raise ObjectMismatchError
 
-    output_body = np.zeros((1,16)) #creates output vector that will house: quaternion, euler angles, acc, gyr, and mag data in body frame
-    output_sens = np.zeros((1,9)) #creates output vector that will house: acc (less gravity), gyr, and mag in sensor frame
-    quat = np.matrix([data.qW_raw, data.qX_raw, data.qY_raw, data.qZ_raw]) #collect most recent quaternion from dataset (will be arriving in real time)   
-    acc = np.matrix([0, data.accX_raw, data.accY_raw, data.accZ_raw]) #collect most recent raw accel from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero   
-    gyr = np.matrix([0, data.gyrX_raw, data.gyrY_raw, data.gyrZ_raw]) #collect most recent raw gyro from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
-    mag = np.matrix([0, data.magX_raw, data.magY_raw, data.magZ_raw]) #collect most recent raw mag from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero
+    output_body = np.zeros((1,10)) #creates output vector that will house: quaternion, euler angles, acc, gyr, and mag data in body frame
+    quat = np.matrix([data.qW, data.qX, data.qY, data.qZ]) #collect most recent quaternion from dataset (will be arriving in real time)   
+    acc = np.matrix([0, data.aX, data.aY, data.aZ]) #collect most recent raw accel from dataset (will be arriving in real time) and create into quaternion by adding first term equal to zero   
     fixed_q = QuatProd(iquatc,quat) #quaternion product of conjugate of yaw offset and quaternion from data, remember order matters!
     sens_frame = QuatProd(QuatConj(sensfr), quat) #calculate body-sensor frame orientation        
     output_body[0,0:4] = fixed_q #assign corrected quaternion to body output vector
     output_body[0,4:7] = Calc_Euler(sens_frame) #assign set of euler angles (frome body-sensor frame) to body output vector
-    output_body[0,7:10] = rotate_quatdata(acc, fixed_q, RemoveGrav=True) #add corrected accel data to body output vector
-    output_body[0,10:13] = rotate_quatdata(gyr, fixed_q) #add corrected gyro data to body output vector
-    output_body[0,13:16] = rotate_quatdata(mag, fixed_q) #add corrected mag data to body output vector   
-        
-    output_sens[0,0:3] = (np.array([acc[0,1], acc[0,2], acc[0,3]])-np.array(rotate_quatdata(np.matrix([0,0,0,1000]), QuatConj(fixed_q))))*.00980665 #add gravity-less accel data to sensor output vector
-    output_sens[0,3:6] = [gyr[0,1], gyr[0,2], gyr[0,3]] #add raw gyr data to sensor output vector
-    output_sens[0,6:9] = [mag[0,1], mag[0,2], mag[0,3]] #add raw mag data to sensor output vector
-    return output_body, output_sens 
-    
-if __name__ == '__main__':
-    ####READ IN DATA ~ Will change when we call from the database#####
-    path = 'C:\\Users\\Brian\\Documents\\GitHub\\PreProcessing\\app\\test\\data\\coordinateFrameTransformation\\Preprocess_unittest.csv'
-    data = np.genfromtxt(path, dtype=float, delimiter=',') #read in data; csv read in is just a stand in for now
-    data = data[1:]    
-    data = do.RawFrame(data)
-    start = time.time()
-    bodyframe = np.zeros((1,16))
-    sensframe = np.zeros((1,9))
-    iters = len(data.timestamp)
-    
-    ana_yaw_offset = np.matrix([1,0,0,0])   #comes from anatomical fix module 
-    sens_offset = np.matrix([1,0,0,0])  #comes from anatomical fix module
-    
+    output_body[0,7:10] = rotate_quatdata(acc, fixed_q, RemoveGrav=True) #add corrected accel data to body output vector  
+    return output_body
+
+def TransformData(data):
+    bodyframe = np.zeros((1,10))
+    iters = len(data.qX)    
     for i in range(iters):
-        q0 = np.matrix([data.qW_raw[i], data.qX_raw[i], data.qY_raw[i], data.qZ_raw[i]]) #t=0 quaternion
+        q0 = np.matrix([data.qW[i], data.qX[i], data.qY[i], data.qZ[i]]) #t=0 quaternion
         yaw_fix = yaw_offset(q0) #uses yaw offset function above to body frame quaternion
         yfix_c = QuatConj(yaw_fix) #uses quaternion conjugate function to return conjugate of body frame
-        yfix_c = QuatProd(QuatConj(ana_yaw_offset), yfix_c) #align reference frame flush with body part
-        obody, osens = FrameTransform(data.row(i), yfix_c, sens_offset)
+        yfix_c = QuatProd(QuatConj(data.yaw_q), yfix_c) #align reference frame flush with body part
+        obody = FrameTransform(data.row(i), yfix_c, data.align_q)
     
         ##appends each output vector to respective frame (used for saving to my computer...might be done differently in app)    
         bodyframe = np.vstack([bodyframe, obody[0,:]])
-        sensframe = np.vstack([sensframe, osens[0,:]])
         if i == 0:
             bodyframe = np.delete(bodyframe, 0, axis=0)
-            sensframe = np.delete(sensframe, 0, axis=0)
     
     body = do.InertialFrame(bodyframe)
-    sens = do.SensorFrame(sensframe)
-    print(body.EulerX)
+    return body
 #    ####Creates dataframe for body and sensor outputs along with adding column names 
 #    body = pd.DataFrame(bodyframe, columns=["qW", "qX", "qY", "qZ", "EulerX", "EulerY", "EulerZ", "AccX", "AccY", "AccZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) #body frame column names
-#    sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"])
+#    sens = pd.DataFrame(sensframe, columns=["accX", "accY", "accZ", "gyrX", "gyrY", "gyrZ", "magX", "magY", "magZ"]) 
+    
+if __name__ == '__main__':
+    ####READ IN DATA ~ Will change when we call from the database#####
+    path = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Fixed_By_Exercise\\Subject1_DblSquat.csv'
+    data = su.Set_Up(path)
+    body = TransformData(data.hipdataset)
