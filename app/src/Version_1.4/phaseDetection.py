@@ -144,8 +144,6 @@ def impact_detect(start_move, end_move, az, hz):
     start_imp = []
     end_imp = []
     
-    print(start_move, end_move)
-        
     for i,j in zip(start_move, end_move):
         arr_len = []
         dummy_start_imp = []
