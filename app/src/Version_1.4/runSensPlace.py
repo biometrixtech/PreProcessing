@@ -7,6 +7,16 @@ Created on Wed Jul 20 16:08:55 2016
 import setUp as su
 import numpy as np
 
+
+"""
+#############################################INPUT/OUTPUT####################################################   
+Inputs: dataset, sampling rate, checkPlacement vector, sensorPlacement string
+
+Outputs: status check (string), and checkPlacement vector holding sensor palcement decisions
+
+#############################################################################################################
+"""
+
 def testTap(data):
     mag = []
     peaks = []

@@ -5,6 +5,22 @@ Created on Fri Jul 22 11:40:05 2016
 @author: Brian
 """
 
+"""
+#############################################INPUT/OUTPUT####################################################   
+Inputs: 3 datasets (sequentially) corresponding to three different sensor detection tests
+
+Outputs: output (a vector containing the sensor placement decision in <L, H, R> sequence)
+
+Datasets: Good -> executeSensPlace -> ['BioMX58_', 'BioMX75_', 'BioMX80_']
+          Double assign error -> executeSensPlace -> failure1
+          Extra Movement Rfoot -> executeSensPlace -> failure3
+          Extra taps Rfoot -> executeSensPlace -> failure2
+          Upside down Hip -> executeSensPlace -> failure4
+          Upside down Lfoot -> executeSensPlace -> failure4
+
+#############################################################################################################
+"""
+
 import runSensPlace as rsp
 class SensorPlacementFailure(ValueError):
     pass
@@ -25,7 +41,7 @@ if __name__ == "__main__":
             raise SensorPlacementFailure
         else:
             print(sens2.sensorPlacement)
-            sens_root = 'C:\\Users\\Brian\\Documents\\Biometrix\Data\\Collected Data\\Sensor Placement test\\Full\\Good_rfoot.csv'
+            sens_root = 'C:\\Users\\Brian\\Documents\\Biometrix\Data\\Collected Data\\Sensor Placement test\\Full\\Good_lfoot.csv'
             sens3 = rsp.RunSensPlace(sens_root, 100, "L", sens2.sensorPlacement) #run sens place on third sensor
             if sens3.status in failures: #check for failure
                 print(sens3.status)
