@@ -4,6 +4,10 @@ Analytics R&D: python scripts developed to clean, mark, and quanitify biomechani
 ####Release 1.4 (7/22/16):
 Phase Detection - developed a new algortihm to improve the accuracy of balance phase detection. Made slight changes to the impact phase algorithm to improve the detection accuracy of the starting point of an impact phase. Updated test data sets are available in the test/data/phaseDetection folder.
 
+Sensor Placement - developed algorithm that allows for users to identify sensor placement by tapping on the sensors three times. Searches for errors in the execution of the tapping, extra movement, tapping the same sensor twice, and bad orientation of the sensor.
+
+setUp - made some changes about how the data is parsed so that information in the column names of the original dataset can still be maintained
+
 ####Release 1.3 (7/8/16):
 Anatomical Calibration - reviewing rotation methods for 100% accuracy, improving anatomical fixes
 
