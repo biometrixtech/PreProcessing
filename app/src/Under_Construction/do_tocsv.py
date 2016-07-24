@@ -10,10 +10,7 @@ import coordinateFrameTransformation as prep
 import numpy as np
 
 def stack_data(data):
-    
-    output = np.zeros((len(data.qX),1))
-    output = np.column_stack((output, data.qW))
-    output = np.column_stack((output, data.qX))
+    output = np.column_stack((data.qW, data.qX))
     output = np.column_stack((output, data.qY))
     output = np.column_stack((output, data.qZ))
     output = np.column_stack((output, data.AccX))
@@ -33,7 +30,7 @@ def run_analytics(path, mass, extra_mass, hz, anatom=None):
     #Create Inertial Frame objects transformed data
     #hip databody
     hipbf = prep.TransformData(data.hipdataset)
-    hipbf = stack_data(hipbf)
+    hipbf = stack_data(hipbf)   
     
     #rfoot databody
     rfbf = prep.TransformData(data.rfdataset)
@@ -48,9 +45,21 @@ def run_analytics(path, mass, extra_mass, hz, anatom=None):
 if __name__ == '__main__':
     
     import pandas as  pd
+    import matplotlib.pyplot as plt
     
-    path = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\GRF Data _Abigail\\Sensor Data\\test.csv'
+    path = 'C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Fixed_By_Exercise\\Subject1_DblSquat.csv'
 
-    hipdata, rdata, ldata = run_analytics(path, 75, 25, 250)
+    hipbf, rfbf, lfbf = run_analytics(path, 75, 25, 250)
+    final = np.concatenate((lfbf, hipbf), axis=1)
+    final = np.concatenate((final, rfbf), axis=1)
+    
+    df = pd.DataFrame(final, columns=['LqW', 'LqX', 'LqY', 'LqZ', 'LAccX', 'LAccY','LAccZ', 'LEulerX', 'LEulerY', 'LEulerZ',
+                                      'HqW', 'HqX', 'HqY', 'HqZ', 'HAccX', 'HAccY','HAccZ', 'HEulerX', 'HEulerY', 'HEulerZ',
+                                      'RqW', 'RqX', 'RqY', 'RqZ', 'RAccX', 'RAccY','RAccZ', 'REulerX', 'REulerY', 'REulerZ'])
+    
+    df.to_csv('C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Fixed_By_Exercise\\test.csv')
+    
+    
+    
     
 
