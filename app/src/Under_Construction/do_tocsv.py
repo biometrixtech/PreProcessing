@@ -40,9 +40,9 @@ if __name__ == '__main__':
     final = np.concatenate((lfbf, hipbf), axis=1)
     final = np.concatenate((final, rfbf), axis=1)
     
-    df = pd.DataFrame(final, columns=['LqW', 'LqX', 'LqY', 'LqZ', 'LAccX', 'LAccY','LAccZ', 'LEulerX', 'LEulerY', 'LEulerZ',
-                                      'HqW', 'HqX', 'HqY', 'HqZ', 'HAccX', 'HAccY','HAccZ', 'HEulerX', 'HEulerY', 'HEulerZ',
-                                      'RqW', 'RqX', 'RqY', 'RqZ', 'RAccX', 'RAccY','RAccZ', 'REulerX', 'REulerY', 'REulerZ'])
+    df = pd.DataFrame(final, columns=['LqW', 'LqX', 'LqY', 'LqZ', 'LEulerX', 'LEulerY', 'LEulerZ', 'LAccX' 'LAccY','LAccZ',
+                                      'HqW', 'HqX', 'HqY', 'HqZ', 'HEulerX', 'HEulerY', 'HEulerZ', 'HAccX' 'HAccY','HAccZ',
+                                      'RqW', 'RqX', 'RqY', 'RqZ', 'REulerX', 'REulerY', 'REulerZ', 'RAccX' 'RAccY','RAccZ'])
     
     df.to_csv('C:\\Users\\Brian\\Documents\\Biometrix\\Data\\Collected Data\\Fixed_Trial4\\test.csv')
     
