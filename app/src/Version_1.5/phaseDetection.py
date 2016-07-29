@@ -42,13 +42,13 @@ def Phase_Detect(series, pitch, hz):
     for i in range(len(std_acc)-consec_pnts):
         count = 0
         for j in range(consec_pnts): 
-            if 0 < std_acc[i+j] <= 1.1:
+            if 0 < std_acc[i+j] <= 1.1: #determine if t=i+j is not moving
                 count = count + 1
         if count == consec_pnts: #if count satisfies the minimum number of consecutive data points required to satisfy the balance phase conditions
             for k in range(consec_pnts):
-                if std_orient[i+k] < .07 and orient[i+k] < .9:
+                if std_orient[i+k] < .07 and orient[i+k] < .9: #eliminate curled foot and fast change of orientation
                     dummy_start_bal.append(i+k)
-                if orient[i+k] > .3 and mean_accdiff[i+k] > 2 and i+k in dummy_start_bal:
+                if orient[i+k] > .3 and mean_accdiff[i+k] > 2 and i+k in dummy_start_bal: #elim slow change in orient
                     dummy_start_bal.remove(i+k)
             
     start_bal = np.unique(dummy_start_bal)
