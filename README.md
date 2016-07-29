@@ -4,7 +4,9 @@ Analytics R&D: python scripts developed to clean, mark, and quanitify biomechani
 ####Release 1.5 (7/29/16):
 Phase Detection - made changes to the input variables to the combine_phase function. rdata/ldata['AccX'] & rdata/ldata['AccZ'] are separate numpy arrays that are being passed to the combine_phase function in the phaseDetection script. To incorporate the separation of the numpy arrays, relevant changes were made to the other functions as well.
 
-Run Analytics - incorporated the changes corresponding to the phase detection input variables. Added rfbf.AccX & lfbf.AccX in addition to the already existing input variables.  
+Run Analytics - incorporated the changes corresponding to the phase detection input variables. Added rfbf.AccX & lfbf.AccX in addition to the already existing input variables.
+
+Data Object - added a to_array() method to the abstract class. Removed redundancies regarding the row() method being in all the subclasses 
 
 ####Release 1.4 (7/22/16):
 Phase Detection - developed a new algortihm to improve the accuracy of balance phase detection. Made slight changes to the impact phase algorithm to improve the detection accuracy of the starting point of an impact phase. Updated test data sets are available in the test/data/phaseDetection folder.
