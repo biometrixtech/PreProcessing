@@ -17,12 +17,12 @@ import numpy as np
 import pandas as pd
 from phaseID import phase_id
 
-def Phase_Detect(series, pitch, hz):
+def Phase_Detect(ax, az, pitch, hz):
     
     acc = 0
-    acc = abs(series['AccX']) #absolute value of AccX
+    acc = abs(ax) #absolute value of AccX
     orient = abs(pitch) #absolute value of EulerY
-    accdiff = abs(series['AccZ']-acc) #absolute value of the difference between AccZ and AccX
+    accdiff = abs(az-acc) #absolute value of the difference between AccZ and AccX
     std_acc = 0    
     
     #setting the rolling window based on the sampling rate
@@ -61,10 +61,10 @@ def Phase_Detect(series, pitch, hz):
     
     return np.array(bal_phase) #return array
 
-def Body_Phase(right, left, rpitch, lpitch, hz):
+def Body_Phase(rax, raz, lax, laz, rpitch, lpitch, hz):
     
-    r = Phase_Detect(right, rpitch, hz) #run phase detect on right foot
-    l = Phase_Detect(left, lpitch, hz) #run phase detect on left foot
+    r = Phase_Detect(rax, raz, rpitch, hz) #run phase detect on right foot
+    l = Phase_Detect(lax, laz, lpitch, hz) #run phase detect on left foot
     
     phase = [] #store body phase decisions
     for i in range(len(r)):
@@ -80,23 +80,25 @@ def Body_Phase(right, left, rpitch, lpitch, hz):
     
 def bound_det_lf(p):
     
+    #determining the starting and ending points of the movement phase for the left foot
+    
     start_move = []
     end_move = []
     
     for i in range(len(p)-1):
         if p[i] == phase_id.rflf_ground.value and p[i+1] == phase_id.rf_ground.value:
             start_move.append(i+1)
-        elif p[i] == phase_id.lf_ground.value and p[i+1] == phase_id.rf_ground.value:
+        elif p[i] == phase_id.lf_ground.value and p[i+1] == phase_id.rf_ground.value: 
             start_move.append(i+1)
-        elif p[i] == phase_id.rflf_ground.value and p[i+1] == phase_id.rflf_offground.value:
+        elif p[i] == phase_id.rflf_ground.value and p[i+1] == phase_id.rflf_offground.value: 
             start_move.append(i+1)
-        elif p[i] == phase_id.lf_ground.value and p[i+1] == phase_id.rflf_offground.value:
+        elif p[i] == phase_id.lf_ground.value and p[i+1] == phase_id.rflf_offground.value: 
             start_move.append(i+1)
         elif p[i] == phase_id.rf_ground.value and p[i+1] == phase_id.rflf_ground.value:
             end_move.append(i)
         elif p[i] == phase_id.rf_ground.value and p[i+1] == phase_id.lf_ground.value:
             end_move.append(i)
-        elif p[i] == phase_id.rflf_offground.value and p[i+1] == phase_id.rflf_ground.value:
+        elif p[i] == phase_id.rflf_offground.value and p[i+1] == phase_id.rflf_ground.value: 
             end_move.append(i)
         elif p[i] == phase_id.rflf_offground.value and p[i+1] == phase_id.lf_ground.value:
             end_move.append(i)
@@ -107,6 +109,8 @@ def bound_det_lf(p):
     return start_move, end_move
     
 def bound_det_rf(p):
+    
+    #determining the starting and ending points of the movement phase for the right foot
     
     start_move = []
     end_move = [] 
@@ -136,7 +140,7 @@ def bound_det_rf(p):
     
 def impact_detect(start_move, end_move, az, hz):
     
-    g = 9.80665 
+    g = 9.80665 #acceleration due to gravity (constant)
     neg_thresh = -g/2 #negative threshold 
     pos_thresh = g #positive threshold 
     win = int(0.05*hz) #sampling window
@@ -144,8 +148,6 @@ def impact_detect(start_move, end_move, az, hz):
     start_imp = []
     end_imp = []
     
-    print(start_move, end_move)
-        
     for i,j in zip(start_move, end_move):
         arr_len = []
         dummy_start_imp = []
@@ -154,18 +156,18 @@ def impact_detect(start_move, end_move, az, hz):
         arr_len = range(len(acc)-win)
         numbers = iter(arr_len)
         for k in numbers:
-            if acc[k] <= neg_thresh:
+            if acc[k] <= neg_thresh: #checking if AccZ[k] is lesser than the negative thresh
                 for l in range(win):
-                    if acc[k+l] >= pos_thresh:
+                    if acc[k+l] >= pos_thresh: #checking if AccZ[k+1] is greater or equal than the positive thresh (the trend from a negative acc value to a positive acc value in qick succession is an indication of an impact phase)
                         dummy_start_imp.append(i+k)
                         dummy_end_imp.append(i+k+l)
                         break
-        if len(dummy_start_imp) == 1:
+        if len(dummy_start_imp) == 1: #if length of the dummy list is 1, then the corresponding value gives us the starting point of the impact phase
             start_imp.append(dummy_start_imp[0])
             end_imp.append(j)
-        elif len(dummy_start_imp) > 1:
+        elif len(dummy_start_imp) > 1: #if the dummy list is greater than 1 then search for the true starting point of the impact phase
             for m, n in zip(range(len(dummy_start_imp)), range(len(dummy_end_imp))):
-                if (((j-i)/2)+i) < dummy_start_imp[m] <= j:
+                if (((j-i)/2)+i) < dummy_start_imp[m] <= j: #search only the second half of a movement phase (generally the first half consitutes the 'foot taking off the ground' phase)
                     pos = np.argmin(az[dummy_start_imp[m]:dummy_end_imp[n]]) #returns the positin of the minimum acceleration value
                     start_imp.append(pos+dummy_start_imp[m])
                     end_imp.append(j)
@@ -176,9 +178,9 @@ def impact_detect(start_move, end_move, az, hz):
             
     return np.array(imp)
 
-def combine_phase(lacc, racc, rpitch, lpitch, hz):
+def combine_phase(laccx, laccz, raccx, raccz, rpitch, lpitch, hz):
     
-    ph = Body_Phase(racc, lacc, rpitch, lpitch, hz) #balance phase for both the right and left feet  
+    ph = Body_Phase(raccx, raccz, laccx, laccz, rpitch, lpitch, hz) #balance phase for both the right and left feet  
     
     lf_ph = list(ph)
     rf_ph = list(ph)
@@ -186,8 +188,8 @@ def combine_phase(lacc, racc, rpitch, lpitch, hz):
     lf_sm, lf_em = bound_det_lf(lf_ph) #detecting the start and end points of the left foot movement phase
     rf_sm, rf_em = bound_det_rf(rf_ph) #detecting the start and end points of the right foot movement phase
     
-    lf_imp = impact_detect(lf_sm, lf_em, lacc['AccZ'], hz) #starting and ending point of the impact phase for the left foot
-    rf_imp = impact_detect(rf_sm, rf_em, racc['AccZ'], hz) #starting and ending points of the impact phase for the right foot
+    lf_imp = impact_detect(lf_sm, lf_em, laccz, hz) #starting and ending point of the impact phase for the left foot
+    rf_imp = impact_detect(rf_sm, rf_em, raccz, hz) #starting and ending points of the impact phase for the right foot
 
     for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
         lf_ph[i:j] = [phase_id.lf_imp.value]*int(j-i) #decide impact phase for the left foot
@@ -230,7 +232,7 @@ if __name__ == "__main__":
     lpitch = ldata[ptch]
     #ph = Body_Phase(racc, lacc, rpitch, lpitch, sampl_rate)
 
-    lf_phase, rf_phase = combine_phase(ldata[['AccX', 'AccZ']], rdata[['AccX', 'AccZ']], rpitch, lpitch, sampl_rate)
+    lf_phase, rf_phase = combine_phase(ldata['AccX'], ldata['AccZ'], rdata['AccX'], rdata['AccZ'], rpitch, lpitch, sampl_rate)
     
     #Plotting
     
