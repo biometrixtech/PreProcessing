@@ -4,9 +4,8 @@ Created on Wed Jul 20 16:08:55 2016
 
 @author: Brian
 """
-import setUp as su
-import numpy as np
 
+import numpy as np
 
 """
 #############################################INPUT/OUTPUT####################################################   
