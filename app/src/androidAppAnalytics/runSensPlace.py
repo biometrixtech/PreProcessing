@@ -10,7 +10,7 @@ import numpy as np
 
 """
 #############################################INPUT/OUTPUT####################################################   
-Inputs: dataset, sampling rate, checkPlacement vector, sensorPlacement string
+Inputs: dataset, checkPlacement vector, sensorPlacement string
 
 Outputs: status check (string), and checkPlacement vector holding sensor palcement decisions
 
