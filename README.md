@@ -1,7 +1,7 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
 
-####Release Mobile App Analytics 1.0
+####Release Mobile App Analytics 1.0 (8/11/16):
 Sensor Placement- runSensPlace is used to determine the placement of a sensor on the body
 
 ####Release 1.5 (7/29/16):
