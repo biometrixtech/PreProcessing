@@ -1,6 +1,9 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
 
+####Release Mobile App Analytics 1.0
+Sensor Placement- runSensPlace is used to determine the placement of a sensor on the body
+
 ####Release 1.5 (7/29/16):
 Phase Detection - made changes to the input variables to the combine_phase function. rdata/ldata['AccX'] & rdata/ldata['AccZ'] are separate numpy arrays that are being passed to the combine_phase function in the phaseDetection script. To incorporate the separation of the numpy arrays, relevant changes were made to the other functions as well.
 
