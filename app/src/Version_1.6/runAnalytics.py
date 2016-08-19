@@ -31,7 +31,7 @@ class RunAnalytics(object):
         lfbf = prep.TransformData(data.lfdataset)
         
         ##PHASE DETECTION
-        self.lf_phase, self.rf_phase = phase.combine_phase(lfbf.AccX, lfbf.AccZ, rfbf.AccX, rfbf.AccZ, rfbf.EulerY, lfbf.EulerY, data.hz)
+        self.lf_phase, self.rf_phase = phase.combine_phase(lfbf.AccZ, rfbf.AccZ, data.hz)
         
         lfbf.phase =  self.lf_phase
         rfbf.phase = self.rf_phase
