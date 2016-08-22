@@ -1,5 +1,10 @@
 ### PreProcessing
-Analytics R&D: python scripts developed to clean, mark, and quanitify biomechanical errors
+Analytics R&D: python scripts developed to clean, mark, and quantify biomechanical errors
+
+####Release 1.6 (8/22/16):
+Phase Detection - Inputs changed to ldata['AccZ'], rdata['AccZ'], sampl_rate. Also, made changes to the phase detection algorithm. Corresponding changes were made to the other functions in the phaseDetection script as well. Outputs remain the same: phase id for the left foot and the right foot. Test data sets are available in test/data/phaseDetection.
+
+Run Analytics - incorporated changes correpsonding to the changes made to the phaseDetection script. Only made changes to the phase.combine_phase function call.
 
 ####Release Mobile App Analytics 1.0 (8/11/16):
 Sensor Placement- runSensPlace is used to determine the placement of a sensor on the body
