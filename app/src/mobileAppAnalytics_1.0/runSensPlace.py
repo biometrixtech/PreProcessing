@@ -4,15 +4,14 @@ Created on Wed Jul 20 16:08:55 2016
 
 @author: Brian
 """
-import setUp as su
-import numpy as np
 
+import numpy as np
 
 """
 #############################################INPUT/OUTPUT####################################################   
 Inputs: dataset, checkPlacement string, sensorPlacement vector
 
-Outputs: status check (string), and checkPlacement vector holding sensor palcement decisions
+Outputs: status check (string), and sensorPlacement vector holding sensor placement decisions
 
 Datasets: failure1_rfoot -> RunSensPlace(data, "R", [0,'58',0]) -> failure1
           failure2_hip -> RunSensPlace(data, "H", [0,0,0]) -> failure2
