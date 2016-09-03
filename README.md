@@ -1,6 +1,10 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quantify biomechanical errors
 
+####Release 1.8 (09/03/2016):
+dataObject.py: Made change to line 21
+setUp.py: made changes to lines 33 and 58
+
 ####Release 1.6 (TBD):
 Phase Detection - Inputs changed to ldata['AccZ'], rdata['AccZ'], sampl_rate. Also, made changes to the phase detection algorithm. Corresponding changes were made to the other functions in the phaseDetection script as well. Outputs remain the same: phase id for the left foot and the right foot. Test data sets are available in test/data/phaseDetection.
 
