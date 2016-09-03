@@ -6,6 +6,21 @@ dataObject.py: Made change to line 21
 
 setUp.py: made changes to lines 33 and 58
 
+####Release 1.7 (08/26/2016):
+anatomicalCalibration - Updated test_errors fxn to only use quaternions instead of euler angles. Added feetCheck, hipCenter, and statusChecks fxns that are used to identify errors in placement of the sensors. Added quatClose fxn that is used in the init_orientation fxn to make sure that quaternions being averaged together are "close". The init_orientation fxn now averages quaternions instead of euler angles. Finally, an adjustment to hip_orientation_fix to filter out extreme theta values.
+
+coordinateFrameTransformation - Added clipped accel fxn to test for clipped acceleration values. Lines 143-156, clipped acceleration and bad quaternion tests.
+
+dataChecks - Set of functions for testing bad quaternions and calculating the Euler Angles derived from the onboardCoordinateFrameTransformation
+
+onboardCoordinateFrameTransformation - Takes the coordinate frame transform out of the cloud and onto the devices.
+
+runAnalyticsNoTransform - Same as runAnalytics but the TransformData fxn is replaced by the fxn in dataChecks.
+
+runAnatomical - Added many checks to make sure the sensors are placed correctly while at the same time computing the anatomical offsets for each sensor. Now has a status attribute that can be used to check if the sensors have been placed correctly. 
+
+setUp - Added a SensCal class that now replaces the previous Anatomical class. Takes in three more variables now.
+
 ####Release 1.6 (TBD):
 Phase Detection - Inputs changed to ldata['AccZ'], rdata['AccZ'], sampl_rate. Also, made changes to the phase detection algorithm. Corresponding changes were made to the other functions in the phaseDetection script as well. Outputs remain the same: phase id for the left foot and the right foot. Test data sets are available in test/data/phaseDetection.
 
