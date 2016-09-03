@@ -3,6 +3,7 @@ Analytics R&D: python scripts developed to clean, mark, and quantify biomechanic
 
 ####Release 1.8 (09/03/2016):
 dataObject.py: Made change to line 21
+
 setUp.py: made changes to lines 33 and 58
 
 ####Release 1.6 (TBD):
