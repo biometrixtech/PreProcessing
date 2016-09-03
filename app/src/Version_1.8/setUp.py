@@ -30,7 +30,6 @@ def dynamicName(sdata):
             prefix.append(name)
     return data, prefix
 
-#class Set_Up(object, metaclass=abc.ABCMeta): #Abstract setUp class
 class Set_Up(object): #Abstract setUp class
     __metaclass__ = abc.ABCMeta
     @abc.abstractmethod
