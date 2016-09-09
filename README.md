@@ -1,6 +1,10 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quantify biomechanical errors
 
+####Release 1.9 (TBD):
+execution_v1.3.py - 'cme' object to be changed (potential to cause confusion)
+runAnalytics.py - balance cme names will be changed 
+
 ####Release 1.8 (09/03/2016):
 dataObject.py: Made change to line 21
 
