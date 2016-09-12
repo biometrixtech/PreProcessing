@@ -1,6 +1,10 @@
 ### PreProcessing
 Analytics R&D: python scripts developed to clean, mark, and quantify biomechanical errors
 
+####Release 1.9 (TBD):
+execution_v1.3.py - 'cme' object to be changed (potential to cause confusion)
+runAnalytics.py - balance cme names will be changed 
+
 ####Release 1.8 (09/03/2016):
 dataObject.py: Made change to line 21
 
@@ -21,7 +25,7 @@ runAnatomical - Added many checks to make sure the sensors are placed correctly 
 
 setUp - Added a SensCal class that now replaces the previous Anatomical class. Takes in three more variables now.
 
-####Release 1.6 (TBD):
+####Release 1.6 (08/26/2016):
 Phase Detection - Inputs changed to ldata['AccZ'], rdata['AccZ'], sampl_rate. Also, made changes to the phase detection algorithm. Corresponding changes were made to the other functions in the phaseDetection script as well. Outputs remain the same: phase id for the left foot and the right foot. Test data sets are available in test/data/phaseDetection.
 
 Run Analytics - incorporated changes correpsonding to the changes made to the phaseDetection script. Only made changes to the phase.combine_phase function call.
