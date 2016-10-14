@@ -1,42 +1,35 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Sep 29 09:35:15 2016
+Created on Fri Oct 14 09:21:40 2016
 
 @author: court
 """
 
+
 import numpy as np
+import pandas as pd
 
 import quatOps as qo
 import quatConvs as qc
 
-#import setUp as su
-#import dataObject as do
-import specialFeetCalibration as fc
-
-
 """
 #############################################INPUT/OUTPUT####################################################
-Inputs: raw orientation data, transform values if available (calculated here if 'special' calibration)
-Outputs: transform values to convert raw data directly to the body frame, hip_pitch_transform and
-        feet_roll_transform for later processing as pelvic tilt and pronation trends
+Inputs: raw orientation data for regular calibration
+Outputs: _bf_coordTrans to allow for direct calculation of body frame from sensor frame for full data sets. Also,
+        _n_transform values to take body frame data to neutral position for use in CME analytics. 
         
-Hip: takes raw data, converts to adjusted sensor frame by rotating frame to align roughly with body forward x,
-        against gravity positive z. If pitch_transform not given, calculates it as the pitch necessary to get
-        x axis parallel with ground. These offsets combined to give hip_bf_coordTrans, which takes raw data
-        directly to body frame. Adjusted inertial frame taken as ASF without pitch component. AIF and transform
-        numbers yielded.
-        
-Feet: takes raw feet data, hip_aif, feet_roll_transform if available. feet_yaw_transform is offset between feet
-        and hip_aif over standing calibration. If feet_roll_transform not available, calculates from special 
-        sitting calibration. Transforms combined as feet_bf_coordTrans, which takes raw data immediately to 
-        feet body frame.
+Pay attention to sensor model and orientation.
+
 Script called upon by coordinateFrameTransformationUpgrade.py, dependent on specialFeetCalibration.py, QuatOps,
 quatConvs
 #############################################################################################################
 """
 
-def s2aif(hip_data,hip_pitch_transform=None):
+class EmptyTransformValError(ValueError):
+    pass
+#    print 'Need to perform Special Calibration!'
+
+def s2aif(hip_data,hip_pitch_transform,hip_roll_transform):
     ##### Import hip sensor frame and feet sensor frame (quaternions only)
     
     ##### Transform hip sensor frame to hip adjusted sensor frame
@@ -50,32 +43,14 @@ def s2aif(hip_data,hip_pitch_transform=None):
     hip_asf=np.zeros((len(hip_data),4))
     
     for i in range(len(hip_data)):
+       
+        hip_asf[i,:] = qo.quat_prod(hip_data[i,:],hip_asf_coordTrans) #.reshape(1,4)
         
-        # Fill gaps in sensor data with value from previous measurement
-#        for k in range(len(hip_data.ix[i,:])):
-#            if hip_data.ix[i,k]==[]:
-#                if i==0:
-#                    a=hip_data.ix[i+1,k]
-#                else:
-#                    a=hip_data.ix[i-1,k]
-#                hip_data.ix[i,k]=a
-        
-        hip_asf[i,:] = qo.quat_prod(hip_data.ix[i,:],hip_asf_coordTrans) #.reshape(1,4)
+    # if hip_pitch_transform is empty, need to run Special Hip Calibration
 
-    #### If loop: If hip_pitch_t does not exist (special cal), pull out pitch from hip_asf
-        # if hip_pitch_t does exist (regular cal), use pre-existing val
-        # take pitch away from hip_asf to get to hip_aif
+    if hip_pitch_transform == [] or hip_roll_transform == []: 
 
-    # if not hip_pitch_transform == True: # if hip_pitch_transform is empty, calc during spec cal
-    if hip_pitch_transform is None: # if hip_pitch_transform is empty, calc during spec cal
-
-        hip_pitch_transform_inst=np.zeros((len(hip_asf),4))
-        for i in range(len(hip_asf)):
-            hip_asf_eX,hip_asf_eY,hip_asf_eZ = qc.q2eul(hip_asf[i,:])
-            hip_pitch_transform_inst[i,:] = qc.eul2q(0,hip_asf_eY,0) # create offset quaternion using only pitch offset
-
-        # GET AVERAGE OF HIP_PITCH_TRANSFORM dATA OVER RECORDING PERIOD
-        hip_pitch_transform = qo.quat_n(qo.quat_avg(hip_pitch_transform_inst))
+        raise EmptyTransformValError
 
     else:
         pass
@@ -88,43 +63,97 @@ def s2aif(hip_data,hip_pitch_transform=None):
 
     hip_aif=np.zeros((len(hip_asf),4))
     for i in range(len(hip_asf)):
+        
         hip_aif[i,:] = qo.quat_prod(hip_asf[i,:],hip_pitch_transform_conj)
 
-    return hip_aif,hip_bf_coordTrans,hip_pitch_transform
+    return hip_aif,hip_bf_coordTrans#,hip_pitch_transform,hip_roll_transform
 
-def feetTrans(footdata,hip_aif,feet_roll_transform=None):    
+def feetTrans(footdata,hip_aif,feet_roll_transform):    
 
-    # Extract feet_yaw_t
+    # Extract feet_yaw_t for ft trans and feet_pitch_t for balanceCME
     feet_asf=np.zeros((len(footdata),4))
     feet_asf_components=np.zeros((len(footdata),3))
     feet_yaw_transform_inst=np.zeros((len(footdata),4))
+    feet_pitch_transform_inst=np.zeros((len(footdata),4))
+    
     for i in range(len(hip_aif)):  
-        feet_asf[i,:] = qo.find_rot(hip_aif[i,:],footdata.ix[i,:])
+        feet_asf[i,:] = qo.find_rot(hip_aif[i,:],footdata[i,:])
         feet_asf_components[i,:] = qc.q2eul(feet_asf[i,:])   
-        feet_yaw_transform_inst[i,:] = qc.eul2q(0,0,feet_asf_components[i,0]) # create offset quaternion using only yaw offset
+        feet_yaw_transform_inst[i,:] = qc.eul2q(0,0,feet_asf_components[i,2]) # create offset quaternion using only yaw offset
+        feet_pitch_transform_inst[i,:] = qc.eul2q(0,feet_asf_components[i,1],0) # create offset quaternion using only pitch offset
     
     # GET AVERAGE OF FEET_YAW_TRANSFORM_INST DATA OVER RECORDING PERIOD
     feet_yaw_transform = qo.quat_avg(feet_yaw_transform_inst)
+    
+    # GET AVERAGE OF FEET_PITCH_TRANSFORM_INST DATA OVER RECORDING PERIOD
+    feet_pitch_transform = qo.quat_avg(feet_pitch_transform_inst)
         
     #### If loop: If feet_roll_transform exists, calculate feet_bf_coordtrans
        # else, do special feet_roll_transform
     
-    if feet_roll_transform is None:
-    # GO TO SPECIAL FEET CALIBRATION
-        feet_roll_transform = fc.sittingFeetCal(footdata,feet_yaw_transform)
+    if feet_roll_transform == []:
+        
+        # GO TO SPECIAL FEET CALIBRATION
+        raise EmptyTransformValError
+        
     else:
         pass
     
+    
     #### calculate feet_bf_coordTrans
     feet_bf_coordTrans = qo.quat_prod(feet_yaw_transform,feet_roll_transform)
+    
         
-    return feet_bf_coordTrans,feet_roll_transform
+    return feet_bf_coordTrans,feet_yaw_transform,feet_pitch_transform#,feet_roll_transform
 
 
+def runCalib(path):
+#### import raw hip and feet data (quaternions only)
 
+    data=pd.read_csv(path)
+    hip_datadb=data[['HqW','HqX','HqY','HqZ']]
+    lf_datadb=data[['LqW','LqX','LqY','LqZ']]
+    rf_datadb=data[['RqW','RqX','RqY','RqZ']]
 
+    # create storage for vars
+    hip_data=np.empty((len(hip_datadb),4))
+    lf_data=np.empty((len(lf_datadb),4))
+    rf_data=np.empty((len(rf_datadb),4))
+    
+    for i in range(len(hip_data)):
+        hip_data[i,:]=qo.quat_n(hip_datadb.ix[i,:])
+        lf_data[i,:]=qo.quat_n(lf_datadb.ix[i,:])
+        rf_data[i,:]=qo.quat_n(rf_datadb.ix[i,:])
+
+    # take hip sensor frame into aif, get all _bf_coordTrans values to get to body frames
+    hip_aif,hip_bf_coordTrans=s2aif(hip_data,hip_pitch_transform,hip_roll_transform) # if special hip calibration already done, input hip_pitch_transform as 2nd argument
+    lf_bf_coordTrans,lf_yaw_transform,lf_pitch_transform=feetTrans(lf_data,hip_aif,lf_roll_transform) # if special foot calibration already done, input lf_roll_transform as 3rd argument
+    rf_bf_coordTrans,rf_yaw_transform,rf_pitch_transform=feetTrans(rf_data,hip_aif,rf_roll_transform) # if special foot calibration already done, input rf_roll_transform as 3rd argument
+
+    # calculate _neutral_transform values
+    lf_n_transform=qo.quat_prod(qo.quat_conj(hip_pitch_transform),lf_yaw_transform)
+    lf_n_transform=qo.quat_prod(lf_n_transform,lf_pitch_transform)
+    lf_n_transform=qo.quat_prod(lf_n_transform,lf_roll_transform)
+    
+    rf_n_transform=qo.quat_prod(qo.quat_conj(hip_pitch_transform),rf_yaw_transform)
+    rf_n_transform=qo.quat_prod(rf_n_transform,rf_pitch_transform)
+    rf_n_transform=qo.quat_prod(rf_n_transform,rf_roll_transform)
+    
+    hip_n_transform=qo.quat_prod(hip_pitch_transform,hip_roll_transform)
+    
+    return hip_bf_coordTrans,lf_bf_coordTrans,rf_bf_coordTrans,lf_n_transform,rf_n_transform,hip_n_transform
+    
+    
+    
+    
 if __name__ == '__main__':
+    
+    import time
+    start_time = time.time()
+    
     ####READ IN DATA ~ Will change when we call from the database#####
-    path = 'C:\Users\court\Desktop\BioMetrix\PreProcessing-master\PreProcessing\app\test\data\anatomicalCalibration\Good.csv'
-#    data = su.Analytics(path, 0, 0, 100)
-#    body = TransformData(data.hipdataset)
+    path = 'C:\Users\court\Desktop\BioMetrix\Research\Quaternions\subject6_sd.csv'
+
+    hip_bf_coordTrans,lf_bf_coordTrans,rf_bf_coordTrans,lf_n_transform,rf_n_transform,hip_n_transform=runCalib(path)
+    
+    print "My program took", time.time() - start_time, "to run"
