@@ -23,6 +23,7 @@ Outputs: hip_acc_aif,lf_acc_aif,rf_acc_aif
 
 Transform acceleration in x, y, and z directions with respect to the sensor frame. Convert to the adjusted 
 inertial frame.
+
 Script called on by coordinateFrameTransformationUpgrade.py, dependent on quatOps and quatConvs
 #############################################################################################################
 """
@@ -56,14 +57,14 @@ def accelerationTransform(hip_data,lf_data,rf_data,hip_acc,lf_acc,rf_acc,hip_bf_
         rf_aif[i,:]=qc.eul2q(0,0,rf_bf_eul[i,2])
         
         # calculate instantaneous rotation transform value from sensor to aif
-        hip_s2aif_rot[i,:]=qo.find_rot(hip_data.ix[i,:],hip_aif[i,:])
-        lf_s2aif_rot[i,:]=qo.find_rot(lf_data.ix[i,:],lf_aif[i,:])
-        rf_s2aif_rot[i,:]=qo.find_rot(rf_data.ix[i,:],rf_aif[i,:])
+        hip_s2aif_rot[i,:]=qo.find_rot(hip_data[i,:],hip_aif[i,:])
+        lf_s2aif_rot[i,:]=qo.find_rot(lf_data[i,:],lf_aif[i,:])
+        rf_s2aif_rot[i,:]=qo.find_rot(rf_data[i,:],rf_aif[i,:])
         
         # rotate vector with calculated rotation
-        hip_acc_aif[i,:]=qo.vect_rot(hip_acc.ix[i,:],hip_s2aif_rot[i,:])
-        lf_acc_aif[i,:]=qo.vect_rot(lf_acc.ix[i,:],lf_s2aif_rot[i,:])
-        rf_acc_aif[i,:]=qo.vect_rot(rf_acc.ix[i,:],rf_s2aif_rot[i,:])
+        hip_acc_aif[i,:]=qo.vect_rot(hip_acc[i,:],hip_s2aif_rot[i,:])
+        lf_acc_aif[i,:]=qo.vect_rot(lf_acc[i,:],lf_s2aif_rot[i,:])
+        rf_acc_aif[i,:]=qo.vect_rot(rf_acc[i,:],rf_s2aif_rot[i,:])
         
         # subtract effect of gravity (1G from z axis) and convert from units of G/1000 to m/s**2
         hip_acc_aif[i,:]=(hip_acc_aif[i,:]-[0,0,1000])*0.00980665
