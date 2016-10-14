@@ -28,6 +28,42 @@ quatConvs
 class EmptyTransformValError(ValueError):
     pass
 #    print 'Need to perform Special Calibration!'
+    
+    
+def placementCheck(Lacc,Hacc,Racc):
+    
+    """
+    Perform quick check of sensor placement based on raw acceleration values.
+    
+    """
+    
+    Lmean=np.mean(Lacc,0)
+    Hmean=np.mean(Hacc,0)
+    Rmean=np.mean(Racc,0)
+    print Lmean
+    print Hmean
+    print Rmean
+    
+    # left x should be pos and y should be neg
+    if Lmean[0]>200 and Lmean[1]<-200 and np.absolute(Lmean[2])<200:
+        GoodLeftPlacement=True
+    else:
+        GoodLeftPlacement=False
+        
+    # hip y should be very neg and other axes minimally affected by grav
+    if np.absolute(Hmean[0])<200 and Hmean[1]<-800 and np.absolute(Hmean[2])<200:
+        GoodHipPlacement=True
+    else:
+        GoodHipPlacement=False
+        
+    # right x should be eg and y should be neg
+    if Rmean[0]<-200 and Rmean[1]<-200 and np.absolute(Rmean[2])<200:
+        GoodRightPlacement=True
+    else:
+        GoodRightPlacement=False
+        
+    return GoodLeftPlacement,GoodHipPlacement,GoodRightPlacement
+    
 
 def s2aif(hip_data,hip_pitch_transform,hip_roll_transform):
     ##### Import hip sensor frame and feet sensor frame (quaternions only)
@@ -108,22 +144,42 @@ def feetTrans(footdata,hip_aif,feet_roll_transform):
 
 
 def runCalib(path):
-#### import raw hip and feet data (quaternions only)
 
+    # import quats for calib, acc for placement check
     data=pd.read_csv(path)
     hip_datadb=data[['HqW','HqX','HqY','HqZ']]
     lf_datadb=data[['LqW','LqX','LqY','LqZ']]
     rf_datadb=data[['RqW','RqX','RqY','RqZ']]
+    hip_accdb=data[['HaX','HaY','HaZ']]
+    lf_accdb=data[['LaX','LaY','LaZ']]
+    rf_accdb=data[['RaX','RaY','RaZ']]
 
     # create storage for vars
     hip_data=np.empty((len(hip_datadb),4))
     lf_data=np.empty((len(lf_datadb),4))
     rf_data=np.empty((len(rf_datadb),4))
+    hip_acc=np.empty((len(hip_accdb),3))
+    lf_acc=np.empty((len(lf_accdb),3))
+    rf_acc=np.empty((len(rf_accdb),3))
     
     for i in range(len(hip_data)):
         hip_data[i,:]=qo.quat_n(hip_datadb.ix[i,:])
         lf_data[i,:]=qo.quat_n(lf_datadb.ix[i,:])
         rf_data[i,:]=qo.quat_n(rf_datadb.ix[i,:])
+        hip_acc[i,:]=hip_accdb.ix[i,:]
+        lf_acc[i,:]=lf_accdb.ix[i,:]
+        rf_acc[i,:]=rf_accdb.ix[i,:]
+        
+    GoodLeftPlacement,GoodHipPlacement,GoodRightPlacement=placementCheck(lf_acc,hip_acc,rf_acc)
+    
+    if GoodLeftPlacement==False:
+        print 'Left Foot Placement Error'
+    elif GoodHipPlacement==False:
+        print 'Hip Placement Error'
+    elif GoodRightPlacement==False:
+        print 'Right Placement Error'
+    else:
+        pass
 
     # take hip sensor frame into aif, get all _bf_coordTrans values to get to body frames
     hip_aif,hip_bf_coordTrans=s2aif(hip_data,hip_pitch_transform,hip_roll_transform) # if special hip calibration already done, input hip_pitch_transform as 2nd argument
