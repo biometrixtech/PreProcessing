@@ -5,13 +5,28 @@ Analytics R&D: python scripts developed to clean, mark, and quantify biomechanic
 
 Base Calibration Process:
   Reads recording of sitting feet calibration, calculates quaternions, checks for missing data, and checks for good sensor placement. If any failures, rpush error to user. Saves attempts to biometrix-specialanatomicalcalibrationprocessedcontainer.
+  
+  Test data sets under preProcessing/app/test/data/runBaseFeet.
+  
+  Input - (data, 'filename')
+  Output - processed_filename
+  Returns - string for 'Success' or 'Failure'
 
 Session Calibration Process:
   Reads recording of standing calibration, calculates quaternions, checks for missing data, and checks for good sensor placement. If any failures, rpush error to user. If part of base calibration, reads unexpired successful base feet calibration attempt and uses both files to calculate offset values for general use and for current session coordinate frame transformations.
   If regular session calibration, reads unexpired general offsets from base calibration and further processes to create specific offset values for session coordinate frame transformation. Saves attempts to biometrix-anatomicalcalibrationprocessedcontainer and offset values to SessionCalibrationEvent Table.
+  
+  Test data sets under preProcessing/app/test/data/runSessionCalibration.
+  Input - (data, 'filename')
+  Output - processed_filename
+  Returns - string for 'Success' or 'Failure'
 
 Training Process:
   Reads recording of coach performing specific exercise, calculates quaternions, and checks for missing data. Uses calibration offsets to transform orientation data to the body frame and acceleration to the adjusted inertial frame. Calculates phase. Uses hip acceleration to determine plane of motion and phase paired with hip orientation to determine stance. Plane and stance generalized to characteristic booleans describing exercise. Exercise acceleration characterized using total acceleration. Saves successful attempts to biometrix-trainingprocessedcontainer and exercise characterizations to TrainingEvent Table.
+  
+  Test data sets under preProcessing/app/test/data/runBaseFeet.
+  Input - (data, 'filename')
+  Output - processed_filename
 
 ####Release 1.9 (TBD):
 execution_v1.3.py - 'cme' object to be changed (potential to cause confusion)
