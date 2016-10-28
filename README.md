@@ -41,6 +41,19 @@ Training Process:
   Input - (data, 'filename')
   
   Output - processed_filename
+  
+  List of packages used in the above lambda processes:
+  numpy '1.11.1'
+  pandas '0.18.1'
+  boto3 '1.4.1'
+  psycopg2 '2.6.2'
+  scipy '0.18.1'
+  sklearn '0.18rc2'
+  itertools
+  enum
+  datetime
+  sys
+  cStringIO
 
 ####Release 1.9 (TBD):
 execution_v1.3.py - 'cme' object to be changed (potential to cause confusion)
