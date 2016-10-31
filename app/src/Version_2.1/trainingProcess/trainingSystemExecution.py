@@ -249,7 +249,7 @@ class TrainingExecution(object): #Abstract setUp class
         # if recording period too short, throw error
         if len(self.data.HaX)<2000:
             msg = "Exercise duration too short"
-            r_push_data = {"action":"run_ression_calibration"}
+            r_push_data = {"action":"capture_exercise"}
             user_id = user_id
             
             ######rPush INSERT GOES HERE
