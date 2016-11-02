@@ -175,6 +175,7 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
         final_landpattern.append([j,i])        
             
     return np.array(final_landtime), np.array(final_landpattern)
+    
 
 if __name__ == '__main__':
     
