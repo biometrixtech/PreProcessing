@@ -7,7 +7,7 @@ Created on Fri Oct 14 17:51:07 2016
 
 import numpy as np
 from sklearn.decomposition import PCA
-from create_features_iad import create_window, create_labels
+from createFeaturesIAD import create_window, create_labels
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import preprocessing
 import pickle
