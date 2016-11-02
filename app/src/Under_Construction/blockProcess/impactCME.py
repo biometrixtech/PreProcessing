@@ -12,21 +12,32 @@ from phaseID import phase_id
 def imp_start_time(imp_time): 
     
     """
+    Determine the beginning of each impact.
     
+    Args:
+        imp_time: right'left foot phase
+        
+    Returns:
+        s: a list containing the first instance of impact for right/left foot
     
     """
     
-    s = [] #initializing a list
-    count = 0 #initializing a count variable
+    s = []  # initializing a list
+    count = 0  # initializing a count variable
     for i in range(len(imp_time)):
-        if imp_time[i] == phase_id.IMPACT.value:# or imp_time[i] == phase_id.rf_imp.value: #checking if an impact phase exists (4 for left foot; 5 for right foot)
+        if imp_time[i] == phase_id.lf_imp.value \
+        or imp_time[i] == phase_id.rf_imp.value:  # checking if an impact 
+        # phase exists (4 for left foot; 5 for right foot)
             if count < 1:
-                s.append(i) #appending the first instant of an impact phase to a list
+                s.append(i)  # appending the first instance of an impact phase 
                 count = count + 1
-        elif imp_time[i] == phase_id.GROUND.value or imp_time[i] == phase_id.IN_AIR.value:# or imp_time[i] == phase_id.rf_ground.value or imp_time[i] == phase_id.rflf_offground.value:
+        elif imp_time[i] == phase_id.rflf_ground.value \
+        or imp_time[i] == phase_id.lf_ground.value \
+        or imp_time[i] == phase_id.rf_ground.value \
+        or imp_time[i] == phase_id.rflf_offground.value:
             count = 0
                         
-    return s #returning the list that contains the first instant of the impact phases
+    return s 
     
     
 def sync_time(imp_rf, imp_lf, sampl_rate): 
