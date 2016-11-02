@@ -9,7 +9,6 @@ import numpy as np
 from sklearn.decomposition import PCA
 from createFeaturesIAD import create_window, create_labels
 from sklearn.ensemble import RandomForestClassifier
-from sklearn import preprocessing
 import pickle
 import pandas as pd
 
