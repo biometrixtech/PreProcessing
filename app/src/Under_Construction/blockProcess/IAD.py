@@ -13,53 +13,94 @@ from sklearn import preprocessing
 import pickle
 import pandas as pd
 
-#FUNCTION TO SEPARATE THE DATA
 
 def splitLfHipRf(d, training):
     
-#    hz = d.ms_elapsed
-#    lfoot = np.hstack([d.LaX, d.LaY, d.LaZ, d.LeX, d.LeY, d.LeZ])
-#    hipp = np.hstack([d.HaX, d.HaY, d.HaZ, d.HeX, d.HeY, d.HeZ])
-#    rfoot = np.hstack([d.RaX, d.RaY, d.RaZ, d.ReX, d.ReY, d.ReZ])
-#    labels = np.array(d['ActivityID'].copy())
-
-    hz = np.array(d['epoch_time'].copy())
-    lfoot = np.array(d[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']].copy())
-    hipp = np.array(d[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']].copy())
-    rfoot = np.array(d[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']].copy())
-#    labels = np.array(d['ActivityID'].copy())
+    """
+    Separate left foot, right foot and hip data to respective variables.
     
+    Args:
+        d: entire dataset
+        training: True/False, if we are training the IAD model or not
+        
+    Returns:
+        hz: sampling rate
+        lfoot: all left foot data
+        hipp: all hip data
+        rfoot: all right foot data
+        if Training == True:
+            labels: activity ID labels, 1 for activity & 0 for non-activity
+        
+    """
+        
     if training == False:
+        hz = np.array(d['epoch_time'].copy())
+        lfoot = np.array(d[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']].copy())
+        hipp = np.array(d[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']].copy())
+        rfoot = np.array(d[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']].copy())
+        
         return hz, lfoot, hipp, rfoot
     else:
+        hz = np.array(d['epoch_time'].copy())
+        lfoot = np.array(d[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']].copy())
+        hipp = np.array(d[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']].copy())
+        rfoot = np.array(d[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']].copy())
+        labels = np.array(d['ActivityID'].copy())
+        
         return hz, lfoot, hipp, rfoot, labels
     
 #FUNCTION TO CREATE SIGNALS 
     
 def createSignals(sensorData):
     
-    pca = PCA(n_components = 1) #defining the PCA function
+    """
+    Create signals from which features will be extracted.
     
-    #Acceleration Signals
-    sig = sensorData[:,0:3] #copying AccX, AccY, AccZ
-    sig = np.hstack((sig, np.array(sensorData[:,0]**2 + sensorData[:,1]**2 + sensorData[:,2]**2).reshape(len(sensorData),1))) #Acceleration magnitude
-    sig = np.hstack((sig, np.array(pca.fit_transform(sensorData[:,0:3])).reshape(len(sensorData),1))) #First principal component of AccX, AccY, AccZ
+    Args:
+        sensorData: all left foot/hip/right foot data
+        
+    Returns:
+        sig: acceleration and euler signals
     
-    #Euler Signals
-    sig = np.hstack((sig, np.array(sensorData[:,4]).reshape(len(sensorData),1))) #copying EulerX, EulerY, EulerZ
-    sig = np.hstack((sig, np.array(sensorData[:,3]**2 + sensorData[:,4]**2 + sensorData[:,5]**2).reshape(len(sensorData),1))) #Euler angles magnitude
-    sig = np.hstack((sig, np.array(pca.fit_transform(sensorData[:,3:6])).reshape(len(sensorData),1))) #First principal component of EulerX, EulerY, EulerZ
-    sig = np.hstack((sig, np.array(pca.fit_transform(sensorData[:,4:6])).reshape(len(sensorData),1))) #First principal component of EulerY, EulerZ
+    """
+    
+    pca = PCA(n_components = 1)  # defining the PCA function
+    
+    # Acceleration Signals
+    sig = sensorData[:,0:3]  # copying aX, aY, aZ
+    sig = np.hstack((sig, np.array(sensorData[:,0]**2 + sensorData[:,1]**2 
+    + sensorData[:,2]**2).reshape(len(sensorData),1)))  # Acceleration 
+    # magnitude
+    sig = np.hstack((sig, np.array(
+    pca.fit_transform(sensorData[:,0:3])).reshape(len(sensorData),1))) 
+    # First principal component of aX, aY, aZ
+    
+    # Euler Signals
+    sig = np.hstack((sig, np.array(
+    sensorData[:,4]).reshape(len(sensorData),1)))  # copying eX, eY, eZ
+    sig = np.hstack((sig, np.array(sensorData[:,3]**2 + sensorData[:,4]**2 
+    + sensorData[:,5]**2).reshape(len(sensorData),1))) 
+    # Euler angles magnitude
+    sig = np.hstack((sig, np.array(pca.fit_transform(
+    sensorData[:,3:6])).reshape(len(sensorData),1)))  # First principal 
+    # component of eX, eY, eZ
+    sig = np.hstack((sig, np.array(
+    pca.fit_transform(sensorData[:,4:6])).reshape(len(sensorData),1))) 
+    # First principal component of EulerY, EulerZ
         
     return sig
     
+    
 def preprocess_iad(data, training = False):
     
-    # CONVERT DATA TO PANDAS
+    """
+    
+    
+    """
+    
+    # Convert data to pandas dataframe
     df = pd.DataFrame(data.epoch_time)
     df.columns = ['epoch_time']
-#    print data.epoch_time
-#    df['epoch_time'] = data.epoch_time
     df['LaX'] = data.LaX
     df['LaY'] = data.LaY
     df['LaZ'] = data.LaZ
@@ -81,24 +122,18 @@ def preprocess_iad(data, training = False):
     df['ReY'] = data.ReY
     df['ReZ'] = data.ReZ
     
-    # SPLITTING THE SAMPLING RATE, HIP DATA, LEFT FOOT DATA AND RIGHT FOOT DATA
-#    df = pd.DataFrame(data)
+    # split the sampling rate, hip data, left foot data and right foot data
     hz, lfoot, hipp, rfoot = splitLfHipRf(df, training)
-#    print 'done with splitting the data'
     
-    # CREATING SIGNALS TO EXTRACT FEATURES (EXTRACTING 9 SIGNALS FROM EACH SENSOR)
-
-    lfsig = createSignals(lfoot) #creating the left foot signals
-#    print 'done with creating the left foot signals'
-#    print lfsig
-    hipsig = createSignals(hipp) #creating the hip signals
-    rfsig = createSignals(rfoot) #creating the right foot signals
+    # create signals to extract features
+    lfsig = createSignals(lfoot)  # left foot signals
+    hipsig = createSignals(hipp)  # hip signals
+    rfsig = createSignals(rfoot)  # right foot signals
     
-    # DEFINING THE PARAMETERS
-
-    #Parameters for the sampling window
-    Fs = 250 #sampling frequency
-    WindowTime = 5 #number of seconds to determine length of the sliding window
+    # define parameters
+    # Parameters for the sampling window
+    Fs = 250  # sampling frequency
+    WindowTime = 5  # number of seconds to determine length of the sliding window
     windowSamples = int(Fs*WindowTime) #sliding window length
     nsecjump = 0.2 #number of seconds for the sliding window to jump
     overlapSamples = int(Fs*nsecjump)

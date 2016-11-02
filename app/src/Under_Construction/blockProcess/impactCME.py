@@ -51,7 +51,7 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
         sampl_rate: sampling rate
         
     Returns:
-        out_time: 2D list of right and left feet land time
+        diff: time difference between right and left feet impacts
         
     """
         
@@ -62,12 +62,6 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
 
     # initialize variables
     diff = []  # initializing a list to store the difference in impact times
-    rf_time = []  # refined starting time of the impact phase for the 
-                  # right foot
-    lf_time = []  # refined starting time of the impact phase for the 
-                  # left foot
-    out_time = []  # 2D list to store right and left feet landing tims
-
 
     # determine false impacts
     for i in range(len(rf_start)):
@@ -76,20 +70,20 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
             # for false impact phases
                 if lf_start[j] > rf_start[i]:  # check if left foot 
                 # impacts first
-                    diff.append((lf_start[j] - rf_start[i])/float(sampl_rate)) 
-                    # appending the difference of the time of impact between the 
+                    diff.append(-(lf_start[j] - rf_start[i])\
+                    /float(sampl_rate)*1000) 
+                    # appending the difference of time of impact between  
                     # left and right feet, dividing by the sampling rate to 
-                    # convert the time difference to seconds
-                    rf_time.append(rf_start[i])  # refined starting time of the 
-                    # impact phase for the right foot (not in seconds)
-                    lf_time.append(lf_start[j])  # refined starting time of the 
-                    # impact phase for the left foot (not in seconds)
-    
-    # concatenating right and left landing times in a 2D list
-    for j,k in zip(rf_time, lf_time):
-            out_time.append([j,k])
-            
-    return np.array(out_time) 
+                    # convert the time difference to milli seconds
+                elif lf_start[j] < rf_start[j]:  # check if right foot
+                # impacts first
+                    diff.append((rf_start[j] - lf_start[i])\
+                    /float(sampl_rate)*1000) 
+                elif lf_start[j] == rf_start[j]:  # check impact time of 
+                # right foot equals left foot
+                    diff.append(0.0)
+                
+    return np.array(diff).reshape(-1,1)
     
     
 def landing_pattern(rf_euly, lf_euly, land_time): 
