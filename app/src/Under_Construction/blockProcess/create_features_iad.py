@@ -14,7 +14,7 @@ Created on Tue Oct  4 14:03:32 2016
 
 import numpy as np
 from itertools import *
-from findPeaks import detect_peaks
+from find_peaks import detect_peaks
 from scipy.signal import periodogram
 
 # FUNCTION THAT WILL CREATE FEATURES FOR EACH SAMPLING WINDOW
