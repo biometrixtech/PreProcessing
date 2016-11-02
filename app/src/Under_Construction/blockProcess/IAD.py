@@ -101,7 +101,7 @@ def preprocess_iad(data, training = False):
     
     Args: 
         data: sensor data
-        training: True/False, training the IAD system or just predicting
+        training: True/False, train the IAD system or just predicting
         
     Returns:
         combined_feature_matrix: features obtained from the different signals
@@ -133,7 +133,7 @@ def preprocess_iad(data, training = False):
     df['ReY'] = data.ReY
     df['ReZ'] = data.ReZ
     
-    # split the sampling rate, hip data, left foot data and right foot data
+    # split sampling rate, hip data, left foot data and right foot data
     if training == False:
         hz, lfoot, hipp, rfoot = _split_lf_hip_rf(df, training)
     else:
@@ -170,7 +170,7 @@ def preprocess_iad(data, training = False):
     # Parameters for labelling each window
     label_thresh = 0.5  # x% of window 
     
-    # determining the features and labels for each window
+    # determine the features and labels for each window
     lf_feature_matrix = create_window(lfsig, fs, window_samples, 
                                       overlap_samples, prom_mpd, prom_mph, 
                                       prom_peak_thresh, weak_mpd, weak_mph, 
