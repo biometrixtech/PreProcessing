@@ -74,14 +74,16 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
         for j in range(len(lf_start)):
             if abs(lf_start[j] - rf_start[i]) <= 0.3*sampl_rate:  # checking 
             # for false impact phases
-                diff.append((lf_start[j] - rf_start[i])/float(sampl_rate)) 
-                # appending the difference of the time of impact between the 
-                # left and right feet, dividing by the sampling rate to 
-                # convert the time difference to seconds
-                rf_time.append(rf_start[i])  # refined starting time of the 
-                # impact phase for the right foot (not in seconds)
-                lf_time.append(lf_start[j])  # refined starting time of the 
-                # impact phase for the left foot (not in seconds)
+                if lf_start[j] > rf_start[i]:  # check if left foot 
+                # impacts first
+                    diff.append((lf_start[j] - rf_start[i])/float(sampl_rate)) 
+                    # appending the difference of the time of impact between the 
+                    # left and right feet, dividing by the sampling rate to 
+                    # convert the time difference to seconds
+                    rf_time.append(rf_start[i])  # refined starting time of the 
+                    # impact phase for the right foot (not in seconds)
+                    lf_time.append(lf_start[j])  # refined starting time of the 
+                    # impact phase for the left foot (not in seconds)
     
     # concatenating right and left landing times in a 2D list
     for j,k in zip(rf_time, lf_time):
