@@ -8,34 +8,13 @@ Created on Wed Jun 22 12:11:52 2016
 import numpy as np
 from phaseID import phase_id
 
-"""
-#############################################INPUT/OUTPUT####################################################
-Function: sync_time
-Inputs: phase data for the right and left foot; sampling rate
-Outputs: an array containing the right foot impact time, left foot impact time, right foot normalized score and
-         left foot normalized score respectively
-         
-Function: landing_pattern
-Inputs: EulerY of the right and left feet; first instant (time point) of the impact phases of the right foot;
-        first instant (time point) of the impact phases of the left foot;
-Outputs: an array containing the right foot impact time, left foot impact time, right foot normalized score and
-         left foot normalized score for the Euler angles respectively
-#############################################################################################################
-"""
 
-def cont_norm_score(mag, cme):
-    ua = cme[0]
-    ue = cme[1]
-    dev = abs(mag)
-#    print mag, ua, ue
-    if 0 < dev <= ua:
-        return 1
-    elif ua < dev < ue:
-        return 1 - ((dev-ua)/(ue-ua))
-    elif dev >= ue:
-        return 0
-
-def imp_start_time(imp_time): #passing the impact phase data (its an array of 0's and 1's)
+def imp_start_time(imp_time): 
+    
+    """
+    
+    
+    """
     
     s = [] #initializing a list
     count = 0 #initializing a count variable
@@ -49,55 +28,81 @@ def imp_start_time(imp_time): #passing the impact phase data (its an array of 0'
                         
     return s #returning the list that contains the first instant of the impact phases
     
-def sync_time(imp_rf, imp_lf, sampl_rate, cme_landtime): #passing the time intervals of the imapct phases of the right and left feet, and the sampling rate
     
-    rf_start = imp_start_time(imp_rf) #obtaining the first instant of the impact phases of the right foot
-    lf_start = imp_start_time(imp_lf) #obtaining the first instant of the impact phases of the left foot
+def sync_time(imp_rf, imp_lf, sampl_rate): 
 
-    diff = [] #initializing a list to store the difference in impact times
-    rf_time = [] #refined starting time of the impact phase for the right foot
-    lf_time = [] #refined starting time of the impact phase for the left foot
+    """  
+    Determine the land time on impact for right and left feet.
+    
+    Args:
+        imp_rf: right foot phase
+        imp_lf: left foot phase
+        sampl_rate: sampling rate
+        
+    Returns:
+        out_time: 2D list of right and left feet land time
+        
+    """
+        
+    rf_start = imp_start_time(imp_rf)  # obtaining the first instant of the 
+                                        # impact phases of the right foot
+    lf_start = imp_start_time(imp_lf)  # obtaining the first instant of the 
+                                        # impact phases of the left foot
 
+    # initialize variables
+    diff = []  # initializing a list to store the difference in impact times
+    rf_time = []  # refined starting time of the impact phase for the 
+                  # right foot
+    lf_time = []  # refined starting time of the impact phase for the 
+                  # left foot
+    out_time = []  # 2D list to store right and left feet landing tims
+
+
+    # determine false impacts
     for i in range(len(rf_start)):
         for j in range(len(lf_start)):
-            if abs(lf_start[j] - rf_start[i]) <= 0.3*sampl_rate: #checking for false impact phases
-                diff.append((lf_start[j] - rf_start[i])/float(sampl_rate)) #appending the difference of the time of impact between the left and right feet, dividing by the sampling rate to convert the time difference to seconds
-                rf_time.append(rf_start[i]) #refined starting time of the impact phase for the right foot (not in seconds)
-                lf_time.append(lf_start[j]) #refined starting time of the impact phase for the left foot (not in seconds)
-        
-    #NORMALIZING THE TIME DIFFERENCE IN IMPACT
-    out_time = []
-    nr = nl = 0
+            if abs(lf_start[j] - rf_start[i]) <= 0.3*sampl_rate:  # checking 
+            # for false impact phases
+                diff.append((lf_start[j] - rf_start[i])/float(sampl_rate)) 
+                # appending the difference of the time of impact between the 
+                # left and right feet, dividing by the sampling rate to 
+                # convert the time difference to seconds
+                rf_time.append(rf_start[i])  # refined starting time of the 
+                # impact phase for the right foot (not in seconds)
+                lf_time.append(lf_start[j])  # refined starting time of the 
+                # impact phase for the left foot (not in seconds)
     
-    for i,j,k in zip(diff, rf_time, lf_time):
-        if i < 0:
-            nl = 1
-            nr = cont_norm_score(abs(i), cme_landtime)
-            out_time.append([j,k,nr,nl])
-        elif i > 0:
-            nl = cont_norm_score(abs(i), cme_landtime)
-            nr = 1
-            out_time.append([j,k,nr,nl])
-        elif i == 0:
-            nl = 1
-            nr = 1
-            out_time.append([j,k,nr,nl])
+    # concatenating right and left landing times in a 2D list
+    for j,k in zip(rf_time, lf_time):
+            out_time.append([j,k])
             
     return np.array(out_time) 
     
-def landing_pattern(rf_euly, lf_euly, rft, lft, cme_landpattern): # passing the EulerY data of the right and left feet, and the refined first instances of impact phases of the right and left feet
+    
+def landing_pattern(rf_euly, lf_euly, land_time): 
+    
+    """
+    Determine the pitch angle of the right and left feet on impact.
+    
+    Args:
+        rf_euly: right foot pitch angles
+        lf_euly: left foot pitch angles
+        land_time: right and left landing times on impact
+        
+    Returns:
+        out_pattern: 2D list, right and left feet pitch angles on impact
+    
+    """
         
     out_pattern = []
-    nr = nl = 0
     
-    for i, j in zip(rft, lft):
-#        print rf_euly[int(i)]
-        nr = cont_norm_score(np.rad2deg(rf_euly[int(i)]), cme_landpattern)
-#        print nr
-        nl = cont_norm_score(np.rad2deg(lf_euly[int(j)]), cme_landpattern)
-        out_pattern.append([i, j, nr, nl])
+    for i in land_time:
+        out_pattern.append([np.rad2deg(rf_euly[int(land_time[i,0])]), 
+                            np.rad2deg(lf_euly[int(land_time[i,1])])])
+                            # right and left feet pitch angles on impact
     
-    return np.array(out_pattern) #returning the differences between the EulerY angles
+    return np.array(out_pattern) 
+    
     
 def continuous_values(land_pattern, land_time, n):
     
@@ -138,6 +143,7 @@ if __name__ == '__main__':
     
     import pandas as pd
     import matplotlib.pyplot as plt
+    import sys
     #from impact_phase import impact_phase
     from phaseDetection import combine_phase
     
@@ -195,15 +201,19 @@ if __name__ == '__main__':
     #output_lf = impact_phase(ldata, sampl_rate)
     #output_rf = impact_phase(rdata, sampl_rate)
     
-    cme_dict_imp = {'landtime':[0.2, 0.25], 'landpattern':[12, 50]}
+#    cme_dict_imp = {'landtime':[0.2, 0.25], 'landpattern':[12, 50]}
     
-    output = sync_time(rf_phase, lf_phase, sampl_rate, cme_dict_imp['landtime'])
-    pdiff = landing_pattern(data['ReY'], data['LeY'], output[:,0], output[:,1], cme_dict_imp['landpattern'])
+    output = sync_time(rf_phase, lf_phase, sampl_rate)
+    if len(output) != 0:
+        pdiff = landing_pattern(data['ReY'], data['LeY'], output)
+    else:
+        print 'No impacts detected. Cannot determine land time and land pattern'
+        sys.exit()
     
     print output, 'sync_time'
     print pdiff, 'landing_pattern'
     
-    ltime, lpattern = continuous_values(pdiff, output)
+    ltime, lpattern = continuous_values(pdiff, output, len(data))
     
 #    rf_quick_pattern = []
 #    rf_quick_time = []
