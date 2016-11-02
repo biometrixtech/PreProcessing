@@ -8,61 +8,7 @@ import numpy as np
 
 import quatOps as qo
 import quatConvs as qc
-
-"""
-#############################################INPUT/OUTPUT####################################################   
-Inputs: continuous orientation data, body phase detection, list of states for evaluation, neutral position for
-axis, list of thresholds
-
-Outputs: array [time stamp, normalization score, indic of positive or negative, angle difference from neutral]
-
-Datasets: inputs.csv (contains both peak and trough values) -> cont_rot_CME(inputs['EulerX'], inputs['Phase'],
-[0,1], neutral_eul[0], cme_dict['prosupl']) -> outputs.csv
-#############################################################################################################
-"""
-
-
-def cont_norm_score(mag, quat, cme):
-    
-    """
-    Calculates score comparing body part angle to idealized angle.
-    
-    Args:
-        mag: angle of body part
-        quat: idealized angle of "neutral" for comparison
-        cme: appropriate dictionary
-        
-    Returns:
-        score: normalized score of difference
-        dev: difference between actual position and "neutral" position
-    
-    """
-    
-    # set limits from dictionary
-    _la = cme[0] # lower allowable
-    _le = cme[1] # lower extreme
-    _ua = cme[2] # upper allowable
-    _ue = cme[3] # upper extreme
-    
-    # find deviation of actual from "neutral" position
-    dev = quat-mag
-
-    # score deviation based on limits
-    if 0 < dev <= _ua:
-        score = 1
-    elif _ua < dev < _ue:
-        score = 1 - ((dev-_ua)/(_ue-_ua))
-    elif dev >= _ue:
-        score = 0
-    elif _la <= dev <= 0:
-        score = 1
-    elif _le < dev < _la:
-        score = 1 - ((dev-_la)/(_le-_la))
-    elif dev <= _le:
-        score = 0
-        
-    return score, dev
-    
+   
     
 def cont_rot_CME(data, state, states, neutral, cme):
     
@@ -80,7 +26,6 @@ def cont_rot_CME(data, state, states, neutral, cme):
         comparison: array comparing body position to neutral, consisting of
             [0] sample index
             [1] difference of body position from neutral
-            [2] normalized score of difference
     
     """
     
@@ -92,15 +37,15 @@ def cont_rot_CME(data, state, states, neutral, cme):
         if state[i] in states:
             
             # convert body position and neutral position to degrees
-            _body_ang = (180/np.pi)*data[i]
-            _neutral_ang = (180/np.pi)*neutral[i]
+            body_ang = (180/np.pi)*data[i]
+            neutral_ang = (180/np.pi)*neutral[i]
             
             # calculate rotation from neutral
-            norm_score, raw = cont_norm_score(_body_ang, _neutral_ang, cme)
-            comparison.append([i, raw, norm_score])
+            raw = body_ang - neutral_ang
+            comparison.append([i, raw])
             
         else:
-            comparison.append([i, np.nan, np.nan])
+            comparison.append([i, np.nan])
             
     return np.array(comparison)
     
