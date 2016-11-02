@@ -270,11 +270,11 @@ class AnalyticsExecution(object):
         print 'DONE WITH COORDINATE FRAME TRANSFORMATION!'
        
         # define sampling rate
-        HZ = 250       
+        hz = 250       
        
         # PHASE DETECTION
         self.data.phase_l, self.data.phase_r = phase.combine_phase(
-                                            self.data.LaZ, self.data.RaZ, HZ)
+                                            self.data.LaZ, self.data.RaZ, hz)
 
         print 'DONE WITH PHASE DETECTION!'
         
@@ -404,17 +404,17 @@ class AnalyticsExecution(object):
         self.data.lat,self.data.vert,self.data.horz,self.data.rot,\
             self.data.lat_binary,self.data.vert_binary,self.data.horz_binary,\
             self.data.rot_binary,self.data.stationary_binary,\
-            self.data.total_accel = matrib.planeAnalysis(hip_acc,hip_eul,HZ)
+            self.data.total_accel = matrib.planeAnalysis(hip_acc,hip_eul,hz)
         
         # analyze stance
         self.data.standing,self.data.not_standing \
-            = matrib.standing_or_not(hip_eul,HZ)
+            = matrib.standing_or_not(hip_eul,hz)
         self.data.double_leg,self.data.single_leg,self.data.feet_eliminated \
             = matrib.double_or_single_leg(self.data.phase_l,self.data.phase_r,\
-                                          self.data.standing,HZ)
+                                          self.data.standing,hz)
         self.data.single_leg_stat,self.data.single_leg_dyn \
             = matrib.stationary_or_dynamic(self.data.phase_l,\
-                                    self.data.phase_r,self.data.single_leg,HZ)
+                                    self.data.phase_r,self.data.single_leg,hz)
 
         print 'DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!'
        
@@ -493,29 +493,25 @@ class AnalyticsExecution(object):
 
         # IMPACT CME    
         # define dictionary for msElapsed
-        cme_dict_imp = {'landtime':[0.2, 0.25], 'landpattern':[-50,12]}
         
         # landing time attributes
         self.n_landtime = impact.sync_time(self.data.phase_r,
-                                           self.data.phase_l, HZ,
-                                           cme_dict_imp['landtime'])
+                                           self.data.phase_l, hz,
+                                           len(self.data.LaX))
         
         # landing pattern attributes
         if len(self.n_landtime) != 0:
-            self.n_landpattern = impact.landing_pattern(self.data.ReY, 
-                                 self.data.LeY, self.n_landtime[:,0], 
-                                 self.n_landtime[:,1], 
-                                 cme_dict_imp['landpattern'])
+            self.n_landpattern, landtime_index = impact.landing_pattern(
+                                 self.data.ReY, 
+                                 self.data.LeY, self.n_landtime) 
             self.land_time, self.land_pattern = impact.continuous_values(
                                  self.n_landpattern, self.n_landtime,
-                                 len(self.data.LaX))
-            self.data.land_time_l = self.land_time[:,0].reshape(-1,1)
-            self.data.land_time_r = self.land_time[:,1].reshape(-1,1)
-            self.data.land_pattern_l = self.land_pattern[:,0].reshape(-1,1)
-            self.data.land_pattern_r = self.land_pattern[:,1].reshape(-1,1)
+                                 len(self.data.LaX), landtime_index)
+            self.data.land_time = self.land_time[:,0].reshape(-1,1)
+            self.data.land_pattern_r = self.land_pattern[:,0].reshape(-1,1)
+            self.data.land_pattern_l = self.land_pattern[:,1].reshape(-1,1)
         else:
-            self.data.land_time_l = np.zeros((len(self.data.LaX),1))*np.nan
-            self.data.land_time_r = np.zeros((len(self.data.LaX),1))*np.nan
+            self.data.land_time = np.zeros((len(self.data.LaX),1))*np.nan
             self.data.land_pattern_l = np.zeros((len(self.data.LaX),1))*np.nan
             self.data.land_pattern_r = np.zeros((len(self.data.LaX),1))*np.nan        
 
