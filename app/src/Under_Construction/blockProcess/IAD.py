@@ -34,16 +34,22 @@ def _split_lf_hip_rf(data, training):
         
     if training == False:
         hz = np.array(data['epoch_time'].copy())
-        lfoot = np.array(data[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']].copy())
-        hipp = np.array(data[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']].copy())
-        rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']].copy())
+        lfoot = np.array(data[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']]\
+                        .copy())
+        hipp = np.array(data[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']]\
+                        .copy())
+        rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']]\
+                        .copy())
         
         return hz, lfoot, hipp, rfoot
     else:
         hz = np.array(data['epoch_time'].copy())
-        lfoot = np.array(data[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']].copy())
-        hipp = np.array(data[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']].copy())
-        rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']].copy())
+        lfoot = np.array(data[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']]\
+                        .copy())
+        hipp = np.array(data[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']]\
+                        .copy())
+        rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']]\
+                        .copy())
         labels = np.array(data['ActivityID'].copy())
         
         return hz, lfoot, hipp, rfoot, labels
@@ -142,7 +148,7 @@ def preprocess_iad(data, training = False):
     # define parameters
     # Parameters for the sampling window
     fs = 250  # sampling frequency
-    window_time = 5  # number of seconds to determine length of the sliding window
+    window_time = 5  # number of seconds to determine length of sliding window
     window_samples = int(fs*window_time)  # sliding window length
     nsecjump = 0.2  # number of seconds for the sliding window to jump
     overlap_samples = int(fs*nsecjump)
