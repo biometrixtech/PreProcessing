@@ -6,7 +6,6 @@ Created on Fri Oct 14 13:45:56 2016
 """
 
 import numpy as np
-#import matplotlib.pyplot as plt
 import pickle
 #import sys
 import re
@@ -95,7 +94,8 @@ class AnalyticsExecution(object):
 #        path = "output\\"+_split_path1[0]
         
         # read data from path as ndarray
-        sdata = np.genfromtxt(path + ".csv", dtype=float, delimiter=',', names=True) 
+        sdata = np.genfromtxt(path + ".csv", dtype=float, delimiter=',', 
+                              names=True) 
         uuids = pd.read_csv('uuid_list.csv')
         columns = sdata.dtype.names        
         data = _dynamic_name(sdata)
