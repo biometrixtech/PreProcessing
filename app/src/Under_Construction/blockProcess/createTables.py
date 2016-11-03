@@ -64,8 +64,7 @@ def create_movement_data(N, data):
                                         ('ankle_rot_r','float'),
                                         ('land_pattern_l','float'),
                                         ('land_pattern_r','float'),
-                                        ('land_time_l','float'),
-                                        ('land_time_r','float'),
+                                        ('land_time','float'),
                                         ('single_leg_stat','int'),
                                         ('single_leg_dyn','int'),
                                         ('double_leg','int'),
@@ -165,8 +164,7 @@ def create_movement_data(N, data):
     #movement_data.foot_position_r = data. # double precision,
     movement_data.land_pattern_l = data.land_pattern_l.reshape(-1,) # double precision,
     movement_data.land_pattern_r = data.land_pattern_r.reshape(-1,) # double precision,
-    movement_data.land_time_l = data.land_time_l.reshape(-1,) # double precision,
-    movement_data.land_time_r = data.land_time_r.reshape(-1,) # double precision,
+    movement_data.land_time = data.land_time.reshape(-1,) # double precision,
     movement_data.single_leg_stat = data.single_leg_stat.reshape(-1,) #boolean
     movement_data.single_leg_dyn = data.single_leg_dyn.reshape(-1,) #boolean
     #movement_data.single_leg_alt = data. # integer,
