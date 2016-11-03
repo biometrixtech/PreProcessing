@@ -93,10 +93,10 @@ def _create_distribution(data):
     fn_aRR = _con_fun(np.array(data.ankle_rot_r/(tA*mS)))
     fn_lPL = _con_fun(np.array(data.land_pattern_l/(tA*mS)))
     fn_lPR = _con_fun(np.array(data.land_pattern_r/(tA*mS)))
-    fn_lTL = _con_fun(np.array(data.land_time_l/(tA*mS)))
-    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
+    fn_lT = _con_fun(np.array(data.land_time/(tA*mS)))
+#    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
     
-    return fn_hDL, fn_hDR, fn_hR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lTL, fn_lTR
+    return fn_hDL, fn_hDR, fn_hR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT
                     
 
 def _symmetry_score(dist_l,dist_r):
@@ -203,7 +203,7 @@ def _hip(hDL, hDR, hR, fn_hDL,fn_hDR,fn_hR):
     return hip_consistency, hip_symmetry
     
     
-def _ankle(aRL,aRR,lPL,lPR,lTL,lTR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lTL,fn_lTR):
+def _ankle(aRL,aRR,lPL,lPR,lT,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT):
     """Calculates consistency and symmetry score for each ankle features and 
     averages the score for each ankle.
     Args:
@@ -211,9 +211,8 @@ def _ankle(aRL,aRR,lPL,lPR,lTL,lTR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lTL,fn_lTR):
         aRR : ankle_rot_r
         lPL : land_pattern_l
         lPR : land_pattern_r
-        lTL : land_time_l
-        lTR : land_time_r
-        fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lTL,fn_lTR : mapping functions
+        lTL : land_time
+        fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT : mapping functions
     Returns:
         l_consistency: consistency averaged over left ankle features
         r_consistency: consistency averaged over right ankle features
@@ -227,17 +226,17 @@ def _ankle(aRL,aRR,lPL,lPR,lTL,lTR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lTL,fn_lTR):
     score_lPL = fn_lPL(lPL)
     score_lPR = fn_lPR(lPR)
     
-    score_lTL = fn_lTL(lTL)
-    score_lTR = fn_lTR(lTR)
+    score_lT = fn_lT(lT)
+#    score_lTR = fn_lTR(lTR)
     
     #Combine scores for left ankle
-    cons_scores_l = np.vstack([score_aRL,score_lPL,score_lTL])
+    cons_scores_l = np.vstack([score_aRL,score_lPL])
     #interpolation function is set to extrapolate which might result in negative scores.
     cons_scores_l[cons_scores_l>100]=100 #set scores higher than 100(should not happen) to 100
     cons_scores_l[cons_scores_l<=0]=0 #set negative scores to 0
     
     #Combine score for right ankle
-    cons_scores_r = np.vstack([score_aRR,score_lPR,score_lTR])
+    cons_scores_r = np.vstack([score_aRR,score_lPR])
     cons_scores_r[cons_scores_r>100]=100
     cons_scores_r[cons_scores_r<=0]=0
     
@@ -245,6 +244,8 @@ def _ankle(aRL,aRR,lPL,lPR,lTL,lTR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lTL,fn_lTR):
     #ignore those features when averaging
     l_consistency = np.nanmean(cons_scores_l,0)    
     r_consistency = np.nanmean(cons_scores_r,0)
+    ankle_cons_scores = np.vstack([cons_scores_l, cons_scores_r, score_lT])
+    ankle_consistency = np.nanmean(ankle_cons_scores, 0)
 
     #Calculate symmetry scores for ankle features
     #If all the rows for either left or right features are blank or we have at
@@ -271,23 +272,29 @@ def _ankle(aRL,aRR,lPL,lPR,lTL,lTR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lTL,fn_lTR):
         score_pat_r = [r_dict_pat.get(k, np.nan) for k in lPR]
         scores_pat = np.vstack([score_pat_l, score_pat_r])
         ankle_pat_score = np.nanmean(scores_pat,0)
+
+    #subset landing time data to create two distributions to compare
+    lTL = np.abs(lT[lT<=0]) #change negative values to positive so both dist are in same range
+    lTR = lT[lT>=0]
  
-    if (all(np.isnan(lTL)) or all(np.isnan(lTR))):
-        ankle_tim_score = np.zeros(len(lTL))*np.nan
+    if (all(np.isnan(lT))):
+        ankle_tim_score = np.zeros(len(lT))*np.nan
     elif ((len(lTL[np.isfinite(lTL)])<=2) or (len(lTR[np.isfinite(lTR)])<=2)):
-        ankle_tim_score = np.zeros(len(lTL))*np.nan
+        print "not enough pos or neg"
+        ankle_tim_score = np.zeros(len(lT))*np.nan
     else:         
         l_dict_tim, r_dict_tim = _symmetry_score(lTL, lTR)
-        score_tim_l = [l_dict_tim.get(k, np.nan) for k in lTL]
-        score_tim_r = [r_dict_tim.get(k, np.nan) for k in lTR]
+        score_tim_l = [l_dict_tim.get(k, np.nan) for k in -lT]
+        score_tim_r = [r_dict_tim.get(k, np.nan) for k in lT]
         scores_tim = np.vstack([score_tim_l, score_tim_r])
         ankle_tim_score = np.nanmean(scores_tim,0)
                             
+    print ankle_rot_score.shape, "\n", ankle_pat_score.shape, "\n", ankle_tim_score.shape
     ankle_scores = np.vstack([ankle_rot_score,ankle_pat_score,
                               ankle_tim_score])
     ankle_symmetry = np.nanmean(ankle_scores,0)
     
-    return l_consistency, r_consistency, ankle_symmetry
+    return l_consistency, r_consistency, ankle_consistency, ankle_symmetry
 
 
 def score(data,userDB):
@@ -326,23 +333,23 @@ def score(data,userDB):
     aRR = np.array(data.ankle_rot_r).reshape(-1,)/(mS*tA)
     lPL = np.array(data.land_pattern_l).reshape(-1,)/(mS*tA)
     lPR = np.array(data.land_pattern_r).reshape(-1,)/(mS*tA)
-    lTL = np.array(data.land_time_l).reshape(-1,)/(mS*tA)
-    lTR = np.array(data.land_time_r).reshape(-1,)/(mS*tA)
+    lT = np.array(data.land_time).reshape(-1,)/(mS*tA)
+#    lTR = np.array(data.land_time_r).reshape(-1,)/(mS*tA)
     
     control = np.array(data.control).reshape(-1,)
     
     #Create mapping functions for consistency using historical user data
-    fn_hDL,fn_hDR,fn_hR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lTL,fn_lTR = _create_distribution(userDB)
+    fn_hDL,fn_hDR,fn_hR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,\
+                                    fn_lT = _create_distribution(userDB)
     
-    l_consistency, r_consistency, ankle_symmetry = _ankle(aRL,aRR,lPL, lPR, lTL,
-                                                          lTR,fn_aRL,fn_aRR,
-                                                          fn_lPL,fn_lPR,fn_lTL,
-                                                          fn_lTR)
+    l_consistency, r_consistency, ankle_consistency, ankle_symmetry =\
+                                                   _ankle(aRL,aRR,lPL, lPR, lT,
+                                                          fn_aRL,fn_aRR,fn_lPL,
+                                                          fn_lPR,fn_lT)
+                                                          
     hip_consistency, hip_symmetry = _hip(hDL, hDR, hR, fn_hDL,fn_hDR,fn_hR)
 
-    #Aggregate Ankle scores
-    ankle_scores = np.vstack([l_consistency, r_consistency])
-    ankle_consistency = np.nanmean(ankle_scores,0)
+    #Aggregate consistency scores
     overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
     consistency = np.nanmean(overall_consistency_scores,0)
     
@@ -368,7 +375,7 @@ def score(data,userDB):
     hip_symmetry = hip_symmetry*mS
     ankle_symmetry = ankle_symmetry*mS
     
-    #Block/Session duration
+#    Block/Session duration
     ms_elapsed = np.array(data.ms_elapsed)
     session_type = np.array(data.session_type)
     duration = np.cumsum(ms_elapsed)/np.sum(ms_elapsed)
@@ -390,7 +397,15 @@ def score(data,userDB):
         block_mech_stress_elapsed = np.zeros(len(duration))*np.nan
         session_mech_stress_elapsed = mech_stress_elapsed
     
-    return consistency.reshape(-1,1), hip_consistency.reshape(-1,1), ankle_consistency.reshape(-1,1), l_consistency.reshape(-1,1), r_consistency.reshape(-1,1), symmetry.reshape(-1,1), hip_symmetry.reshape(-1,1), ankle_symmetry.reshape(-1,1), destr_multiplier.reshape(-1,1), dest_mech_stress.reshape(-1,1), const_mech_stress.reshape(-1,1), block_duration.reshape(-1,1), session_duration.reshape(-1,1), block_mech_stress_elapsed.reshape(-1,1), session_mech_stress_elapsed.reshape(-1,1)
+    return consistency.reshape(-1,1), hip_consistency.reshape(-1,1),\
+        ankle_consistency.reshape(-1,1), l_consistency.reshape(-1,1),\
+        r_consistency.reshape(-1,1), symmetry.reshape(-1,1),\
+        hip_symmetry.reshape(-1,1), ankle_symmetry.reshape(-1,1),\
+        destr_multiplier.reshape(-1,1), dest_mech_stress.reshape(-1,1),\
+        const_mech_stress.reshape(-1,1), block_duration.reshape(-1,1),\
+        session_duration.reshape(-1,1),\
+        block_mech_stress_elapsed.reshape(-1,1),\
+        session_mech_stress_elapsed.reshape(-1,1)
 
     
 if __name__ == '__main__':
@@ -398,11 +413,13 @@ if __name__ == '__main__':
     import pandas as pd
     import numpy as np
     import time
-    path = 'C:\\Users\\dipesh\\Desktop\\biometrix\\indworkout\\'
-    data= np.genfromtxt(path+ "Subject3_LESS_Transformed_Data.csv",delimiter = ",", dtype =float, names = True)
+    path = 'C:\\Users\\dipesh\\Desktop\\biometrix\\DATA\\indworkout\\'
+    data= np.genfromtxt(path+ "Subject3_LESS_Transformed_Data.csv",
+                        delimiter = ",", dtype =float, names = True)
     
     
-    ms_ta = np.genfromtxt(path+ "ms_ta.csv",delimiter = ",", dtype =float, names = True)
+    ms_ta = np.genfromtxt(path+ "ms_ta.csv",delimiter = ",", 
+                          dtype =float, names = True)
     data1 = pd.DataFrame()                 
 #    data1['msElapsed'] = np.zeros(len(data))+4
     data1['epochTime'] = data['Timestamp']
@@ -415,19 +432,19 @@ if __name__ == '__main__':
 #    data1['foot_position_r'] = data['ankleRotR'] 
     data1['land_pattern_l'] = np.zeros(len(data))*np.nan
     data1['land_pattern_r'] = np.zeros(len(data))*np.nan
-    data1['land_time_l'] = np.zeros(len(data))*np.nan
-    data1['land_time_r'] = np.zeros(len(data))*np.nan
+    data1['land_time'] = np.zeros(len(data))*np.nan
+#    data1['land_time_r'] = np.zeros(len(data))*np.nan
     data1['control'] = data['control']
     data1['mech_stress'] = ms_ta['mechStress'][range(len(data))]
     data1['total_accel'] = ms_ta['totalAccel'][range(len(data))]
     
-    userDB = pd.DataFrame(data)
+    userDB = pd.DataFrame(data1)
     userDB['mech_stress'] = ms_ta['mechStress'][range(len(data))]
     userDB['total_accel'] = ms_ta['totalAccel'][range(len(data))]
     userDB['land_pattern_l'] = np.random.rand(len(data))
     userDB['land_pattern_r'] = np.random.rand(len(data))
-    userDB['land_time_l'] = np.random.rand(len(data))
-    userDB['land_time_r'] = np.random.rand(len(data))
+    userDB['land_time'] = np.random.uniform(-.1,.1,len(data))
+#    userDB['land_time_r'] = np.random.rand(len(data))
     
     userDB.to_csv(path+"subject3_DblSquat_hist.csv")
     
@@ -449,7 +466,15 @@ if __name__ == '__main__':
 #    userDB['land_pattern_l'] = data['ankleRotL']
     
     s= time.time()
-    consistency, hip_consistency, ankle_consistency, l_consistency, r_consistency, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier, dest_mech_stress, const_mech_stress, block_duration, session_duration, block_mech_stress_elapsed, session_mech_stress_elapsed = score(data1, userDB)
+    consistency, hip_consistency, ankle_consistency, l_consistency,\
+    r_consistency, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
+    dest_mech_stress, const_mech_stress, block_duration, session_duration,\
+    block_mech_stress_elapsed, session_mech_stress_elapsed = score(data1, 
+                                                                   userDB)
+                                                            
+#    consistency, hip_consistency, ankle_consistency, l_consistency,\
+#    r_consistency, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
+#    dest_mech_stress = score(data1,userDB)                                                        
     e = time.time()
     elap = e-s
     print elap
