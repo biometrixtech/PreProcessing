@@ -88,12 +88,12 @@ class TrainingExecution(object): #Abstract setUp class
             host='ec2-52-36-42-125.us-west-2.compute.amazonaws.com' 
             password='063084cb3b65802dbe01030756e1edf1f2d985ba'""")
         except:
-            print 'I am unable to connect to the databse'
+            self.result = 'Fail! Unable to connect to database'
             sys.exit()
         
         cur = conn.cursor()
         
-        #Query to read user_id and exercise_idlinked to the given data_filename
+        #Query to read user_id and exercise_id linked to the given data_filename
         quer_read_ids = """select user_id, exercise_id from training_events
                     where sensor_data_filename = (%s);"""
                     
@@ -102,7 +102,7 @@ class TrainingExecution(object): #Abstract setUp class
                     lf_n_transform, lf_bf_transform,
                     rf_n_transform, lf_bf_transform from
                     session_anatomical_calibration_events where
-                    training_event_id = (select id 
+                    id = (select session_anatomical_calibration_event_id
                     from training_events where sensor_data_filename = (%s));"""
     
         quer_success = """update training_events set
@@ -249,8 +249,9 @@ class TrainingExecution(object): #Abstract setUp class
         # if recording period too short, throw error
         if len(self.data.HaX)<2000:
             msg = "Exercise duration too short"
-            r_push_data = {"action":"capture_exercise"}
+            r_push_data = {"action":"run_ression_calibration"}
             user_id = user_id
+            self.result = "Fail!"
             
             ######rPush INSERT GOES HERE
             
@@ -260,6 +261,8 @@ class TrainingExecution(object): #Abstract setUp class
             msg = ErrorMessageTraining(m_ind).error_message
             r_push_data = RPushDataTraining(m_ind).value
             user_id = user_id
+            
+            self.result = "Fail"
             
             #rPush INSERT GOES HERE
             
@@ -417,6 +420,8 @@ class TrainingExecution(object): #Abstract setUp class
             training_data_pd.to_csv(f, index = False)
             f.seek(0)
             S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+
+            self.result  = "Success!"
 
         
 if __name__ == "__main__":

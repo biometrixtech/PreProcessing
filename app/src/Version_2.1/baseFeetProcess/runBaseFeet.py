@@ -66,7 +66,7 @@ def record_special_feet(sensor_data, file_name):
     #connect to S3 bucket for uploading file
     S3 = boto3.resource('s3')
     #define container to write processed file to
-    cont_write = 'biometrix-specialanatomicalcalibrationprocessedcontainer'    
+    cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'    
     
     #Read data into structured numpy array
     data = np.genfromtxt(sensor_data, dtype=float, delimiter=',', names=True)

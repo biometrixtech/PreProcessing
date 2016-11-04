@@ -125,8 +125,8 @@ def run_calibration(sensor_data, file_name):
     S3 = boto3.resource('s3')
     
     #define containers to read from and write to
-    cont_read = 'biometrix-specialanatomicalcalibrationprocessedcontainer'
-    cont_write = 'biometrix-anatomicalcalibrationprocessedcontainer' 
+    cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
+    cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer' 
         
      
     #read data into numpy array
