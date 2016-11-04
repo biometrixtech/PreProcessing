@@ -31,7 +31,7 @@ def lambda_handler(event, context):
         logger.info('Read Content')        
         content = cStringIO.StringIO(body)
         logger.info('Converted Content')          
-        result = ra.AnalyticsExecution(content, key)
+        result = ra.AnalyticsExecution(content, key).result
         logger.info('outcome:' + result)
         #response = s3.get_object(Bucket=bucket, Key=key)
         #logger.info("CONTENT TYPE: " + response['ContentType'])
