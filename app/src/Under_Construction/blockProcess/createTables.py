@@ -13,7 +13,9 @@ def create_movement_data(N, data):
         N: number or rows expected
         data: data object with all the required values
     Returns:
-        movement_data: empty movement data table    
+        movement_data: Movement table filled with correct entries.
+                columns currently not calculated are assigned nan and returned
+                as such
     """
     
     # define attributes to be stored
@@ -27,6 +29,11 @@ def create_movement_data(N, data):
                                         ('session_event_id','S64'),
                                         ('session_type','int'),
                                         ('exercise_id','S64'),
+                                        ('corrupt_magn','int'),
+                                        ('missing_type','int'),
+                                        ('exercise_weight','float'),
+                                        ('unknown1','float'),
+                                        ('unknown2','float'),
                                         ('obs_index','int'),
                                         ('obs_master_index','int'),
                                         ('time_stamp','S64'),
@@ -36,19 +43,29 @@ def create_movement_data(N, data):
                                         ('phase_r', 'int'),
                                         ('activity_id', 'int'),
                                         ('mech_stress','float'),
+                                        ('mech_stress_l','float'),
+                                        ('mech_stress_r','float'),
                                         ('const_mech_stress','float'),
                                         ('dest_mech_stress','float'),
+                                        ('rate_force_absorp_l', 'float'),
+                                        ('rate_force_absorp_r','float'),
                                         ('total_accel','float'),
+                                        ('unknown3','float'),
+                                        ('unknown4','float'),
                                         ('block_duration','float'),
                                         ('session_duration','float'),
                                         ('block_mech_stress_elapsed','float'),
                                         ('session_mech_stress_elapsed','float'),
                                         ('destr_multiplier','float'),
                                         ('symmetry','float'),
+                                        ('knee_symmetry','float'),
                                         ('hip_symmetry','float'),
                                         ('ankle_symmetry','float'),
                                         ('consistency','float'),
                                         ('hip_consistency','float'),
+                                        ('knee_consistency','float'),
+                                        ('knee_l_consistency','float'),
+                                        ('knee_r_consistency','float'),
                                         ('ankle_consistency','float'),
                                         ('l_consistency','float'),
                                         ('r_consistency','float'),
@@ -57,18 +74,39 @@ def create_movement_data(N, data):
                                         ('ankle_control','float'),
                                         ('l_control','float'),
                                         ('r_control','float'),
+                                        ('unknown5','float'),
+                                        ('unknown6','float'),
+                                        ('unknown7','float'),
+                                        ('unknown8','float'),
+                                        ('unknown9','float'),
+                                        ('perc_mech_stress_l', 'float'),    
                                         ('hip_drop_l','float'),
                                         ('hip_drop_r','float'),
                                         ('hip_rot','float'),
+                                        ('pelvic_tilt','float'),
                                         ('ankle_rot_l','float'),
                                         ('ankle_rot_r','float'),
+                                        ('foot_position_l','float'),
+                                        ('foot_position_r','float'),
+                                        ('dorsi_flexion_l','float'),        
+                                        ('dorsi_flexion_r','float'),
                                         ('land_pattern_l','float'),
                                         ('land_pattern_r','float'),
                                         ('land_time','float'),
+                                        ('knee_valgus_l','float'),
+                                        ('knee_valgus_r','float'),
+                                        ('knee_disp_l','float'),
+                                        ('knee_disp_r','float'),
+                                        ('single_leg_dyn_rand','int'),
+                                        ('single_leg_dyn_alt','int'),
                                         ('single_leg_stat','int'),
                                         ('single_leg_dyn','int'),
                                         ('double_leg','int'),
                                         ('feet_eliminated','int'),
+                                        ('sidelying_l','int'),
+                                        ('sidelying_r','int'),
+                                        ('supine','int'),
+                                        ('prone','int'),
                                         ('rot','float'),
                                         ('lat','float'),
                                         ('vert','float'),
@@ -78,6 +116,10 @@ def create_movement_data(N, data):
                                         ('vert_binary','int'),
                                         ('horz_binary','int'),
                                         ('stationary_binary','int'),
+                                        ('hip_dom','int'),
+                                        ('knee_dom','int'),
+                                        ('unknown10','float'),
+                                        ('unknown11','float'),
                                         ('LaX','float'),
                                         ('LaY','float'),
                                         ('LaZ','float'),
@@ -119,21 +161,46 @@ def create_movement_data(N, data):
     movement_data.session_event_id = data.session_event_id.reshape(-1,)
     movement_data.session_type = data.session_type.reshape(-1,)
     movement_data.exercise_id = data.exercise_id.reshape(-1,)
+    movement_data.corrupt_magn = data.corrupt_magn.reshape(-1,)
+    movement_data.missing_type = data.missing_type.reshape(-1,)
+    
+#    movement_data.exercise_weight = data.exercise_weight.reshape(-1,)
+#    movement_data.unknown1 = data.unknown1.reshape(-1,)
+#    movement_data.unknown2 = data.unknown2.reshape(-1,)
+    movement_data.exercise_weight = np.zeros(N)*np.nan
+    movement_data.unknown1 = np.zeros(N)*np.nan
+    movement_data.unknown2 = np.zeros(N)*np.nan
+       
     movement_data.obs_index  = data.obs_index.reshape(-1,)
     movement_data.obs_master_index  = data.obs_master_index.reshape(-1,)
     movement_data.time_stamp = data.time_stamp.reshape(-1,) #timestamp without time zone,
     movement_data.epoch_time = data.epoch_time.reshape(-1,) #bigint,
     movement_data.ms_elapsed = data.ms_elapsed.reshape(-1,) #bigint,
-    
     movement_data.phase_l = data.phase_l.reshape(-1,) #double precision,
     movement_data.phase_r = data.phase_r.reshape(-1,) #double precision,
     movement_data.activity_id = data.activity_id.reshape(-1,) #integer,
     movement_data.mech_stress = data.mech_stress.reshape(-1,) #double precision,
+    
+#    movement_data.mech_stress_l = data.mech_stress_l.reshape(-1,) #double precision,
+#    movement_data.mech_stress_r = data.mech_stress_r.reshape(-1,) #double precision,
+    movement_data.mech_stress_l = np.zeros(N)*np.nan #double precision,
+    movement_data.mech_stress_r = np.zeros(N)*np.nan #double precision,
+    
     movement_data.const_mech_stress = data.const_mech_stress.reshape(-1,) #double precision,
     movement_data.dest_mech_stress = data.dest_mech_stress.reshape(-1,) #double precision,
-    #movement_data.rate_force_absorp_l = data. #double precision,
-    #movement_data.rate_force_absorp_r = data. #double precision,
+    
+#    movement_data.rate_force_absorp_l = data.rate_force_absorp_l.reshape(-1,) #double precision,
+#    movement_data.rate_force_absorp_r = data.rate_force_absorp_r.reshape(-1,) #double precision,
+    movement_data.rate_force_absorp_l = np.zeros(N)*np.nan #double precision,
+    movement_data.rate_force_absorp_r = np.zeros(N)*np.nan #double precision,
+    
     movement_data.total_accel = data.total_accel.reshape(-1,) #double,
+    
+#    movement_data.unknown3 = data.unknown3.reshape(-1,) #double precision,
+#    movement_data.unknown4 = data.unknown4.reshape(-1,) #double precision,  
+    movement_data.unknown3 = np.zeros(N)*np.nan #double precision,
+    movement_data.unknown4 = np.zeros(N)*np.nan #double precision,  
+    
     movement_data.block_duration = data.block_duration.reshape(-1,) # double,
     movement_data.session_duration = data.session_duration.reshape(-1,) # double,
     movement_data.block_mech_stress_elapsed = data.block_mech_stress_elapsed.reshape(-1,) # double,
@@ -141,9 +208,21 @@ def create_movement_data(N, data):
     movement_data.destr_multiplier = data.destr_multiplier.reshape(-1,) # double precision,
     movement_data.symmetry  = data.symmetry.reshape(-1,) # double precision,
     movement_data.hip_symmetry = data.hip_symmetry.reshape(-1,) # double precision,
+#    
+#    movement_data.knee_symmetry = data.knee_symmetry.reshape(-1,) # double precision,
+    movement_data.knee_symmetry = np.zeros(N)*np.nan # double precision,
+    
     movement_data.ankle_symmetry = data.ankle_symmetry.reshape(-1,) # double precision,
     movement_data.consistency = data.consistency.reshape(-1,) # double precision,
     movement_data.hip_consistency = data.hip_consistency.reshape(-1,) # double precision,
+    
+#    movement_data.knee_consistency = data.knee_consistency.reshape(-1,) # double precision,
+#    movement_data.knee_l_consistency = data.knee_l_consistency.reshape(-1,) # double precision,
+#    movement_data.knee_r_consistency = data.knee_r_consistency.reshape(-1,) # double precision,
+    movement_data.knee_consistency = np.zeros(N)*np.nan # double precision,
+    movement_data.knee_l_consistency = np.zeros(N)*np.nan # double precision,
+    movement_data.knee_r_consistency = np.zeros(N)*np.nan # double precision,
+    
     movement_data.ankle_consistency = data.ankle_consistency.reshape(-1,) # double precision,
     movement_data.l_consistency = data.l_consistency.reshape(-1,) # double precision,
     movement_data.r_consistency = data.r_consistency.reshape(-1,) # double precision,
@@ -152,25 +231,73 @@ def create_movement_data(N, data):
     movement_data.ankle_control = data.ankle_control.reshape(-1,) # double precision,
     movement_data.l_control = data.l_control.reshape(-1,) # double precision,
     movement_data.r_control = data.r_control.reshape(-1,) # double precision,
-    #movement_data.perc_mech_stress_l = data. # double precision,
+    
+    
+#    movement_data.unknown5 = data.unknown5.reshape(-1,)
+#    movement_data.unknown6 = data.unknown6.reshape(-1,)
+#    movement_data.unknown7 = data.unknown7.reshape(-1,)
+#    movement_data.unknown8 = data.unknown8.reshape(-1,)
+#    movement_data.unknown9 = data.unknown9.reshape(-1,)
+#    movement_data.perc_mech_stress_l = data.perc_mech_stress_l(-1,) # double precision,
+    movement_data.unknown5 = np.zeros(N)*np.nan
+    movement_data.unknown6 = np.zeros(N)*np.nan
+    movement_data.unknown7 = np.zeros(N)*np.nan
+    movement_data.unknown8 = np.zeros(N)*np.nan
+    movement_data.unknown9 = np.zeros(N)*np.nan
+    movement_data.perc_mech_stress_l = np.zeros(N)*np.nan # double precision,
+    
+    
     movement_data.hip_drop_l = data.hip_drop_l.reshape(-1,) # double precision,
     movement_data.hip_drop_r = data.hip_drop_r.reshape(-1,) # double precision,
     movement_data.hip_rot = data.hip_rot.reshape(-1,) # double precision,
-    #movement_data.hip_dom = data. # integer,
-    #movement_data.knee_dom = data. # integer,
+    
+#    movement_data.pelvic_tilt = data.pelvic_tilt.reshape(-1,) #double precision
+    movement_data.pelvic_tilt = np.zeros(N)*np.nan #double precision    
+
+
     movement_data.ankle_rot_l = data.ankle_rot_l.reshape(-1,) # double precision,
     movement_data.ankle_rot_r = data.ankle_rot_r.reshape(-1,) # double precision,
-    #movement_data.foot_position_l = data. # double precision,
-    #movement_data.foot_position_r = data. # double precision,
+    
+#    movement_data.foot_position_l = data.foot_position_l.reshpae(-1,) # double precision,
+#    movement_data.foot_position_r = data.foot_position_r.reshape(-1,) # double precision,
+#    movement_data.dorsi_flexion_l = data.dorsi_flexion_l.reshape(-1,) # double precision,  
+#    movement_data.dorsi_flexion_r = data.dorsi_flexion_r.reshape(-1,) # double precision,
+    movement_data.foot_position_l = np.zeros(N)*np.nan # double precision,
+    movement_data.foot_position_r = np.zeros(N)*np.nan # double precision,
+    movement_data.dorsi_flexion_l = np.zeros(N)*np.nan # double precision,  
+    movement_data.dorsi_flexion_r = np.zeros(N)*np.nan # double precision,    
+    
     movement_data.land_pattern_l = data.land_pattern_l.reshape(-1,) # double precision,
     movement_data.land_pattern_r = data.land_pattern_r.reshape(-1,) # double precision,
     movement_data.land_time = data.land_time.reshape(-1,) # double precision,
+    
+#    movement_data.knee_valgus_l = data.knee_valgus_l.reshape(-1,) # double precision,
+#    movement_data.knee_valgus_r = data.knee_valgus_r.reshape(-1,) # double precision,
+#    movement_data.knee_disp_l = data.knee_disp_l.reshape(-1,) # double precision,
+#    movement_data.knee_disp_r = data.knee_disp_r.reshape(-1,) # double precision,    
+#    movement_data.single_leg_dyn_rand = data.single_leg_dyn_rand.reshape(-1,) #boolean
+#    movement_data.single_leg_dyn_alt = data.single_leg_dyn_alt.reshape(-1,) #boolean
+    movement_data.knee_valgus_l = np.zeros(N)*np.nan # double precision,
+    movement_data.knee_valgus_r = np.zeros(N)*np.nan # double precision,
+    movement_data.knee_disp_l = np.zeros(N)*np.nan # double precision,
+    movement_data.knee_disp_r = np.zeros(N)*np.nan # double precision,    
+    movement_data.single_leg_dyn_rand = np.zeros(N)*np.nan #boolean
+    movement_data.single_leg_dyn_alt = np.zeros(N)*np.nan #boolean
+    
     movement_data.single_leg_stat = data.single_leg_stat.reshape(-1,) #boolean
     movement_data.single_leg_dyn = data.single_leg_dyn.reshape(-1,) #boolean
-    #movement_data.single_leg_alt = data. # integer,
-    #movement_data.single_leg_rand = data. # integer,
     movement_data.double_leg = data.double_leg.reshape(-1,) # integer,
     movement_data.feet_eliminated = data.feet_eliminated.reshape(-1,) #integer,
+    
+#    movement_data.sidelying_l = data.sidelying_l.reshape(-1,) #integer,
+#    movement_data.sidelying_r = data.sidelying_r.reshape(-1,) #integer,
+#    movement_data.supine = data.supine.reshape(-1,) #integer,
+#    movement_data.prone = data.prone.reshape(-1,) #integer,
+    movement_data.sidelying_l = np.zeros(N)*np.nan #integer,
+    movement_data.sidelying_r = np.zeros(N)*np.nan #integer,
+    movement_data.supine = np.zeros(N)*np.nan #integer,
+    movement_data.prone = np.zeros(N)*np.nan #integer,
+    
     movement_data.rot = data.rot.reshape(-1,) # double precision,
     movement_data.lat = data.lat.reshape(-1,) # double precision,
     movement_data.vert = data.vert.reshape(-1,) # double precision,
@@ -179,6 +306,17 @@ def create_movement_data(N, data):
     movement_data.lat_binary = data.lat_binary.reshape(-1,) # integer,
     movement_data.vert_binary = data.vert_binary.reshape(-1,) # integer,
     movement_data.horz_binary = data.horz_binary.reshape(-1,) # integer,
+    movement_data.stationary_binary = data.stationary_binary.reshape(-1,) # integer,
+    
+#    movement_data.hip_dom = data.hip_dom.reshape(-1,) # integer,
+#    movement_data.knee_dom = data.knee_dom.reshape(-1,) # integer,
+#    movement_data.unknown10 = data.unknown10.reshape(-1,) # integer,
+#    movement_data.unknown11 = data.unknown11.reshape(-1,) # integer,
+    movement_data.hip_dom = np.zeros(N)*np.nan # integer,
+    movement_data.knee_dom = np.zeros(N)*np.nan # integer,
+    movement_data.unknown10 = np.zeros(N)*np.nan # integer,
+    movement_data.unknown11 = np.zeros(N)*np.nan # integer,
+    
     movement_data.LaX = data.LaX.reshape(-1,) # float
     movement_data.LaY = data.LaY.reshape(-1,) # float
     movement_data.LaZ = data.LaZ.reshape(-1,) # float
