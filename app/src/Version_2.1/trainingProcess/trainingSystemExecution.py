@@ -11,6 +11,7 @@ import psycopg2
 import sys
 import boto3
 import cStringIO
+import logging
 
 import dataObject as do
 import phaseDetection as phase
@@ -19,6 +20,9 @@ import prePreProcessing as ppp
 import coordinateFrameTransformation as coord
 import createTables as ct
 from errors import ErrorId, ErrorMessageTraining, RPushDataTraining
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)   
 
 
 """
@@ -114,18 +118,21 @@ class TrainingExecution(object): #Abstract setUp class
                     single_leg = (%s),
                     double_leg = (%s),
                     feet_eliminated = (%s),
-                    total_acceleration = (%s)
+                    max_accel = (%s)
                     where sensor_data_filename = (%s);"""
         
         #Read the user_id, exercise_id
         cur.execute(quer_read_ids, (file_name,))
+        logger.info("Reading IDs")
         ids_read = cur.fetchall()[0]
         user_id = ids_read[0]
         exercise_id = ids_read[1]
+        logger.info("Done!")
         
         
         #Read transformation offset values
         cur.execute(quer_read_offsets, (file_name,))
+        logger.info("Reading Offsets")
         offsets_read = cur.fetchall()[0]
         hip_n_transform = np.array(offsets_read[0]).reshape(-1,1)
         hip_bf_transform = np.array(offsets_read[1]).reshape(-1,1)
@@ -133,7 +140,7 @@ class TrainingExecution(object): #Abstract setUp class
         lf_bf_transform = np.array(offsets_read[3]).reshape(-1,1)
         rf_n_transform = np.array(offsets_read[4]).reshape(-1,1)
         rf_bf_transform = np.array(offsets_read[5]).reshape(-1,1)
-   
+        logger.info("Done!")
         #Connect to AWS S3 container
         S3 = boto3.resource('s3')
         
