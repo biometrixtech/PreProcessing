@@ -12,8 +12,7 @@ from scipy import interpolate
 
 def calc_quaternions(q):
     
-    """
-    Calculating the real quaternion.
+    """Calculating the real quaternion.
  
     Args:
         q: an array of the quaternions from the sensor data, qX, qY, qZ.
@@ -22,20 +21,24 @@ def calc_quaternions(q):
         An array of real and imaginary quaternions, qW, qX, qY, qZ.
  
     """
+    all_quaternions = []  # a list to store the real and imaginary quaternions
     
-    all_quaternions = []
     for i in range(len(q)):
-        if np.isnan(np.sqrt(1-((q[i,0]*16.0/32767)**2)-(
-        (q[i,1]*16.0/32767)**2)-((q[i,2]*16.0/32767)**2))):  # checking when 
-        # the sqrt is not a real number.
-            all_quaternions.append([0, q[i,0]*16.0/32767, q[i,1]*16.0/32767, 
-                                    q[i,2]*16.0/32767])  # if the sqrt is not 
-                                    # a real number then we assign 0 to qW.
+        
+        # determine the real and imaginary quaternions and the magnitude
+        qw =  np.sqrt(1-(q[i,0]**2/32767.0)
+            -(q[i,1]**2/32767.0)-(q[i,2]**2/32767.0))  # real quaternion
+        qi = q[i,0]**2/32767.0  # imaginary quaternion
+        qj = q[i,1]**2/32767.0  # imaginary quaternion
+        qk = q[i,2]**2/32767.0  # imaginary quaternion
+        magn = qw**2 + qi**2 + qj**2 + qk**2  # magnitude of the quaternions
+
+        if np.isnan(qw):  # check if the sqrt of qw is not a number
+            all_quaternions.append([0, qi, qj, qk])  # if the sqrt is not 
+                                    #a real number then we assign 0 to qW.
         else:
-            all_quaternions.append([np.sqrt(1-((q[i,0]*16.0/32767)**2)-(
-            (q[i,1]*16.0/32767)**2)-((q[i,2]*16.0/32767)**2)), 
-             q[i,0]*16.0/32767, q[i,1]*16.0/32767, q[i,2]*16.0/32767])
-    
+            all_quaternions.append([qw, qi, qj, qk])
+            
     return np.array(all_quaternions)
  
    

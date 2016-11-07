@@ -10,6 +10,25 @@ from scipy import interpolate
 from errors import ErrorId
 
 
+#def _normalize_quaternions(qw, qi, qj, qk, magnitude):
+#    
+#    """
+#    Normalizing the quaternions if the magnitude is not equal to 1.
+#    
+#    Args: 
+#        qw: real quaternion
+#        qi: imaginary quaternions
+#        qj: imaginary quaternions
+#        qk: imaginary quaternions
+#        magnitude: magnitude of the quaternions
+#        
+#    Returns:
+#        An array of real and imaginary quaternions qw, qx, qy, qz.
+#    """
+#    
+#    norm_all_quaternions = []  # a list to store the normalized quaternions
+    
+    
 def calc_quaternions(q):
     
     """Calculating the real quaternion.
@@ -21,18 +40,24 @@ def calc_quaternions(q):
         An array of real and imaginary quaternions, qW, qX, qY, qZ.
  
     """
-    all_quaternions = []
+    all_quaternions = []  # a list to store the real and imaginary quaternions
+    
     for i in range(len(q)):
-        if np.isnan(np.sqrt(1-((q[i,0]*16.0/32767)**2)
-        -((q[i,1]*16.0/32767)**2)-((q[i,2]*16.0/32767)**2))):  # checking when
-        # the sqrt is not a real number.
-            all_quaternions.append([0, q[i,0]*16.0/32767, q[i,1]*16.0/32767, 
-                                    q[i,2]*16.0/32767])  # if the sqrt is not 
+        
+        # determine the real and imaginary quaternions and the magnitude
+        qw =  np.sqrt(1-(q[i,0]**2/32767.0)
+            -(q[i,1]**2/32767.0)-(q[i,2]**2/32767.0))  # real quaternion
+        qi = q[i,0]**2/32767.0  # imaginary quaternion
+        qj = q[i,1]**2/32767.0  # imaginary quaternion
+        qk = q[i,2]**2/32767.0  # imaginary quaternion
+        magn = qw**2 + qi**2 + qj**2 + qk**2  # magnitude of the quaternions
+
+        if np.isnan(qw):  # check if the sqrt of qw is not a number
+            all_quaternions.append([0, qi, qj, qk])  # if the sqrt is not 
                                     #a real number then we assign 0 to qW.
         else:
-            all_quaternions.append([np.sqrt(1-((q[i,0]*16.0/32767)**2)
-            -((q[i,1]*16.0/32767)**2)-((q[i,2]*16.0/32767)**2)), 
-            q[i,0]*16.0/32767, q[i,1]*16.0/32767, q[i,2]*16.0/32767])
+            all_quaternions.append([qw, qi, qj, qk])
+            
     return np.array(all_quaternions)
     
 
