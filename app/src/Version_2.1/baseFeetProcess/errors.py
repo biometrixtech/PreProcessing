@@ -79,51 +79,51 @@ class ErrorMessageSession(object):
 class RPushDataBase(object):
     def __init__(self, error_id):
         if error_id == 0:
-            self.value = {"action":"run_ression_calibration"}
+            self.value = '{"action":"run_ression_calibration"}'
         elif error_id == 1:
-            self.value = {"action":"run_magn_calibration"}
+            self.value = '{"action":"run_magn_calibration"}'
         elif error_id == 2:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 3:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 4:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 5:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 6:
-            self.value = {"action":"run_left_placement"}
+            self.value = '{"action":"run_left_placement"}'
         elif error_id == 7:
-            self.value = {"action":"run_left_placement"}
+            self.value = '{"action":"run_left_placement"}'
         elif error_id == 8:
-            self.value = {"action":"run_right_placement"}
+            self.value = '{"action":"run_right_placement"}'
         elif error_id == 9:
-            self.value = {"action":"run_base_calibration"}
+            self.value = '{"action":"run_base_calibration"}'
         elif error_id == 10:
-            self.value = {"action":"run_base_calibration"}
+            self.value = '{"action":"run_base_calibration"}'
             
             
 class RPushDataSession(object):
     def __init__(self, error_id):
         if error_id == 0:
-            self.value = {"action":"select_regimen"}
+            self.value = '{"action":"select_regimen"}'
         elif error_id == 1:
-            self.value = {"action":"run_magn_calibration"}
+            self.value = '{"action":"run_magn_calibration"}'
         elif error_id == 2:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 3:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 4:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 5:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 6:
-            self.value = {"action":"run_left_placement"}
+            self.value = '{"action":"run_left_placement"}'
         elif error_id == 7:
-            self.value = {"action":"run_left_placement"}
+            self.value = '{"action":"run_left_placement"}'
         elif error_id == 8:
-            self.value = {"action":"run_right_placement"}
+            self.value = '{"action":"run_right_placement"}'
         elif error_id == 9:
-            self.value = {"action":"run_session_calibration"}
+            self.value = '{"action":"run_session_calibration"}'
         elif error_id == 10:
-            self.value = {"action":"run_session_calibration"}
+            self.value = '{"action":"run_session_calibration"}'
             

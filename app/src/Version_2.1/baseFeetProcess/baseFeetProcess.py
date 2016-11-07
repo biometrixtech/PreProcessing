@@ -14,6 +14,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.info('Loading baseFeetProcess')
     
+    
 def lambda_handler(event, context):
     
 
@@ -36,7 +37,7 @@ def lambda_handler(event, context):
         zipped = zf.ZipFile(content)
         name = zipped.namelist()[0]
         unzipped_content = cStringIO.StringIO()
-        unzipped_content = zipped.extract(name)
+        unzipped_content = zipped.open(name)
         logger.info('Unzipped File')
         result = rb.record_special_feet(unzipped_content, key)
         logger.info('outcome:' + result)

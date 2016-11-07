@@ -11,10 +11,15 @@ import psycopg2
 import boto3
 import cStringIO
 import sys
+import logging
 
 import prePreProcessing as ppp
 import anatomicalCalibration as ac
 from errors import ErrorMessageBase, RPushDataBase
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def record_special_feet(sensor_data, file_name):
@@ -70,11 +75,12 @@ def record_special_feet(sensor_data, file_name):
     
     #Read data into structured numpy array
     data = np.genfromtxt(sensor_data, dtype=float, delimiter=',', names=True)
-    
+
     out_file = "processed_"+ file_name
     epoch_time = data['epoch_time']
     corrupt_magn = data['corrupt_magn']
     missing_type = data['missing_type']
+    
     identifiers = np.array([epoch_time,corrupt_magn,missing_type]).transpose()
     
     # Create indicator values
