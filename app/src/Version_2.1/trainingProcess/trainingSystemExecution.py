@@ -140,6 +140,7 @@ class TrainingExecution(object): #Abstract setUp class
         lf_bf_transform = np.array(offsets_read[3]).reshape(-1,1)
         rf_n_transform = np.array(offsets_read[4]).reshape(-1,1)
         rf_bf_transform = np.array(offsets_read[5]).reshape(-1,1)
+        
         logger.info("Done!")
         #Connect to AWS S3 container
         S3 = boto3.resource('s3')

@@ -115,7 +115,7 @@ class AnalyticsExecution(object):
                                     where block_id = (%s)"""
                                     
         quer_read_model = """select exercise_id_combinations, model_file,
-                        label_encoding_model from exercise_training_models
+                        label_encoding_model_file from exercise_training_models
                         where block_id = (%s)"""
                         
         #Connect to AWS S3 container
@@ -144,11 +144,17 @@ class AnalyticsExecution(object):
         cur.execute(quer_read_exercise_ids, (block_id,))
         exercise_ids = np.array(cur.fetchall()[0][0]).reshape(-1,)
         
-        #Read the offsets for calibration
+        #Read transformation offset values
         cur.execute(quer_read_offsets, (file_name,))
-        offsets = cur.fetchall[0]
-        
-        
+        logger.info("Reading Offsets")
+        offsets_read = cur.fetchall()[0]
+        hip_n_transform = np.array(offsets_read[0]).reshape(-1,1)
+        hip_bf_transform = np.array(offsets_read[1]).reshape(-1,1)
+        lf_n_transform = np.array(offsets_read[2]).reshape(-1,1)
+        lf_bf_transform = np.array(offsets_read[3]).reshape(-1,1)
+        rf_n_transform = np.array(offsets_read[4]).reshape(-1,1)
+        rf_bf_transform = np.array(offsets_read[5]).reshape(-1,1)
+        logger.info("Done!")
         
         # read sensor data as ndarray
         sdata = np.genfromtxt(sensor_data + ".csv", dtype=float, delimiter=',', 
@@ -519,7 +525,7 @@ class AnalyticsExecution(object):
                 quer = """update exercise_training_models set 
                             exercise_id_combinations = (%s),
                             model_file = (%s),
-                            label_encoding_model = (%s)
+                            label_encoding_model_file = (%s)
                             where block_id = (%s)
                         """
                 exercise_ids = exercise_ids.reshape(-1,).tolist()
@@ -533,7 +539,7 @@ class AnalyticsExecution(object):
                 quer = """insert into exercise_training_models set 
                             exercise_id_combinations = (%s),
                             model_file = (%s),
-                            label_encoding_model = (%s)
+                            label_encoding_model_file = (%s)
                             where block_id = (%s)
                         """
                 
