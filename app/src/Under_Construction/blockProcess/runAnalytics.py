@@ -10,6 +10,11 @@ import pickle
 #import sys
 import re
 #from sklearn import preprocessing
+import psycopg2
+import sys
+import boto3
+import cStringIO
+import logging
 
 import prePreProcessing as ppp
 import dataObject as do
@@ -82,43 +87,89 @@ class AnalyticsExecution(object):
     
     """
     
-    def __init__(self, path):
+    def __init__(self, sensor_data, file_name):
         
-        # process path name
-        split = re.split("\\\\", path)[1]
-        _split_path = re.split('_', split)
-        calib_ = _split_path[0]+"_"+_split_path[1]+'_'+_split_path[2]+'_'
-#        calib_ = _split_path +'_'
-        _split_path1 = re.split('\.',split)
-        path = "data\\"+_split_path1[0]
-#        path = "output\\"+_split_path1[0]
+        ###Connect to the database
+        try:
+            conn = psycopg2.connect("""dbname='biometrix' user='paul' 
+            host='ec2-52-36-42-125.us-west-2.compute.amazonaws.com' 
+            password='063084cb3b65802dbe01030756e1edf1f2d985ba'""")
+        except:
+            self.result = 'Fail! Unable to connect to database'
+            sys.exit()
         
-        # read data from path as ndarray
-        sdata = np.genfromtxt(path + ".csv", dtype=float, delimiter=',', 
+        cur = conn.cursor()
+        quer_read_block_ids = """select id, block_id from block_events
+                                 where sensor_data_filename = (%s)"""
+        
+        quer_read_ids = 'select * from fn_block_process_data_from_id((%s))'
+        
+        quer_read_offsets = """select hip_n_transform, hip_bf_transform,
+            lf_n_transform, lf_bf_transform,
+            rf_n_transform, lf_bf_transform from
+            session_anatomical_calibration_events where
+            block_event_id = (select id 
+            from block_events where sensor_data_filename = (%s));"""
+            
+        quer_read_exercise_ids = """select exercise_id from blocks_exercises
+                                    where block_id = (%s)"""
+                                    
+        quer_read_model = """select exercise_id_combinations, model_file,
+                        label_encoding_model from exercise_training_models
+                        where block_id = (%s)"""
+                        
+        #Connect to AWS S3 container
+        S3 = boto3.resource('s3')
+        
+        #define containers to read from and write to
+        ied_read = 'biometrix-trainingprocessedcontainer'
+        cont_write = 'biometrix-blockprocessedcontainer' 
+                            
+                                    
+        #Read block_id and block_event_id from block_events table        
+        cur.execute(quer_read_block_ids, (file_name,))
+        block_ids = cur.fetchall()[0]
+        block_event_id = block_ids[0]
+        block_id = block_ids[1]
+        
+        #Read IED models from database
+        cur.execute(quer_read_model, (block_id,))
+        model_result = cur.fetchall()
+        
+        #Read the required ids given block_event_id
+        cur.execute(quer_read_ids, (block_event_id,))
+        ids = cur.fetchall[0]
+        
+        #Read exercise_ids associated witht the block
+        cur.execute(quer_read_exercise_ids, (block_id,))
+        exercise_ids = np.array(cur.fetchall()[0][0]).reshape(-1,)
+        
+        #Read the offsets for calibration
+        cur.execute(quer_read_offsets, (file_name,))
+        offsets = cur.fetchall[0]
+        
+        
+        
+        # read sensor data as ndarray
+        sdata = np.genfromtxt(sensor_data + ".csv", dtype=float, delimiter=',', 
                               names=True) 
-        uuids = pd.read_csv('uuid_list.csv')
+
         columns = sdata.dtype.names        
         data = _dynamic_name(sdata)
         self.data = do.RawFrame(data, columns)
 
         # set ID information (dummy vars for now)
-        self.data.team_id = np.array([uuids.team_id[
-            uuids.filename==split].values]*len(sdata)).reshape(-1,1)
-        self.data.user_id = np.array([uuids.user_id[
-            uuids.filename==split].values]*len(sdata)).reshape(-1,1)
-        self.data.team_regimen_id = np.array([uuids.team_regimen_id[
-            uuids.filename==split].values]*len(sdata)).reshape(-1,1)
-        self.data.block_id = np.array([uuids.block_id[
-            uuids.filename==split].values]*len(sdata)).reshape(-1,1)
-        self.data.block_event_id = np.array([uuids.block_event_id[
-            uuids.filename==split].values]*len(sdata)).reshape(-1,1)
-        self.data.training_session_log_id = np.array([
-            uuids.training_session_log_id[uuids.filename==split].values]\
-            *len(sdata)).reshape(-1,1)
-        self.data.session_event_id = np.array(['']*len(sdata)).reshape(-1,1)
+        self.data.team_id = np.array([ids[0]]*len(sdata)).reshape(-1,1)
+        self.data.user_id = np.array([ids[1]]*len(sdata)).reshape(-1,1)
+        self.data.team_regimen_id = np.array([ids[2]]*len(sdata)).reshape(-1,1)
+        self.data.block_id = np.array([block_id]*len(sdata)).reshape(-1,1)
+        self.data.block_event_id = np.array([block_event_id]*len(sdata))\
+                                    .reshape(-1,1)
+        self.data.training_session_log_id = np.array([ids[4]]*len(sdata))\
+                                            .reshape(-1,1)
+        self.data.session_event_id = np.array([ids[5]]*len(sdata)).reshape(-1,1)
+        self.data.session_type = np.array([ids[6]]*len(sdata)).reshape(-1,1)
         self.data.exercise_id = np.array(['']*len(sdata)).reshape(-1,1)
-        self.data.session_type = np.array([uuids.session_type[
-            uuids.filename==split].values]*len(sdata)).reshape(-1,1)
         
         # Save raw values in different attributes to later populate table
         # left
@@ -419,19 +470,57 @@ class AnalyticsExecution(object):
         print 'DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!'
        
         # INTELLIGENT EXERCISE DETECTION (IED)
-        # load model
-        filename = 'ied_returntoplay_trained_model.sav'
-        loaded_model = pickle.load(open(filename, 'rb'))
-        filename = 'ied_returntoplay_label_model.sav'
-        loaded_label_model = pickle.load(open(filename, 'rb'))
+        #Read model from database
+        cur.execute(quer_read_model, (block_id,))
+        model_result = cur.fetchall()
         
-        # predict exercise ID
-        ied_features = IED.preprocess_ied(self.data, training = False)
-        ied_labels = loaded_model.predict(ied_features)
-        ied_exercise_id = IED.mapping_labels_on_data(ied_labels, len(
-                                                 self.data.LaX)).astype(int)
-        self.data.exercise_id = loaded_label_model.inverse_transform(
-                                                 ied_exercise_id)
+        if len(model_result==0):
+            train=True
+        else:
+            exercise_id_combinations = np.array(model_result[0][0]).reshape(-1,1)
+            ied_model = pickle.loads(model_result[0][1][:])
+            ied_label_model = pickle.loads(model_result[0][2][:])
+        
+        #Check if the block has changed
+        if set(exercise_id_combinations) == set(exercise_ids):
+            train = False
+        else:
+            train = True
+        
+        if train:
+            quer_get_filenames = """select sensor_data_filename from 
+                                training_events where exercise_id in (%s)"""
+            exercises = exercise_ids.reshape(-1,).tolist()
+            cur.execute(quer_get_filenames, (exercises,))
+            sensor_files  = cur.fetchall()[0]
+            i=0
+            for files in sensor_files:
+                obj = S3.Bucket(ied_read).Object('processed_'+files)
+                fileobj = obj.get()
+                body = fileobj["Body"].read()
+                exercise_data = cStringIO.StringIO(body)
+                if i==0:
+                    block_data = pd.read_csv(exercise_data)
+                    i=1
+                else:
+                    block_data.append(pd.read_csv(exercise_data))
+            ied_model, ied_label_model = IED.train_ied(block_data)
+            ied_features = IED.preprocess_ied(block_data)
+            ied_labels = ied_model.predict(ied_features)
+            ied_exercise_id = IED.mapping_labels_on_data(ied_labels,
+                                                         len(block_data))\
+                                                         .astype(int)
+            self.data.exercise_id = ied_label_model.inverse_transform(
+                                                     ied_exercise_id)
+                
+        else:        
+            # predict exercise ID
+            ied_features = IED.preprocess_ied(self.data, training = False)
+            ied_labels = ied_model.predict(ied_features)
+            ied_exercise_id = IED.mapping_labels_on_data(ied_labels, len(
+                                                     self.data.LaX)).astype(int)
+            self.data.exercise_id = ied_label_model.inverse_transform(
+                                                     ied_exercise_id)
         
         print 'DONE WITH IED!'
         
