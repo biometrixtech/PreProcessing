@@ -7,10 +7,11 @@ Created on Mon Oct 17 17:33:37 2016
 
 import numpy as np
 from sklearn.decomposition import PCA
-from createFeaturesIED import create_window, create_labels
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import preprocessing
 import pandas as pd
+
+from createFeaturesIED import create_window, create_labels
 
 
 def _encoding_labels(labels):
