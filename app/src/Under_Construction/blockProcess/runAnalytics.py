@@ -143,7 +143,7 @@ class AnalyticsExecution(object):
         
         #Read exercise_ids associated witht the block
         cur.execute(quer_read_exercise_ids, (block_id,))
-        exercise_ids = np.array(cur.fetchall()[0][0]).reshape(-1,)
+        exercise_ids = np.array(cur.fetchall())
         
         #Read transformation offset values
         cur.execute(quer_read_offsets, (file_name,))
@@ -493,7 +493,7 @@ class AnalyticsExecution(object):
         model_result = cur.fetchall()
         
         
-        if len(model_result[0][1]==0):
+        if model_result[0][1]==None:
             train=True
             update = False
         else:
