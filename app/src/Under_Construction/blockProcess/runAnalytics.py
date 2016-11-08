@@ -476,6 +476,7 @@ class AnalyticsExecution(object):
         
         if len(model_result==0):
             train=True
+            update = False
         else:
             exercise_id_combinations = np.array(model_result[0][0]).reshape(-1,1)
             ied_model = pickle.loads(model_result[0][1][:])
@@ -486,6 +487,7 @@ class AnalyticsExecution(object):
             train = False
         else:
             train = True
+            update = True
         
         if train:
             quer_get_filenames = """select sensor_data_filename from 
@@ -512,7 +514,30 @@ class AnalyticsExecution(object):
                                                          .astype(int)
             self.data.exercise_id = ied_label_model.inverse_transform(
                                                      ied_exercise_id)
+                                                     
+            if update:
+                quer = """update exercise_training_models set 
+                            exercise_id_combinations = (%s),
+                            model_file = (%s),
+                            label_encoding_model = (%s)
+                            where block_id = (%s)
+                        """
+                exercise_ids = exercise_ids.reshape(-1,).tolist()
+                ser_ied_model = pickle.dumps(ied_model, 2)
+                ser_label_model = pickle.dumps(ied_label_model, 2)
+                cur.execute(quer, (exercise_ids,
+                                   psycopg2.Binary(ser_ied_model),
+                                    psycopg2.Binary(ser_label_model),
+                                    block_id))
+            else:
+                quer = """insert into exercise_training_models set 
+                            exercise_id_combinations = (%s),
+                            model_file = (%s),
+                            label_encoding_model = (%s)
+                            where block_id = (%s)
+                        """
                 
+                                    
         else:        
             # predict exercise ID
             ied_features = IED.preprocess_ied(self.data, training = False)
