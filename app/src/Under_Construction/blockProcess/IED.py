@@ -68,7 +68,7 @@ def _split_lf_hip_rf(data, training):
                         .copy())
         rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']]\
                         .copy())
-        labels = np.array(data['ExerciseID'].copy())
+        labels = np.array(data['exercise_id'].copy())
         
         return hz, lfoot, hipp, rfoot, labels
     

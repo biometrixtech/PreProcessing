@@ -488,49 +488,47 @@ class AnalyticsExecution(object):
         print 'DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!'
        
         # INTELLIGENT EXERCISE DETECTION (IED)
-        #Read model from database
+        #Read IED models from database
         cur.execute(quer_read_model, (block_id,))
         model_result = cur.fetchall()
         
         
         if model_result[0][1]==None:
-            train=True
-            update = False
-        else:
-            exercise_id_combinations = np.array(model_result[0][0]).reshape(-1,1)
-            ied_model = pickle.loads(model_result[0][1][:])
-            ied_label_model = pickle.loads(model_result[0][2][:])
+                    train=True
+                    update = False
         
-        #Check if the block has changed
-        if set(exercise_id_combinations) == set(exercise_ids):
-            train = False
-        else:
-            train = True
-            update = True
+        quer_get_filenames = """select exercise_id, sensor_data_filename from 
+                            training_events where exercise_id in %s"""
+        exercises = tuple(exercise_ids.reshape(-1,).tolist())
+        cur.execute(quer_get_filenames, (exercises,))
+        out = cur.fetchall()
+        sensor_files  = np.array(out)[:,1]
+        exercises = np.array(out)[:,0]
         
-        if train:
-            quer_get_filenames = """select sensor_data_filename from 
-                                training_events where exercise_id in (%s)"""
-            exercises = exercise_ids.reshape(-1,).tolist()
-            cur.execute(quer_get_filenames, (exercises,))
-            sensor_files  = cur.fetchall()[0]
-            i=0
-            for files in sensor_files:
-                obj = s3.Bucket(ied_read).Object('processed_'+files)
-                fileobj = obj.get()
-                body = fileobj["Body"].read()
-                exercise_data = cStringIO.StringIO(body)
-                if i==0:
-                    block_data = pd.read_csv(exercise_data)
-                    i=1
-                else:
-                    block_data.append(pd.read_csv(exercise_data))
-            ied_model, ied_label_model = IED.train_ied(block_data)
-            ied_features = IED.preprocess_ied(block_data)
-            ied_labels = ied_model.predict(ied_features)
-            ied_exercise_id = IED.mapping_labels_on_data(ied_labels,
-                                                         len(block_data))\
-                                                         .astype(int)
+        i=0
+        for files in sensor_files:
+            obj = S3.Bucket(ied_read).Object('processed_'+files+'.csv')
+            fileobj = obj.get()
+            body = fileobj["Body"].read()
+            exercise_data = cStringIO.StringIO(body)
+            if i==0:
+                block_data = pd.read_csv(exercise_data)
+                block_data.exercise_id = exercises[i]
+                i+=1
+            else:
+                b_data = pd.read_csv(exercise_data)
+                b_data.exercise_id = exercises[i]
+                block_data =block_data.append(b_data)
+                i+=1
+        
+        
+        
+        ied_model, ied_label_model = IED.train_ied(block_data)
+        ied_features = IED.preprocess_ied(block_data)
+        ied_labels = ied_model.predict(ied_features)
+        ied_exercise_id = IED.mapping_labels_on_data(ied_labels,
+                                                     len(block_data))\
+                                                     .astype(int)
             self.data.exercise_id = ied_label_model.inverse_transform(
                                                      ied_exercise_id)
                                                      
