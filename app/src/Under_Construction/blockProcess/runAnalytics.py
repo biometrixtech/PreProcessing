@@ -9,7 +9,6 @@ import numpy as np
 import pickle
 #import sys
 import re
-#from sklearn import preprocessing
 import psycopg2
 import sys
 import boto3
@@ -26,7 +25,6 @@ from mechStressTraining import prepareData
 import movementAttrib as matrib
 import balanceCME as cmed
 import quatConvs as qc
-#import quatOps as qo
 import impactCME as impact
 from controlScore import controlScore
 from scoring import score
@@ -118,12 +116,15 @@ class AnalyticsExecution(object):
                         label_encoding_model_file from exercise_training_models
                         where block_id = (%s)"""
                         
-        #Connect to AWS S3 container
-        S3 = boto3.resource('s3')
+        #Connect to AWS s3 container
+        s3 = boto3.resource('s3')
         
         #define containers to read from and write to
         ied_read = 'biometrix-trainingprocessedcontainer'
-        cont_write = 'biometrix-blockprocessedcontainer' 
+        cont_write = 'biometrix-blockprocessedcontainer'
+        
+        # define container that holds models
+        cont_models = 'biometrix-globalmodels'
                             
                                     
         #Read block_id and block_event_id from block_events table        
@@ -344,12 +345,16 @@ class AnalyticsExecution(object):
 
         # INTELLIGENT ACTIVITY DETECTION (IAD)
         # load model
-        filename = 'iad_finalized model.sav'
-        loaded_model = pickle.load(open(filename, 'rb'))
+        iad_obj = s3.Bucket(cont_models).Object('iad_finalized_model.sav')
+        iad_fileobj = iad_obj.get()
+        iad_body = iad_fileobj["Body"].read()
+        
+        # we're reading the first model on the list, there are multiple
+        loaded_iad_model = pickle.loads(iad_body)
         
         # predict activity state
         iad_features = IAD.preprocess_iad(self.data, training = False)
-        iad_labels = loaded_model.predict(iad_features)
+        iad_labels = loaded_iad_model.predict(iad_features)
         iad_predicted_labels = IAD.label_aggregation(iad_labels)
         self.data.activity_id = IAD.mapping_labels_on_data(
                                             iad_predicted_labels, 
@@ -360,7 +365,14 @@ class AnalyticsExecution(object):
         # save sensor data before subsetting
         sensor_data = ct.createSensorData(len(self.data.LaX), self.data)
         sensor_data_pd = pd.DataFrame(sensor_data)
-        sensor_data_pd.to_csv(path+"_sensor_data.csv", index = False)
+        sensor_data_pd.to_csv("processed_"+file_name, index = False)
+
+        data_pd = pd.read_csv("processed_"+file_name)
+        fileobj = cStringIO.StringIO()
+        data_pd.to_csv(fileobj,index = False)
+        fileobj.seek(0)
+        s3.Bucket(cont_write).put_object(Key="processed_"
+                                        +file_name,Body=fileobj)
         
 #        # SUBSETTING FOR ACTIVITY ID = 1
 #        # left foot body transformed data        
@@ -480,7 +492,8 @@ class AnalyticsExecution(object):
         cur.execute(quer_read_model, (block_id,))
         model_result = cur.fetchall()
         
-        if len(model_result==0):
+        
+        if len(model_result[0][1]==0):
             train=True
             update = False
         else:
@@ -503,7 +516,7 @@ class AnalyticsExecution(object):
             sensor_files  = cur.fetchall()[0]
             i=0
             for files in sensor_files:
-                obj = S3.Bucket(ied_read).Object('processed_'+files)
+                obj = s3.Bucket(ied_read).Object('processed_'+files)
                 fileobj = obj.get()
                 body = fileobj["Body"].read()
                 exercise_data = cStringIO.StringIO(body)
@@ -639,13 +652,16 @@ class AnalyticsExecution(object):
         
         # MECHANICAL STRESS
         # load model
-        ms_path = 'ms_trainmodel.pkl'
-        with open(ms_path, "rb") as f:
-            mstress_fit = pickle.load(f)
-        x = prepareData(self.data, False)
+        ms_obj = s3.Bucket(cont_models).Object('ms_trainmodel.pkl')
+        ms_fileobj = ms_obj.get()
+        ms_body = ms_fileobj["Body"].read()
+        
+        # we're reading the first model on the list, there are multiple
+        mstress_fit = pickle.loads(ms_body) 
+        ms_data = prepareData(self.data, False)
         
         # calculate mechanical stress
-        self.data.mech_stress = mstress_fit.predict(x).reshape(-1,1)
+        self.data.mech_stress = mstress_fit.predict(ms_data).reshape(-1,1)
         
         print 'DONE WITH MECH STRESS!'   
         
