@@ -9,8 +9,26 @@ import numpy as np
 from sklearn.decomposition import PCA
 from createFeaturesIED import create_window, create_labels
 from sklearn.ensemble import RandomForestClassifier
-import pickle
+from sklearn import preprocessing
 import pandas as pd
+
+
+def _encoding_labels(labels):
+    """
+    Encode the exercise_id to categorical values.
+    
+    Args: 
+        labels: an array of the exercise ids
+        
+    Returns:
+        label_encoded_model: the fitted label encoded model
+    """
+    
+    le = preprocessing.LabelEncoder()  # calling the label encode function
+    label_encoded_model = le.fit(labels.reshape(-1,))  # fitting the labels
+    # to categorical values
+    
+    return label_encoded_model
 
 
 def _split_lf_hip_rf(data, training):
@@ -49,7 +67,7 @@ def _split_lf_hip_rf(data, training):
                         .copy())
         rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']]\
                         .copy())
-        labels = np.array(data['ActivityID'].copy())
+        labels = np.array(data['ExerciseID'].copy())
         
         return hz, lfoot, hipp, rfoot, labels
     
@@ -107,6 +125,7 @@ def preprocess_ied(data, training = False):
         combined_feature_matrix: features obtained from the different signals
         if training == True:
             lab: exercise ID when training the IED model
+            encoded_model: encoded label model
     """
     
     # Convert data to pandas dataframe
@@ -188,9 +207,13 @@ def preprocess_ied(data, training = False):
                                               hip_feature_matrix), axis = 1)
     
     if training == True:
-        lab = create_labels(labels, window_samples, overlap_samples, 
+        encoded_model = _encoding_labels(labels)  # create the encoded
+        # label  model
+        encoded_labels = encoded_model.transform(labels.reshape(-1,))  
+        # converting the exercise ids to the categorical values
+        lab = create_labels(encoded_labels, window_samples, overlap_samples, 
                             label_thresh)
-        return combined_feature_matrix, lab
+        return combined_feature_matrix, lab, encoded_model
     else:
         return combined_feature_matrix
 
@@ -204,11 +227,13 @@ def train_ied(data):
         data: sensor data
         
     Returns:
-        fit: trained IED model
+        trained_ied_model: trained IED model
+        label_encoded_model: encoded label data
     """
     
     # create the feature matrix and labels for the window 
-    combined_feature_matrix, lab = preprocess_ied(data)
+    combined_feature_matrix, lab, label_encoded_model = preprocess_ied(data,
+                                                                       True)
     traincombined_feature_matrix = combined_feature_matrix
     train_lab = lab
     
@@ -216,10 +241,10 @@ def train_ied(data):
     clf = RandomForestClassifier(n_estimators = 20, max_depth = 10, 
                                  criterion = 'entropy', max_features='auto', 
                                  random_state = 1, n_jobs = -1)    
-    fit = clf.fit(traincombined_feature_matrix, 
+    trained_ied_model = clf.fit(traincombined_feature_matrix, 
                   train_lab.reshape((len(train_lab),)))
                   
-    return fit
+    return trained_ied_model, label_encoded_model
     
         
 def mapping_labels_on_data(predicted_labels, len_data):
