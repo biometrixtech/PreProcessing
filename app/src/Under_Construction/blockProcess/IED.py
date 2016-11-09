@@ -153,6 +153,8 @@ def preprocess_ied(data, training = False):
     df['ReY'] = data.ReY
     df['ReZ'] = data.ReZ
     
+    df['exercise_id'] = data.exercise_id
+    
     # split sampling rate, hip data, left foot data and right foot data
     if training == False:
         hz, lfoot, hipp, rfoot = _split_lf_hip_rf(df, training)
