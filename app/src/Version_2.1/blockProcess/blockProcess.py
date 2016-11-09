@@ -5,6 +5,8 @@ import urllib
 import boto3
 import logging
 import cStringIO
+import zipfile as zf
+
 import runAnalytics as ra
 
 
@@ -30,8 +32,13 @@ def lambda_handler(event, context):
         body = fileobj["Body"].read()
         logger.info('Read Content')        
         content = cStringIO.StringIO(body)
-        logger.info('Converted Content')          
-        result = ra.AnalyticsExecution(content, key).result
+        logger.info('Converted Content')
+        zipped = zf.ZipFile(content)
+        name = zipped.namelist()[0]
+        unzipped_content = cStringIO.StringIO()
+        unzipped_content = zipped.open(name)
+        logger.info('Unzipped File')          
+        result = ra.AnalyticsExecution(unzipped_content, key).result
         logger.info('outcome:' + result)
         #response = s3.get_object(Bucket=bucket, Key=key)
         #logger.info("CONTENT TYPE: " + response['ContentType'])
