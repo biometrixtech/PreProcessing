@@ -257,7 +257,7 @@ class TrainingExecution(object): #Abstract setUp class
         # if recording period too short, throw error
         if len(self.data.HaX)<2000:
             msg = "Exercise duration too short"
-            r_push_data = {"action":"run_ression_calibration"}
+            r_push_data = {"action":"run_session_calibration"}
             user_id = user_id
             self.result = "Fail!"
             
@@ -296,6 +296,7 @@ class TrainingExecution(object): #Abstract setUp class
                 self.data.feet_eliminated = matrib.double_or_single_leg(
                 self.data.phase_l,self.data.phase_r,self.data.standing,hz)
           
+            # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLE ANALYSIS
             # process instantaneous accel values to give meaning for whole 
                 # activity
             _tot_acc_without_nans = np.nan_to_num(self.data.total_accel)
