@@ -7,7 +7,7 @@ Created on Fri Oct 14 13:45:56 2016
 
 import numpy as np
 import pickle
-#import sys
+import sys
 #import re
 import psycopg2
 import sys
@@ -105,7 +105,8 @@ class AnalyticsExecution(object):
         quer_read_block_ids = """select id, block_id from block_events
                                  where sensor_data_filename = (%s)"""
         
-        quer_read_ids = 'select * from fn_get_all_ids_from_block_event_id((%s))'
+        quer_read_ids = """select * from 
+                        fn_get_all_ids_from_block_event_id((%s))"""
         
         quer_read_offsets = """select hip_n_transform, hip_bf_transform,
             lf_n_transform, lf_bf_transform,
@@ -144,7 +145,7 @@ class AnalyticsExecution(object):
         
         #Read exercise_ids associated witht the block
         cur.execute(quer_read_exercise_ids, (block_id,))
-        exercise_ids = np.array(cur.fetchall())
+        exercise_ids = np.array(cur.fetchall()).reshape(-1,)
         
         #Read transformation offset values
         cur.execute(quer_read_offsets, (file_name,))
@@ -168,7 +169,8 @@ class AnalyticsExecution(object):
                                     .reshape(-1,1)
         self.data.training_session_log_id = np.array([ids[4]]*len(sdata))\
                                             .reshape(-1,1)
-        self.data.session_event_id = np.array([ids[5]]*len(sdata)).reshape(-1,1)
+        self.data.session_event_id = np.array([ids[5]]\
+                                               *len(sdata)).reshape(-1,1)
         self.data.session_type = np.array([ids[6]]*len(sdata)).reshape(-1,1)
         self.data.exercise_id = np.array(['']*len(sdata)).reshape(-1,1)
         
@@ -274,7 +276,7 @@ class AnalyticsExecution(object):
         rf_bf_transform = np.array(offsets_read[5]).reshape(-1,1)
             
         # use transform values to adjust coordinate frame of all block data
-        _transformed_data, neutral_data= coord.transformData(self.data, 
+        _transformed_data, neutral_data= coord.transform_data(self.data, 
             hip_bf_transform,lf_bf_transform,rf_bf_transform,lf_n_transform,
             rf_n_transform, hip_n_transform)
         
@@ -328,7 +330,7 @@ class AnalyticsExecution(object):
         
         # CONTROL SCORE
         self.data.control, self.data.hip_control, self.data.ankle_control, \
-            self.data.l_control, self.data.r_control = controlScore(
+            self.data.l_control, self.data.r_control = control_score(
             self.data.LeX, self.data.ReX, self.data.HeX, self.data.ms_elapsed)
         
         logger.info('DONE WITH CONTROL SCORES!')  
@@ -353,7 +355,7 @@ class AnalyticsExecution(object):
         logger.info('DONE WITH IAD!')
         
         # save sensor data before subsetting
-        sensor_data = ct.createSensorData(len(self.data.LaX), self.data)
+        sensor_data = ct.create_sensor_data(len(self.data.LaX), self.data)
         sensor_data_pd = pd.DataFrame(sensor_data)
         fileobj = cStringIO.StringIO()
         sensor_data_pd.to_csv(fileobj,index = False)
@@ -460,7 +462,7 @@ class AnalyticsExecution(object):
         self.data.lat,self.data.vert,self.data.horz,self.data.rot,\
             self.data.lat_binary,self.data.vert_binary,self.data.horz_binary,\
             self.data.rot_binary,self.data.stationary_binary,\
-            self.data.total_accel = matrib.planeAnalysis(hip_acc,hip_eul,hz)
+            self.data.total_accel = matrib.plane_analysis(hip_acc,hip_eul,hz)
         
         # analyze stance
         self.data.standing,self.data.not_standing \
@@ -482,12 +484,14 @@ class AnalyticsExecution(object):
         if model_result[0][1]==None:
            train=True
            update = False
+           exercise_id_combinations = ['a']
         else:
-           exercise_id_combinations = np.array(model_result[0][0]).reshape(-1,1)
+           exercise_id_combinations = np.array(
+                                           model_result[0][0]).reshape(-1,1)
            ied_model = pickle.loads(model_result[0][1][:])
            ied_label_model = pickle.loads(model_result[0][2][:])
        
-       #Check if the block has changed
+        #Check if the block has changed
         if set(exercise_id_combinations) == set(exercise_ids):
            train = False
         else:
@@ -495,8 +499,8 @@ class AnalyticsExecution(object):
            update = True
        
         if train:
-            quer_get_filenames = """select exercise_id, sensor_data_filename from 
-                                training_events where exercise_id in %s"""
+            quer_get_filenames = """select exercise_id, sensor_data_filename 
+                                from training_events where exercise_id in %s"""
             exercises = tuple(exercise_ids.reshape(-1,).tolist())
             cur.execute(quer_get_filenames, (exercises,))
             out = cur.fetchall()
@@ -520,14 +524,14 @@ class AnalyticsExecution(object):
                     i+=1
                         
             ied_model, ied_label_model = IED.train_ied(block_data)
-            ied_features = IED.preprocess_ied(block_data)
+            ied_features = IED.preprocess_ied(self.data)
             ied_labels = ied_model.predict(ied_features)
             ied_exercise_id = IED.mapping_labels_on_data(ied_labels,
-                                                         len(block_data))\
+                                                         len(self.data.LaX))\
                                                          .astype(int)
             self.data.exercise_id = ied_label_model.inverse_transform(
                                                      ied_exercise_id)
-                                                     
+
 #            if update:
 #                quer = """update exercise_training_models set 
 #                            exercise_id_combinations = (%s),
@@ -555,11 +559,12 @@ class AnalyticsExecution(object):
             # predict exercise ID
             ied_features = IED.preprocess_ied(self.data, training = False)
             ied_labels = ied_model.predict(ied_features)
-            ied_exercise_id = IED.mapping_labels_on_data(ied_labels, len(
-                                                     self.data.LaX)).astype(int)
+            ied_exercise_id = IED.mapping_labels_on_data(ied_labels, 
+                                                         len(self.data.LaX
+                                                         )).astype(int)
             self.data.exercise_id = ied_label_model.inverse_transform(
                                                      ied_exercise_id)
-        
+        conn.close()
         logger.info('DONE WITH IED!')
         
         # MOVEMENT QUALITY FEATURES
@@ -575,9 +580,9 @@ class AnalyticsExecution(object):
         rf_euler = np.empty((len(self.data.LaX),3))
     
         for i in range(len(hip_neutral)):
-            hip_euler[i] = qc.q2eul(hip_neutral[i].tolist())
-            lf_euler[i] = qc.q2eul(lf_neutral[i].tolist())
-            rf_euler[i] = qc.q2eul(rf_neutral[i].tolist())
+            hip_euler[i] = qc.quat_to_euler(hip_neutral[i])
+            lf_euler[i] = qc.quat_to_euler(lf_neutral[i])
+            rf_euler[i] = qc.quat_to_euler(rf_neutral[i])
             
         self.data.hip_euler = hip_euler
         
@@ -622,18 +627,17 @@ class AnalyticsExecution(object):
         # define dictionary for msElapsed
         
         # landing time attributes
-        self.n_landtime = impact.sync_time(self.data.phase_r,
+        self.n_landtime, self.ltime_index = impact.sync_time(self.data.phase_r,
                                            self.data.phase_l, hz,
                                            len(self.data.LaX))
-        
         # landing pattern attributes
         if len(self.n_landtime) != 0:
-            self.n_landpattern, landtime_index = impact.landing_pattern(
+            self.n_landpattern = impact.landing_pattern(
                                  self.data.ReY, 
                                  self.data.LeY, self.n_landtime) 
             self.land_time, self.land_pattern = impact.continuous_values(
                                  self.n_landpattern, self.n_landtime,
-                                 len(self.data.LaX), landtime_index)
+                                 len(self.data.LaX), self.ltime_index)
             self.data.land_time = self.land_time[:,0].reshape(-1,1)
             self.data.land_pattern_r = self.land_pattern[:,0].reshape(-1,1)
             self.data.land_pattern_l = self.land_pattern[:,1].reshape(-1,1)
@@ -652,7 +656,7 @@ class AnalyticsExecution(object):
         
         # we're reading the first model on the list, there are multiple
         mstress_fit = pickle.loads(ms_body) 
-        ms_data = prepareData(self.data, False)
+        ms_data = prepare_data(self.data, False)
         
         # calculate mechanical stress
         self.data.mech_stress = mstress_fit.predict(ms_data).reshape(-1,1)
@@ -676,12 +680,12 @@ class AnalyticsExecution(object):
         logger.info('DONE WITH EVERYTHING!')
         
         # combine into movement data table 
-        movement_data = ct.createMovementData(len(self.data.LaX), self.data)
+        movement_data = ct.create_movement_data(len(self.data.LaX), self.data)
         movement_data_pd = pd.DataFrame(movement_data)
         fileobj = cStringIO.StringIO()
         movement_data_pd.to_csv(fileobj,index = False)
         fileobj.seek(0)
-        s3.Bucket(cont_write).put_object(Key="processed_"
+        s3.Bucket(cont_write).put_object(Key="movement_"
                                         +file_name,Body=fileobj)
         
 
@@ -690,7 +694,8 @@ if __name__ == "__main__":
     import time
     import pandas as pd
     import os
-    mov_data = AnalyticsExecution('trainingset_sngllegsqt.csv', '53a803ac-514d-43c9-950c-a7cacdd1a057')
+    mov_data = AnalyticsExecution('trainingset_sngllegsqt.csv', 
+                                  '53a803ac-514d-43c9-950c-a7cacdd1a057')
 #    import re
 #    import sys
 #    f = "data\\team1_Subj3_practice.csv"

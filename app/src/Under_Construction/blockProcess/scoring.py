@@ -289,7 +289,6 @@ def _ankle(aRL,aRR,lPL,lPR,lT,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT):
         scores_tim = np.vstack([score_tim_l, score_tim_r])
         ankle_tim_score = np.nanmean(scores_tim,0)
                             
-    print ankle_rot_score.shape, "\n", ankle_pat_score.shape, "\n", ankle_tim_score.shape
     ankle_scores = np.vstack([ankle_rot_score,ankle_pat_score,
                               ankle_tim_score])
     ankle_symmetry = np.nanmean(ankle_scores,0)
