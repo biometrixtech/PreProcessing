@@ -26,7 +26,7 @@ def _computation_imaginary_quat(i_quat):
 
     comp_i_quat = (i_quat/32767.0)**2
 
-    return comp_i_quat
+    return comp_i_quat.reshape(-1, 1)
 
 
 def calc_quaternions(quat_array):
@@ -107,7 +107,7 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
     """
 
     # threshold for acceptable number of consecutive missing values
-    missing_data_thresh = 3
+    MISSING_DATA_THRESH = 3
 
     # where magnetometer corrupt, return 'Fail' notification to user
     if 1 in corrup_magn:
@@ -122,13 +122,13 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
 
             # if missing data crosses threshold, return with error
             if np.any(ran[:, 1].reshape(-1, 1)-ran[:, 0].reshape(-1, 1) \
-                > missing_data_thresh):
+                > MISSING_DATA_THRESH):
 
                 return col_data, ErrorId.missing.value
 
             # if missing data below threshold, impute
             elif np.any(ran[:, 1].reshape(-1, 1) - ran[:, 0].reshape(-1, 1) \
-                <= missing_data_thresh):
+                <= MISSING_DATA_THRESH):
 
                 epoch_time = epoch_time.reshape((-1, 1))
                 col_data = col_data.reshape((-1, 1))
@@ -153,10 +153,10 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
 
 
 #if __name__ == "__main__":
-
+#
 #    import pandas as pd
 #
-#    DATA = pd.read_csv('Subject4_rawData.csv')
+#    data = pd.read_csv('team1_session1_trainingset_anatomicalCalibration.csv')
 #    data.columns = data.columns.str.replace('Timestamp', 'epochtime')
 ##    df.columns = df.columns.str.replace('$','')
 ##    data = np.genfromtxt(data_path, delimiter =',', dtype = float,
@@ -164,12 +164,14 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
 ##    new_data = data.as_matrix()
 ##    new_data1 = data.values
 ##    lq_xyz = data[:,4:7]
-#
+##    print data.shape
 #    # DETERMINE THE REAL PART OF THE QUATERNIONS
 #
 #    # Left foot
 #    lq_xyz = np.array(data.ix[:, ['LqX', 'LqY', 'LqZ']])
 #    lq_wxyz = calc_quaternions(lq_xyz)
+##    lq_wxyz = lq_wxyz.reshape(-1,4)
+#    print lq_wxyz[0]
 #    data.insert(4, 'LqW', lq_wxyz[:, 0], allow_duplicates=False)  # adding the
 #    # real quaternion to the data table
 #    data['LqX'] = pd.Series(lq_wxyz[:, 1])  # adding the re calculated qX
@@ -198,10 +200,10 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
 ##    for i in range(data.shape[0]):
 ##        dummy_time_stamp.append(datetime.datetime.fromtimestamp(
 ##         np.array(data['epoch_time'].ix[i])).strftime('%Y-%m-%d %H:%M:%S.%f'))
-#    e_time, time_elapsed = convert_epochtime_datetime_mselapsed(data['epochtime'])
-#    data.insert(0, 'timestamp', e_time, allow_duplicates=False)  # adding the
+##    e_time, time_elapsed = convert_epochtime_datetime_mselapsed(data['epochtime'])
+##    data.insert(0, 'timestamp', e_time, allow_duplicates=False)  # adding the
 #    # datetime column to the data table
-#    data.insert(2, 'msElapsed', time_elapsed, allow_duplicates=False)
+##    data.insert(2, 'msElapsed', time_elapsed, allow_duplicates=False)
 #    # adding the time elapsed column to the data table
 #
 #    data.to_csv('new_Subject4_Sensor_Data.csv', index=False)

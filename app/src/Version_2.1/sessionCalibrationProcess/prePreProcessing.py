@@ -27,7 +27,7 @@ def _computation_imaginary_quat(i_quat):
 
     comp_i_quat = (i_quat/32767.0)**2
 
-    return comp_i_quat
+    return comp_i_quat.reshape(-1, 1)
 
 
 def calc_quaternions(quat_array):
@@ -112,7 +112,7 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
     """
 
     # threshold for acceptable number of consecutive missing values
-    missing_data_thresh = 3
+    MISSING_DATA_THRESH = 3
 
     # where magnetometer corrupt, return 'Fail' notification to user
     if 1 in corrup_magn:
@@ -127,13 +127,13 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
 
             # if missing data crosses threshold, return with error
             if np.any(ran[:, 1].reshape(-1, 1)-ran[:, 0].reshape(-1, 1) \
-                > missing_data_thresh):
+                > MISSING_DATA_THRESH):
 
                 return col_data, ErrorId.missing.value
 
             # if missing data below threshold, impute
             elif np.any(ran[:, 1].reshape(-1, 1) - ran[:, 0].reshape(-1, 1) \
-                <= missing_data_thresh):
+                <= MISSING_DATA_THRESH):
 
                 epoch_time = epoch_time.reshape((-1, 1))
                 col_data = col_data.reshape((-1, 1))

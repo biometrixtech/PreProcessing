@@ -25,7 +25,7 @@ def _computation_imaginary_quat(i_quat):
     """
     comp_i_quat = (i_quat/32767.0)**2
 
-    return comp_i_quat.reshape(-1,1)
+    return comp_i_quat.reshape(-1, 1)
 
 
 def calc_quaternions(quat_array):
@@ -138,7 +138,7 @@ def handling_missing_data(obj_data):
 
     # INITIALIZING VALUES
     # threshold for acceptable number of consecutive missing values
-    missing_data_thresh = 3
+    MISSING_DATA_THRESH = 3
     # arrays to check for missing data in left, hip, and right sensors
     missing_data_indicator_l = np.array(['N']*len(obj_data.LaX))
     missing_data_indicator_h = np.array(['N']*len(obj_data.LaX))
@@ -150,10 +150,10 @@ def handling_missing_data(obj_data):
     r_l = _zero_runs(obj_data.LaX)
     if r_l.shape[0] != 0:
         for i in range(len(r_l[np.where(r_l[:, 1]-r_l[:, 0] \
-        > missing_data_thresh)[0], 1])):
+        > MISSING_DATA_THRESH)[0], 1])):
             missing_data_indicator_l[r_l[np.where(r_l[:, 1]-r_l[:, 0] \
-            > missing_data_thresh)[0][i], 0]:r_l[np.where(r_l[:, 1]-r_l[:, 0] \
-            > missing_data_thresh)[0][i], 1]] = 'L'  # adding 'L' if the
+            > MISSING_DATA_THRESH)[0][i], 0]:r_l[np.where(r_l[:, 1]-r_l[:, 0] \
+            > MISSING_DATA_THRESH)[0][i], 1]] = 'L'  # adding 'L' if the
             # threshold is surpassed
 
     # Checking if the number of consecutive missing values for the hip sensor
@@ -161,10 +161,10 @@ def handling_missing_data(obj_data):
     r_h = _zero_runs(obj_data.HaX)
     if r_h.shape[0] != 0:
         for i in range(len(r_h[np.where(r_h[:, 1]-r_h[:, 0] \
-        > missing_data_thresh)[0], 1])):
+        > MISSING_DATA_THRESH)[0], 1])):
             missing_data_indicator_h[r_h[np.where(r_h[:, 1]-r_h[:, 0] \
-            > missing_data_thresh)[0][i], 0]:r_h[np.where(r_h[:, 1]-r_h[:, 0] \
-            > missing_data_thresh)[0][i], 1]] = 'H'  # adding 'H' if the
+            > MISSING_DATA_THRESH)[0][i], 0]:r_h[np.where(r_h[:, 1]-r_h[:, 0] \
+            > MISSING_DATA_THRESH)[0][i], 1]] = 'H'  # adding 'H' if the
             # threshold is surpassed
 
     # Checking if the number of consecutive missing values for the right foot
@@ -172,10 +172,10 @@ def handling_missing_data(obj_data):
     r_r = _zero_runs(obj_data.RaX)
     if r_r.shape[0] != 0:
         for i in range(len(r_r[np.where(r_r[:, 1]-r_r[:, 0] \
-        > missing_data_thresh)[0], 1])):
+        > MISSING_DATA_THRESH)[0], 1])):
             missing_data_indicator_r[r_r[np.where(r_r[:, 1]-r_r[:, 0] \
-            > missing_data_thresh)[0][i], 0]:r_r[np.where(r_r[:, 1]-r_r[:, 0] \
-            > missing_data_thresh)[0][i], 1]] = 'R'  # adding 'R' if the
+            > MISSING_DATA_THRESH)[0][i], 0]:r_r[np.where(r_r[:, 1]-r_r[:, 0] \
+            > MISSING_DATA_THRESH)[0][i], 1]] = 'R'  # adding 'R' if the
             # threshold is surpassed
 
     # all columns from the sensor data
@@ -197,7 +197,7 @@ def handling_missing_data(obj_data):
 
             for j in range(len(ran)):
 
-                if ran[j, 1] - ran[j, 0] <= missing_data_thresh:
+                if ran[j, 1] - ran[j, 0] <= MISSING_DATA_THRESH:
                     y_new = interpolate.splev(epoch_time[ran[j, 0]:ran[j, 1]],
                                               interp,
                                               der=0)  # Imputing missing values
