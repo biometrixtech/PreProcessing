@@ -68,7 +68,7 @@ def _split_lf_hip_rf(data, training):
                         .copy())
         rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']]\
                         .copy())
-        labels = np.array(data['ExerciseID'].copy())
+        labels = np.array(data['exercise_id'].copy())
         
         return hz, lfoot, hipp, rfoot, labels
     
@@ -152,6 +152,8 @@ def preprocess_ied(data, training = False):
     df['ReX'] = data.ReX
     df['ReY'] = data.ReY
     df['ReZ'] = data.ReZ
+    
+    df['exercise_id'] = data.exercise_id
     
     # split sampling rate, hip data, left foot data and right foot data
     if training == False:
