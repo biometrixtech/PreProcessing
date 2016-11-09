@@ -6,6 +6,7 @@ Created on Fri Oct 14 13:45:56 2016
 """
 
 import numpy as np
+import pandas as pd
 import pickle
 import sys
 #import re
@@ -668,7 +669,13 @@ class AnalyticsExecution(object):
         # Symmetry, Consistency, Destructive/Constructive Multiplier and 
             # Block Duration
             # At this point we need to load the historical data for the subject
-        userDB = pd.read_csv("subject3_DblSquat_hist.csv")
+        obj = s3.Bucket(cont_write).Object('subject3_DblSquat_hist.csv')
+        fileobj = obj.get()
+        body = fileobj["Body"].read()
+        hist_data = cStringIO.StringIO(body)        
+        
+        userDB = pd.read_csv(hist_data)
+        logger.info("user history captured")
         self.data.consistency, self.data.hip_consistency, \
             self.data.ankle_consistency, self.data.l_consistency, \
             self.data.r_consistency, self.data.symmetry, \
