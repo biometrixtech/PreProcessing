@@ -8,7 +8,7 @@ Created on Fri Oct 14 13:45:56 2016
 import numpy as np
 import pickle
 #import sys
-import re
+#import re
 import psycopg2
 import sys
 import boto3
@@ -150,13 +150,6 @@ class AnalyticsExecution(object):
         cur.execute(quer_read_offsets, (file_name,))
         logger.info("Reading Offsets")
         offsets_read = cur.fetchall()[0]
-        hip_n_transform = np.array(offsets_read[0]).reshape(-1,1)
-        hip_bf_transform = np.array(offsets_read[1]).reshape(-1,1)
-        lf_n_transform = np.array(offsets_read[2]).reshape(-1,1)
-        lf_bf_transform = np.array(offsets_read[3]).reshape(-1,1)
-        rf_n_transform = np.array(offsets_read[4]).reshape(-1,1)
-        rf_bf_transform = np.array(offsets_read[5]).reshape(-1,1)
-        logger.info("Done!")
         
         # read sensor data as ndarray
         sdata = np.genfromtxt(sensor_data + ".csv", dtype=float, delimiter=',', 
@@ -274,15 +267,17 @@ class AnalyticsExecution(object):
         self.data.RqZ = ppp.handling_missing_data(self.data.epoch_time,
                                                   self.data.RqZ)
         
-        print 'DONE WITH PRE-PRE-PROCESSING!'    
+        logger.info('DONE WITH PRE-PRE-PROCESSING!')  
     
         # COORDINATE FRAME TRANSFORMATION
     
         # pull relevant transform offset values from SessionCalibrationEvent
-        calib_file = "regularCalib\\"+calib_ + 'regularCalib.pkl'
-        with open(calib_file, "rb") as f:
-            hip_bf_transform,lf_bf_transform,rf_bf_transform,lf_n_transform,\
-            rf_n_transform,hip_n_transform = pickle.load(f)
+        hip_n_transform = np.array(offsets_read[0]).reshape(-1,1)
+        hip_bf_transform = np.array(offsets_read[1]).reshape(-1,1)
+        lf_n_transform = np.array(offsets_read[2]).reshape(-1,1)
+        lf_bf_transform = np.array(offsets_read[3]).reshape(-1,1)
+        rf_n_transform = np.array(offsets_read[4]).reshape(-1,1)
+        rf_bf_transform = np.array(offsets_read[5]).reshape(-1,1)
             
         # use transform values to adjust coordinate frame of all block data
         _transformed_data, neutral_data= coord.transformData(self.data, 
@@ -326,7 +321,7 @@ class AnalyticsExecution(object):
         self.data.RqY = _transformed_data[:,29].reshape(-1,1)  
         self.data.RqZ = _transformed_data[:,30].reshape(-1,1)
         
-        print 'DONE WITH COORDINATE FRAME TRANSFORMATION!'
+        logger.info('DONE WITH COORDINATE FRAME TRANSFORMATION!')
        
         # define sampling rate
         hz = 250       
@@ -335,14 +330,14 @@ class AnalyticsExecution(object):
         self.data.phase_l, self.data.phase_r = phase.combine_phase(
                                             self.data.LaZ, self.data.RaZ, hz)
 
-        print 'DONE WITH PHASE DETECTION!'
+        logger.info('DONE WITH PHASE DETECTION!')
         
         # CONTROL SCORE
         self.data.control, self.data.hip_control, self.data.ankle_control, \
             self.data.l_control, self.data.r_control = controlScore(
             self.data.LeX, self.data.ReX, self.data.HeX, self.data.ms_elapsed)
         
-        print 'DONE WITH CONTROL SCORES!'  
+        logger.info('DONE WITH CONTROL SCORES!')  
 
         # INTELLIGENT ACTIVITY DETECTION (IAD)
         # load model
@@ -361,16 +356,13 @@ class AnalyticsExecution(object):
                                             iad_predicted_labels, 
                                             len(self.data.LaX)).reshape(-1,1)
    
-        print 'DONE WITH IAD!'
+        logger.info('DONE WITH IAD!')
         
         # save sensor data before subsetting
         sensor_data = ct.createSensorData(len(self.data.LaX), self.data)
         sensor_data_pd = pd.DataFrame(sensor_data)
-        sensor_data_pd.to_csv("processed_"+file_name, index = False)
-
-        data_pd = pd.read_csv("processed_"+file_name)
         fileobj = cStringIO.StringIO()
-        data_pd.to_csv(fileobj,index = False)
+        sensor_data_pd.to_csv(fileobj,index = False)
         fileobj.seek(0)
         s3.Bucket(cont_write).put_object(Key="processed_"
                                         +file_name,Body=fileobj)
@@ -459,7 +451,7 @@ class AnalyticsExecution(object):
 #                
 #        self.data.activity_id = self.data.activity_id[self.data.activity_id==1]
 
-        print 'DONE SUBSETTING DATA FOR ACTIVITY ID = 1!'
+#        logger.info('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!')
         
         # set observation index
         self.data.obs_index = (np.array(range(len(self.data.LaX)))\
@@ -486,7 +478,7 @@ class AnalyticsExecution(object):
             = matrib.stationary_or_dynamic(self.data.phase_l,\
                                     self.data.phase_r,self.data.single_leg,hz)
 
-        print 'DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!'
+        logger.info('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
        
         # INTELLIGENT EXERCISE DETECTION (IED)
         #Read IED models from database
@@ -542,27 +534,27 @@ class AnalyticsExecution(object):
             self.data.exercise_id = ied_label_model.inverse_transform(
                                                      ied_exercise_id)
                                                      
-            if update:
-                quer = """update exercise_training_models set 
-                            exercise_id_combinations = (%s),
-                            model_file = (%s),
-                            label_encoding_model_file = (%s)
-                            where block_id = (%s)
-                        """
-                exercise_ids = exercise_ids.reshape(-1,).tolist()
-                ser_ied_model = pickle.dumps(ied_model, 2)
-                ser_label_model = pickle.dumps(ied_label_model, 2)
-                cur.execute(quer, (exercise_ids,
-                                   psycopg2.Binary(ser_ied_model),
-                                    psycopg2.Binary(ser_label_model),
-                                    block_id))
-            else:
-                quer = """insert into exercise_training_models set 
-                            exercise_id_combinations = (%s),
-                            model_file = (%s),
-                            label_encoding_model_file = (%s)
-                            where block_id = (%s)
-                        """
+#            if update:
+#                quer = """update exercise_training_models set 
+#                            exercise_id_combinations = (%s),
+#                            model_file = (%s),
+#                            label_encoding_model_file = (%s)
+#                            where block_id = (%s)
+#                        """
+#                exercise_ids = exercise_ids.reshape(-1,).tolist()
+#                ser_ied_model = pickle.dumps(ied_model, 2)
+#                ser_label_model = pickle.dumps(ied_label_model, 2)
+#                cur.execute(quer, (exercise_ids,
+#                                   psycopg2.Binary(ser_ied_model),
+#                                    psycopg2.Binary(ser_label_model),
+#                                    block_id))
+#            else:
+#                quer = """insert into exercise_training_models set 
+#                            exercise_id_combinations = (%s),
+#                            model_file = (%s),
+#                            label_encoding_model_file = (%s)
+#                            where block_id = (%s)
+#                        """
                 
                                     
         else:        
@@ -574,7 +566,7 @@ class AnalyticsExecution(object):
             self.data.exercise_id = ied_label_model.inverse_transform(
                                                      ied_exercise_id)
         
-        print 'DONE WITH IED!'
+        logger.info('DONE WITH IED!')
         
         # MOVEMENT QUALITY FEATURES
         
@@ -630,7 +622,7 @@ class AnalyticsExecution(object):
         self.data.hip_rot = self.cont_hiprot[:,1].reshape(-1,1)
         self.data.hip_rot = self.data.hip_rot*-1 # fix so clockwise > 0
         
-        print 'DONE WITH BALANCE CME!'
+        logger.info('DONE WITH BALANCE CME!')
 
         # IMPACT CME    
         # define dictionary for msElapsed
@@ -656,7 +648,7 @@ class AnalyticsExecution(object):
             self.data.land_pattern_l = np.zeros((len(self.data.LaX),1))*np.nan
             self.data.land_pattern_r = np.zeros((len(self.data.LaX),1))*np.nan        
 
-        print 'DONE WITH IMPACT CME!'
+        logger.info('DONE WITH IMPACT CME!')
         
         # MECHANICAL STRESS
         # load model
@@ -671,13 +663,12 @@ class AnalyticsExecution(object):
         # calculate mechanical stress
         self.data.mech_stress = mstress_fit.predict(ms_data).reshape(-1,1)
         
-        print 'DONE WITH MECH STRESS!'   
+        logger.info('DONE WITH MECH STRESS!') 
         
         # SCORING
         # Symmetry, Consistency, Destructive/Constructive Multiplier and 
             # Block Duration
             # At this point we need to load the historical data for the subject
-        s = time.time()
         userDB = pd.read_csv("subject3_DblSquat_hist.csv")
         self.data.consistency, self.data.hip_consistency, \
             self.data.ankle_consistency, self.data.l_consistency, \
@@ -687,15 +678,17 @@ class AnalyticsExecution(object):
             self.data.const_mech_stress, self.data.block_duration, \
             self.data.session_duration, self.data.block_mech_stress_elapsed, \
             self.data.session_mech_stress_elapsed = score(self.data,userDB) 
-            
-        print "scoring took", time.time()- s  
         
-        print 'DONE WITH EVERYTHING!' 
+        logger.info('DONE WITH EVERYTHING!')
         
         # combine into movement data table 
         movement_data = ct.createMovementData(len(self.data.LaX), self.data)
         movement_data_pd = pd.DataFrame(movement_data)
-        movement_data_pd.to_csv(path+"_movement_data.csv", index = False)
+        fileobj = cStringIO.StringIO()
+        movement_data_pd.to_csv(fileobj,index = False)
+        fileobj.seek(0)
+        s3.Bucket(cont_write).put_object(Key="processed_"
+                                        +file_name,Body=fileobj)
         
 
 if __name__ == "__main__":
@@ -703,18 +696,20 @@ if __name__ == "__main__":
     import time
     import pandas as pd
     import os
+    mov_data = AnalyticsExecution('trainingset_sngllegsqt.csv', '53a803ac-514d-43c9-950c-a7cacdd1a057')
 #    import re
 #    import sys
 #    f = "data\\team1_Subj3_practice.csv"
 #    movement_var = analytics_execution(f)
-    file_paths = os.listdir("data")
-#    print file_paths
-    for f in file_paths:
-        start_time = time.time()
-        f = "data\\"+f
-#        print f
-        movement_var = analytics_execution(f)
-        print "My program took", time.time() - start_time, "to run" 
+#    file_paths = os.listdir("data")
+##    print file_paths
+#    for f in file_paths:
+#        start_time = time.time()
+#        f = "data\\"+f
+##        print f
+#        movement_var = analytics_execution(f)
+#        print "My program took", time.time() - start_time, "to run"
+    
 #    print calibration_files
 #    sys.path.append('..\\anatomical execution\\lambda1')
 #    import runSpecialFeet as rs
