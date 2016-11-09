@@ -14,7 +14,7 @@ def _computation_imaginary_quat(i_quat):
     """
     Compute the imaginary quaternions to implement in the computation to
     determine the real quaternion.
-    
+
     Args: 
         i_quat: imaginary quaternion
         
