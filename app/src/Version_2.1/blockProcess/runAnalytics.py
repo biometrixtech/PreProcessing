@@ -10,7 +10,7 @@ import pickle
 import sys
 #import re
 import psycopg2
-import sys
+#import sys
 import boto3
 import cStringIO
 import logging
