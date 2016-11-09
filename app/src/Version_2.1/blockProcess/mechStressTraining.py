@@ -7,13 +7,13 @@ Created on Fri Oct 14 11:57:32 2016
 
 
 from __future__ import division
+import pickle
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
-import pickle
 
 
-def prepare_data(data, train = True):
+def prepare_data(data, train=True):
     """Subsets and transforms the training data as well as define features
     to be used
     Args:
@@ -47,18 +47,18 @@ def prepare_data(data, train = True):
     data_pd['HeY'] = np.array(data.HeY)
     data_pd['HeZ'] = np.array(data.HeZ)
     
-    total_columns = ['LaX', 'LaY', 'LaZ','RaX', 'RaY', 'RaZ','HaX','HaY', 'HaZ',
-                     'LeX', 'LeY', 'LeZ','ReX', 'ReY', 'ReZ','HeX','HeY', 'HeZ']
+    total_column = ['LaX', 'LaY', 'LaZ','RaX', 'RaY', 'RaZ', 'HaX','HaY', 'HaZ',
+                    'LeX', 'LeY', 'LeZ','ReX', 'ReY', 'ReZ', 'HeX','HeY', 'HeZ']
     
-    X = data_pd[total_columns].values
-    if train==True:
+    X = data_pd[total_column].values
+    if train:
         data_pd['totalLoad'] = np.array(data.LFz) + np.array(data.RFz)
         Y = data_pd['totalLoad'].values
         return X, Y
     else:
         return X
     
-def modelFit(X,Y):
+def _model_fit(X, Y):
     """Fits Gradient boosting regressor on the training data and returns the
     fit object
 
@@ -69,13 +69,13 @@ def modelFit(X,Y):
         Fitted model
     """
     params = {'n_estimators': 1000, 'max_depth': 4, 'min_samples_split': 1,
-          'learning_rate': 0.01, 'loss': 'lad'}
+              'learning_rate': 0.01, 'loss': 'lad'}
     slr = GradientBoostingRegressor(**params)    
-    fit = slr.fit(X,Y)
-    
+    fit = slr.fit(X, Y)
+
     return fit
 
-def trainModel(data, path):
+def train_model(data, path):
     """Run the model training and model fit to pickle
     Args:
         data: 
@@ -86,29 +86,29 @@ def trainModel(data, path):
     
     """
     
-    X,Y = prepare_data(data)
-    fit = modelFit(X,Y)
+    X, Y = prepare_data(data)
+    fit = _model_fit(X, Y)
     
-    with open(path, 'wb') as f:
-        pickle.dump(fit, f)
+    with open(path, 'wb') as file_path:
+        pickle.dump(fit, file_path)
     
-if __name__ =='__main__':
-    import matplotlib.pyplot as plt
-    import os
-    import numpy as np
+if __name__ == '__main__':
+#    import matplotlib.pyplot as plt
+#    import os
+#    import numpy as np
     import time
 #    os.chdir('C:\\Users\\dipesh\\Desktop\\biometrix\\python_scripts')
     from phaseDetection import combine_phase
     path = 'C:\\Users\\dipesh\\Desktop\\biometrix\\'
-    data0 = np.genfromtxt(path+"combined\\sensor&grfdata.csv", delimiter = ",",
-                          names = True)
+    data0 = np.genfromtxt(path+"combined\\sensor&grfdata.csv", delimiter=",",
+                          names=True)
     sampl_rate = 250
     lf_phase, rf_phase = combine_phase(data0['LaZ'], data0['RaZ'], sampl_rate)
     data = pd.DataFrame(data0)
     data['phase_l'] = lf_phase
     data['phase_r'] = rf_phase
     s = time.time()
-    trainModel(data, path+"ms_trainmodel.pkl")
+    train_model(data, path+"ms_trainmodel.pkl")
     print "it took", time.time()-s, "to train the model"
 #    with open(path + "fittedModel.pkl") as f:
 #        fit = pickle.load(f)
