@@ -77,7 +77,7 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
     return feature_vector
     
     
-def createWindow(s, fs, window_samples, overlap_samples, prom_mpd, prom_mph, 
+def create_window(s, fs, window_samples, overlap_samples, prom_mpd, prom_mph, 
                  prom_peak_thresh, weak_mpd, weak_mph, weak_peak_thresh):
                      
     """
@@ -119,7 +119,7 @@ def createWindow(s, fs, window_samples, overlap_samples, prom_mpd, prom_mph,
     return feature_matrix
 
 
-def createLabels(labels, window_samples, overlap_samples, label_thresh):
+def create_labels(labels, window_samples, overlap_samples, label_thresh):
     
     """
     Create label for each sampling window.
