@@ -10,6 +10,23 @@ import datetime
 from scipy import interpolate
 
 
+def _computation_imaginary_quat(i_quat):
+    """
+    Compute the imaginary quaternions to implement in the computation to
+    determine the real quaternion.
+    
+    Args: 
+        i_quat: imaginary quaternion
+        
+    Returns:
+        comp_i_quat: computed imaginary quaternion to help determine the 
+        real quaternion
+    """
+    comp_i_quat = (i_quat/32767.0)**2
+    
+    return comp_i_quat
+    
+    
 def calc_quaternions(q):
     
     """Calculating the real quaternion.
@@ -21,23 +38,20 @@ def calc_quaternions(q):
         An array of real and imaginary quaternions, qW, qX, qY, qZ.
  
     """
-    all_quaternions = []  # a list to store the real and imaginary quaternions
-    
-    for i in range(len(q)):
         
-        # determine the real and imaginary quaternions and the magnitude
-        qw =  np.sqrt(1-(q[i,0]**2/32767.0)
-            -(q[i,1]**2/32767.0)-(q[i,2]**2/32767.0))  # real quaternion
-        qi = q[i,0]**2/32767.0  # imaginary quaternion
-        qj = q[i,1]**2/32767.0  # imaginary quaternion
-        qk = q[i,2]**2/32767.0  # imaginary quaternion
-        magn = qw**2 + qi**2 + qj**2 + qk**2  # magnitude of the quaternions
-
-        if np.isnan(qw):  # check if the sqrt of qw is not a number
-            all_quaternions.append([0, qi, qj, qk])  # if the sqrt is not 
-                                    #a real number then we assign 0 to qW.
-        else:
-            all_quaternions.append([qw, qi, qj, qk])
+    # determine the real and imaginary quaternions and the magnitude
+    qi = _computation_imaginary_quat(q[:,0])  # imaginary quaternion
+    qj = _computation_imaginary_quat(q[:,1])  # imaginary quaternion
+    qk = _computation_imaginary_quat(q[:,2])  # imaginary quaternion
+    qw =  np.sqrt(1 - qi - qj - qk)  # real quaternion
+    
+    # check if NaN exists in the real quaternion array
+    if np.any(np.isnan(qw)):
+        raise ValueError('Real quaternion cannot be comupted. Cannot \
+        take square root of a negative number.')
+    
+    all_quaternions = np.hstack([qw, qi, qj, qk])  # appending the real
+    # and imaginary quaternions arrays to a single array
             
     return np.array(all_quaternions)
  
