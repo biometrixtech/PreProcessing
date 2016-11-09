@@ -21,12 +21,12 @@ import phaseDetection as phase
 import IAD
 import IED
 import coordinateFrameTransformation as coord
-from mechStressTraining import prepareData
+from mechStressTraining import prepare_data
 import movementAttrib as matrib
 import balanceCME as cmed
 import quatConvs as qc
 import impactCME as impact
-from controlScore import controlScore
+from controlScore import control_score
 from scoring import score
 import createTables as ct
 
@@ -105,7 +105,7 @@ class AnalyticsExecution(object):
         quer_read_block_ids = """select id, block_id from block_events
                                  where sensor_data_filename = (%s)"""
         
-        quer_read_ids = 'select * from fn_block_process_data_from_id((%s))'
+        quer_read_ids = 'select * from fn_get_all_ids_from_block_event_id((%s))'
         
         quer_read_offsets = """select hip_n_transform, hip_bf_transform,
             lf_n_transform, lf_bf_transform,
@@ -140,7 +140,7 @@ class AnalyticsExecution(object):
         
         #Read the required ids given block_event_id
         cur.execute(quer_read_ids, (block_event_id,))
-        ids = cur.fetchall[0]
+        ids = cur.fetchall()[0]
         
         #Read exercise_ids associated witht the block
         cur.execute(quer_read_exercise_ids, (block_id,))
@@ -152,7 +152,7 @@ class AnalyticsExecution(object):
         offsets_read = cur.fetchall()[0]
         
         # read sensor data as ndarray
-        sdata = np.genfromtxt(sensor_data + ".csv", dtype=float, delimiter=',', 
+        sdata = np.genfromtxt(sensor_data, dtype=float, delimiter=',', 
                               names=True) 
 
         columns = sdata.dtype.names        
@@ -228,44 +228,38 @@ class AnalyticsExecution(object):
         
         # check for missing values
         # left
-        self.data.LaX = ppp.handling_missing_data(self.data.epoch_time, 
-                                                  self.data.LaX)
-        self.data.LaY = ppp.handling_missing_data(self.data.epoch_time, 
-                                                  self.data.LaY)
-        self.data.LaZ = ppp.handling_missing_data(self.data.epoch_time, 
-                                                  self.data.LaZ)
-        self.data.LqX = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.LqX)
-        self.data.LqY = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.LqY)
-        self.data.LqZ = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.LqZ)
-        # hip
-        self.data.HaX = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.HaX)
-        self.data.HaY = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.HaY)
-        self.data.HaZ = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.HaZ)
-        self.data.HqX = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.HqX)
-        self.data.HqY = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.HqY)
-        self.data.HqZ = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.HqZ)
-        # right
-        self.data.RaX = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.RaX)
-        self.data.RaY = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.RaY) 
-        self.data.RaZ = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.RaZ)
-        self.data.RqX = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.RqX)
-        self.data.RqY = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.RqY)
-        self.data.RqZ = ppp.handling_missing_data(self.data.epoch_time,
-                                                  self.data.RqZ)
+        self.data = ppp.handling_missing_data(self.data)
+#        self.data.LaY = ppp.handling_missing_data(self.data.LaY)
+#        self.data.LaZ = ppp.handling_missing_data(self.data.LaZ)
+#        self.data.LqX = ppp.handling_missing_data(self.data.LqX)
+#        self.data.LqY = ppp.handling_missing_data(self.data.LqY)
+#        self.data.LqZ = ppp.handling_missing_data(self.data.LqZ)
+#        # hip
+#        self.data.HaX = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.HaX)
+#        self.data.HaY = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.HaY)
+#        self.data.HaZ = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.HaZ)
+#        self.data.HqX = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.HqX)
+#        self.data.HqY = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.HqY)
+#        self.data.HqZ = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.HqZ)
+#        # right
+#        self.data.RaX = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.RaX)
+#        self.data.RaY = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.RaY) 
+#        self.data.RaZ = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.RaZ)
+#        self.data.RqX = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.RqX)
+#        self.data.RqY = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.RqY)
+#        self.data.RqZ = ppp.handling_missing_data(self.data.epoch_time,
+#                                                  self.data.RqZ)
         
         logger.info('DONE WITH PRE-PRE-PROCESSING!')  
     

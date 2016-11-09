@@ -117,11 +117,11 @@ def handling_missing_data(obj_data):
     # Initializing values
     MISSING_DATA_THRESH = 3  # threshold for acceptable number of consecutive 
     # missing values
-    missing_data_indicator_L = np.array(['N']*len(obj_data))  # numpy array to 
+    missing_data_indicator_L = np.array(['N']*len(obj_data.LaX))  # numpy array to 
     # check for missing data in the left foot sensor
-    missing_data_indicator_H = np.array(['N']*len(obj_data))  # numpy array to 
+    missing_data_indicator_H = np.array(['N']*len(obj_data.LaX))  # numpy array to 
     # check for missing data in the hip sensor
-    missing_data_indicator_R = np.array(['N']*len(obj_data))  # numpy array to 
+    missing_data_indicator_R = np.array(['N']*len(obj_data.LaX))  # numpy array to 
     # check for missing data in the right foot sensor
 
     # Checking if the number of consecutive missing values for the left foot 
