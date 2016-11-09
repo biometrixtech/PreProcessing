@@ -54,7 +54,7 @@ def calc_quaternions(q):
     all_quaternions = np.hstack([qw, qi, qj, qk])  # appending the real
     # and imaginary quaternions arrays to a single array
             
-    return np.array(all_quaternions)
+    return all_quaternions
 
     
 def convert_epochtime_datetime_mselapsed(epoch_time):
