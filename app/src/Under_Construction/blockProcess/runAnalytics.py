@@ -30,6 +30,11 @@ from controlScore import controlScore
 from scoring import score
 import createTables as ct
 
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.info('Loading blockProcess')
+
 """
 Block execution script. Used by athletes during block processes. Takes raw 
 block data, processes, and returns analyzed data.
@@ -514,7 +519,7 @@ class AnalyticsExecution(object):
             
             i=0
             for files in sensor_files:
-                obj = s3.Bucket(ied_read).Object('processed_'+files+'.csv')
+                obj = s3.Bucket(ied_read).Object('processed_'+files)
                 fileobj = obj.get()
                 body = fileobj["Body"].read()
                 exercise_data = cStringIO.StringIO(body)
@@ -525,7 +530,7 @@ class AnalyticsExecution(object):
                 else:
                     b_data = pd.read_csv(exercise_data)
                     b_data.exercise_id = exercises[i]
-                    block_data =block_data.append(b_data)
+                    block_data = block_data.append(b_data)
                     i+=1
                         
             ied_model, ied_label_model = IED.train_ied(block_data)
