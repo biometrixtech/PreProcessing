@@ -58,17 +58,17 @@ def control_score(LeX, ReX, HeX, ms_elapsed):
         for k in range(1,m):
             #Check if we're at the end of the list, assign nan and break so 
             #rows without enough data in the future don't get calculated             
-            if (i+j)>=N:
+            if (i+k)>=N:
                 subset_l.append(np.nan)
                 subset_r.append(np.nan)
                 subset_h.append(np.nan)
                 break
             else:
-                forwd += ms_elapsed[i+j]
+                forwd += ms_elapsed[i+k]
                 if forwd<=60:#Append to the list timepoints from future within half the window
-                    subset_l.append(LeX[i+j])
-                    subset_r.append(ReX[i+j])
-                    subset_h.append(HeX[i+j])
+                    subset_l.append(LeX[i+k])
+                    subset_r.append(ReX[i+k])
+                    subset_h.append(HeX[i+k])
                 else:
                     break
         #raw score is the rolling standard deviation
