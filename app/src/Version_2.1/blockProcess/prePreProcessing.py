@@ -25,7 +25,7 @@ def _computation_imaginary_quat(i_quat):
     """
     comp_i_quat = (i_quat/32767.0)**2
 
-    return comp_i_quat
+    return comp_i_quat.reshape(-1,1)
 
 
 def calc_quaternions(quat_array):

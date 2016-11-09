@@ -142,6 +142,7 @@ class AnalyticsExecution(object):
         #Read the required ids given block_event_id
         cur.execute(quer_read_ids, (block_event_id,))
         ids = cur.fetchall()[0]
+        logger.info(ids)
         
         #Read exercise_ids associated witht the block
         cur.execute(quer_read_exercise_ids, (block_id,))
@@ -173,7 +174,7 @@ class AnalyticsExecution(object):
                                                *len(sdata)).reshape(-1,1)
         self.data.session_type = np.array([ids[6]]*len(sdata)).reshape(-1,1)
         self.data.exercise_id = np.array(['']*len(sdata)).reshape(-1,1)
-        
+        logger.info("finished reading ids")
         # Save raw values in different attributes to later populate table
         # left
         self.data.raw_LaX = self.data.LaX
@@ -198,7 +199,7 @@ class AnalyticsExecution(object):
         self.data.raw_RqZ = self.data.RqZ
         self.data.obs_master_index = (np.array(range(len(self.data.raw_LaX)))\
                                         +1).reshape(-1,1)
-        
+                                        
         # PRE-PRE-PROCESSING
         
         # determine the real quartenion
