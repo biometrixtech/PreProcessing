@@ -11,6 +11,7 @@ import pickle
 import sys
 #import re
 import psycopg2
+import psycopg2.extras
 #import sys
 import boto3
 import cStringIO
@@ -94,6 +95,7 @@ class AnalyticsExecution(object):
     def __init__(self, sensor_data, file_name):
         
         ###Connect to the database
+        psycopg2.extras.register_uuid()
         try:
             conn = psycopg2.connect("""dbname='biometrix' user='paul' 
             host='ec2-52-36-42-125.us-west-2.compute.amazonaws.com' 
@@ -483,9 +485,8 @@ class AnalyticsExecution(object):
         cur.execute(quer_read_model, (block_id,))
         model_result = cur.fetchall()
         
-        if model_result[0][1]==None:
-           train=True
-           update = False
+        if model_result[0][1] == None:
+           train = True
            exercise_id_combinations = ['a']
         else:
            exercise_id_combinations = np.array(
@@ -498,7 +499,7 @@ class AnalyticsExecution(object):
            train = False
         else:
            train = True
-           update = True
+#           update = True
        
         if train:
             quer_get_filenames = """select exercise_id, sensor_data_filename 
@@ -509,52 +510,52 @@ class AnalyticsExecution(object):
             sensor_files  = np.array(out)[:,1]
             exercises = np.array(out)[:,0]
             
-            i=0
-            for files in sensor_files:
-                obj = s3.Bucket(ied_read).Object('processed_'+files)
-                fileobj = obj.get()
-                body = fileobj["Body"].read()
-                exercise_data = cStringIO.StringIO(body)
-                if i==0:
-                    block_data = pd.read_csv(exercise_data)
-                    block_data.exercise_id = exercises[i]
-                    i+=1
-                else:
-                    b_data = pd.read_csv(exercise_data)
-                    b_data.exercise_id = exercises[i]
-                    block_data = block_data.append(b_data)
-                    i+=1
-                        
-            ied_model, ied_label_model = IED.train_ied(block_data)
-            ied_features = IED.preprocess_ied(self.data)
-            ied_labels = ied_model.predict(ied_features)
-            ied_exercise_id = IED.mapping_labels_on_data(ied_labels,
-                                                         len(self.data.LaX))\
-                                                         .astype(int)
-            self.data.exercise_id = ied_label_model.inverse_transform(
-                                                     ied_exercise_id)
+            if set(exercises) != set(exercise_ids):
+                logger.info("coach needs to train system")
+                self.result = "Fail!"
+                sys.exit()
+            else:
+                i=0
+                for files in sensor_files:
+                    obj = s3.Bucket(ied_read).Object('processed_'+files)
+                    fileobj = obj.get()
+                    body = fileobj["Body"].read()
+                    exercise_data = cStringIO.StringIO(body)
+                    if i==0:
+                        block_data = pd.read_csv(exercise_data)
+                        block_data.exercise_id = exercises[i]
+                        i+=1
+                    else:
+                        b_data = pd.read_csv(exercise_data)
+                        b_data.exercise_id = exercises[i]
+                        block_data = block_data.append(b_data)
+                        i+=1
+                            
+                ied_model, ied_label_model = IED.train_ied(block_data)
+                ied_features = IED.preprocess_ied(self.data)
+                ied_labels = ied_model.predict(ied_features)
+                ied_exercise_id = IED.mapping_labels_on_data(ied_labels,
+                                                             len(self.data.LaX))\
+                                                             .astype(int)
+                self.data.exercise_id = ied_label_model.inverse_transform(
+                                                         ied_exercise_id)
 
-#            if update:
-#                quer = """update exercise_training_models set 
-#                            exercise_id_combinations = (%s),
-#                            model_file = (%s),
-#                            label_encoding_model_file = (%s)
-#                            where block_id = (%s)
-#                        """
-#                exercise_ids = exercise_ids.reshape(-1,).tolist()
-#                ser_ied_model = pickle.dumps(ied_model, 2)
-#                ser_label_model = pickle.dumps(ied_label_model, 2)
-#                cur.execute(quer, (exercise_ids,
-#                                   psycopg2.Binary(ser_ied_model),
-#                                    psycopg2.Binary(ser_label_model),
-#                                    block_id))
-#            else:
-#                quer = """insert into exercise_training_models set 
-#                            exercise_id_combinations = (%s),
-#                            model_file = (%s),
-#                            label_encoding_model_file = (%s)
-#                            where block_id = (%s)
-#                        """
+                
+                quer = """update exercise_training_models set 
+                            exercise_id_combinations = %s,
+                            model_file = (%s),
+                            label_encoding_model_file = (%s)
+                            where block_id = (%s)
+                        """
+                exercise_ids = exercise_ids.reshape(-1,).tolist()
+                ser_ied_model = pickle.dumps(ied_model, 2)
+                ser_label_model = pickle.dumps(ied_label_model, 2)
+                cur.execute(quer, (exercise_ids,
+                                   psycopg2.Binary(ser_ied_model),
+                                    psycopg2.Binary(ser_label_model),
+                                    block_id))
+                conn.commit()
+                logger.info("Trained model and wrote to DB")
                 
                                     
         else:        
@@ -566,6 +567,7 @@ class AnalyticsExecution(object):
                                                          )).astype(int)
             self.data.exercise_id = ied_label_model.inverse_transform(
                                                      ied_exercise_id)
+            logger.info("Predicted IED with stored model")
         conn.close()
         logger.info('DONE WITH IED!')
         
@@ -676,25 +678,26 @@ class AnalyticsExecution(object):
         
         userDB = pd.read_csv(hist_data)
         logger.info("user history captured")
-        self.data.consistency, self.data.hip_consistency, \
-            self.data.ankle_consistency, self.data.l_consistency, \
-            self.data.r_consistency, self.data.symmetry, \
-            self.data.hip_symmetry, self.data.ankle_symmetry, \
-            self.data.destr_multiplier, self.data.dest_mech_stress, \
-            self.data.const_mech_stress, self.data.block_duration, \
-            self.data.session_duration, self.data.block_mech_stress_elapsed, \
-            self.data.session_mech_stress_elapsed = score(self.data,userDB) 
-        
-        logger.info('DONE WITH EVERYTHING!')
-        
-        # combine into movement data table 
-        movement_data = ct.create_movement_data(len(self.data.LaX), self.data)
-        movement_data_pd = pd.DataFrame(movement_data)
-        fileobj = cStringIO.StringIO()
-        movement_data_pd.to_csv(fileobj,index = False)
-        fileobj.seek(0)
-        s3.Bucket(cont_write).put_object(Key="movement_"
-                                        +file_name,Body=fileobj)
+        self.result = "Success!"
+#        self.data.consistency, self.data.hip_consistency, \
+#            self.data.ankle_consistency, self.data.l_consistency, \
+#            self.data.r_consistency, self.data.symmetry, \
+#            self.data.hip_symmetry, self.data.ankle_symmetry, \
+#            self.data.destr_multiplier, self.data.dest_mech_stress, \
+#            self.data.const_mech_stress, self.data.block_duration, \
+#            self.data.session_duration, self.data.block_mech_stress_elapsed, \
+#            self.data.session_mech_stress_elapsed = score(self.data,userDB) 
+#        
+#        logger.info('DONE WITH EVERYTHING!')
+#        
+#        # combine into movement data table 
+#        movement_data = ct.create_movement_data(len(self.data.LaX), self.data)
+#        movement_data_pd = pd.DataFrame(movement_data)
+#        fileobj = cStringIO.StringIO()
+#        movement_data_pd.to_csv(fileobj,index = False)
+#        fileobj.seek(0)
+#        s3.Bucket(cont_write).put_object(Key="movement_"
+#                                        +file_name,Body=fileobj)
         
 
 if __name__ == "__main__":
