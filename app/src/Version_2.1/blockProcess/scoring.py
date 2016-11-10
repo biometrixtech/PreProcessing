@@ -14,7 +14,6 @@ from sklearn import mixture
 import logging
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 """
 #############################################INPUT/OUTPUT###################

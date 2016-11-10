@@ -34,8 +34,6 @@ import createTables as ct
 
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.info('Loading blockProcess')
 
 """
 Block execution script. Used by athletes during block processes. Takes raw 
