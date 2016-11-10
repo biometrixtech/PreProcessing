@@ -27,7 +27,7 @@ Outputs: Consistency and symmetry scores, destructive multiplier,
 """
 
 
-def _con_fun(dist, double = False):
+def _con_fun(dist, double=False):
     """Creates consistency score for individual points and create an 
     interpolation object for mapping
 
@@ -38,8 +38,9 @@ def _con_fun(dist, double = False):
     Returns:
         fn: Interpolation mapping function for the given distribution        
     """
-    dist = dist[np.isfinite(dist)]# get rid of missing values in the provided distribution
-    if double == False:
+    # get rid of missing values in the provided distribution
+    dist = dist[np.isfinite(dist)]
+    if double==False:
         dist_sorted = np.sort(dist)
         var = np.var(dist_sorted)    
         sq_dev = (dist_sorted-np.mean(dist_sorted))**2
@@ -47,18 +48,17 @@ def _con_fun(dist, double = False):
         ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
         ratio = sq_dev/(len(dist)*var)
         score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
-        logger.info("scored")
-        fn = UnivariateSpline(dist_sorted, score)#extrapolation is done for values outside the range
-        logger.info("interpolation done")
+        #extrapolation is done for values outside the range
+        fn = UnivariateSpline(dist_sorted, score)
     elif double is True:
         #If the feature has multiple modes, it's split into two separate
         #distribution using gaussian mixture model and scored separately
         #and combined
         mix = mixture.GMM(n_components = 2)
-        comps = mix.fit_predict(dist.reshape(-1,1))
+        comps = mix.fit_predict(dist.reshape(-1, 1))
         s1 = np.sort(dist[comps==0],0)
         s2 = np.sort(dist[comps==1],0)
-        if max(s1)<=min(s2): #contition to verify the combined samples are sorted
+        if max(s1)<=min(s2): #verify combined samples are sorted
             sample1 = s1
             sample2 = s2
         else:
@@ -69,11 +69,11 @@ def _con_fun(dist, double = False):
         ratio1 = sq_dev1/(len(sample1)*np.var(sample1))
         sq_dev2 = (sample2-np.mean(sample2))**2
         ratio2 = sq_dev2/(len(sample2)*np.var(sample2))
-        score1 = ( 1- (ratio1-min(ratio1))/(max(ratio1)-min(ratio1)) )*100
-        score2 = (1-(ratio2-min(ratio2))/(max(ratio2)-min(ratio2)))*100
+        score1 = (1 - (ratio1-min(ratio1))/(max(ratio1)-min(ratio1)) )*100
+        score2 = (1 - (ratio2-min(ratio2))/(max(ratio2)-min(ratio2)))*100
         scores = np.hstack([score1,score2])
         dist_comb = np.hstack([sample1,sample2])
-        fn = UnivariateSpline(dist_comb, scores, ext = 0, check_finite = True)
+        fn = UnivariateSpline(dist_comb, scores)
     return fn
 
 
@@ -103,7 +103,7 @@ def _create_distribution(data):
     return fn_hDL, fn_hDR, fn_hR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT
                     
 
-def _symmetry_score(dist_l,dist_r):
+def _symmetry_score(dist_l, dist_r):
     """Calculates symmetry score for each point of the two distribution
     Args:
         dist_l : MQ feature values for left side already controled
@@ -111,40 +111,40 @@ def _symmetry_score(dist_l,dist_r):
     Returns:            
 
     """
-    dist_l = np.sort(dist_l[np.isfinite(dist_l)])
-    dist_r = np.sort(dist_r[np.isfinite(dist_r)])
-    dist_l1 = dist_l[:,np.newaxis]
-    dist_r1 = dist_r[:,np.newaxis]
+    dist_left = np.sort(dist_l[np.isfinite(dist_l)])
+    dist_right = np.sort(dist_r[np.isfinite(dist_r)])
+    dist_l1 = dist_left[:,np.newaxis]
+    dist_r1 = dist_right[:,np.newaxis]
     #Bandwith needs to be adjusted with the data length and sd of data
     #using constant for now
-#    band_l = 1.06*np.std(dist_l)*(len(dist_l))**(-.2)
-#    band_r = 1.06*np.std(dist_r)*(len(dist_r))**(-.2)
-    band_l = .05
-    band_r = .05
-    kernel_density_l = kde(kernel= 'gaussian', bandwidth = band_l, rtol = 1E-3,
-                           atol = 1E-3).fit(dist_l1)
-    kernel_density_r = kde(kernel= 'gaussian', bandwidth = band_r, rtol = 1E-3,
-                           atol = 1E-3).fit(dist_r1)
+#    band_left = 1.06*np.std(dist_l)*(len(dist_l))**(-.2)
+#    band_right = 1.06*np.std(dist_r)*(len(dist_r))**(-.2)
+    band_left = .05
+    band_right = .05
+    kernel_density_l = kde(kernel='gaussian', bandwidth=band_left, rtol=1E-3,
+                           atol=1E-3).fit(dist_l1)
+    kernel_density_r = kde(kernel='gaussian', bandwidth=band_right, rtol=1E-3,
+                           atol=1E-3).fit(dist_r1)
     
     #Calculate density estimate for left data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
     den_distL_kdeL = np.exp(kernel_density_l.score_samples(dist_l1))
     den_distL_kdeR = np.exp(kernel_density_r.score_samples(dist_l1))
-    dens_l = np.vstack([den_distL_kdeL,den_distL_kdeR])
-    max_den_l = np.max(dens_l,0)
-    score_l = (1-np.abs(den_distL_kdeL-den_distL_kdeR)/max_den_l)*100
-    left_score_dict = dict(zip(dist_l,score_l))
+    dens_left = np.vstack([den_distL_kdeL, den_distL_kdeR])
+    max_den_left = np.max(dens_left,0)
+    score_left = (1-np.abs(den_distL_kdeL-den_distL_kdeR)/max_den_left)*100
+    left_score_dict = dict(zip(dist_left, score_left))
     
     #Calculate density estimate for right data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
     den_distR_kdeL = np.exp(kernel_density_l.score_samples(dist_r1))
     den_distR_kdeR = np.exp(kernel_density_r.score_samples(dist_r1))
-    dens_r = np.vstack([den_distR_kdeL,den_distR_kdeR])
-    max_den_r = np.max(dens_r,0)
-    score_r = (1-np.abs(den_distR_kdeL-den_distR_kdeR)/max_den_r)*100
-    right_score_dict = dict(zip(dist_r,score_r))
+    dens_right = np.vstack([den_distR_kdeL,den_distR_kdeR])
+    max_den_right = np.max(dens_right, 0)
+    score_right = (1-np.abs(den_distR_kdeL-den_distR_kdeR)/max_den_right)*100
+    right_score_dict = dict(zip(dist_right, score_right))
       
     return left_score_dict, right_score_dict
  
@@ -167,8 +167,9 @@ def _hip(hDL, hDR, hR, fn_hDL,fn_hDR,fn_hR):
     con_score_hR= fn_hR(hR)
     
     con_scores = np.vstack([con_score_hDL, con_score_hDR, con_score_hR])
-    #interpolation function is set to extrapolate which might result in negative scores.    
-    con_scores[con_scores>100]=100 #set scores higher than 100(should not happen) to 100
+    #interpolation function is set to extrapolate which might result in
+    #negative scores.    
+    con_scores[con_scores>100]=100 #set scores higher than 100 to 100
     con_scores[con_scores<=0]=0 #set negative scores to 0
     #MQ features with missing values will return 'nan' scores.
     #ignore those features when averaging
@@ -188,7 +189,8 @@ def _hip(hDL, hDR, hR, fn_hDL,fn_hDR,fn_hR):
         hip_drop_score = np.nanmean(scores_drop,0)
         
     #subset hip rotation data to create two distributions to compare
-    hRL = np.abs(hR[hR<=0]) #change negative values to positive so both dist are in same range
+    #change negative values to positive so both dist are in same range
+    hRL = np.abs(hR[hR<=0]) 
     hRR = hR[hR>=0]
     if all(np.isnan(hR)):
         hip_rot_score = np.zeros(len(hR))*np.nan
@@ -235,8 +237,9 @@ def _ankle(aRL,aRR,lPL,lPR,lT,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT):
     
     #Combine scores for left ankle
     cons_scores_l = np.vstack([score_aRL,score_lPL])
-    #interpolation function is set to extrapolate which might result in negative scores.
-    cons_scores_l[cons_scores_l>100]=100 #set scores higher than 100(should not happen) to 100
+    #interpolation function is set to extrapolate which might 
+    #result in negative scores.
+    cons_scores_l[cons_scores_l>100]=100 #set scores higher than 100 to 100
     cons_scores_l[cons_scores_l<=0]=0 #set negative scores to 0
     
     #Combine score for right ankle
@@ -278,7 +281,8 @@ def _ankle(aRL,aRR,lPL,lPR,lT,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT):
         ankle_pat_score = np.nanmean(scores_pat,0)
 
     #subset landing time data to create two distributions to compare
-    lTL = np.abs(lT[lT<=0]) #change negative values to positive so both dist are in same range
+    #change negative values to positive so both dist are in same range
+    lTL = np.abs(lT[lT<=0]) 
     lTR = lT[lT>=0]
  
     if (all(np.isnan(lT))):
@@ -399,7 +403,7 @@ def score(data,userDB):
         
         block_mech_stress_elapsed = np.zeros(len(duration))*np.nan
         session_mech_stress_elapsed = mech_stress_elapsed
-    
+        
     return consistency.reshape(-1,1), hip_consistency.reshape(-1,1),\
         ankle_consistency.reshape(-1,1), l_consistency.reshape(-1,1),\
         r_consistency.reshape(-1,1), symmetry.reshape(-1,1),\
@@ -423,25 +427,25 @@ if __name__ == '__main__':
     
     ms_ta = np.genfromtxt(path+ "ms_ta.csv",delimiter = ",", 
                           dtype =float, names = True)
-    data1 = pd.DataFrame()                 
-#    data1['msElapsed'] = np.zeros(len(data))+4
-    data1['epochTime'] = data['Timestamp']
-    data1['hip_drop_l'] = data['hipDropL']
-    data1['hip_drop_r'] = data['hipDropR']
-    data1['hip_rot'] = data['hipRot']-90
-    data1['ankle_rot_l'] = data['ankleRotL']
-    data1['ankle_rot_r'] = data['ankleRotR']
-#    data1['foot_position_l'] = data['ankleRotL']  
-#    data1['foot_position_r'] = data['ankleRotR'] 
-    data1['land_pattern_l'] = np.zeros(len(data))*np.nan
-    data1['land_pattern_r'] = np.zeros(len(data))*np.nan
-    data1['land_time'] = np.zeros(len(data))*np.nan
-#    data1['land_time_r'] = np.zeros(len(data))*np.nan
-    data1['control'] = data['control']
-    data1['mech_stress'] = ms_ta['mechStress'][range(len(data))]
-    data1['total_accel'] = ms_ta['totalAccel'][range(len(data))]
+    data_mov = pd.DataFrame()                 
+#    data_mov['msElapsed'] = np.zeros(len(data))+4
+    data_mov['epochTime'] = data['Timestamp']
+    data_mov['hip_drop_l'] = data['hipDropL']
+    data_mov['hip_drop_r'] = data['hipDropR']
+    data_mov['hip_rot'] = data['hipRot']-90
+    data_mov['ankle_rot_l'] = data['ankleRotL']
+    data_mov['ankle_rot_r'] = data['ankleRotR']
+#    data_mov['foot_position_l'] = data['ankleRotL']  
+#    data_mov['foot_position_r'] = data['ankleRotR'] 
+    data_mov['land_pattern_l'] = np.zeros(len(data))*np.nan
+    data_mov['land_pattern_r'] = np.zeros(len(data))*np.nan
+    data_mov['land_time'] = np.zeros(len(data))*np.nan
+#    data_mov['land_time_r'] = np.zeros(len(data))*np.nan
+    data_mov['control'] = data['control']
+    data_mov['mech_stress'] = ms_ta['mechStress'][range(len(data))]
+    data_mov['total_accel'] = ms_ta['totalAccel'][range(len(data))]
     
-    userDB = pd.DataFrame(data1)
+    userDB = pd.DataFrame(data_mov)
     userDB['mech_stress'] = ms_ta['mechStress'][range(len(data))]
     userDB['total_accel'] = ms_ta['totalAccel'][range(len(data))]
     userDB['land_pattern_l'] = np.random.rand(len(data))
@@ -457,8 +461,8 @@ if __name__ == '__main__':
 #    userDB['hip_rot'] = data['hipRot']-90
 #    userDB['ankle_rot_l'] = data['ankleRotL']
 #    userDB['ankle_rot_r'] = data['ankleRotR']
-##    data1['foot_position_l'] = data['ankleRotL']  
-##    data1['foot_position_r'] = data['ankleRotR'] 
+##    data_mov['foot_position_l'] = data['ankleRotL']  
+##    data_mov['foot_position_r'] = data['ankleRotR'] 
 #    userDB['land_pattern_l'] = np.random.rand(len(data))
 #    userDB['land_pattern_r'] = np.random.rand(len(data))
 #    userDB['land_time_l'] = np.random.rand(len(data))
@@ -472,12 +476,12 @@ if __name__ == '__main__':
     consistency, hip_consistency, ankle_consistency, l_consistency,\
     r_consistency, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
     dest_mech_stress, const_mech_stress, block_duration, session_duration,\
-    block_mech_stress_elapsed, session_mech_stress_elapsed = score(data1, 
+    block_mech_stress_elapsed, session_mech_stress_elapsed = score(data_mov, 
                                                                    userDB)
                                                             
 #    consistency, hip_consistency, ankle_consistency, l_consistency,\
 #    r_consistency, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
-#    dest_mech_stress = score(data1,userDB)                                                        
+#    dest_mech_stress = score(data_mov,userDB)                                                        
     e = time.time()
     elap = e-s
     print elap
