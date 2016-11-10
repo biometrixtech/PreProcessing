@@ -115,7 +115,7 @@ class AnalyticsExecution(object):
             lf_n_transform, lf_bf_transform,
             rf_n_transform, lf_bf_transform from
             session_anatomical_calibration_events where
-            block_event_id = (select id 
+            id = (select session_anatomical_calibration_event_id 
             from block_events where sensor_data_filename = (%s));"""
             
         quer_read_exercise_ids = """select exercise_id from blocks_exercises
@@ -490,7 +490,7 @@ class AnalyticsExecution(object):
            exercise_id_combinations = ['a']
         else:
            exercise_id_combinations = np.array(
-                                           model_result[0][0]).reshape(-1,1)
+                                           model_result[0][0]).reshape(-1,)
            ied_model = pickle.loads(model_result[0][1][:])
            ied_label_model = pickle.loads(model_result[0][2][:])
        

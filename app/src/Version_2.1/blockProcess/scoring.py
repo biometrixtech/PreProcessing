@@ -15,7 +15,6 @@ import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-logger.info('Scoring now')
 
 """
 #############################################INPUT/OUTPUT###################
@@ -49,8 +48,10 @@ def _con_fun(dist, double = False):
         ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
         ratio = sq_dev/(len(dist)*var)
         score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
-        fn = UnivariateSpline(dist_sorted, score, ext = 0, check_finite = True)#extrapolation is done for values outside the range
-    elif double ==True:
+        logger.info("scored")
+        fn = UnivariateSpline(dist_sorted, score)#extrapolation is done for values outside the range
+        logger.info("interpolation done")
+    elif double is True:
         #If the feature has multiple modes, it's split into two separate
         #distribution using gaussian mixture model and scored separately
         #and combined
@@ -340,7 +341,7 @@ def score(data,userDB):
 #    lTR = np.array(data.land_time_r).reshape(-1,)/(mS*tA)
     
     control = np.array(data.control).reshape(-1,)
-    
+    logger.info("data loaded")
     #Create mapping functions for consistency using historical user data
     fn_hDL,fn_hDR,fn_hR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,\
                                     fn_lT = _create_distribution(userDB)
