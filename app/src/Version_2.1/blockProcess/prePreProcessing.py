@@ -52,19 +52,19 @@ def calc_quaternions(quat_array, indicator_col):
     """
 
     # determine the imaginary quaternions
-    q_i = _computation_imaginary_quat(quat_array[:,0], False)  # imaginary 
+    q_i = _computation_imaginary_quat(quat_array[:, 0], False)  # imaginary 
                                                                 # quaternion
-    q_j = _computation_imaginary_quat(quat_array[:,1], False)  # imaginary 
+    q_j = _computation_imaginary_quat(quat_array[:, 1], False)  # imaginary 
                                                                 # quaternion
-    q_k = _computation_imaginary_quat(quat_array[:,2], False)  # imaginary 
+    q_k = _computation_imaginary_quat(quat_array[:, 2], False)  # imaginary 
                                                                 # quaternion
     
     # determine the real quaternion
-    qi_calc_qw = _computation_imaginary_quat(quat_array[:,0])  # imaginary 
+    qi_calc_qw = _computation_imaginary_quat(quat_array[:, 0])  # imaginary 
                                                                 # quaternion
-    qj_calc_qw = _computation_imaginary_quat(quat_array[:,1])  # imaginary 
+    qj_calc_qw = _computation_imaginary_quat(quat_array[:, 1])  # imaginary 
                                                                 # quaternion
-    qk_calc_qw = _computation_imaginary_quat(quat_array[:,2])  # imaginary 
+    qk_calc_qw = _computation_imaginary_quat(quat_array[:, 2])  # imaginary 
                                                                 # quaternion
     q_w = np.sqrt(1 - qi_calc_qw - qj_calc_qw - qk_calc_qw)  # real quaternion
 
