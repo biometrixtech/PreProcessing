@@ -450,23 +450,24 @@ class AnalyticsExecution(object):
         #Read IED models from database
         cur.execute(quer_read_model, (block_id,))
         model_result = cur.fetchall()
-        
-        if model_result[0][1] == None:
-           train = True
-           exercise_id_combinations = ['a']
+        if len(model_result)==0:
+            train = True
+            insert = True
+            exercise_id_combinations = ['a']
         else:
-           exercise_id_combinations = np.array(
-                                           model_result[0][0]).reshape(-1,)
-           ied_model = pickle.loads(model_result[0][1][:])
-           ied_label_model = pickle.loads(model_result[0][2][:])
+            exercise_id_combinations = np.array(model_result[0][0]).reshape(-1,)
+            ied_model = pickle.loads(model_result[0][1][:])
+            ied_label_model = pickle.loads(model_result[0][2][:])
        
-        #Check if the block has changed
-        if set(exercise_id_combinations) == set(exercise_ids):
-           train = False
-        else:
-           train = True
-#           update = True
-       
+            #Check if the block has changed
+            if set(exercise_id_combinations) == set(exercise_ids):
+               train = False
+            else:
+               train = True
+               insert = False
+           
+        print "train", train
+        print "insert", insert
         if train:
             quer_get_filenames = """select exercise_id, sensor_data_filename 
                                 from training_events where exercise_id in %s"""
@@ -476,6 +477,7 @@ class AnalyticsExecution(object):
             sensor_files  = np.array(out)[:,1]
             exercises = np.array(out)[:,0]
             
+            #Check if all the exercises in the block have been trained
             if set(exercises) != set(exercise_ids):
                 logger.info("coach needs to train system")
                 self.result = "Fail!"
@@ -507,16 +509,29 @@ class AnalyticsExecution(object):
                                                          ied_exercise_id)
 
                 
-                quer = """update exercise_training_models set 
+                quer_update = """update exercise_training_models set 
                             exercise_id_combinations = %s,
                             model_file = (%s),
-                            label_encoding_model_file = (%s)
+                            label_encoding_model_file = (%s),
+                            updated_at = now()
                             where block_id = (%s)
                         """
+                quer_insert = """insert into exercise_training_models
+                                (exercise_id_combinations, model_file,
+                                label_encoding_model_file, block_id, 
+                                created_at, updated_at) values
+                                (%s,%s,%s,%s,now(), now())
+                                """
                 exercise_ids = exercise_ids.reshape(-1,).tolist()
                 ser_ied_model = pickle.dumps(ied_model, 2)
                 ser_label_model = pickle.dumps(ied_label_model, 2)
-                cur.execute(quer, (exercise_ids,
+                if insert:
+                    cur.execute(quer_insert, (exercise_ids,
+                                    psycopg2.Binary(ser_ied_model),
+                                    psycopg2.Binary(ser_label_model),
+                                    block_id))
+                else:
+                    cur.execute(quer_update, (exercise_ids,
                                    psycopg2.Binary(ser_ied_model),
                                     psycopg2.Binary(ser_label_model),
                                     block_id))
