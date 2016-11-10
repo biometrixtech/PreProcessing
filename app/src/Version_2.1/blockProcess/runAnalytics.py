@@ -659,7 +659,7 @@ class AnalyticsExecution(object):
         ms_body = ms_fileobj["Body"].read()
         
         # we're reading the first model on the list, there are multiple
-        mstress_fit = pickle.loads(ms_body) 
+        mstress_fit = pickle.loads(ms_body)
         ms_data = prepare_data(self.data, False)
         
         # calculate mechanical stress
@@ -679,25 +679,25 @@ class AnalyticsExecution(object):
         userDB = pd.read_csv(hist_data)
         logger.info("user history captured")
         self.result = "Success!"
-#        self.data.consistency, self.data.hip_consistency, \
-#            self.data.ankle_consistency, self.data.l_consistency, \
-#            self.data.r_consistency, self.data.symmetry, \
-#            self.data.hip_symmetry, self.data.ankle_symmetry, \
-#            self.data.destr_multiplier, self.data.dest_mech_stress, \
-#            self.data.const_mech_stress, self.data.block_duration, \
-#            self.data.session_duration, self.data.block_mech_stress_elapsed, \
-#            self.data.session_mech_stress_elapsed = score(self.data,userDB) 
-#        
-#        logger.info('DONE WITH EVERYTHING!')
-#        
-#        # combine into movement data table 
-#        movement_data = ct.create_movement_data(len(self.data.LaX), self.data)
-#        movement_data_pd = pd.DataFrame(movement_data)
-#        fileobj = cStringIO.StringIO()
-#        movement_data_pd.to_csv(fileobj,index = False)
-#        fileobj.seek(0)
-#        s3.Bucket(cont_write).put_object(Key="movement_"
-#                                        +file_name,Body=fileobj)
+        self.data.consistency, self.data.hip_consistency, \
+            self.data.ankle_consistency, self.data.l_consistency, \
+            self.data.r_consistency, self.data.symmetry, \
+            self.data.hip_symmetry, self.data.ankle_symmetry, \
+            self.data.destr_multiplier, self.data.dest_mech_stress, \
+            self.data.const_mech_stress, self.data.block_duration, \
+            self.data.session_duration, self.data.block_mech_stress_elapsed, \
+            self.data.session_mech_stress_elapsed = score(self.data,userDB) 
+        
+        logger.info('DONE WITH EVERYTHING!')
+        
+        # combine into movement data table 
+        movement_data = ct.create_movement_data(len(self.data.LaX), self.data)
+        movement_data_pd = pd.DataFrame(movement_data)
+        fileobj = cStringIO.StringIO()
+        movement_data_pd.to_csv(fileobj,index = False)
+        fileobj.seek(0)
+        s3.Bucket(cont_write).put_object(Key="movement_"
+                                        +file_name,Body=fileobj)
         
 
 if __name__ == "__main__":
