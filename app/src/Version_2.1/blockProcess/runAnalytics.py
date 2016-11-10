@@ -204,7 +204,10 @@ class AnalyticsExecution(object):
                                         +1).reshape(-1,1)
                                         
         # PRE-PRE-PROCESSING
-        
+
+        # check for missing values
+        self.data = ppp.handling_missing_data(self.data)
+
         # determine the real quartenion
         # left
         _lq_xyz = np.hstack([self.data.LqX, self.data.LqY, self.data.LqZ])
@@ -231,42 +234,7 @@ class AnalyticsExecution(object):
         # convert epoch time to date time and determine milliseconds elapsed
         self.data.time_stamp, self.data.ms_elapsed = \
             ppp.convert_epochtime_datetime_mselapsed(self.data.epoch_time)
-        
-        # check for missing values
-        # left
-        self.data = ppp.handling_missing_data(self.data)
-#        self.data.LaY = ppp.handling_missing_data(self.data.LaY)
-#        self.data.LaZ = ppp.handling_missing_data(self.data.LaZ)
-#        self.data.LqX = ppp.handling_missing_data(self.data.LqX)
-#        self.data.LqY = ppp.handling_missing_data(self.data.LqY)
-#        self.data.LqZ = ppp.handling_missing_data(self.data.LqZ)
-#        # hip
-#        self.data.HaX = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.HaX)
-#        self.data.HaY = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.HaY)
-#        self.data.HaZ = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.HaZ)
-#        self.data.HqX = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.HqX)
-#        self.data.HqY = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.HqY)
-#        self.data.HqZ = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.HqZ)
-#        # right
-#        self.data.RaX = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.RaX)
-#        self.data.RaY = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.RaY) 
-#        self.data.RaZ = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.RaZ)
-#        self.data.RqX = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.RqX)
-#        self.data.RqY = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.RqY)
-#        self.data.RqZ = ppp.handling_missing_data(self.data.epoch_time,
-#                                                  self.data.RqZ)
-        
+
         logger.info('DONE WITH PRE-PRE-PROCESSING!')  
     
         # COORDINATE FRAME TRANSFORMATION

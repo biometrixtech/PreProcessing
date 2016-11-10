@@ -10,7 +10,8 @@ from scipy import interpolate
 
 from errors import ErrorId
 
-def _computation_imaginary_quat(i_quat):
+
+def _computation_imaginary_quat(i_quat, check_qw=True):
 
     """
     Compute the imaginary quaternions to implement in the computation to
@@ -18,15 +19,23 @@ def _computation_imaginary_quat(i_quat):
 
     Args:
         i_quat: imaginary quaternion
+        check_qw: boolean variable to check if the function is used to 
+        calculate the real quaternion
 
     Returns:
-        comp_i_quat: computed imaginary quaternion to help determine the
-        real quaternion
+        if check_qw == True:
+            comp_i_quat: computed imaginary quaternion to help determine the
+            real quaternion
+        else:
+            comp_i_quat: computed imaginary quaternion to scale it back
     """
 
-    comp_i_quat = (i_quat/32767.0)**2
-
-    return comp_i_quat.reshape(-1, 1)
+    if check_qw:  # check if function is used to calculate real quaternion
+        comp_i_quat = (i_quat/32767.0)**2
+        return comp_i_quat.reshape(-1, 1)
+    else:  # function is used to calculate imaginary quaternion
+        comp_i_quat = i_quat/32767.0
+        return comp_i_quat.reshape(-1, 1)
 
 
 def calc_quaternions(quat_array):
@@ -42,11 +51,23 @@ def calc_quaternions(quat_array):
 
     """
 
-    # determine the real and imaginary quaternions and the magnitude
-    q_i = _computation_imaginary_quat(quat_array[:, 0])  # imaginary quaternion
-    q_j = _computation_imaginary_quat(quat_array[:, 1])  # imaginary quaternion
-    q_k = _computation_imaginary_quat(quat_array[:, 2])  # imaginary quaternion
-    q_w = np.sqrt(1 - q_i - q_j - q_k)  # real quaternion
+    # determine the imaginary quaternions
+    q_i = _computation_imaginary_quat(quat_array[:, 0], False)  # imaginary 
+                                                                # quaternion
+    q_j = _computation_imaginary_quat(quat_array[:, 1], False)  # imaginary 
+                                                                # quaternion
+    q_k = _computation_imaginary_quat(quat_array[:, 2], False)  # imaginary 
+                                                                # quaternion
+    
+    # determine the real quaternion
+    qi_calc_qw = _computation_imaginary_quat(quat_array[:, 0])  
+    # imaginary quaternion
+    qj_calc_qw = _computation_imaginary_quat(quat_array[:, 1])  
+    # imaginary quaternion
+    qk_calc_qw = _computation_imaginary_quat(quat_array[:, 2])  
+    # imaginary quaternion
+    q_w = np.sqrt(1 - qi_calc_qw - qj_calc_qw - qk_calc_qw)  # real 
+                                                            # quaternion
 
     # check if NaN exists in the real quaternion array
     if np.any(np.isnan(q_w)):
