@@ -143,7 +143,6 @@ class AnalyticsExecution(object):
         #Read the required ids given block_event_id
         cur.execute(quer_read_ids, (block_event_id,))
         ids = cur.fetchall()[0]
-        logger.info(ids)
         
         #Read exercise_ids associated witht the block
         cur.execute(quer_read_exercise_ids, (block_id,))
@@ -209,21 +208,24 @@ class AnalyticsExecution(object):
         # determine the real quartenion
         # left
         _lq_xyz = np.hstack([self.data.LqX, self.data.LqY, self.data.LqZ])
-        _lq_wxyz = ppp.calc_quaternions(_lq_xyz)
+        _lq_wxyz = ppp.calc_quaternions(_lq_xyz,
+                                        self.data.missing_data_indicator)
         self.data.LqW = _lq_wxyz[:,0].reshape(-1,1)
         self.data.LqX = _lq_wxyz[:,1].reshape(-1,1)
         self.data.LqY = _lq_wxyz[:,2].reshape(-1,1)
         self.data.LqZ = _lq_wxyz[:,3].reshape(-1,1)
         # hip
         _hq_xyz = np.hstack([self.data.HqX, self.data.HqY, self.data.HqZ])
-        _hq_wxyz = ppp.calc_quaternions(_hq_xyz)
+        _hq_wxyz = ppp.calc_quaternions(_hq_xyz, 
+                                        self.data.missing_data_indicator)
         self.data.HqW = _hq_wxyz[:,0].reshape(-1,1)
         self.data.HqX = _hq_wxyz[:,1].reshape(-1,1)
         self.data.HqY = _hq_wxyz[:,2].reshape(-1,1)
         self.data.HqZ = _hq_wxyz[:,3].reshape(-1,1)
         # right
         _rq_xyz = np.hstack([self.data.RqX, self.data.RqY, self.data.RqZ])
-        _rq_wxyz = ppp.calc_quaternions(_rq_xyz)
+        _rq_wxyz = ppp.calc_quaternions(_rq_xyz,
+                                        self.data.missing_data_indicator)
         self.data.RqW = _rq_wxyz[:,0].reshape(-1,1)
         self.data.RqX = _rq_wxyz[:,1].reshape(-1,1)
         self.data.RqY = _rq_wxyz[:,2].reshape(-1,1)
@@ -458,16 +460,13 @@ class AnalyticsExecution(object):
             exercise_id_combinations = np.array(model_result[0][0]).reshape(-1,)
             ied_model = pickle.loads(model_result[0][1][:])
             ied_label_model = pickle.loads(model_result[0][2][:])
-       
+            insert = False
             #Check if the block has changed
             if set(exercise_id_combinations) == set(exercise_ids):
                train = False
             else:
                train = True
-               insert = False
-           
-        print "train", train
-        print "insert", insert
+
         if train:
             quer_get_filenames = """select exercise_id, sensor_data_filename 
                                 from training_events where exercise_id in %s"""
@@ -686,7 +685,7 @@ if __name__ == "__main__":
     import time
     import pandas as pd
     import os
-    mov_data = AnalyticsExecution('trainingset_sngllegsqt.csv', 
+    mov_data = AnalyticsExecution('team1_session1_Subj1_block2.csv', 
                                   '53a803ac-514d-43c9-950c-a7cacdd1a057')
 #    import re
 #    import sys
