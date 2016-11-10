@@ -344,18 +344,14 @@ def score(data,userDB):
 #    lTR = np.array(data.land_time_r).reshape(-1,)/(mS*tA)
     
     control = np.array(data.control).reshape(-1,)
-    logger.info("data loaded")
     #Create mapping functions for consistency using historical user data
     fn_hDL,fn_hDR,fn_hR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,\
                                     fn_lT = _create_distribution(userDB)
-    logger.info("distributions created")
     l_consistency, r_consistency, ankle_consistency, ankle_symmetry =\
                                                    _ankle(aRL,aRR,lPL, lPR, lT,
                                                           fn_aRL,fn_aRR,fn_lPL,
-                                                          fn_lPR,fn_lT)
-    logger.info("ankle scored")                                                      
+                                                          fn_lPR,fn_lT)                                                   
     hip_consistency, hip_symmetry = _hip(hDL, hDR, hR, fn_hDL,fn_hDR,fn_hR)
-    logger.info("hip sccored")
     #Aggregate consistency scores
     overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
     consistency = np.nanmean(overall_consistency_scores,0)

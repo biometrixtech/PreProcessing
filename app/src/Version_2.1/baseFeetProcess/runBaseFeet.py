@@ -38,9 +38,9 @@ def record_special_feet(sensor_data, file_name):
     """
     ###Connect to the database
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='paul' 
-        host='ec2-52-36-42-125.us-west-2.compute.amazonaws.com' 
-        password='063084cb3b65802dbe01030756e1edf1f2d985ba'""")
+        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu' 
+        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
+        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
     except:
         return 'Fail! Unable to connect to database'
         sys.exit()
@@ -48,25 +48,27 @@ def record_special_feet(sensor_data, file_name):
     cur = conn.cursor()
     
     #Query to read user_id linked to the given data_filename
-    quer_read = """select user_id from base_anatomical_calibration_events
-                where feet_sensor_data_filename = (%s);"""
+#    quer_read = """select user_id from base_anatomical_calibration_events
+#                where feet_sensor_data_filename = (%s);"""
                 
     ##Two update queries for when the tests pass/fail
     quer_fail = """update base_anatomical_calibration_events set 
         failure_type = (%s),
         feet_processed_sensor_data_filename = (%s),
-        feet_success = (%s)
+        feet_success = (%s),
+        updated_at = now()
         where feet_sensor_data_filename=(%s);"""
 
     quer_success = """update base_anatomical_calibration_events set
         feet_processed_sensor_data_filename = (%s),
-        feet_success = (%s)
+        feet_success = (%s),
+        updated_at = now()
         where feet_sensor_data_filename=(%s);"""
         
-    #Read the user_id to be used for push notification
-    cur.execute(quer_read, (file_name,))
-    data_read = cur.fetchall()[0]
-    user_id = data_read[0]
+#    #Read the user_id to be used for push notification
+#    cur.execute(quer_read, (file_name,))
+#    data_read = cur.fetchall()[0]
+#    user_id = data_read[0]
     
     #connect to S3 bucket for uploading file
     S3 = boto3.resource('s3')

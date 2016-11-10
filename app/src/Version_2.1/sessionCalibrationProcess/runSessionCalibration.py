@@ -37,13 +37,12 @@ def run_calibration(sensor_data, file_name):
     """
     ###Connect to the database
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='paul' 
-        host='ec2-52-36-42-125.us-west-2.compute.amazonaws.com' 
-        password='063084cb3b65802dbe01030756e1edf1f2d985ba'""")
+        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu' 
+        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
+        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
     except:
         return 'Fail! Unable to connect to database'
         sys.exit()
-
     cur = conn.cursor()
     
     ##Setup Queries based on different situations
@@ -64,7 +63,8 @@ def run_calibration(sensor_data, file_name):
     quer_fail = """update session_anatomical_calibration_events set 
         success = (%s),
         failure_type = (%s),
-        base_calibration = (%s)
+        base_calibration = (%s),
+        updated_at = now()
         where sensor_data_filename=(%s);"""
     
     #For base calibration, update special_anatomical_calibration_events    
@@ -73,7 +73,8 @@ def run_calibration(sensor_data, file_name):
                 hip_pitch_transform = (%s),
                 hip_roll_transform = (%s),
                 lf_roll_transform = (%s),
-                rf_roll_transform = (%s)
+                rf_roll_transform = (%s),
+                updated_at = now()
                 where id  = (select base_anatomical_calibration_event_id from
                             session_anatomical_calibration_events where
                             sensor_data_filename = (%s));"""
@@ -90,7 +91,8 @@ def run_calibration(sensor_data, file_name):
                             lf_n_transform = (%s),
                             lf_bf_transform = (%s),
                             rf_n_transform = (%s),
-                            rf_bf_transform = (%s)
+                            rf_bf_transform = (%s),
+                            updated_at = now()
                             where sensor_data_filename  = (%s);"""
                         
     #execute the read query and extract relevant indicator info                    

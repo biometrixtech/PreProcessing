@@ -88,13 +88,12 @@ class TrainingExecution(object): #Abstract setUp class
         
         ###Connect to the database
         try:
-            conn = psycopg2.connect("""dbname='biometrix' user='paul' 
-            host='ec2-52-36-42-125.us-west-2.compute.amazonaws.com' 
-            password='063084cb3b65802dbe01030756e1edf1f2d985ba'""")
+            conn = psycopg2.connect("""dbname='biometrix' user='ubuntu' 
+            host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
+            password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
         except:
-            self.result = 'Fail! Unable to connect to database'
+            return 'Fail! Unable to connect to database'
             sys.exit()
-        
         cur = conn.cursor()
         
         #Query to read user_id and exercise_id linked to the given data_filename
@@ -118,7 +117,8 @@ class TrainingExecution(object): #Abstract setUp class
                     single_leg = (%s),
                     double_leg = (%s),
                     feet_eliminated = (%s),
-                    max_accel = (%s)
+                    max_accel = (%s),
+                    updated_at = now()
                     where sensor_data_filename = (%s);"""
         
         #Read the user_id, exercise_id
