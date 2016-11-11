@@ -19,7 +19,7 @@ def control_score(LeX, ReX, HeX, ms_elapsed):
         HeX: hip euler x
         ms_elapsed: time in milliseconds since last sample
     Returns:
-        control, hip_control, ankle_control, l_control, r_control scores for
+        control, hip_control, ankle_control, control_lf, control_rf scores for
         each timepoint all these should be (n,1) numpy arrays
         
     Note:
@@ -81,24 +81,24 @@ def control_score(LeX, ReX, HeX, ms_elapsed):
     lower = 0. # lower bound for what sd is considered 100,
     score_raw_l[score_raw_l>=upper]=upper
     score_raw_l[score_raw_l<=lower]=lower
-    l_control = np.abs(score_raw_l-upper)/(upper-lower)*100
+    control_lf = np.abs(score_raw_l-upper)/(upper-lower)*100
 
     score_raw_r[score_raw_r>=upper]=upper
     score_raw_r[score_raw_r<=lower]=lower
-    r_control = np.abs(score_raw_r-upper)/(upper-lower)*100
+    control_rf = np.abs(score_raw_r-upper)/(upper-lower)*100
     
     score_raw_h[score_raw_h>=upper]=upper
     score_raw_h[score_raw_h<=lower]=lower
     hip_control = np.abs(score_raw_h-upper)/(upper-lower)*100
     
     #combine l and r ankle scores to get overall ankle score
-    ankle_scores = np.vstack([l_control, r_control])
+    ankle_scores = np.vstack([control_lf, control_rf])
     ankle_control = np.nanmean(ankle_scores,0)
     
     overall_scores = np.vstack([hip_control, ankle_control])
     control = np.nanmean(overall_scores, 0)
         
-    return control.reshape(-1,1), hip_control.reshape(-1,1), ankle_control.reshape(-1,1), l_control.reshape(-1,1), r_control.reshape(-1,1)
+    return control.reshape(-1,1), hip_control.reshape(-1,1), ankle_control.reshape(-1,1), control_lf.reshape(-1,1), control_rf.reshape(-1,1)
     
     
 if __name__ == '__main__':
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     ms_elapsed = np.zeros(len(data))+4    
     
     s = time.time()
-    control, hip_control, ankle_control, l_control, r_control = control_score([], [], [], [])
+    control, hip_control, ankle_control, control_lf, control_rf = control_score([], [], [], [])
     e = time.time()
     elap = e-s
     print elap    

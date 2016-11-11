@@ -40,7 +40,7 @@ def _con_fun(dist, double=False):
     """
     # get rid of missing values in the provided distribution
     dist = dist[np.isfinite(dist)]
-    if double==False:
+    if double is False:
         dist_sorted = np.sort(dist)
         var = np.var(dist_sorted)    
         sq_dev = (dist_sorted-np.mean(dist_sorted))**2
