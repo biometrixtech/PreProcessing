@@ -220,8 +220,8 @@ def _ankle(aRL,aRR,lPL,lPR,lT,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT):
         lTL : land_time
         fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT : mapping functions
     Returns:
-        l_consistency: consistency averaged over left ankle features
-        r_consistency: consistency averaged over right ankle features
+        consistency_lf: consistency averaged over left ankle features
+        consistency_rf: consistency averaged over right ankle features
         ankle_symmetry: symmetry averaged over ankle features       
     """    
     ##Consistency
@@ -249,8 +249,8 @@ def _ankle(aRL,aRR,lPL,lPR,lT,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT):
     
     #MQ features with missing values will return 'nan' scores.
     #ignore those features when averaging
-    l_consistency = np.nanmean(cons_scores_l,0)    
-    r_consistency = np.nanmean(cons_scores_r,0)
+    consistency_lf = np.nanmean(cons_scores_l,0)    
+    consistency_rf = np.nanmean(cons_scores_r,0)
     ankle_cons_scores = np.vstack([cons_scores_l, cons_scores_r, score_lT])
     ankle_consistency = np.nanmean(ankle_cons_scores, 0)
 
@@ -301,7 +301,7 @@ def _ankle(aRL,aRR,lPL,lPR,lT,fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT):
                               ankle_tim_score])
     ankle_symmetry = np.nanmean(ankle_scores,0)
     
-    return l_consistency, r_consistency, ankle_consistency, ankle_symmetry
+    return consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry
 
 
 def score(data,userDB):
@@ -313,8 +313,8 @@ def score(data,userDB):
         userDB : RawFrame object with historical(7 days) MQ features,
                 total_accel and mech_stress for the user 
     Returns:
-        consistency, hip_consistency, ankle_consistency, l_consistency,
-        r_consistency, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,
+        consistency, hip_consistency, ankle_consistency, consistency_lf,
+        consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,
         dest_mech_stress, const_mech_stress, block_duration, session_duration,
         block_mech_stress_elapsed, session_mech_stress_elapsed
         
@@ -347,7 +347,7 @@ def score(data,userDB):
     #Create mapping functions for consistency using historical user data
     fn_hDL,fn_hDR,fn_hR,fn_aRL,fn_aRR,fn_lPL,fn_lPR,\
                                     fn_lT = _create_distribution(userDB)
-    l_consistency, r_consistency, ankle_consistency, ankle_symmetry =\
+    consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry =\
                                                    _ankle(aRL,aRR,lPL, lPR, lT,
                                                           fn_aRL,fn_aRR,fn_lPL,
                                                           fn_lPR,fn_lT)                                                   
@@ -357,8 +357,8 @@ def score(data,userDB):
     consistency = np.nanmean(overall_consistency_scores,0)
     
     #multiply each score by mechStress value for weighting
-    l_consistency = l_consistency*mS
-    r_consistency = r_consistency*mS
+    consistency_lf = consistency_lf*mS
+    consistency_rf = consistency_rf*mS
     hip_consistency = hip_consistency*mS
     ankle_consistency = ankle_consistency*mS
     consistency = consistency*mS
@@ -401,8 +401,8 @@ def score(data,userDB):
         session_mech_stress_elapsed = mech_stress_elapsed
         
     return consistency.reshape(-1,1), hip_consistency.reshape(-1,1),\
-        ankle_consistency.reshape(-1,1), l_consistency.reshape(-1,1),\
-        r_consistency.reshape(-1,1), symmetry.reshape(-1,1),\
+        ankle_consistency.reshape(-1,1), consistency_lf.reshape(-1,1),\
+        consistency_rf.reshape(-1,1), symmetry.reshape(-1,1),\
         hip_symmetry.reshape(-1,1), ankle_symmetry.reshape(-1,1),\
         destr_multiplier.reshape(-1,1), dest_mech_stress.reshape(-1,1),\
         const_mech_stress.reshape(-1,1), block_duration.reshape(-1,1),\
@@ -469,14 +469,14 @@ if __name__ == '__main__':
 #    userDB['land_pattern_l'] = data['ankleRotL']
     
     s= time.time()
-    consistency, hip_consistency, ankle_consistency, l_consistency,\
-    r_consistency, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
+    consistency, hip_consistency, ankle_consistency, consistency_lf,\
+    consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
     dest_mech_stress, const_mech_stress, block_duration, session_duration,\
     block_mech_stress_elapsed, session_mech_stress_elapsed = score(data_mov, 
                                                                    userDB)
                                                             
-#    consistency, hip_consistency, ankle_consistency, l_consistency,\
-#    r_consistency, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
+#    consistency, hip_consistency, ankle_consistency, consistency_lf,\
+#    consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
 #    dest_mech_stress = score(data_mov,userDB)                                                        
     e = time.time()
     elap = e-s
@@ -486,8 +486,8 @@ if __name__ == '__main__':
     data_pd['consistency'] = consistency
     data_pd['hip_consistency'] = hip_consistency
     data_pd['ankle_consistency'] = ankle_consistency
-    data_pd['l_consistency'] = l_consistency
-    data_pd['r_consistency'] = r_consistency
+    data_pd['consistency_lf'] = consistency_lf
+    data_pd['consistency_rf'] = consistency_rf
     data_pd['symmetry'] = symmetry
     data_pd['hip_symmetry'] = hip_symmetry
     data_pd['ankle_symmetry'] = ankle_symmetry

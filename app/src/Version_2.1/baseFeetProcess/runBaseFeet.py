@@ -150,7 +150,7 @@ def record_special_feet(sensor_data, file_name):
         
     if ind != 0:
         #update special_anatomical_calibration_events
-        cur.execute(quer_fail, (1, out_file, False,file_name,))
+        cur.execute(quer_fail, (ind, out_file, False,file_name,))
         conn.commit()
         cur.close()
         conn.close()

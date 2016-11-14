@@ -95,22 +95,22 @@ class AnalyticsExecution(object):
         ###Connect to the database
         psycopg2.extras.register_uuid()
         #Old server
-        try:
-            conn = psycopg2.connect("""dbname='biometrix' user='paul' 
-            host='ec2-52-36-42-125.us-west-2.compute.amazonaws.com' 
-            password='063084cb3b65802dbe01030756e1edf1f2d985ba'""")
-        except:
-            self.result = 'Fail! Unable to connect to database'
-            sys.exit()
+#        try:
+#            conn = psycopg2.connect("""dbname='biometrix' user='paul' 
+#            host='ec2-52-36-42-125.us-west-2.compute.amazonaws.com' 
+#            password='063084cb3b65802dbe01030756e1edf1f2d985ba'""")
+#        except:
+#            self.result = 'Fail! Unable to connect to database'
+#            sys.exit()
         
         #New server            
-#        try:
-#            conn = psycopg2.connect("""dbname='biometrix' user='ubuntu' 
-#            host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
-#            password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
-#        except:
-#            return 'Fail! Unable to connect to database'
-#            sys.exit()
+        try:
+            conn = psycopg2.connect("""dbname='biometrix' user='ubuntu' 
+            host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
+            password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        except:
+            return 'Fail! Unable to connect to database'
+            sys.exit()
         
         cur = conn.cursor()
         
