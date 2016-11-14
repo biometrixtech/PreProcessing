@@ -101,7 +101,7 @@ def record_special_feet(sensor_data, file_name):
                                                data[var].reshape(-1,1),
                                                 corrupt_magn.reshape(-1,1))      
         data[var] = out.reshape(-1,)        
-        if ind in [1,2]:
+        if ind in [1,10]:
             break
       
     # determine the real quartenion
