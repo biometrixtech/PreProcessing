@@ -5,12 +5,33 @@ Created on Tue Oct 11 16:30:36 2016
 @author: ankurmanikandan
 """
 
-import sys
-
 import numpy as np
 from scipy import interpolate
 
 from errors import ErrorId
+
+
+def check_duplicate_epochtime(epoch_time):
+    """
+    Check if there are duplicate epoch times in the sensor data file.
+    
+    Args:
+        epoch_time: an array, epoch time from the sensor.
+        
+    Returns:
+        epoch_time_duplicate: Boolean, if duplicate epoch time exists or not
+        
+    """
+    
+    # check if there are any duplicate epoch times in the sensor data file
+    epoch_time_duplicate = False
+    epoch_time_unique, epoch_time_unique_ind = np.unique(epoch_time, 
+                                                         return_counts=True)
+    if 2 in epoch_time_unique_ind:
+        epoch_time_duplicate = True
+        return epoch_time_duplicate
+    else:
+        return epoch_time_duplicate                                                           
 
 
 def calc_quaternions(quat_array):
@@ -46,14 +67,12 @@ def calc_quaternions(quat_array):
 
     # check if NaN exists in the real quaternion array
     if np.any(np.isnan(q_w)):
-        raise ValueError('Real quaternion cannot be comupted. Error \
-        in type conversion.')
-        sys.exit()
+        conversion_error = True
 
     # appending the real and imaginary quaternions arrays to a single array
     all_quaternions = np.hstack([q_w, q_i, q_j, q_k])
 
-    return all_quaternions
+    return all_quaternions, conversion_error
 
 
 def _computation_imaginary_quat(i_quat, check_qw=True):

@@ -7,6 +7,7 @@ Created on Tue Oct 18 15:18:54 2016
 import cStringIO
 import sys
 import logging
+
 import boto3
 import numpy as np
 import pandas as pd
@@ -125,7 +126,12 @@ def record_special_feet(sensor_data, file_name):
         msg = ErrorMessageBase(ind).error_message
         r_push_data = RPushDataBase(ind).value
         #update special_anatomical_calibration_events
-        cur.execute(quer_fail, (ind, out_file, False, file_name))
+        try:
+            cur.execute(quer_fail, (ind, out_file, False, file_name))
+            conn.commit()
+        except psycopg2.Error as error:
+            logger.warning("Cannot write to DB after failure!")
+            raise error
 
         ### Write to S3
         data_feet = pd.DataFrame(data)
@@ -152,25 +158,32 @@ def record_special_feet(sensor_data, file_name):
         # Left foot
         left_q_xyz = np.array([data['LqX'], data['LqY'],
                                data['LqZ']]).transpose()
-        left_q_wxyz = ppp.calc_quaternions(left_q_xyz)
+        left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz)
+        
+        #check for type conversion error in left foot quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: LF quat')
+            return "Fail!"
 
         # Hip
         hip_q_xyz = np.array([data['HqX'], data['HqY'],
                               data['HqZ']]).transpose()
-        hip_q_wxyz = ppp.calc_quaternions(hip_q_xyz)
+        hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz)
+        
+        #check for type conversion error in hip quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: Hip quat')
+            return "Fail!"
 
         # Right foot
         right_q_xyz = np.array([data['RqX'], data['RqY'],
                                 data['RqZ']]).transpose()
-        right_q_wxyz = ppp.calc_quaternions(right_q_xyz)
-
-        #Acceleration
-        left_acc = np.array([data['LaX'], data['LaY'],
-                             data['LaZ']]).transpose()
-        hip_acc = np.array([data['HaX'], data['HaY'],
-                            data['HaZ']]).transpose()
-        right_acc = np.array([data['RaX'], data['RaY'],
-                              data['RaZ']]).transpose()
+        right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz)
+        
+        #check for type conversion error in right foot quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: RF quat')
+            return "Fail!"
 
         #create output table as a structured numpy array
         data_o = np.hstack((identifiers, indicators))
