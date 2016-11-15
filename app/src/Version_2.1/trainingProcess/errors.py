@@ -139,10 +139,10 @@ class ErrorMessageTraining(object):
 class RPushDataTraining(object):
     def __init__(self, error_id):
         if error_id ==0:
-            self.value = {"action":"train_system"}
+            self.value = '{"action":"train_system"}'
         if error_id == 1:
-            self.value = {"action":"run_magn_calibration"}
+            self.value = '{"action":"run_magn_calibration"}'
         elif error_id == 10:
-            self.value = {"action":"capture_exercise"}
+            self.value = '{"action":"capture_exercise"}'
             
             

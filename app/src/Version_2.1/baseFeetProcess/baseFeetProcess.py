@@ -38,7 +38,7 @@ def lambda_handler(event, context):
         try:
             name = zipped.namelist()[0]
         except IndexError:
-            logger.info('Fail!, no data inside zipped file')
+            logger.warning('Fail!, no data inside zipped file')
             return 'success'
         else:
             unzipped_content = cStringIO.StringIO()
@@ -46,11 +46,8 @@ def lambda_handler(event, context):
             logger.info('Unzipped File')
             result = rb.record_special_feet(unzipped_content, key)
             logger.info('outcome:' + result)
-            
-            #response = s3.get_object(Bucket=bucket, Key=key)
-            #logger.info("CONTENT TYPE: " + response['ContentType'])
-            #return response['ContentType']
             return 'success'
+            
     except Exception as e:
         logger.info(e)
         logger.info('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
