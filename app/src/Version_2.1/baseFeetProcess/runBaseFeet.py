@@ -34,22 +34,12 @@ def record_special_feet(sensor_data, file_name):
         calibration step.
         Save transformed data to database with indicator of success/failure
     """
-    ###Connect to the database
-    try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
-    except:
-        return 'Fail! Unable to connect to database'
-        sys.exit()
+    
+    # Query to read user_id linked to the given data_filename
+    quer_read = """select user_id from base_anatomical_calibration_events
+                where feet_sensor_data_filename = (%s);"""
 
-    cur = conn.cursor()
-
-    #Query to read user_id linked to the given data_filename
-#    quer_read = """select user_id from base_anatomical_calibration_events
-#                where feet_sensor_data_filename = (%s);"""
-
-    ##Two update queries for when the tests pass/fail
+    # Two update queries for when the tests pass/fail
     quer_fail = """update base_anatomical_calibration_events set
         failure_type = (%s),
         feet_processed_sensor_data_filename = (%s),
@@ -63,18 +53,47 @@ def record_special_feet(sensor_data, file_name):
         updated_at = now()
         where feet_sensor_data_filename=(%s);"""
 
-#    #Read the user_id to be used for push notification
-#    cur.execute(quer_read, (file_name,))
-#    data_read = cur.fetchall()[0]
-#    user_id = data_read[0]
-
-    #connect to S3 bucket for uploading file
-    S3 = boto3.resource('s3')
+    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
+    ###Connect to the database
+    try:
+        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
+        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
+        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        cur = conn.cursor()
+        
+        # connect to S3 bucket for uploading file
+        S3 = boto3.resource('s3')
+        
+        # Read the user_id to be used for push notification
+        cur.execute(quer_read, (file_name,))
+        data_read = cur.fetchall()[0]
+        user_id = data_read[0]
+        if user_id is None:
+            user_id = '00000000-0000-0000-0000-000000000000'
+            logger.warning("user_id associated with file not found")
+        
+    except psycopg2.Error as error:
+        logger.warning("Cannot connect to DB")
+        raise error
+    except boto3.exceptions as error:
+        logger.warning("Cannot connect to s3")
+        raise error
+    except IndexError as error:
+        logger.warning("feet_sensor_data_filename not found in table")
+        raise error
     #define container to write processed file to
     cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
 
     #Read data into structured numpy array
-    data = np.genfromtxt(sensor_data, dtype=float, delimiter=',', names=True)
+    try:
+        data = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
+                             names=True)
+    except IndexError:
+        logger.info("Sensor data doesn't have column names!")
+        return "Fail!"
+    if len(data) == 0:
+        logger.info("Sensor data is empty!")
+        return "Fail!"
 
     out_file = "processed_" + file_name
     epoch_time = data['epoch_time']
@@ -102,10 +121,11 @@ def record_special_feet(sensor_data, file_name):
             break
 
     if ind != 0:
+        # rpush
+        msg = ErrorMessageBase(ind).error_message
+        r_push_data = RPushDataBase(ind).value
         #update special_anatomical_calibration_events
         cur.execute(quer_fail, (ind, out_file, False, file_name))
-        conn.commit()
-        conn.close()
 
         ### Write to S3
         data_feet = pd.DataFrame(data)
@@ -113,14 +133,19 @@ def record_special_feet(sensor_data, file_name):
         f = cStringIO.StringIO()
         data_feet.to_csv(f, index=False)
         f.seek(0)
-        S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-
-        #rpush
-#        msg = ErrorMessageBase(ind).error_message
-#        r_push_data = RPushDataBase(ind).value
-        #####rPUSH INSERT GOES HERE#######
-
-        return "Fail!"
+        try:
+            S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+            cur.execute(quer_rpush, (user_id, msg, r_push_data))
+            conn.commit()
+            conn.close()
+        except boto3.exceptions as error:
+            logger.warning("Can't write to s3 after fail!")
+            raise error
+        except psycopg2.Error as error:
+            logger.warning("Cannot write to rpush after fail!")
+            raise error
+        else:
+            return "Fail!"
 
     else:
         # determine the real quartenion
@@ -176,10 +201,16 @@ def record_special_feet(sensor_data, file_name):
         ind = ac.placement_check(left_acc, hip_acc, right_acc)
 #        left_ind = hip_ind = right_ind = mov_ind =False
         if ind != 0:
+            # rpush
+            msg = ErrorMessageBase(ind).error_message
+            r_push_data = RPushDataBase(ind).value
             #update special_anatomical_calibration_events
-            cur.execute(quer_fail, (ind, out_file, False, file_name))
-            conn.commit()
-            conn.close()
+            try:
+                cur.execute(quer_fail, (ind, out_file, False, file_name))
+                conn.commit()
+            except psycopg2.Error as error:
+                logger.warning("Cannot write to DB after failure!")
+                raise error
 
             data_feet['failure_type'] = ind
             ### Write to S3
@@ -187,20 +218,31 @@ def record_special_feet(sensor_data, file_name):
             f = cStringIO.StringIO()
             data_pd.to_csv(f, index=False)
             f.seek(0)
-            S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-
-            ### rPush
-#            msg = ErrorMessageBase(ind).error_message
-#            r_push_data = RPushDataBase(ind).value
-            #####rPUSH INSERT GOES HERE#######
-
-            return "Fail!"
+            try:
+                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+                cur.execute(quer_rpush, (user_id, msg, r_push_data))
+                conn.commit()
+                conn.close()
+            except boto3.exceptions as error:
+                logger.warning("Cannot write to s3 container after failure!")
+                raise error
+            except psycopg2.Error as error:
+                logger.warning("Cannot write to rpush after failure!")
+                raise error
+            else:
+                return "Fail!"
 
         else:
+            # rpush
+            msg = ErrorMessageBase(ind).error_message
+            r_push_data = RPushDataBase(ind).value
             #update special_anatomical_calibration_events
-            cur.execute(quer_success, (out_file, True, file_name))
-            conn.commit()
-            conn.close()
+            try:
+                cur.execute(quer_success, (out_file, True, file_name))
+                conn.commit()
+            except psycopg2.Error as error:
+                logger.warning("Cannot write to DB after success!")
+                raise error
 
             data_feet['failure_type'] = ind
             ### Write to S3
@@ -208,14 +250,19 @@ def record_special_feet(sensor_data, file_name):
             f = cStringIO.StringIO()
             data_pd.to_csv(f, index=False)
             f.seek(0)
-            S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-
-            #rPush
-#            msg = ErrorMessageBase(ind).error_message
-#            r_push_data = RPushDataBase(ind).value
-            #####rPUSH INSERT GOES HERE#######
-
-            return "Success!"
+            try:
+                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+                cur.execute(quer_rpush, (user_id, msg, r_push_data))
+                conn.commit()
+                conn.close()
+            except boto3.exceptions as error:
+                logger.info("Cannot write to s3 container after success!")
+                raise error
+            except psycopg2.Error as error:
+                logger.info("Cannot write to rpush after success!")
+                raise error
+            else:
+                return "Success!"
 
 
 if __name__ == '__main__':
