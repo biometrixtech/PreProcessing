@@ -9,12 +9,14 @@ Created on Tue Oct 18 18:30:17 2016
 import cStringIO
 import sys
 import logging
+
 import boto3
 import numpy as np
 import pandas as pd
 import psycopg2
 
 import anatomicalCalibration as ac
+from placementCheck import placement_check
 import baseCalibration as bc
 import prePreProcessing as ppp
 #from errors import ErrorMessageSession, RPushDataSession
@@ -141,11 +143,17 @@ def run_calibration(sensor_data, file_name):
     corrupt_magn = data['corrupt_magn']
     missing_type = data['missing_type']
 
-    identifiers = np.array([epoch_time, corrupt_magn, missing_type]).transpose()
+    identifiers = np.array([epoch_time, corrupt_magn, 
+                            missing_type]).transpose()
 
     # Create indicator values
     failure_type = np.array([-999]*len(data))
     indicators = np.array([failure_type]).transpose()
+    
+    # Check for duplicate epoch time
+    duplicate_epoch_time = ppp.check_duplicate_epochtime(epoch_time)
+    if duplicate_epoch_time:
+        logger.warning('Duplicate epoch time.')
 
     # PRE-PRE-PROCESSING
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
@@ -160,6 +168,11 @@ def run_calibration(sensor_data, file_name):
         data[var] = out.reshape(-1, )
         if ind in [1, 10]:
             break
+        
+        # check if nan's exist even after imputing
+        if np.any(np.isnan(out)):
+            logger.info('Bad data! NaNs exist even after imputing. \
+            Column: ' + var)
 
     if ind != 0:
         #update special_anatomical_calibration_events
@@ -187,17 +200,32 @@ def run_calibration(sensor_data, file_name):
         # Left foot
         left_q_xyz = np.array([data['LqX'], data['LqY'],
                                data['LqZ']]).transpose()
-        left_q_wxyz = ppp.calc_quaternions(left_q_xyz)
+        left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz)
+        
+        #check for type conversion error in left foot quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: LF quat')
+            return "Fail!"
 
         # Hip
         hip_q_xyz = np.array([data['HqX'], data['HqY'],
                               data['HqZ']]).transpose()
-        hip_q_wxyz = ppp.calc_quaternions(hip_q_xyz)
+        hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz)
+        
+        #check for type conversion error in hip quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: Hip quat')
+            return "Fail!"
 
         # Right foot
         right_q_xyz = np.array([data['RqX'], data['RqY'],
                                 data['RqZ']]).transpose()
-        right_q_wxyz = ppp.calc_quaternions(right_q_xyz)
+        right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz)
+        
+        #check for type conversion error in right foot quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: RF quat')
+            return "Fail!"
 
         #Acceleration
         left_acc = np.array([data['LaX'], data['LaY'],
@@ -233,7 +261,7 @@ def run_calibration(sensor_data, file_name):
             data_calib[k] = data_o[:, i]
         #Check if the sensors are placed correctly and if the subject is moving
         #around and push respective success/failure message to the user
-        ind = ac.placement_check(left_acc, hip_acc, right_acc)
+        ind = placement_check(left_acc, hip_acc, right_acc)
 #        left_ind = hip_ind = right_ind = mov_ind =False
         if ind != 0:
             cur.execute(quer_fail, (False, ind, is_base, file_name))
@@ -288,6 +316,16 @@ def run_calibration(sensor_data, file_name):
                 hip_pitch_transform, hip_roll_transform,\
                 lf_roll_transform, rf_roll_transform = \
                 bc.run_special_calib(data_calib, feet_data)
+                
+                # check if the transform values are nan's
+                if np.any(np.isnan(hip_pitch_transform)):
+                    logger.infor('Hip pitch transform has missing values.')
+                elif np.any(np.isnan(hip_roll_transform)):
+                    logger.infor('Hip roll transform has missing values.')
+                elif np.any(np.isnan(lf_roll_transform)):
+                    logger.infor('LF roll transform has missing values.')
+                elif np.any(np.isnan(rf_roll_transform)):
+                    logger.infor('RF roll transform has missing values.')
 
                 hip_pitch_transform = hip_pitch_transform.reshape(-1, ).tolist()
                 hip_roll_transform = hip_roll_transform.reshape(-1, ).tolist()
@@ -309,6 +347,20 @@ def run_calibration(sensor_data, file_name):
                 ac.run_calib(data_calib, hip_pitch_transform,
                              hip_roll_transform, lf_roll_transform,
                              rf_roll_transform)
+                             
+                # check if bodyframe and neutral transform values are nan's
+                if np.any(np.isnan(hip_bf_transform)):
+                    logger.info('Hip bodyframe transform has missing values.')
+                elif np.any(np.isnan(lf_bf_transform)):
+                    logger.info('LF bodyframe transform has missing values.')
+                elif np.any(np.isnan(rf_bf_transform)):
+                    logger.info('RF bodyframe transform has missing values.')
+                elif np.any(np.isnan(lf_n_transform)):
+                    logger.info('LF neutral transform has missing values.')
+                elif np.any(np.isnan(rf_n_transform)):
+                    logger.info('RF neutral transform has missing values.')
+                elif np.any(np.isnan(hip_n_transform)):
+                    logger.info('Hip neutral transform has missing values.')
 
                 ##Save session calibration offsets to
                 #sessionAnatomicalCalibrationEvent

@@ -5,37 +5,12 @@ Created on Tue Oct 11 16:30:36 2016
 @author: ankurmanikandan
 """
 
+import sys
+
 import numpy as np
 from scipy import interpolate
 
 from errors import ErrorId
-
-
-def _computation_imaginary_quat(i_quat, check_qw=True):
-
-    """
-    Compute the imaginary quaternions to implement in the computation to
-    determine the real quaternion.
-
-    Args:
-        i_quat: imaginary quaternion
-        check_qw: boolean variable to check if the function is used to 
-        calculate the real quaternion
-
-    Returns:
-        if check_qw == True:
-            comp_i_quat: computed imaginary quaternion to help determine the
-            real quaternion
-        else:
-            comp_i_quat: computed imaginary quaternion to scale it back
-    """
-
-    if check_qw:  # check if function is used to calculate real quaternion
-        comp_i_quat = (i_quat/32767.0)**2
-        return comp_i_quat.reshape(-1, 1)
-    else:  # function is used to calculate imaginary quaternion
-        comp_i_quat = i_quat/32767.0
-        return comp_i_quat.reshape(-1, 1)
 
 
 def calc_quaternions(quat_array):
@@ -71,8 +46,9 @@ def calc_quaternions(quat_array):
 
     # check if NaN exists in the real quaternion array
     if np.any(np.isnan(q_w)):
-        raise ValueError('Real quaternion cannot be comupted. Cannot \
-        take square root of a negative number.')
+        raise ValueError('Real quaternion cannot be comupted. Error \
+        in type conversion.')
+        sys.exit()
 
     # appending the real and imaginary quaternions arrays to a single array
     all_quaternions = np.hstack([q_w, q_i, q_j, q_k])
@@ -80,37 +56,31 @@ def calc_quaternions(quat_array):
     return all_quaternions
 
 
-def _zero_runs(col_dat):
+def _computation_imaginary_quat(i_quat, check_qw=True):
 
     """
-    Determining the number of consecutive nan's.
+    Compute the imaginary quaternions to implement in the computation to
+    determine the real quaternion.
 
     Args:
-        col_dat - column data as a numpy array.
+        i_quat: imaginary quaternion
+        check_qw: boolean variable to check if the function is used to 
+        calculate the real quaternion
 
     Returns:
-        ranges - 2D numpy array. 1st column is the starting position of the
-        first nan.
-        2nd column is the end position + 1 of the last consecutive nan.
-
+        if check_qw == True:
+            comp_i_quat: computed imaginary quaternion to help determine the
+            real quaternion
+        else:
+            comp_i_quat: computed imaginary quaternion to scale it back
     """
 
-    # determine where column data is NaN
-    isnan = np.isnan(col_dat).astype(int)
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from NaN
-    abs_diff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        abs_diff = np.concatenate([abs_diff, [1]], 0)
-
-    # determine the number of consecutive NaNs
-    ranges = np.where(abs_diff == 1)[0].reshape((-1, 2))
-
-    return ranges
+    if check_qw:  # check if function is used to calculate real quaternion
+        comp_i_quat = (i_quat/32767.0)**2
+        return comp_i_quat.reshape(-1, 1)
+    else:  # function is used to calculate imaginary quaternion
+        comp_i_quat = i_quat/32767.0
+        return comp_i_quat.reshape(-1, 1)
 
 
 def handling_missing_data(epoch_time, col_data, corrup_magn):
@@ -160,7 +130,8 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
                 interp = interpolate.splrep(dummy_epochtime,
                                             dummy_data,
                                             k=3,
-                                            s=0)  # spline interpolation function
+                                            s=0)  # spline interpolation 
+                                                  # function
 
                 for i in range(len(ran)):
                     y_new = interpolate.splev(epoch_time[ran[i, 0]:ran[i, 1],
@@ -171,6 +142,39 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
         # if no missing data, return values
         else:
             return col_data, ErrorId.no_error.value
+            
+            
+def _zero_runs(col_dat):
+
+    """
+    Determining the number of consecutive nan's.
+
+    Args:
+        col_dat - column data as a numpy array.
+
+    Returns:
+        ranges - 2D numpy array. 1st column is the starting position of the
+        first nan.
+        2nd column is the end position + 1 of the last consecutive nan.
+
+    """
+
+    # determine where column data is NaN
+    isnan = np.isnan(col_dat).astype(int)
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    abs_diff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        abs_diff = np.concatenate([abs_diff, [1]], 0)
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(abs_diff == 1)[0].reshape((-1, 2))
+
+    return ranges
 
 
 #if __name__ == "__main__":
