@@ -169,10 +169,10 @@ def _zero_runs(col_dat):
     Determining the number of consecutive nan's.
 
     Args:
-        col_dat - column data as a numpy array.
+        col_dat: column data as a numpy array.
 
     Returns:
-        ranges - 2D numpy array. 1st column is the starting position of the
+        ranges: 2D numpy array. 1st column is the starting position of the
         first nan.
         2nd column is the end position + 1 of the last consecutive nan.
 

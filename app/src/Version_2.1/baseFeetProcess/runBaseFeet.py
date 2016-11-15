@@ -16,6 +16,7 @@ import psycopg2
 import prePreProcessing as ppp
 import anatomicalCalibration as ac
 from errors import ErrorMessageBase, RPushDataBase
+from placementCheck import placement_check
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -107,6 +108,11 @@ def record_special_feet(sensor_data, file_name):
     failure_type = np.array([-999]*len(data))
     indicators = np.array([failure_type]).transpose()
 
+    # Check for duplicate epoch time
+    duplicate_epoch_time = ppp.check_duplicate_epochtime(epoch_time)
+    if duplicate_epoch_time:
+        logger.warning('Duplicate epoch time.')
+    
     # PRE-PRE-PROCESSING
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
                'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY', 'RaZ',
@@ -120,6 +126,11 @@ def record_special_feet(sensor_data, file_name):
         data[var] = out.reshape(-1, )
         if ind in [1, 10]:
             break
+        
+        # check if nan's exist even after imputing
+        if np.any(np.isnan(out)):
+            logger.info('Bad data! NaNs exist even after imputing. \
+            Column: ' + var)
 
     if ind != 0:
         # rpush
@@ -184,7 +195,15 @@ def record_special_feet(sensor_data, file_name):
         if conv_error:
             logger.warning('Error! Type conversion error: RF quat')
             return "Fail!"
-
+            
+        #Acceleration
+        left_acc = np.array([data['LaX'], data['LaY'],
+                             data['LaZ']]).transpose()
+        hip_acc = np.array([data['HaX'], data['HaY'],
+                            data['HaZ']]).transpose()
+        right_acc = np.array([data['RaX'], data['RaY'],
+                              data['RaZ']]).transpose()
+                              
         #create output table as a structured numpy array
         data_o = np.hstack((identifiers, indicators))
         data_o = np.hstack((data_o, left_acc))
@@ -211,7 +230,7 @@ def record_special_feet(sensor_data, file_name):
             data_feet[k] = data_o[:, i]
         #Check if the sensors are placed correctly and if the subject is moving
         #around and push respective success/failure message to the user
-        ind = ac.placement_check(left_acc, hip_acc, right_acc)
+        ind = placement_check(left_acc, hip_acc, right_acc)
 #        left_ind = hip_ind = right_ind = mov_ind =False
         if ind != 0:
             # rpush

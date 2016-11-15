@@ -178,7 +178,7 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
 def _zero_runs(col_dat):
 
     """
-    Determinging the number of consecutive nan's.
+    Determining the number of consecutive nan's.
 
     Args:
         col_dat: column data as a numpy array.
