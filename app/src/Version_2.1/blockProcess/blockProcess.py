@@ -34,16 +34,19 @@ def lambda_handler(event, context):
         content = cStringIO.StringIO(body)
         logger.info('Converted Content')
         zipped = zf.ZipFile(content)
-        name = zipped.namelist()[0]
-        unzipped_content = cStringIO.StringIO()
-        unzipped_content = zipped.open(name)
-        logger.info('Unzipped File')          
-        result = ra.AnalyticsExecution(unzipped_content, key).result
-        logger.info('outcome:' + result)
-        #response = s3.get_object(Bucket=bucket, Key=key)
-        #logger.info("CONTENT TYPE: " + response['ContentType'])
-        #return response['ContentType']
-        return 'success'
+        try:
+            name = zipped.namelist()[0]
+        except IndexError:
+            logger.warning('Fail!, no data inside zipped file')
+            return 'success'
+        else:
+            unzipped_content = cStringIO.StringIO()
+            unzipped_content = zipped.open(name)
+            logger.info('Unzipped File')          
+            result = ra.AnalyticsExecution(unzipped_content, key).result
+            logger.info('outcome:' + result)
+            return 'success'
+
     except Exception as e:
         logger.info(e)
         logger.info('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
