@@ -91,10 +91,10 @@ def record_special_feet(sensor_data, file_name):
         data = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
                              names=True)
     except IndexError:
-        logger.info("Sensor data doesn't have column names!")
+        logger.warning("Sensor data doesn't have column names!")
         return "Fail!"
     if len(data) == 0:
-        logger.info("Sensor data is empty!")
+        logger.warning("Sensor data is empty!")
         return "Fail!"
 
     out_file = "processed_" + file_name
@@ -129,8 +129,9 @@ def record_special_feet(sensor_data, file_name):
         
         # check if nan's exist even after imputing
         if np.any(np.isnan(out)):
-            logger.info('Bad data! NaNs exist even after imputing. \
+            logger.warning('Bad data! NaNs exist even after imputing. \
             Column: ' + var)
+            return "Fail!"
 
     if ind != 0:
         # rpush
@@ -156,10 +157,10 @@ def record_special_feet(sensor_data, file_name):
             conn.commit()
             conn.close()
         except boto3.exceptions as error:
-            logger.warning("Can't write to s3 after fail!")
+            logger.warning("Can't write to s3 after failure!")
             raise error
         except psycopg2.Error as error:
-            logger.warning("Cannot write to rpush after fail!")
+            logger.warning("Cannot write to rpush after failure!")
             raise error
         else:
             return "Fail!"

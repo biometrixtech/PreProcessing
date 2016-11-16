@@ -19,7 +19,7 @@ import anatomicalCalibration as ac
 from placementCheck import placement_check
 import baseCalibration as bc
 import prePreProcessing as ppp
-#from errors import ErrorMessageSession, RPushDataSession
+from errors import ErrorMessageSession, RPushDataSession
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -40,31 +40,20 @@ def run_calibration(sensor_data, file_name):
         Save transformed data to database with indicator of success/failure
         Save offset values to database
     """
-    ###Connect to the database
-    try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
-    except:
-        return 'Fail! Unable to connect to database'
-        sys.exit()
-    cur = conn.cursor()
+    # Setup Queries based on different situations
 
-    ##Setup Queries based on different situations
-
-    #Read relevant information from special_anatomical_calibration_events
-    #based on provided sensor_data_filename and
-    #special_anatomical_calibration_event_id tied to the filename
-    quer_read = """select expired, feet_processed_sensor_data_filename,
-                feet_success, hip_success, hip_pitch_transform,
-                hip_roll_transform, lf_roll_transform, rf_roll_transform,
-                user_id
+    # Read relevant information from special_anatomical_calibration_events
+    # based on provided sensor_data_filename and
+    # special_anatomical_calibration_event_id tied to the filename
+    quer_read = """select user_id, expired, feet_success, hip_success,
+                feet_processed_sensor_data_filename, hip_pitch_transform,
+                hip_roll_transform, lf_roll_transform, rf_roll_transform
                 from base_anatomical_calibration_events where
                 id = (select base_anatomical_calibration_event_id from
                         session_anatomical_calibration_events where 
                         sensor_data_filename = (%s));"""
 
-    #Update anatomical_calibration_events in case the tests fail
+    # Update anatomical_calibration_events in case the tests fail
     quer_fail = """update session_anatomical_calibration_events set
                 success = (%s),
                 failure_type = (%s),
@@ -72,7 +61,7 @@ def run_calibration(sensor_data, file_name):
                 updated_at = now()
                 where sensor_data_filename=(%s);"""
 
-    #For base calibration, update special_anatomical_calibration_events
+    # For base calibration, update special_anatomical_calibration_events
     quer_spe_succ = """update  base_anatomical_calibration_events set
                 hip_success = (%s),
                 hip_pitch_transform = (%s),
@@ -84,10 +73,10 @@ def run_calibration(sensor_data, file_name):
                             session_anatomical_calibration_events where
                             sensor_data_filename = (%s));"""
 
-    #For both base and session calibration, update
-    #anatomical_calibration_events with relevant info
-    #for base calibration, session calibration follows base calibration
-    #for session calibration, it's independent and uses values read earlier
+    # For both base and session calibration, update
+    # anatomical_calibration_events with relevant info
+    # for base calibration, session calibration follows base calibration
+    # for session calibration, it's independent and uses values read earlier
     quer_reg_succ = """update session_anatomical_calibration_events set
                     success = (%s),
                     base_calibration = (%s),
@@ -100,20 +89,49 @@ def run_calibration(sensor_data, file_name):
                     updated_at = now()
                     where sensor_data_filename  = (%s);"""
 
-    #execute the read query and extract relevant indicator info
-    cur.execute(quer_read, (file_name, ))
-    data_read = cur.fetchall()[0]
-    expired = data_read[0]
+    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
+
+    # Define containers to read from and write to
+    cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
+    cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
+
+    try:
+        # Connect to the database
+        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
+        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
+        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        cur = conn.cursor()
+
+        # Connect to AWS S3
+        S3 = boto3.resource('s3')
+
+        # Execute the read query and extract relevant indicator info
+        cur.execute(quer_read, (file_name, ))
+        data_read = cur.fetchall()[0]
+        user_id = data_read[0]
+        if user_id is None:
+            user_id = '00000000-0000-0000-0000-000000000000'
+            logger.warning("user_id associated with file not found")
+    except psycopg2.Error as error:
+        logger.warning("Cannot connect to DB")
+        raise error
+    except boto3.exceptions as error:
+        logger.warning("Cannot connect to s3")
+        raise error
+    except IndexError as error:
+        logger.warning("sensor_data_filename not found in table")
+        raise error
+
+    expired = data_read[1]
     feet_success = data_read[2]
     hip_success = data_read[3]
-#    user_id = data_read[8]
 
-    #if not expired and feet_success is true and hip_success is true, it's
-    #treated as session calibration
-    #if hip_success is blank, it's treated as base calibration
-    #feet_success should always be true
-    #expired should be false
-    if ~expired and feet_success and hip_success:
+    # if not expired and feet_success is true and hip_success is true, it's
+    # treated as session calibration
+    # if hip_success is blank, it's treated as base calibration
+    # feet_success should always be true
+    # expired should be false
+    if not expired and feet_success and hip_success:
         is_base = False
     else:
         is_base = True
@@ -121,35 +139,44 @@ def run_calibration(sensor_data, file_name):
     #if it's base, we need the processed_sensor_data_filename
     #if session, we need transform values corresponding to the base calibration
     if is_base:
-        feet_file = data_read[1]
+        feet_file = data_read[4]
     else:
-        hip_pitch_transform = np.array(data_read[4]).reshape(-1, 1)
-        hip_roll_transform = np.array(data_read[5]).reshape(-1, 1)
-        lf_roll_transform = np.array(data_read[6]).reshape(-1, 1)
-        rf_roll_transform = np.array(data_read[7]).reshape(-1, 1)
+        hip_pitch_transform = np.array(data_read[5]).reshape(-1, 1)
+        if len(hip_pitch_transform) == 0:
+            is_base = True
+        hip_roll_transform = np.array(data_read[6]).reshape(-1, 1)
+        if len(hip_roll_transform) == 0:
+            is_base = True
+        lf_roll_transform = np.array(data_read[7]).reshape(-1, 1)
+        if len(lf_roll_transform) == 0:
+            is_base = True
+        rf_roll_transform = np.array(data_read[8]).reshape(-1, 1)
+        if len(rf_roll_transform) == 0:
+            is_base = True
 
-    #Connect to AWS S3 container
-    S3 = boto3.resource('s3')
-
-    #define containers to read from and write to
-    cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
-    cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
-
-    #Read data into structured numpy array
-    data = np.genfromtxt(sensor_data, dtype=float, delimiter=',', names=True)
+    # Read data into structured numpy array
+    try:
+        data = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
+                             names=True)
+    except IndexError:
+        logger.warning("Sensor data doesn't have column names!")
+        return "Fail!"
+    if len(data) == 0:
+        logger.warning("Sensor data is empty!")
+        return "Fail!"
 
     out_file = "processed_" + file_name
     epoch_time = data['epoch_time']
     corrupt_magn = data['corrupt_magn']
     missing_type = data['missing_type']
 
-    identifiers = np.array([epoch_time, corrupt_magn, 
+    identifiers = np.array([epoch_time, corrupt_magn,
                             missing_type]).transpose()
 
     # Create indicator values
     failure_type = np.array([-999]*len(data))
     indicators = np.array([failure_type]).transpose()
-    
+
     # Check for duplicate epoch time
     duplicate_epoch_time = ppp.check_duplicate_epochtime(epoch_time)
     if duplicate_epoch_time:
@@ -168,17 +195,24 @@ def run_calibration(sensor_data, file_name):
         data[var] = out.reshape(-1, )
         if ind in [1, 10]:
             break
-        
+
         # check if nan's exist even after imputing
         if np.any(np.isnan(out)):
-            logger.info('Bad data! NaNs exist even after imputing. \
+            logger.warning('Bad data! NaNs exist even after imputing. \
             Column: ' + var)
+            return "Fail"
 
     if ind != 0:
-        #update special_anatomical_calibration_events
-        cur.execute(quer_fail, (ind, out_file, False, file_name))
-        conn.commit()
-        conn.close()
+        msg = ErrorMessageSession(ind).error_message
+        r_push_data = RPushDataSession(ind).value
+
+        # Update special_anatomical_calibration_events
+        try:
+            cur.execute(quer_fail, (ind, out_file, False, file_name))
+            conn.commit()
+        except psycopg2.Error as error:
+            logger.warning("Cannot write to DB after failure!")
+            raise error
 
         ### Write to S3
         data_calib = pd.DataFrame(data)
@@ -186,14 +220,19 @@ def run_calibration(sensor_data, file_name):
         f = cStringIO.StringIO()
         data_calib.to_csv(f, index=False)
         f.seek(0)
-        S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-
-        #rpush
-#        msg = ErrorMessageBase(ind).error_message
-#        r_push_data = RPushDataBase(ind).value
-        #####rPUSH INSERT GOES HERE#######
-
-        return "Fail!"
+        try:
+            S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+            cur.execute(quer_rpush, (user_id, msg, r_push_data))
+            conn.commit()
+            conn.close()
+        except boto3.exceptions as error:
+            logger.warning("Can't write to s3 after failure!")
+            raise error
+        except psycopg2.Error as error:
+            logger.warning("Cannot write to rpush after failure!")
+            raise error
+        else:
+            return "Fail!"
 
     else:
         # determine the real quartenion
@@ -201,8 +240,8 @@ def run_calibration(sensor_data, file_name):
         left_q_xyz = np.array([data['LqX'], data['LqY'],
                                data['LqZ']]).transpose()
         left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz)
-        
-        #check for type conversion error in left foot quaternion data
+
+        # Check for type conversion error in left foot quaternion data
         if conv_error:
             logger.warning('Error! Type conversion error: LF quat')
             return "Fail!"
@@ -211,8 +250,8 @@ def run_calibration(sensor_data, file_name):
         hip_q_xyz = np.array([data['HqX'], data['HqY'],
                               data['HqZ']]).transpose()
         hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz)
-        
-        #check for type conversion error in hip quaternion data
+
+        # Check for type conversion error in hip quaternion data
         if conv_error:
             logger.warning('Error! Type conversion error: Hip quat')
             return "Fail!"
@@ -221,7 +260,7 @@ def run_calibration(sensor_data, file_name):
         right_q_xyz = np.array([data['RqX'], data['RqY'],
                                 data['RqZ']]).transpose()
         right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz)
-        
+
         #check for type conversion error in right foot quaternion data
         if conv_error:
             logger.warning('Error! Type conversion error: RF quat')
@@ -244,7 +283,7 @@ def run_calibration(sensor_data, file_name):
         data_o = np.hstack((data_o, right_acc))
         data_o = np.hstack((data_o, right_q_wxyz))
 
-        #Columns of the output table
+        # Columns of the output table
         columns = ['epoch_time', 'corrupt_magn', 'missing_type', 'failure_type',
                    'LaX', 'LaY', 'LaZ', 'LqW', 'LqX', 'LqY', 'LqZ', 'HaX',
                    'HaY', 'HaZ', 'HqW', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY',
@@ -264,91 +303,117 @@ def run_calibration(sensor_data, file_name):
         ind = placement_check(left_acc, hip_acc, right_acc)
 #        left_ind = hip_ind = right_ind = mov_ind =False
         if ind != 0:
-            cur.execute(quer_fail, (False, ind, is_base, file_name))
-            conn.commit()
-            conn.close()
+            # rPush
+            msg = ErrorMessageSession(ind).error_message
+            r_push_data = RPushDataSession(ind).value
+            # Write to SessionAnatomicalCalibrationEvents
+            try:
+                cur.execute(quer_fail, (False, ind, is_base, file_name))
+                conn.commit()
+            except psycopg2.Error as error:
+                logger.warning("Cannot write to DB after failure!")
+                raise error
 
+
+            #write to S3 and rPush
             data_calib['failure_type'] = ind
-
-            #write to S3
             data_pd = pd.DataFrame(data_calib)
             f = cStringIO.StringIO()
             data_pd.to_csv(f, index=False)
             f.seek(0)
-            S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-
-            ### rPush
-#            msg = ErrorMessageSession(ind).error_message
-#            r_push_data = RPushDataSession(ind).value
-            #####rPush INSERT GOES HERE########
-
-            return "Fail!"
+            try:
+                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+                cur.execute(quer_rpush, (user_id, msg, r_push_data))
+                conn.commit()
+                conn.close()
+            except boto3.exceptions as error:
+                logger.warning("Cannot write to s3 container after failure!")
+                raise error
+            except psycopg2.Error as error:
+                logger.warning("Cannot write to rpush after failure!")
+                raise error
+            else:
+                return "Fail!"
 
         else:
-            data_calib['failure_type'] = ind
-
-#            msg = ErrorMessageSession(ind).error_message
-#            r_push_data = RPushDataSession(ind).value
-            #####rPush INSERT GOES HERE########
+            # rPush
+            msg = ErrorMessageSession(ind).error_message
+            r_push_data = RPushDataSession(ind).value
 
             ###Write to S3
+            data_calib['failure_type'] = ind
             data_pd = pd.DataFrame(data_calib)
             data_pd['base_calibration'] = int(is_base)
             f = cStringIO.StringIO()
             data_pd.to_csv(f, index=False)
             f.seek(0)
-            S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+            try:
+                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+            except boto3.exceptions as error:
+                logger.warning("Cannot write to s3!")
+                raise error
 
-            ###read from BaseAnatomicalCalibrationEvent table
-            ### include all the base calibration offsets if present
-            ###Special true if expired = True and feet_success = True
             if is_base:
                 #read from S3
-                obj = S3.Bucket(cont_read).Object(feet_file)
-                fileobj = obj.get()
-                body = fileobj["Body"].read()
-                feet = cStringIO.StringIO(body)
+                try:
+                    obj = S3.Bucket(cont_read).Object(feet_file)
+                    fileobj = obj.get()
+                    body = fileobj["Body"].read()
+                    feet = cStringIO.StringIO(body)
+                except boto3.exceptions as error:
+                    logger.warning("Cannot read feet_sensor_data from s3!")
+                    raise error
 
-                ### Read from DB, base feet calibration data
-                feet_data = np.genfromtxt(feet, dtype=float,
-                                          delimiter=',', names=True)
+                # Read  base feet calibration data from s3
+                try:
+                    feet_data = np.genfromtxt(feet, dtype=float, delimiter=',',
+                                              names=True)
+                except IndexError:
+                    logger.warning("Feet data doesn't have column names!")
+                    raise error
+                if len(feet_data) == 0:
+                    logger.warning("Feet sensor data is empty!")
                 #Run base calibration
                 hip_pitch_transform, hip_roll_transform,\
                 lf_roll_transform, rf_roll_transform = \
                 bc.run_special_calib(data_calib, feet_data)
-                
+
                 # check if the transform values are nan's
                 if np.any(np.isnan(hip_pitch_transform)):
-                    logger.infor('Hip pitch transform has missing values.')
+                    logger.info('Hip pitch transform has missing values.')
                 elif np.any(np.isnan(hip_roll_transform)):
-                    logger.infor('Hip roll transform has missing values.')
+                    logger.info('Hip roll transform has missing values.')
                 elif np.any(np.isnan(lf_roll_transform)):
-                    logger.infor('LF roll transform has missing values.')
+                    logger.info('LF roll transform has missing values.')
                 elif np.any(np.isnan(rf_roll_transform)):
-                    logger.infor('RF roll transform has missing values.')
+                    logger.info('RF roll transform has missing values.')
 
                 hip_pitch_transform = hip_pitch_transform.reshape(-1, ).tolist()
                 hip_roll_transform = hip_roll_transform.reshape(-1, ).tolist()
                 lf_roll_transform = lf_roll_transform.reshape(-1, ).tolist()
                 rf_roll_transform = rf_roll_transform.reshape(-1, ).tolist()
 
-                ###Save base calibration offsets to
-                ###SpecialAnatomicalCalibrationEvent along with hip_success
-                cur.execute(quer_spe_succ, (True, hip_pitch_transform,
-                                            hip_roll_transform,
-                                            lf_roll_transform,
-                                            rf_roll_transform,
-                                            file_name))
-                conn.commit()
+                # Save base calibration offsets to
+                # BaseAnatomicalCalibrationEvent along with hip_success
+                try:
+                    cur.execute(quer_spe_succ, (True, hip_pitch_transform,
+                                                hip_roll_transform,
+                                                lf_roll_transform,
+                                                rf_roll_transform,
+                                                file_name))
+                    conn.commit()
+                except psycopg2.Error as error:
+                    logger.warning("Cannot write base transform values to DB")
+                    raise error
 
-                #Run session calibration
+                # Run session calibration
                 hip_bf_transform, lf_bf_transform, rf_bf_transform,\
                 lf_n_transform, rf_n_transform, hip_n_transform = \
                 ac.run_calib(data_calib, hip_pitch_transform,
                              hip_roll_transform, lf_roll_transform,
                              rf_roll_transform)
-                             
-                # check if bodyframe and neutral transform values are nan's
+
+                # Check if bodyframe and neutral transform values are nan's
                 if np.any(np.isnan(hip_bf_transform)):
                     logger.info('Hip bodyframe transform has missing values.')
                 elif np.any(np.isnan(lf_bf_transform)):
@@ -362,9 +427,9 @@ def run_calibration(sensor_data, file_name):
                 elif np.any(np.isnan(hip_n_transform)):
                     logger.info('Hip neutral transform has missing values.')
 
-                ##Save session calibration offsets to
-                #sessionAnatomicalCalibrationEvent
-                ##along with base_calibration = True and success = True
+                # Save session calibration offsets to
+                # SessionAnatomicalCalibrationEvent
+                # along with base_calibration=True and success=True
                 hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
                 lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
                 rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
@@ -372,24 +437,33 @@ def run_calibration(sensor_data, file_name):
                 rf_n_transform = rf_n_transform.reshape(-1,).tolist()
                 hip_n_transform = hip_n_transform.reshape(-1,).tolist()
 
-                ###Save session calibration offsets to
-                #SessionAnatomicalCalibrationEvent
-                ###along with base_calibration = False and success = True
-                cur.execute(quer_reg_succ, (True, is_base,
-                                            hip_n_transform,
-                                            hip_bf_transform,
-                                            lf_n_transform,
-                                            lf_bf_transform,
-                                            rf_n_transform,
-                                            rf_bf_transform,
-                                            file_name))
-                conn.commit()
-                conn.close()
+                try:
+                    cur.execute(quer_reg_succ, (True, is_base,
+                                                hip_n_transform,
+                                                hip_bf_transform,
+                                                lf_n_transform,
+                                                lf_bf_transform,
+                                                rf_n_transform,
+                                                rf_bf_transform,
+                                                file_name))
+                    conn.commit()
+                except boto3.exceptions as error:
+                    logger.warning("Cannot write to DB after success!")
+                    raise error
+                try:
+                    cur.execute(quer_rpush, (user_id, msg, r_push_data))
+                    conn.commit()
+                    conn.close()
 
-                return "Success!"
+                # rPush
+                except:
+                    logger.warning("Cannot write to rpush after succcess!")
+                    raise error
+                else:
+                    return "Success!"
 
             else:
-                #Run session calibration
+                # Run session calibration
                 hip_bf_transform, lf_bf_transform, rf_bf_transform,\
                 lf_n_transform, rf_n_transform, hip_n_transform = \
                 ac.run_calib(data_calib, hip_pitch_transform,
@@ -401,21 +475,33 @@ def run_calibration(sensor_data, file_name):
                 lf_n_transform = lf_n_transform.reshape(-1,).tolist()
                 rf_n_transform = rf_n_transform.reshape(-1,).tolist()
                 hip_n_transform = hip_n_transform.reshape(-1,).tolist()
-                ###Save session calibration offsets to
-                #SessionAnatomicalCalibrationEvent
-                ###along with base_calibration = False and success = True
-                cur.execute(quer_reg_succ, (True, is_base,
-                                            hip_n_transform,
-                                            hip_bf_transform,
-                                            lf_n_transform,
-                                            lf_bf_transform,
-                                            rf_n_transform,
-                                            rf_bf_transform,
-                                            file_name))
-                conn.commit()
-                conn.close()
 
-                return "Success!"
+                # Save session calibration offsets to
+                # SessionAnatomicalCalibrationEvent
+                # along with base_calibration=False and success=True
+                try:
+                    cur.execute(quer_reg_succ, (True, is_base,
+                                                hip_n_transform,
+                                                hip_bf_transform,
+                                                lf_n_transform,
+                                                lf_bf_transform,
+                                                rf_n_transform,
+                                                rf_bf_transform,
+                                                file_name))
+                    conn.commit()
+                except psycopg2.Error as error:
+                    logger.warning("Cannot write to DB after success!")
+
+                # rPush
+                try:
+                    cur.execute(quer_rpush, (user_id, msg, r_push_data))
+                    conn.commit()
+                    conn.close()
+                except:
+                    logger.warning("Cannot write to rpush after succcess!")
+                    raise error
+                else:
+                    return "Success!"
 
 
 if __name__ == '__main__':
