@@ -6,9 +6,61 @@ Created on Tue Oct  4 14:03:32 2016
 """
 
 import numpy as np
-from itertools import *
-from findPeaks import detect_peaks
 from scipy.signal import periodogram
+
+from findPeaks import detect_peaks
+from dynamicSamplingRate import handle_dynamic_sampling, \
+handle_dynamic_sampling_create_features
+
+
+def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd, 
+                  prom_mph, prom_peak_thresh, weak_mpd, weak_mph, 
+                  weak_peak_thresh):
+    
+    """
+    Create sampling windows with specified size to determine features.
+    
+    Args:
+        s: left foot/hip/right foot signals
+        epoch_time: an array, epoch time from sensor
+        window_samples: sliding window length
+        overlap_samples: how many samples must the next window overlap of 
+        the previous window
+        prom_mpd: minimum peak distance for prominent peaks
+        prom_mph: minimum peak height for prominent peaks
+        prom_peak_thresh: height threshold for number of maximum peaks for
+        prominent peaks
+        weak_mpd: minimum peak distance for weak peaks
+        weak_mph: minimum peak height for weak peaks
+        weak_peak_thresh: height threshold for number of minimum peaks for
+        weak peaks
+        
+    Returns:
+        feature_matrix: left foot/hip/right foot feature matrix
+    """
+
+    feature_matrix = np.zeros((1,28))  # declaring feature matrix for 
+    # each signal      
+    
+    overlap = [np.where(epoch_time-epoch_time[i]<=overlap_samples)[-1][-1] - \
+    i for i in range(len(epoch_time))]
+    i = 0
+    while i < len(epoch_time)-1:
+       epoch_time_subset = epoch_time[i:]
+       w, fs = handle_dynamic_sampling_create_features(s[:,2], 
+                                                       epoch_time_subset, 
+                                                       window_samples, i)
+       
+       feature_vector = _create_features(w, fs, prom_mpd, prom_mph, 
+                                          prom_peak_thresh, weak_mpd, 
+                                          weak_mph, weak_peak_thresh)
+       feature_matrix = np.vstack((feature_matrix, feature_vector))
+        
+       i = i + overlap[i]
+        
+    feature_matrix = feature_matrix[1:,:]  # removing the first row of zeros
+
+    return feature_matrix
 
 
 def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd, 
@@ -121,48 +173,9 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
    
     return feature_vector
     
-    
-def create_window(s, fs, window_samples, overlap_samples, prom_mpd, prom_mph, 
-                 prom_peak_thresh, weak_mpd, weak_mph, weak_peak_thresh):
-    
-    """
-    Create sampling windows with specified size to determine features.
-    
-    Args:
-        s: left foot/hip/right foot signals
-        fs: sampling rate
-        window_samples: sliding window length
-        overlap_samples: how many samples must the next window overlap of 
-        the previous window
-        prom_mpd: minimum peak distance for prominent peaks
-        prom_mph: minimum peak height for prominent peaks
-        prom_peak_thresh: height threshold for number of maximum peaks for
-        prominent peaks
-        weak_mpd: minimum peak distance for weak peaks
-        weak_mph: minimum peak height for weak peaks
-        weak_peak_thresh: height threshold for number of minimum peaks for
-        weak peaks
-        
-    Returns:
-        feature_matrix: left foot/hip/right foot feature matrix
-    """
 
-    feature_matrix = np.zeros((1,28))  # declaring feature matrix for 
-    # each signal      
-    for j in islice(count(), 0, len(s)-window_samples, overlap_samples): 
-    # looping through each window
-        w = s[j:j+window_samples,2]            
-        feature_vector = _create_features(w, fs, prom_mpd, prom_mph, 
-                                          prom_peak_thresh, weak_mpd, 
-                                          weak_mph, weak_peak_thresh)
-        feature_matrix = np.vstack((feature_matrix, feature_vector))
-        
-    feature_matrix = feature_matrix[1:,:]  # removing the first row of zeros
-
-    return feature_matrix
-
-
-def create_labels(labels, window_samples, overlap_samples, label_thresh):
+def create_labels(labels, window_samples, overlap_samples, label_thresh,
+                  epoch_time):
     
     """
     Create label for each sampling window.
@@ -173,6 +186,7 @@ def create_labels(labels, window_samples, overlap_samples, label_thresh):
         overlap_samples: how many samples must the next window overlap of 
         the previous window
         label_thresh: threshold for labelling a window 1 or 0
+        epoch_time: an array, epoch time from sensor
         
     Returns:
         label_vector: a vector of labels for each window
@@ -180,12 +194,19 @@ def create_labels(labels, window_samples, overlap_samples, label_thresh):
     
     label_vector = np.zeros(1)
     
-    for n in islice(count(), 0, len(labels)-window_samples, overlap_samples):
-        labwin = labels[n:n+window_samples]
-        if float(len(labwin[labwin == 1]))/len(labwin) >= label_thresh:
-            label_vector = np.vstack((label_vector, np.array([1])))
-        else:
-            label_vector = np.vstack((label_vector, np.array([0])))
+    overlap = [np.where(epoch_time-epoch_time[i]<=overlap_samples)[-1][-1] - \
+    i for i in range(len(epoch_time))]
+    i = 0
+    while i < len(epoch_time)-1:
+       epoch_time_subset = epoch_time[i:]
+       labwin = handle_dynamic_sampling(labels, epoch_time_subset, 
+                                           window_samples, i)
+       if float(len(labwin[labwin == 1]))/len(labwin) >= label_thresh:
+           label_vector = np.vstack((label_vector, np.array([1])))
+       else:
+           label_vector = np.vstack((label_vector, np.array([0])))
+           
+       i = i + overlap[i]
             
     label_vector = label_vector[1:]
     

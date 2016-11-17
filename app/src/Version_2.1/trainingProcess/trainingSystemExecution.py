@@ -346,12 +346,10 @@ class TrainingExecution(object): #Abstract setUp class
             
 
         else:
-            # SAMPLING RATE
-            hz = 250       
-
             # PHASE DETECTION
             self.data.phase_l, self.data.phase_r \
-                = phase.combine_phase(self.data.LaZ, self.data.RaZ, hz)
+                = phase.combine_phase(self.data.LaZ, self.data.RaZ, 
+                                      self.data.epoch_time)
 
             # calculate instantaneous totalAccel, plane and stance binaries
             hip_acc = np.hstack([self.data.HaX, self.data.HaY, self.data.HaZ])
@@ -360,12 +358,13 @@ class TrainingExecution(object): #Abstract setUp class
                 self.data.lat_binary, self.data.vert_binary,\
                 self.data.horz_binary, self.data.rot_binary,\
                 self.data.stationary_binary, self.data.total_accel\
-                = matrib.plane_analysis(hip_acc, hip_eul,hz)
+                = matrib.plane_analysis(hip_acc, hip_eul,self.data.ms_elapsed)
             self.data.standing, self.data.not_standing \
-                = matrib.standing_or_not(hip_eul, hz)
+                = matrib.standing_or_not(hip_eul, self.data.epoch_time)
             self.data.double_leg, self.data.single_leg,\
                 self.data.feet_eliminated = matrib.double_or_single_leg(
-                self.data.phase_l, self.data.phase_r, self.data.standing, hz)
+                self.data.phase_l, self.data.phase_r, self.data.standing, 
+                self.data.epoch_time)
 
             # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLE ANALYSIS
             # process instantaneous accel values to give meaning for whole 

@@ -106,13 +106,13 @@ def plane_analysis(hip_acc,hip_eul,ms_elapsed):
     for i in range(1,len(hip_eul)):
 
         _ang_vel[i]=(np.array(hip_eul[i].tolist())-\
-                    np.array(hip_eul[i-1].tolist()))*(1000/ms_elapsed)
+                    np.array(hip_eul[i-1].tolist()))*(1000/ms_elapsed[i])
         
     # calculate angular acceleration    
     for i in range(2,len(_ang_vel)):
 
         _ang_acc[i]=(np.array(_ang_vel[i].tolist())-\
-                    np.array(_ang_vel[i-1].tolist()))*(1000/ms_elapsed)
+                    np.array(_ang_vel[i-1].tolist()))*(1000/ms_elapsed[i])
 
         # calculate magnitude of angular acceleration
         _rot_mag[i]=np.sqrt(_ang_acc[i][0]**2+_ang_acc[i][1]**2+_ang_acc[i][2]**2)

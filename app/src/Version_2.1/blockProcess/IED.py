@@ -14,6 +14,117 @@ import pandas as pd
 from createFeaturesIED import create_window, create_labels
 
 
+def preprocess_ied(data, training = False):
+    
+    """
+    Create signals, features to train/predict labels.
+    
+    Args: 
+        data: sensor data
+        training: True/False, train the IED system or just predicting
+        
+    Returns:
+        combined_feature_matrix: features obtained from the different signals
+        if training == True:
+            lab: exercise ID when training the IED model
+            encoded_model: encoded label model
+    """
+    
+    # Convert data to pandas dataframe
+    df = pd.DataFrame(data.epoch_time)
+    df.columns = ['epoch_time']
+    df['LaX'] = data.LaX
+    df['LaY'] = data.LaY
+    df['LaZ'] = data.LaZ
+    df['LeX'] = data.LeX
+    df['LeY'] = data.LeY
+    df['LeZ'] = data.LeZ
+    
+    df['HaX'] = data.HaX
+    df['HaY'] = data.HaY
+    df['HaZ'] = data.HaZ
+    df['HeX'] = data.HeX
+    df['HeY'] = data.HeY
+    df['HeZ'] = data.HeZ
+    
+    df['RaX'] = data.RaX
+    df['RaY'] = data.RaY
+    df['RaZ'] = data.RaZ
+    df['ReX'] = data.ReX
+    df['ReY'] = data.ReY
+    df['ReZ'] = data.ReZ
+    
+    df['exercise_id'] = data.exercise_id
+    
+    # split sampling rate, hip data, left foot data and right foot data
+    if training == False:
+        hz, lfoot, hipp, rfoot = _split_lf_hip_rf(df, training)
+    else:
+        hz, lfoot, hipp, rfoot, labels = _split_lf_hip_rf(df, training)
+    
+    # create signals to extract features
+    lfsig = _create_signals(lfoot)  # creating the left foot signals
+    hipsig = _create_signals(hipp)  # creating the hip signals
+    rfsig = _create_signals(rfoot)  # creating the right foot signals
+    
+    # define parameters
+    # Parameters for the sampling window
+#    fs = 250  # sampling frequency
+    window_time = 5*1000  # number of milli seconds to determine length of 
+    # sliding window
+    window_samples = window_time #int(fs*window_time)  # sliding window length
+    nsecjump = 0.2*1000  # number of milli seconds for the sliding window 
+    # to jump
+    overlap_samples = nsecjump  # int(fs*nsecjump)
+    
+    # Parameters for feature creation
+    nfeatures = 20  # number of features
+    
+    # defining the parameters to determine the number of prominent peaks
+    prom_mpd = 20  # minimum peak distance for prominent peaks
+    prom_mph = -1  # minimum peak height for prominent peaks
+    prom_peak_thresh = 0.5  # height threshold for number of maximum 
+    # peaks feature
+    
+    # defining the parameters to determine the number of weak peaks
+    weak_mpd = 20  # minimum peak distance for weak peaks
+    weak_mph = -1  # minimum peak height for weak peaks
+    weak_peak_thresh = 0.3  # height threshold for number of minimum 
+    # peaks feature
+    
+    # Parameters for labelling each window
+    label_thresh = 0.5  # x% of window 
+    
+    # determine the features and labels for each window
+    lf_feature_matrix = create_window(lfsig, data.epoch_time, window_samples, 
+                                      overlap_samples, prom_mpd, prom_mph, 
+                                      prom_peak_thresh, weak_mpd, weak_mph, 
+                                      weak_peak_thresh)
+    hip_feature_matrix = create_window(hipsig, data.epoch_time, window_samples, 
+                                       overlap_samples, prom_mpd, prom_mph, 
+                                       prom_peak_thresh, weak_mpd, weak_mph, 
+                                       weak_peak_thresh)
+    rf_feature_matrix = create_window(rfsig, data.epoch_time, window_samples, 
+                                      overlap_samples, prom_mpd, prom_mph, 
+                                      prom_peak_thresh, weak_mpd, weak_mph, 
+                                      weak_peak_thresh)
+    
+    combined_feature_matrix = np.concatenate((lf_feature_matrix, 
+                                              hip_feature_matrix), axis = 1)
+    
+    if training == True:
+        encoded_model = _encoding_labels(labels)  # create the encoded
+        # label  model
+        encoded_labels = encoded_model.transform(labels.reshape(-1,))  
+        # converting the exercise ids to the categorical values
+        lab = create_labels(encoded_labels, window_samples, overlap_samples, 
+                            label_thresh, data.epoch_time)
+        return combined_feature_matrix, lab, encoded_model
+    else:
+        return combined_feature_matrix
+
+
+
 def _encoding_labels(labels):
     """
     Encode the exercise_id to categorical values.
@@ -111,114 +222,6 @@ def _create_signals(sensor_data):
     # component of EulerY, EulerZ
         
     return sig
-    
-    
-def preprocess_ied(data, training = False):
-    
-    """
-    Create signals, features to train/predict labels.
-    
-    Args: 
-        data: sensor data
-        training: True/False, train the IED system or just predicting
-        
-    Returns:
-        combined_feature_matrix: features obtained from the different signals
-        if training == True:
-            lab: exercise ID when training the IED model
-            encoded_model: encoded label model
-    """
-    
-    # Convert data to pandas dataframe
-    df = pd.DataFrame(data.epoch_time)
-    df.columns = ['epoch_time']
-    df['LaX'] = data.LaX
-    df['LaY'] = data.LaY
-    df['LaZ'] = data.LaZ
-    df['LeX'] = data.LeX
-    df['LeY'] = data.LeY
-    df['LeZ'] = data.LeZ
-    
-    df['HaX'] = data.HaX
-    df['HaY'] = data.HaY
-    df['HaZ'] = data.HaZ
-    df['HeX'] = data.HeX
-    df['HeY'] = data.HeY
-    df['HeZ'] = data.HeZ
-    
-    df['RaX'] = data.RaX
-    df['RaY'] = data.RaY
-    df['RaZ'] = data.RaZ
-    df['ReX'] = data.ReX
-    df['ReY'] = data.ReY
-    df['ReZ'] = data.ReZ
-    
-    df['exercise_id'] = data.exercise_id
-    
-    # split sampling rate, hip data, left foot data and right foot data
-    if training == False:
-        hz, lfoot, hipp, rfoot = _split_lf_hip_rf(df, training)
-    else:
-        hz, lfoot, hipp, rfoot, labels = _split_lf_hip_rf(df, training)
-    
-    # create signals to extract features
-    lfsig = _create_signals(lfoot)  # creating the left foot signals
-    hipsig = _create_signals(hipp)  # creating the hip signals
-    rfsig = _create_signals(rfoot)  # creating the right foot signals
-    
-    # define parameters
-    # Parameters for the sampling window
-    fs = 250  # sampling frequency
-    window_time = 5  # number of seconds to determine length of sliding window
-    window_samples = int(fs*window_time)  # sliding window length
-    nsecjump = 0.2  # number of seconds for the sliding window to jump
-    overlap_samples = int(fs*nsecjump)
-    
-    # Parameters for feature creation
-    nfeatures = 20  # number of features
-    
-    # defining the parameters to determine the number of prominent peaks
-    prom_mpd = 20  # minimum peak distance for prominent peaks
-    prom_mph = -1  # minimum peak height for prominent peaks
-    prom_peak_thresh = 0.5  # height threshold for number of maximum 
-    # peaks feature
-    
-    # defining the parameters to determine the number of weak peaks
-    weak_mpd = 20  # minimum peak distance for weak peaks
-    weak_mph = -1  # minimum peak height for weak peaks
-    weak_peak_thresh = 0.3  # height threshold for number of minimum 
-    # peaks feature
-    
-    # Parameters for labelling each window
-    label_thresh = 0.5  # x% of window 
-    
-    # determine the features and labels for each window
-    lf_feature_matrix = create_window(lfsig, fs, window_samples, 
-                                      overlap_samples, prom_mpd, prom_mph, 
-                                      prom_peak_thresh, weak_mpd, weak_mph, 
-                                      weak_peak_thresh)
-    hip_feature_matrix = create_window(hipsig, fs, window_samples, 
-                                       overlap_samples, prom_mpd, prom_mph, 
-                                       prom_peak_thresh, weak_mpd, weak_mph, 
-                                       weak_peak_thresh)
-    rf_feature_matrix = create_window(rfsig, fs, window_samples, 
-                                      overlap_samples, prom_mpd, prom_mph, 
-                                      prom_peak_thresh, weak_mpd, weak_mph, 
-                                      weak_peak_thresh)
-    
-    combined_feature_matrix = np.concatenate((lf_feature_matrix, 
-                                              hip_feature_matrix), axis = 1)
-    
-    if training == True:
-        encoded_model = _encoding_labels(labels)  # create the encoded
-        # label  model
-        encoded_labels = encoded_model.transform(labels.reshape(-1,))  
-        # converting the exercise ids to the categorical values
-        lab = create_labels(encoded_labels, window_samples, overlap_samples, 
-                            label_thresh)
-        return combined_feature_matrix, lab, encoded_model
-    else:
-        return combined_feature_matrix
 
 
 def train_ied(data):

@@ -5,8 +5,15 @@ Created on Wed Jun 22 12:11:52 2016
 @author: Ankur
 """
 
+import logging
+
 import numpy as np
+
 from phaseID import phase_id
+from dynamicSamplingRate import avg_sampl_rate_win
+
+
+logger = logging.getLogger()
 
 
 def _imp_start_time(imp_time): 
@@ -41,7 +48,7 @@ def _imp_start_time(imp_time):
     return first_instance_imp 
     
     
-def sync_time(imp_rf, imp_lf, sampl_rate, len_data): 
+def sync_time(imp_rf, imp_lf, epoch_time, len_data): 
 
     """  
     Determine the land time on impact for right and left feet.
@@ -49,7 +56,7 @@ def sync_time(imp_rf, imp_lf, sampl_rate, len_data):
     Args:
         imp_rf: right foot phase
         imp_lf: left foot phase
-        sampl_rate: sampling rate
+        epoch_time: an array, epoch time from sensor
         
     Returns:
         diff: time difference between right and left feet impacts
@@ -68,10 +75,18 @@ def sync_time(imp_rf, imp_lf, sampl_rate, len_data):
     # determine false impacts
     for i in range(len(rf_start)):
         for j in range(len(lf_start)):
+            if lf_start[j] > rf_start[i]:
+                epoch_time_subset = epoch_time[rf_start[i]:lf_start[j]]
+                sampl_rate = avg_sampl_rate_win(epoch_time_subset)
+            elif lf_start[j] < rf_start[i]:
+                epoch_time_subset = epoch_time[lf_start[j]:rf_start[i]]
+                sampl_rate = avg_sampl_rate_win(epoch_time_subset)
             if abs(lf_start[j] - rf_start[i]) <= 0.3*sampl_rate:  # checking 
             # for false impact phases
                 if lf_start[j] > rf_start[i]:  # check if left foot 
                 # impacts first
+                    epoch_time_subset = epoch_time[rf_start[i]:lf_start[j]]
+                    sampl_rate = avg_sampl_rate_win(epoch_time_subset)
                     diff.append(-(lf_start[j] - rf_start[i])\
                     /float(sampl_rate)*1000) 
                     # appending the difference of time of impact between  
@@ -80,6 +95,8 @@ def sync_time(imp_rf, imp_lf, sampl_rate, len_data):
                     ltime_index.append(int(i))
                 elif lf_start[j] < rf_start[j]:  # check if right foot
                 # impacts first
+                    epoch_time_subset = epoch_time[lf_start[j]:rf_start[i]]
+                    sampl_rate = avg_sampl_rate_win(epoch_time_subset)
                     diff.append((rf_start[j] - lf_start[i])\
                     /float(sampl_rate)*1000) 
                     ltime_index.append(int(i))
@@ -172,7 +189,10 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
     # merge right foot and left foot land patterns into a single variable
     final_landpattern = []        
     for i,j in zip(lf_quick_pattern, rf_quick_pattern):
-        final_landpattern.append([j,i])        
+        final_landpattern.append([j,i]) 
+        
+    if len(final_landpattern) != len(final_landtime):
+        logger.warning('Length of land patterna nd land time are not equal.')
             
     return np.array(final_landtime), np.array(final_landpattern)
     

@@ -255,33 +255,48 @@ class AnalyticsExecution(object):
 
         # PRE-PRE-PROCESSING
 
+        # Check for duplicate epoch time
+        duplicate_epoch_time = ppp.check_duplicate_epochtime(
+        self.data.epoch_time)
+        if duplicate_epoch_time:
+            logger.warning('Duplicate epoch time.')
+
         # check for missing values
         self.data = ppp.handling_missing_data(self.data)
-
+        
         # determine the real quartenion
         # left
         _lq_xyz = np.hstack([self.data.LqX, self.data.LqY, self.data.LqZ])
-        _lq_wxyz = ppp.calc_quaternions(_lq_xyz,
+        _lq_wxyz, self.data.corrupt_type = ppp.calc_quaternions(_lq_xyz,
                                         self.data.missing_data_indicator,
                                         self.data.corrupt_magn)
+        #check for type conversion error in left foot quaternion data
+        if 2 in self.data.corrupt_type:
+            logger.warning('Error! Type conversion error: LF quat')
         self.data.LqW = _lq_wxyz[:, 0].reshape(-1, 1)
         self.data.LqX = _lq_wxyz[:, 1].reshape(-1, 1)
         self.data.LqY = _lq_wxyz[:, 2].reshape(-1, 1)
         self.data.LqZ = _lq_wxyz[:, 3].reshape(-1, 1)
         # hip
         _hq_xyz = np.hstack([self.data.HqX, self.data.HqY, self.data.HqZ])
-        _hq_wxyz = ppp.calc_quaternions(_hq_xyz, 
+        _hq_wxyz, self.data.corrupt_type = ppp.calc_quaternions(_hq_xyz, 
                                         self.data.missing_data_indicator,
                                         self.data.corrupt_magn)
+        #check for type conversion error in hip quaternion data
+        if 2 in self.data.corrupt_type:
+            logger.warning('Error! Type conversion error: Hip quat')
         self.data.HqW = _hq_wxyz[:, 0].reshape(-1, 1)
         self.data.HqX = _hq_wxyz[:, 1].reshape(-1, 1)
         self.data.HqY = _hq_wxyz[:, 2].reshape(-1, 1)
         self.data.HqZ = _hq_wxyz[:, 3].reshape(-1, 1)
         # right
         _rq_xyz = np.hstack([self.data.RqX, self.data.RqY, self.data.RqZ])
-        _rq_wxyz = ppp.calc_quaternions(_rq_xyz,
+        _rq_wxyz, self.data.corrupt_type = ppp.calc_quaternions(_rq_xyz,
                                         self.data.missing_data_indicator,
                                         self.data.corrupt_magn)
+        #check for type conversion error in right foot quaternion data
+        if 2 in self.data.corrupt_type:
+            logger.warning('Error! Type conversion error: RF quat')
         self.data.RqW = _rq_wxyz[:, 0].reshape(-1, 1)
         self.data.RqX = _rq_wxyz[:, 1].reshape(-1, 1)
         self.data.RqY = _rq_wxyz[:, 2].reshape(-1, 1)
@@ -365,12 +380,10 @@ class AnalyticsExecution(object):
 
         logger.info('DONE WITH COORDINATE FRAME TRANSFORMATION!')
 
-        # define sampling rate
-        hz = 250       
-
         # PHASE DETECTION
         self.data.phase_lf, self.data.phase_rf = phase.combine_phase(
-                                            self.data.LaZ, self.data.RaZ, hz)
+                                            self.data.LaZ, self.data.RaZ, 
+                                            self.data.epoch_time)
 
 #        self.data.phase_lf = np.array([0]*len(self.data.LaX))[:,np.newaxis]
 #        self.data.phase_rf = np.array([0]*len(self.data.LaX))[:,np.newaxis]
@@ -519,17 +532,20 @@ class AnalyticsExecution(object):
         self.data.lat,self.data.vert,self.data.horz,self.data.rot,\
             self.data.lat_binary,self.data.vert_binary,self.data.horz_binary,\
             self.data.rot_binary,self.data.stationary_binary,\
-            self.data.total_accel = matrib.plane_analysis(hip_acc,hip_eul,hz)
+            self.data.total_accel = matrib.plane_analysis(hip_acc,hip_eul,
+                                                          self.data.ms_elapsed)
 
         # analyze stance
         self.data.standing,self.data.not_standing \
-            = matrib.standing_or_not(hip_eul,hz)
+            = matrib.standing_or_not(hip_eul,self.data.epoch_time)
         self.data.double_leg,self.data.single_leg,self.data.feet_eliminated \
             = matrib.double_or_single_leg(self.data.phase_lf,self.data.phase_rf,
-                                          self.data.standing,hz)
+                                          self.data.standing,
+                                          self.data.epoch_time)
         self.data.single_leg_stationary,self.data.single_leg_dynamic \
             = matrib.stationary_or_dynamic(self.data.phase_lf,\
-                                    self.data.phase_rf,self.data.single_leg,hz)
+                                    self.data.phase_rf,self.data.single_leg,
+                                    self.data.epoch_time)
 
         logger.info('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
 
@@ -670,8 +686,6 @@ class AnalyticsExecution(object):
             lf_euler[i] = qc.quat_to_euler(lf_neutral[i])
             rf_euler[i] = qc.quat_to_euler(rf_neutral[i])
 
-        self.data.hip_euler = hip_euler
-
         # define balance CME dictionary
         cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15],
                     'hipdropl':[-4, -7, 4, 15],'prosupr':[-4, -15, 4, 7],
@@ -714,7 +728,8 @@ class AnalyticsExecution(object):
 
         # landing time attributes
         self.n_landtime, self.ltime_index = impact.sync_time(self.data.phase_rf,
-                                           self.data.phase_lf, hz,
+                                           self.data.phase_lf, 
+                                           self.data.epoch_time,
                                            len(self.data.LaX))
         # landing pattern attributes
         if len(self.n_landtime) != 0:
@@ -807,7 +822,7 @@ class AnalyticsExecution(object):
         except Exception as error:
             logger.info("Cannot write movement data to DB!")
             raise error
-
+            
 
 if __name__ == "__main__":
 

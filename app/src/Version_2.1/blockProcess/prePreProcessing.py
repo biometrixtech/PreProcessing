@@ -6,9 +6,35 @@ Created on Wed Oct 26 12:23:48 2016
 """
 
 import datetime
+import logging
 
 import numpy as np
 from scipy import interpolate
+
+logger = logging.getLogger()
+
+
+def check_duplicate_epochtime(epoch_time):
+    """
+    Check if there are duplicate epoch times in the sensor data file.
+    
+    Args:
+        epoch_time: an array, epoch time from the sensor.
+        
+    Returns:
+        epoch_time_duplicate: Boolean, if duplicate epoch time exists or not
+        
+    """
+    
+    # check if there are any duplicate epoch times in the sensor data file
+    epoch_time_duplicate = False
+    epoch_time_unique, epoch_time_unique_ind = np.unique(epoch_time, 
+                                                         return_counts=True)
+    if 2 in epoch_time_unique_ind:
+        epoch_time_duplicate = True
+        return epoch_time_duplicate
+    else:
+        return epoch_time_duplicate                                                           
         
         
 def calc_quaternions(quat_array, indicator_col, corrupt_magn):
@@ -23,7 +49,9 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
         corrupted due to uncalibrated magnetometer.
 
     Returns:
-        An array of real and imaginary quaternions, qW, qX, qY, qZ.
+        all_quaternions: An array of real and imaginary quaternions, 
+        qW, qX, qY, qZ.
+        corrupt_type: an array, indicator for corrupted data
 
     """
 
@@ -46,14 +74,19 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
 
     # check if NaN exists in the real quaternion array
     indicator_col = indicator_col.reshape(-1,)
-    if 'N' in indicator_col[np.where(np.isnan(q_w))[0]]:
-        raise ValueError('Real quaternion cannot be comupted. Cannot \
-        take square root of a negative number.')
+    if len(indicator_col) == len(corrupt_magn) == len(q_w):
+        corrupt_type = [2 if np.isnan(q_w[i]) and indicator_col[i] == 'N' else\
+        corrupt_magn[i] for i in range(len(q_w))]
+    else:
+        logger.warning('Error when creating corrupt type column.')
+#    if 'N' in indicator_col[np.where(np.isnan(q_w))[0]]:
+#        raise ValueError('Real quaternion cannot be comupted. Cannot \
+#        take square root of a negative number.')
 
     # appending the real and imaginary quaternions arrays to a single array
     all_quaternions = np.hstack([q_w, q_i, q_j, q_k])
 
-    return all_quaternions
+    return all_quaternions, corrupt_type
     
     
 def _computation_imaginary_quat(i_quat, check_qw=True):
