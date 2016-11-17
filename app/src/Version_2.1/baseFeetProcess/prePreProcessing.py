@@ -47,6 +47,9 @@ def calc_quaternions(quat_array):
 
     """
 
+    # assume no error, correct later if necessary
+    conversion_error = False
+
     # determine the imaginary quaternions
     q_i = _computation_imaginary_quat(quat_array[:, 0], False)  # imaginary 
                                                                 # quaternion
