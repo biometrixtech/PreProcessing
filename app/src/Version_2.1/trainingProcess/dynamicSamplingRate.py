@@ -34,11 +34,11 @@ def handle_dynamic_sampling(data, epoch_time_subset, MS_WIN_SIZE, ind):
        subset_data = data[ind:]
        return subset_data
    else:
-       print ind, 'index'
-       print np.where(epoch_time_subset - \
-       epoch_time_subset[0] == MS_WIN_SIZE)[0], 'np.where'
+#       print ind, 'index'
+#       print np.where(epoch_time_subset - \
+#       epoch_time_subset[0] == MS_WIN_SIZE)[0], 'np.where'
        subset_data = data[ind:ind + np.where(epoch_time_subset - \
-       epoch_time_subset[0] == MS_WIN_SIZE)[0]]
+       epoch_time_subset[0] <= MS_WIN_SIZE)[0][-1]]
        return subset_data
    
    

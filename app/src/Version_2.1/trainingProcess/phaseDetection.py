@@ -33,7 +33,7 @@ def _phase_detect(acc, epoch_time):
     NMSEC_JUMP = 1
     MS_WIN_SIZE = 80
     for i in islice(count(), 0, len(epoch_time), NMSEC_JUMP):
-        epoch_time_subset = epoch_time[i:]
+        epoch_time_subset = epoch_time[i:i+25]
         subset_data = handle_dynamic_sampling(acc, epoch_time_subset, 
                                           MS_WIN_SIZE, i)
         bal_win = len(subset_data)
@@ -345,7 +345,7 @@ if __name__ == "__main__":
     #rdata = np.genfromtxt(rpath, delimiter = ",", dtype = float, names = True)
     #ldata = np.genfromtxt(lpath, delimiter = ",", dtype = float, names = True)
     
-    datapath = '/Users/ankurmanikandan/Downloads/movement_53a803ac-514d-43c9-950c-a7cacdd1a057.csv'
+    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/bodyframe_Subject5_LESS.csv'
     data = np.genfromtxt(datapath, delimiter = ",", dtype = float, names = True)
     
     #rdata = pd.read_csv(rpath)
@@ -360,7 +360,7 @@ if __name__ == "__main__":
     #lf_ph = _phase_detect(lacc, sampl_rate)
     
     start_time = time.time()
-    lf_phase, rf_phase = combine_phase(data['LaZ'], data['RaZ'], data['epoch_time'])
+    lf_phase, rf_phase = combine_phase(data['LAccZ'], data['RAccZ'], data['Timestamp'])
     print time.time() - start_time
     
     #Plotting    
@@ -370,14 +370,18 @@ if __name__ == "__main__":
     #plt.title(comp)
     #plt.show()
     
-    #plt.figure(2)    
-    #plt.plot(lf_ph)
-    #plt.plot(ldata['AccZ'])
-    #plt.title(comp)
-    #plt.show()
+    plt.figure(2)    
+    plt.plot(lf_phase)
+    plt.plot(data['LAccZ'])
+#    plt.title(comp)
+    plt.show()
     
     plt.figure(3)    
     plt.plot(rf_phase)
-    plt.plot(data['RaZ'])
+    plt.plot(data['RAccZ'])
     #plt.title(comp)
     plt.show()
+#    
+#    plt.figure(4)
+#    plt.plot(data['epoch_time'])
+#    plt.show()
