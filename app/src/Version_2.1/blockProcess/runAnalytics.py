@@ -9,10 +9,8 @@ import numpy as np
 import pandas as pd
 import pickle
 import sys
-#import re
 import psycopg2
 import psycopg2.extras
-#import sys
 import boto3
 import cStringIO
 import logging
@@ -253,7 +251,7 @@ class AnalyticsExecution(object):
         self.data.raw_RqY = self.data.RqY
         self.data.raw_RqZ = self.data.RqZ
         self.data.obs_master_index = (np.array(range(len(self.data.raw_LaX)))\
-                                        +1).reshape(-1,1)
+                                        +1).reshape(-1, 1)
 
         # PRE-PRE-PROCESSING
 
@@ -718,18 +716,18 @@ class AnalyticsExecution(object):
         # landing pattern attributes
         if len(self.n_landtime) != 0:
             self.n_landpattern = impact.landing_pattern(
-                                 self.data.ReY, 
+                                 self.data.ReY,
                                  self.data.LeY, self.n_landtime) 
             self.land_time, self.land_pattern = impact.continuous_values(
                                  self.n_landpattern, self.n_landtime,
                                  len(self.data.LaX), self.ltime_index)
-            self.data.land_time = self.land_time[:,0].reshape(-1,1)
-            self.data.land_pattern_rf = self.land_pattern[:,0].reshape(-1,1)
-            self.data.land_pattern_lf = self.land_pattern[:,1].reshape(-1,1)
+            self.data.land_time = self.land_time[:,0].reshape(-1, 1)
+            self.data.land_pattern_rf = self.land_pattern[:, 0].reshape(-1, 1)
+            self.data.land_pattern_lf = self.land_pattern[:, 1].reshape(-1, 1)
         else:
             self.data.land_time = np.zeros((len(self.data.LaX),1))*np.nan
-            self.data.land_pattern_lf = np.zeros((len(self.data.LaX),1))*np.nan
-            self.data.land_pattern_rf = np.zeros((len(self.data.LaX),1))*np.nan        
+            self.data.land_pattern_lf = np.zeros((len(self.data.LaX), 1))*np.nan
+            self.data.land_pattern_rf = np.zeros((len(self.data.LaX), 1))*np.nan
 
         logger.info('DONE WITH IMPACT CME!')
 
@@ -748,12 +746,12 @@ class AnalyticsExecution(object):
         ms_data = prepare_data(self.data, False)
         
         # calculate mechanical stress
-        self.data.mech_stress = mstress_fit.predict(ms_data).reshape(-1,1)
+        self.data.mech_stress = mstress_fit.predict(ms_data).reshape(-1, 1)
 
         logger.info('DONE WITH MECH STRESS!')
 
         # SCORING
-        # Symmetry, Consistency, Destructive/Constructive Multiplier and 
+        # Symmetry, Consistency, Destructive/Constructive Multiplier and
             # Block Duration
             # At this point we need to load the historical data for the subject
 
@@ -775,18 +773,18 @@ class AnalyticsExecution(object):
             self.data.destr_multiplier, self.data.dest_mech_stress, \
             self.data.const_mech_stress, self.data.block_duration, \
             self.data.session_duration, self.data.block_mech_stress_elapsed, \
-            self.data.session_mech_stress_elapsed = score(self.data,userDB) 
+            self.data.session_mech_stress_elapsed = score(self.data,userDB)
 
         logger.info('DONE WITH EVERYTHING!')
 
         self.result = "Success!"
 
-        # combine into movement data table 
+        # combine into movement data table
         movement_data = ct.create_movement_data(len(self.data.LaX), self.data)
         movement_data_pd = pd.DataFrame(movement_data)
-        
+
         fileobj = cStringIO.StringIO()
-        movement_data_pd.to_csv(fileobj,index = False)
+        movement_data_pd.to_csv(fileobj, index=False)
         fileobj.seek(0)
         try:
             s3.Bucket(cont_write).put_object(Key="movement_"
