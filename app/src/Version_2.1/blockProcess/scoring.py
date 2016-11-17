@@ -178,9 +178,9 @@ def _con_fun(dist, double=False):
         # TODO(Dipesh): adjust limits with more data
         ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
         ratio = sq_dev/(len(dist)*var)
-        score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
+        control_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
         #extrapolation is done for values outside the range
-        fn = UnivariateSpline(dist_sorted, score)
+        fn = UnivariateSpline(dist_sorted, control_score)
     elif double is True:
         # If we expect the feature to have multiple modes, it's split into two
         # separate distribution using gaussian mixture model and scored
@@ -283,7 +283,6 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT):
     if all(np.isnan(lT)):
         ankle_tim_score = np.zeros(len(lT))*np.nan
     elif len(lTL[np.isfinite(lTL)]) < 3 or len(lTR[np.isfinite(lTR)]) < 3:
-        print "not enough pos or neg"
         ankle_tim_score = np.zeros(len(lT))*np.nan
     else:
         l_dict_tim, r_dict_tim = _symmetry_score(lTL, lTR)
@@ -464,7 +463,7 @@ if __name__ == '__main__':
 #    consistency, hip_consistency, ankle_consistency, consistency_lf,\
 #    consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
 #    dest_mech_stress, const_mech_stress, block_duration, session_duration,\
-#    block_mech_stress_elapsed, session_mech_stress_elapsed = score(data_mov, 
+#    block_mech_stress_elapsed, session_mech_stress_elapsed = score(data_mov,
 #                                                                   userDB)
 
 #    consistency, hip_consistency, ankle_consistency, consistency_lf,\
