@@ -199,10 +199,15 @@ class TrainingExecution(object): #Abstract setUp class
         self.data.user_id = np.array([user_id]*len(self.data.LaX)).reshape(-1,1)
         self.data.exercise_id = np.array([exercise_id]*len(self.data.LaX)).\
                                 reshape(-1, 1)
-
+                                
         # PRE-PRE-PROCESSING                
         epoch_time = sdata['epoch_time']
         corrupt_magn = sdata['corrupt_magn']
+        
+        # Check for duplicate epoch time
+        duplicate_epoch_time = ppp.check_duplicate_epochtime(epoch_time)
+        if duplicate_epoch_time:
+            logger.warning('Duplicate epoch time.')
 
         # check for missing values for each of acceleration and quaternion values
         columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
@@ -218,6 +223,12 @@ class TrainingExecution(object): #Abstract setUp class
                 or m_ind == ErrorId.missing.value):
                 sdata = sdata
                 break
+            
+            # check if nan's exist even after imputing
+            if np.any(np.isnan(out)):
+                logger.warning('Bad data! NaNs exist even after imputing. \
+                Column: ' + var)
+                return "Fail!"
 
         # re-assigning the values after data has passed through 
         # handling_missing_data function
@@ -227,25 +238,39 @@ class TrainingExecution(object): #Abstract setUp class
         # determine the real quartenion
         # Left foot
         lq_xyz = np.hstack([self.data.LqX, self.data.LqY, self.data.LqZ])
-        lq_wxyz = ppp.calc_quaternions(lq_xyz)
+        lq_wxyz, conv_error = ppp.calc_quaternions(lq_xyz)
         self.data.LqW = lq_wxyz[:, 0].reshape(-1, 1)
         self.data.LqX = lq_wxyz[:, 1].reshape(-1, 1)
         self.data.LqY = lq_wxyz[:, 2].reshape(-1, 1)
         self.data.LqZ = lq_wxyz[:, 3].reshape(-1, 1)
+        #check for type conversion error in left foot quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: LF quat')
+            return "Fail!"
+
         # Hip
         hq_xyz = np.hstack([self.data.HqX, self.data.HqY, self.data.HqZ])
-        hq_wxyz = ppp.calc_quaternions(hq_xyz)
+        hq_wxyz, conv_error = ppp.calc_quaternions(hq_xyz)
         self.data.HqW = hq_wxyz[:, 0].reshape(-1, 1)
         self.data.HqX = hq_wxyz[:, 1].reshape(-1, 1)
         self.data.HqY = hq_wxyz[:, 2].reshape(-1, 1)
         self.data.HqZ = hq_wxyz[:, 3].reshape(-1, 1)
+        #check for type conversion error in hip quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: Hip quat')
+            return "Fail!"
+
         # Right foot
         rq_xyz = np.hstack([self.data.RqX, self.data.RqY, self.data.RqZ])
-        rq_wxyz = ppp.calc_quaternions(rq_xyz)
+        rq_wxyz, conv_error = ppp.calc_quaternions(rq_xyz)
         self.data.RqW = rq_wxyz[:, 0].reshape(-1, 1)
         self.data.RqX = rq_wxyz[:, 1].reshape(-1, 1)
         self.data.RqY = rq_wxyz[:, 2].reshape(-1, 1)
         self.data.RqZ = rq_wxyz[:, 3].reshape(-1, 1)
+        #check for type conversion error in right foot quaternion data
+        if conv_error:
+            logger.warning('Error! Type conversion error: RF quat')
+            return "Fail!"
 
         # convert epoch time to date time and determine milliseconds elapsed
         self.data.time_stamp, self.data.ms_elapsed \

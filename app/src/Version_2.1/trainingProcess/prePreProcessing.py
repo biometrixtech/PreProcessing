@@ -6,37 +6,34 @@ Created on Tue Oct 11 16:30:36 2016
 """
 
 import datetime
+
 import numpy as np
 from scipy import interpolate
 
 from errors import ErrorId
 
 
-def _computation_imaginary_quat(i_quat, check_qw=True):
-
+def check_duplicate_epochtime(epoch_time):
     """
-    Compute the imaginary quaternions to implement in the computation to
-    determine the real quaternion.
-
+    Check if there are duplicate epoch times in the sensor data file.
+    
     Args:
-        i_quat: imaginary quaternion
-        check_qw: boolean variable to check if the function is used to 
-        calculate the real quaternion
-
+        epoch_time: an array, epoch time from the sensor.
+        
     Returns:
-        if check_qw == True:
-            comp_i_quat: computed imaginary quaternion to help determine the
-            real quaternion
-        else:
-            comp_i_quat: computed imaginary quaternion to scale it back
+        epoch_time_duplicate: Boolean, if duplicate epoch time exists or not
+        
     """
-
-    if check_qw:  # check if function is used to calculate real quaternion
-        comp_i_quat = (i_quat/32767.0)**2
-        return comp_i_quat.reshape(-1, 1)
-    else:  # function is used to calculate imaginary quaternion
-        comp_i_quat = i_quat/32767.0
-        return comp_i_quat.reshape(-1, 1)
+    
+    # check if there are any duplicate epoch times in the sensor data file
+    epoch_time_duplicate = False
+    epoch_time_unique, epoch_time_unique_ind = np.unique(epoch_time, 
+                                                         return_counts=True)
+    if 2 in epoch_time_unique_ind:
+        epoch_time_duplicate = True
+        return epoch_time_duplicate
+    else:
+        return epoch_time_duplicate                                                           
 
 
 def calc_quaternions(quat_array):
@@ -48,7 +45,9 @@ def calc_quaternions(quat_array):
         qY, qZ.
 
     Returns:
-        An array of real and imaginary quaternions, qW, qX, qY, qZ.
+        all_quaternions: An array of real and imaginary quaternions, 
+        qW, qX, qY, qZ.
+        conversion_error: Boolean, error in type conversion of quaternions.
 
     """
 
@@ -72,13 +71,41 @@ def calc_quaternions(quat_array):
 
     # check if NaN exists in the real quaternion array
     if np.any(np.isnan(q_w)):
-        raise ValueError('Real quaternion cannot be comupted. Cannot \
-        take square root of a negative number.')
+        conversion_error = True
 
     # appending the real and imaginary quaternions arrays to a single array
     all_quaternions = np.hstack([q_w, q_i, q_j, q_k])
+    
+    return all_quaternions, conversion_error
 
-    return all_quaternions
+
+
+def _computation_imaginary_quat(i_quat, check_qw=True):
+
+    """
+    Compute the imaginary quaternions to implement in the computation to
+    determine the real quaternion.
+
+    Args:
+        i_quat: an array, imaginary quaternion
+        check_qw: boolean variable to check if the function is used to 
+        calculate the real quaternion
+
+    Returns:
+        if check_qw == True:
+            comp_i_quat: an array, computed imaginary quaternion to help 
+            determine the real quaternion
+        else:
+            comp_i_quat: an array, computed imaginary quaternion to scale 
+            it back
+    """
+
+    if check_qw:  # check if function is used to calculate real quaternion
+        comp_i_quat = (i_quat/32767.0)**2
+        return comp_i_quat.reshape(-1, 1)
+    else:  # function is used to calculate imaginary quaternion
+        comp_i_quat = i_quat/32767.0
+        return comp_i_quat.reshape(-1, 1)
 
 
 def convert_epochtime_datetime_mselapsed(epoch_time):
@@ -88,7 +115,7 @@ def convert_epochtime_datetime_mselapsed(epoch_time):
     seconds elapsed.
 
     Args:
-        epoch_time: epochtime from the sensor data.
+        epoch_time: an array, epochtime from the sensor data.
 
     Returns:
         two arrays.
@@ -108,51 +135,28 @@ def convert_epochtime_datetime_mselapsed(epoch_time):
     np.array(dummy_time_elapsed).reshape(-1, 1)
 
 
-def _zero_runs(col_dat):
-
-    """
-    Determining the number of consecutive nan's.
-
-    Args:
-        col_dat - column data as a numpy array.
-
-    Returns:
-        ranges - 2D numpy array. 1st column is the starting position of the
-        first nan.
-        2nd column is the end position + 1 of the last consecutive nan.
-
-    """
-
-    # determine where column data is NaN
-    isnan = np.isnan(col_dat).astype(int)
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges
-
-
 def handling_missing_data(epoch_time, col_data, corrup_magn):
 
     """
-    Args:
-        epoch_time: Timestamp integer
-        col_data: data to check for missing value
-        corrup_magn: indicator for corrupt magnetometer
-    Returns:
-        missing_ind: indocatoer boolean to indicate if missing values were
-        imputed(0) or not(1)
-        col_data: same as input col_data possibly with missing data imputed
+    Checking for missing data. Imputing the values if the number of
+    consecutive
+    missing values is less than the threshold.
 
+    Args:
+        epoch_time: an array, epoch time from the sensor
+        col_data: an array, each column data from the data file
+        corrup_magn: an array, binary values indicating if the
+        magnetometer is corrupted or not
+        
+    Returns:
+        col_data: an array, column data either with imputed values or data
+        as in the data file
+        ErrorId.missing.value: an int, if missing data is greater
+        than the threshold
+        ErrorId.no_error.value: an int, no missing data
+        ErrorId.corrupt_magn.value: an int, corrupted data becuase of the 
+        magnetometer
+       
     """
 
     # threshold for acceptable number of consecutive missing values
@@ -199,6 +203,39 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
         # if no missing data, return values
         else:
             return col_data, ErrorId.no_error.value
+            
+            
+def _zero_runs(col_dat):
+
+    """
+    Determining the number of consecutive nan's.
+
+    Args:
+        col_dat: column data as a numpy array.
+
+    Returns:
+        ranges: 2D numpy array. 1st column is the starting position of the
+        first nan.
+        2nd column is the end position + 1 of the last consecutive nan.
+
+    """
+
+    # determine where column data is NaN
+    isnan = np.isnan(col_dat).astype(int)
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        absdiff = np.concatenate([absdiff, [1]], 0)
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+
+    return ranges
 
 
 #if __name__ == "__main__":
