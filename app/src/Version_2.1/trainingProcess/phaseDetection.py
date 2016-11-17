@@ -38,18 +38,19 @@ def _phase_detect(acc, epoch_time):
                                           MS_WIN_SIZE, i)
         bal_win = len(subset_data)
         for l in range(len(subset_data)):
-            count = 0
+            counter = 0
             for j in range(bal_win):
-                if abs(subset_data[l+j]) <= BAL_THRESH:  # checking whether 
+#                print l,j
+                if abs(subset_data[j]) <= BAL_THRESH:  # checking whether 
                 # each data point in the sampling window is lesser than or 
                 # equal to the thresh
-                    count = count + 1
-            if count == bal_win:  # checking if the number of data points that 
+                    counter = counter + 1
+            if counter == bal_win:  # checking if the number of data points that 
             # are considered as "balance phase" equal the sampling window 
             # (minimum number of data points required for the set of data 
             # points to be considered as "balance phase")
                 for k in range(bal_win):
-                    dummy_balphase.append(l+k)       
+                    dummy_balphase.append(i+k)       
         
     # determinig the unique indexes in the dummy list
     start_bal = []    
@@ -324,25 +325,27 @@ def combine_phase(laccz, raccz, hz):
 if __name__ == "__main__": 
     
     import matplotlib.pyplot as plt
+    import time
     
-    rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
+#    rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
     #rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\ChangeDirection\\Rheel_Gabby_changedirection_set1.csv'
     #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'   
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
     #lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\ChangeDirection\\Lheel_Gabby_changedirection_set1.csv'
-    lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\Subject5_lfdatabody_LESS.csv'
+#    lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\Subject5_lfdatabody_LESS.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
     #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
     #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
-    hpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_hipdatabody_LESS.csv'
+#    hpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_hipdatabody_LESS.csv'
     
-    datapath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\GRF Data _Abigail\\combined\\combined_bodyframe_sensordata.csv'
+#    datapath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\GRF Data _Abigail\\combined\\combined_bodyframe_sensordata.csv'
 
     #rdata = np.genfromtxt(rpath, delimiter = ",", dtype = float, names = True)
     #ldata = np.genfromtxt(lpath, delimiter = ",", dtype = float, names = True)
     
+    datapath = '/Users/ankurmanikandan/Downloads/movement_53a803ac-514d-43c9-950c-a7cacdd1a057.csv'
     data = np.genfromtxt(datapath, delimiter = ",", dtype = float, names = True)
     
     #rdata = pd.read_csv(rpath)
@@ -356,7 +359,9 @@ if __name__ == "__main__":
     #rf_ph = _phase_detect(racc, sampl_rate)
     #lf_ph = _phase_detect(lacc, sampl_rate)
     
-    lf_phase, rf_phase = combine_phase(data['LAccZ'], data['RAccZ'], sampl_rate)
+    start_time = time.time()
+    lf_phase, rf_phase = combine_phase(data['LaZ'], data['RaZ'], data['epoch_time'])
+    print time.time() - start_time
     
     #Plotting    
     #plt.figure(1)    
@@ -373,6 +378,6 @@ if __name__ == "__main__":
     
     plt.figure(3)    
     plt.plot(rf_phase)
-    plt.plot(data['RAccZ'])
+    plt.plot(data['RaZ'])
     #plt.title(comp)
     plt.show()

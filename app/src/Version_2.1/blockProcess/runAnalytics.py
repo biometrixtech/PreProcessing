@@ -262,7 +262,8 @@ class AnalyticsExecution(object):
         # left
         _lq_xyz = np.hstack([self.data.LqX, self.data.LqY, self.data.LqZ])
         _lq_wxyz = ppp.calc_quaternions(_lq_xyz,
-                                        self.data.missing_data_indicator)
+                                        self.data.missing_data_indicator,
+                                        self.data.corrupt_magn)
         self.data.LqW = _lq_wxyz[:, 0].reshape(-1, 1)
         self.data.LqX = _lq_wxyz[:, 1].reshape(-1, 1)
         self.data.LqY = _lq_wxyz[:, 2].reshape(-1, 1)
@@ -270,7 +271,8 @@ class AnalyticsExecution(object):
         # hip
         _hq_xyz = np.hstack([self.data.HqX, self.data.HqY, self.data.HqZ])
         _hq_wxyz = ppp.calc_quaternions(_hq_xyz, 
-                                        self.data.missing_data_indicator)
+                                        self.data.missing_data_indicator,
+                                        self.data.corrupt_magn)
         self.data.HqW = _hq_wxyz[:, 0].reshape(-1, 1)
         self.data.HqX = _hq_wxyz[:, 1].reshape(-1, 1)
         self.data.HqY = _hq_wxyz[:, 2].reshape(-1, 1)
@@ -278,7 +280,8 @@ class AnalyticsExecution(object):
         # right
         _rq_xyz = np.hstack([self.data.RqX, self.data.RqY, self.data.RqZ])
         _rq_wxyz = ppp.calc_quaternions(_rq_xyz,
-                                        self.data.missing_data_indicator)
+                                        self.data.missing_data_indicator,
+                                        self.data.corrupt_magn)
         self.data.RqW = _rq_wxyz[:, 0].reshape(-1, 1)
         self.data.RqX = _rq_wxyz[:, 1].reshape(-1, 1)
         self.data.RqY = _rq_wxyz[:, 2].reshape(-1, 1)

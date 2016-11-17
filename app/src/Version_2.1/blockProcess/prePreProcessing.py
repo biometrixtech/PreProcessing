@@ -6,45 +6,21 @@ Created on Wed Oct 26 12:23:48 2016
 """
 
 import datetime
+
 import numpy as np
 from scipy import interpolate
-
-
-def _computation_imaginary_quat(i_quat, check_qw=True):
-
-    """
-    Compute the imaginary quaternions to implement in the computation to
-    determine the real quaternion.
-
-    Args:
-        i_quat: imaginary quaternion
-        check_qw: boolean variable to check if the function is used to 
-        calculate the real quaternion
-
-    Returns:
-        if check_qw == True:
-            comp_i_quat: computed imaginary quaternion to help determine the
-            real quaternion
-        else:
-            comp_i_quat: computed imaginary quaternion to scale it back
-    """
-
-    if check_qw:  # check if function is used to calculate real quaternion
-        comp_i_quat = (i_quat/32767.0)**2
-        return comp_i_quat.reshape(-1, 1)
-    else:  # function is used to calculate imaginary quaternion
-        comp_i_quat = i_quat/32767.0
-        return comp_i_quat.reshape(-1, 1)
         
         
-def calc_quaternions(quat_array, indicator_col):
+def calc_quaternions(quat_array, indicator_col, corrupt_magn):
 
     """Calculating the real quaternion.
 
     Args:
         quat_array: an array of the quaternions from the sensor data, qX,
         qY, qZ.
-        indicator_col: values indicate missing data. 
+        indicator_col: an array, values indicate missing data. 
+        corrupt_magn: an array, binary values indicating data is 
+        corrupted due to uncalibrated magnetometer.
 
     Returns:
         An array of real and imaginary quaternions, qW, qX, qY, qZ.
@@ -78,6 +54,33 @@ def calc_quaternions(quat_array, indicator_col):
     all_quaternions = np.hstack([q_w, q_i, q_j, q_k])
 
     return all_quaternions
+    
+    
+def _computation_imaginary_quat(i_quat, check_qw=True):
+
+    """
+    Compute the imaginary quaternions to implement in the computation to
+    determine the real quaternion.
+
+    Args:
+        i_quat: imaginary quaternion
+        check_qw: boolean variable to check if the function is used to 
+        calculate the real quaternion
+
+    Returns:
+        if check_qw == True:
+            comp_i_quat: computed imaginary quaternion to help determine the
+            real quaternion
+        else:
+            comp_i_quat: computed imaginary quaternion to scale it back
+    """
+
+    if check_qw:  # check if function is used to calculate real quaternion
+        comp_i_quat = (i_quat/32767.0)**2
+        return comp_i_quat.reshape(-1, 1)
+    else:  # function is used to calculate imaginary quaternion
+        comp_i_quat = i_quat/32767.0
+        return comp_i_quat.reshape(-1, 1)
 
 
 def convert_epochtime_datetime_mselapsed(epoch_time):
@@ -105,39 +108,6 @@ def convert_epochtime_datetime_mselapsed(epoch_time):
 
     return np.array(dummy_time_stamp).reshape(-1, 1), \
     np.array(dummy_time_elapsed).reshape(-1, 1)
-
-
-def _zero_runs(col_dat):
-
-    """
-    Determining the number of consecutive nan's.
-
-    Args:
-        col_dat - column data as a numpy array.
-
-    Returns:
-        ranges - 2D numpy array. 1st column is the starting position of the
-        first nan.
-        2nd column is the end position + 1 of the last consecutive nan.
-
-    """
-
-    # determine where column data is NaN
-    isnan = np.isnan(col_dat).astype(int)
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges
 
 
 def handling_missing_data(obj_data):
@@ -267,6 +237,39 @@ def handling_missing_data(obj_data):
     obj_data.missing_data_indicator = np.array(missing_data_indicator)
 
     return obj_data
+    
+    
+def _zero_runs(col_dat):
+
+    """
+    Determining the number of consecutive nan's.
+
+    Args:
+        col_dat - column data as a numpy array.
+
+    Returns:
+        ranges - 2D numpy array. 1st column is the starting position of the
+        first nan.
+        2nd column is the end position + 1 of the last consecutive nan.
+
+    """
+
+    # determine where column data is NaN
+    isnan = np.isnan(col_dat).astype(int)
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        absdiff = np.concatenate([absdiff, [1]], 0)
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+
+    return ranges
 
 
 #if __name__ == "__main__":

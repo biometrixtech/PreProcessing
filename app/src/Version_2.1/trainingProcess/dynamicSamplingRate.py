@@ -27,13 +27,16 @@ def handle_dynamic_sampling(data, epoch_time_subset, MS_WIN_SIZE, ind):
    
    # determine the smallest sampling window size
    LOWEST_HZ = 100
-   len_thresh_epoch_time = MS_WIN_SIZE * LOWEST_HZ
+   len_thresh_epoch_time = int(MS_WIN_SIZE/1000.0 * LOWEST_HZ)
    
    # obtain data equivalent to sampling window size
    if len(epoch_time_subset) < len_thresh_epoch_time:
        subset_data = data[ind:]
        return subset_data
    else:
+       print ind, 'index'
+       print np.where(epoch_time_subset - \
+       epoch_time_subset[0] == MS_WIN_SIZE)[0], 'np.where'
        subset_data = data[ind:ind + np.where(epoch_time_subset - \
        epoch_time_subset[0] == MS_WIN_SIZE)[0]]
        return subset_data
