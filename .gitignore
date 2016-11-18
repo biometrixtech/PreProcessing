@@ -1,0 +1,3 @@
+*.zip
+app/src/Under_Construction/*.pyc
+app/src/Under_Construction/.hypothesis/
