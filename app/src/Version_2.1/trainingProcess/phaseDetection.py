@@ -13,6 +13,53 @@ from phaseID import phase_id
 from dynamicSamplingRate import handle_dynamic_sampling
 
 
+def combine_phase(laccz, raccz, hz):
+    
+    """Combines the balance, foot in the air and the impact phases for the 
+    left and right feet.
+    
+    Args:
+        laccz: left foot vertical acceleration
+        raccz: right foot vertical acceleration
+        hz: sampling rate
+        
+    Returns:
+        lf_ph: an array of the different phases of the left foot
+        rf_ph: an array of the different phases of the right foot
+    
+    """
+    
+    ph = _body_phase(raccz, laccz, hz)  # balance phase for both the right 
+    # and left feet  
+    
+    lf_ph = list(ph)
+    rf_ph = list(ph)
+    
+    lf_sm, lf_em = _bound_det_lf(lf_ph)  # detecting the start and end 
+    # points of the left foot movement phase
+    rf_sm, rf_em = _bound_det_rf(rf_ph)  # detecting the start and end 
+    # points of the right foot movement phase 
+    
+    lf_imp = _impact_detect(lf_sm, lf_em, laccz)  # starting and ending 
+    # point of the impact phase for the left foot
+    rf_imp = _impact_detect(rf_sm, rf_em, raccz)  # starting and ending 
+    # points of the impact phase for the right foot
+
+    if len(lf_imp) > 0: #condition to check whether impacts exist in the 
+    # left foot data
+        for i, j in zip(lf_imp[:, 0], lf_imp[:, 1]):
+            lf_ph[i:j] = [phase_id.lf_imp.value]*int(j-i) #decide impact 
+            # phase for the left foot
+    
+    if len(rf_imp) > 0: #condition to check whether impacts exist in the 
+    # right foot data
+        for x, y in zip(rf_imp[:, 0], rf_imp[:, 1]):
+            rf_ph[x:y] = [phase_id.rf_imp.value]*int(y-x) #decide impact 
+            # phase for the right foot  
+            
+    return np.array(lf_ph).reshape(-1, 1), np.array(rf_ph).reshape(-1, 1)
+
+
 def _phase_detect(acc, epoch_time):
     
     """Detects when the foot is on the ground vs. when the foot is in the air
@@ -35,22 +82,21 @@ def _phase_detect(acc, epoch_time):
     for i in islice(count(), 0, len(epoch_time), NMSEC_JUMP):
         epoch_time_subset = epoch_time[i:i+25]
         subset_data = handle_dynamic_sampling(acc, epoch_time_subset, 
-                                          MS_WIN_SIZE, i)
+                                              MS_WIN_SIZE, i)
         bal_win = len(subset_data)
-        for l in range(len(subset_data)):
-            counter = 0
-            for j in range(bal_win):
+        counter = 0
+        for j in range(bal_win):
 #                print l,j
-                if abs(subset_data[j]) <= BAL_THRESH:  # checking whether 
-                # each data point in the sampling window is lesser than or 
-                # equal to the thresh
-                    counter = counter + 1
-            if counter == bal_win:  # checking if the number of data points that 
-            # are considered as "balance phase" equal the sampling window 
-            # (minimum number of data points required for the set of data 
-            # points to be considered as "balance phase")
-                for k in range(bal_win):
-                    dummy_balphase.append(i+k)       
+            if abs(subset_data[j]) <= BAL_THRESH:  # checking whether 
+            # each data point in the sampling window is lesser than or 
+            # equal to the thresh
+                counter = counter + 1
+        if counter == bal_win:  # checking if the number of data points that 
+        # are considered as "balance phase" equal the sampling window 
+        # (minimum number of data points required for the set of data 
+        # points to be considered as "balance phase")
+            for k in range(bal_win):
+                dummy_balphase.append(i+k)       
         
     # determinig the unique indexes in the dummy list
     start_bal = []    
@@ -60,14 +106,14 @@ def _phase_detect(acc, epoch_time):
     # eliminating false movement phases 
     MIN_THRESH_WIN = 25  # a threshold for minimum number of samples required 
     # to be classified as a false movement phase
-    overlap = [np.where(epoch_time-epoch_time[i]<=MIN_THRESH_WIN)[-1][-1] - \
+    overlap = [np.where(epoch_time-epoch_time[i] <= MIN_THRESH_WIN)[-1][-1] - \
     i for i in range(len(epoch_time))]
 
     for i in range(len(start_bal) - 1):
         min_thresh_mov = overlap[start_bal[i]]
         diff = start_bal[i+1] - start_bal[i]
         if diff > 1 and diff <= min_thresh_mov:
-            for j in range(1,diff+1):
+            for j in range(1, diff+1):
                 start_bal.insert(i+j, start_bal[i]+j)
     
     # creating the balance phase array
@@ -204,7 +250,7 @@ def _bound_det_rf(p):
     return start_move, end_move
  
    
-def _impact_detect(start_move, end_move, az, epoch_time):
+def _impact_detect(start_move, end_move, az):
     
     """Detects when impact occurs.
     
@@ -214,7 +260,6 @@ def _impact_detect(start_move, end_move, az, epoch_time):
         end_move: an array of the indexes when the 'foot in the air' phase 
         ends for left/right foot
         az: vertical acceleration of left/right foot
-        epoch_time: epoch time from sensor
         
     Returns:
         imp: a 2d array that stores the indexes of when the impact phase 
@@ -230,7 +275,7 @@ def _impact_detect(start_move, end_move, az, epoch_time):
     start_imp = []
     end_imp = []
     
-    for i,j in zip(start_move, end_move):
+    for i, j in zip(start_move, end_move):
         arr_len = []
         dummy_start_imp = []
         dummy_end_imp = []
@@ -271,55 +316,9 @@ def _impact_detect(start_move, end_move, az, epoch_time):
                     break
                 
     imp = []
-    imp = [ [i,j] for i,j in zip(start_imp, end_imp) ]
+    imp = [[i, j] for i, j in zip(start_imp, end_imp)]
             
     return np.array(imp)
-
-def combine_phase(laccz, raccz, hz):
-    
-    """Combines the balance, foot in the air and the impact phases for the 
-    left and right feet.
-    
-    Args:
-        laccz: left foot vertical acceleration
-        raccz: right foot vertical acceleration
-        hz: sampling rate
-        
-    Returns:
-        lf_ph: an array of the different phases of the left foot
-        rf_ph: an array of the different phases of the right foot
-    
-    """
-    
-    ph = _body_phase(raccz, laccz, hz)  # balance phase for both the right 
-    # and left feet  
-    
-    lf_ph = list(ph)
-    rf_ph = list(ph)
-    
-    lf_sm, lf_em = _bound_det_lf(lf_ph)  # detecting the start and end 
-    # points of the left foot movement phase
-    rf_sm, rf_em = _bound_det_rf(rf_ph)  # detecting the start and end 
-    # points of the right foot movement phase 
-    
-    lf_imp = _impact_detect(lf_sm, lf_em, laccz, hz)  # starting and ending 
-    # point of the impact phase for the left foot
-    rf_imp = _impact_detect(rf_sm, rf_em, raccz, hz)  # starting and ending 
-    # points of the impact phase for the right foot
-
-    if len(lf_imp) > 0: #condition to check whether impacts exist in the 
-    # left foot data
-        for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
-            lf_ph[i:j] = [phase_id.lf_imp.value]*int(j-i) #decide impact 
-            # phase for the left foot
-    
-    if len(rf_imp) > 0: #condition to check whether impacts exist in the 
-    # right foot data
-        for x,y in zip(rf_imp[:,0], rf_imp[:,1]):
-            rf_ph[x:y] = [phase_id.rf_imp.value]*int(y-x) #decide impact 
-            # phase for the right foot  
-            
-    return np.array(lf_ph).reshape(-1,1), np.array(rf_ph).reshape(-1,1)
 
     
 if __name__ == "__main__": 
@@ -327,26 +326,10 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import time
     
-#    rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
-    #rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\ChangeDirection\\Rheel_Gabby_changedirection_set1.csv'
-    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'   
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
-    #lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\ChangeDirection\\Lheel_Gabby_changedirection_set1.csv'
-#    lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\Subject5_lfdatabody_LESS.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
-    #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
-#    hpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_hipdatabody_LESS.csv'
-    
-#    datapath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\GRF Data _Abigail\\combined\\combined_bodyframe_sensordata.csv'
-
-    #rdata = np.genfromtxt(rpath, delimiter = ",", dtype = float, names = True)
-    #ldata = np.genfromtxt(lpath, delimiter = ",", dtype = float, names = True)
-    
-    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/bodyframe_Subject5_LESS.csv'
-    data = np.genfromtxt(datapath, delimiter = ",", dtype = float, names = True)
+    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets\
+    /bodyframe_Subject5_LESS.csv'
+    data = np.genfromtxt(datapath, delimiter=",", dtype=float, 
+                         names=True)
     
     #rdata = pd.read_csv(rpath)
     #ldata = pd.read_csv(lpath)
@@ -360,7 +343,8 @@ if __name__ == "__main__":
     #lf_ph = _phase_detect(lacc, sampl_rate)
     
     start_time = time.time()
-    lf_phase, rf_phase = combine_phase(data['LAccZ'], data['RAccZ'], data['Timestamp'])
+    lf_phase, rf_phase = combine_phase(data['LAccZ'], data['RAccZ'], 
+                                       data['Timestamp'])
     print time.time() - start_time
     
     #Plotting    
