@@ -32,25 +32,25 @@ def quat_to_euler(q):
         3 euler angles measuring rotaion about  z(phi), y(theta) and x(psi) axes   
     """
     
-    q= q.tolist()
-    q=qo.quat_norm(q)
+#    q= q.tolist()
+    q = qo.quat_norm(q)
     
     # calculate relevant elements of direction cosine matrix
-    a=2*q[0]**2-1+2*q[1]**2
-    b=2*(q[1]*q[2]-q[0]*q[3])
-    c=2*(q[1]*q[3]+q[0]*q[2])
-    d=2*(q[2]*q[3]-q[0]*q[1])
-    e=2*q[0]**2-1+2*q[3]**2
+    a = 2*q[:, 0]**2 - 1 + 2*q[:, 1]**2
+    b = 2*(q[:, 1]*q[:, 2] - q[:, 0]*q[:, 3])
+    c = 2*(q[:, 1]*q[:, 3] + q[:, 0]*q[:, 2])
+    d = 2*(q[:, 2]*q[:, 3] - q[:, 0]*q[:, 1])
+    e = 2*q[:, 0]**2 - 1 + 2*q[:, 3]**2
     
     # calculate euler angles from direction cosine matrix components
-    phi=np.arctan2(d,e)
-    C=c/np.sqrt(1-c**2)
-    theta=-np.arctan(C)
-    psi=np.arctan2(b,a)
+    phi = np.arctan2(d, e)
+    C = c/np.sqrt(1 - c**2)
+    theta = -np.arctan(C)
+    psi = np.arctan2(b, a)
     
-    return phi,theta,psi
+    return np.vstack([phi,theta,psi]).T
   
-def euler_to_quat(phi,theta,psi):
+def euler_to_quat(euler_data):
     """Function that transforms set of Euler angles into quaternion, assuming
     ZYX config.
     Args:
@@ -62,53 +62,51 @@ def euler_to_quat(phi,theta,psi):
         single (WXYZ) quaternion transformation of given euler angles
     
     """
-    
-    if np.isnan(phi)==True or np.isnan(theta)==True or np.isnan(psi)==True:
-        
-        q=[np.NaN,np.NaN,np.NaN,np.NaN]
-        
-    else:
+    phi = euler_data[:, 0]
+    theta = euler_data[:, 1]
+    psi = euler_data[:, 2]
+    # calculate intermediate values with Euler angle
+    a = np.cos(psi)*np.cos(theta)
+    b = -np.sin(psi)*np.cos(phi)+np.cos(psi)*np.sin(theta)*np.sin(phi)
+    c = np.sin(psi)*np.sin(phi)+np.cos(psi)*np.sin(theta)*np.cos(phi)
+    d = np.sin(psi)*np.cos(theta)
+    e = np.cos(psi)*np.cos(phi)+np.sin(psi)*np.sin(theta)*np.sin(phi)
+    f = -np.cos(psi)*np.sin(phi)+np.sin(psi)*np.sin(theta)*np.cos(phi)
+    g = -np.sin(theta)
+    h = np.cos(theta)*np.sin(phi)
+    k = np.cos(theta)*np.cos(phi)
 
-        # calculate intermediate values with Euler angles
-        a=np.cos(psi)*np.cos(theta)
-        b=-np.sin(psi)*np.cos(phi)+np.cos(psi)*np.sin(theta)*np.sin(phi)
-        c=np.sin(psi)*np.sin(phi)+np.cos(psi)*np.sin(theta)*np.cos(phi)
-        d=np.sin(psi)*np.cos(theta)
-        e=np.cos(psi)*np.cos(phi)+np.sin(psi)*np.sin(theta)*np.sin(phi)
-        f=-np.cos(psi)*np.sin(phi)+np.sin(psi)*np.sin(theta)*np.cos(phi)
-        g=-np.sin(theta)
-        h=np.cos(theta)*np.sin(phi)
-        k=np.cos(theta)*np.cos(phi)
+    # use intermediate values to calculate elements of quaternion matrix
+    A = (a-e-k)/3
+    B = (d+b)/3
+    C = (g+c)/3
+    D = (f-h)/3
+    E = (d+b)/3
+    F = (e-a-k)/3
+    G = (h+f)/3
+    H = (g-c)/3
+    I = (g+c)/3
+    J = (h+f)/3
+    K = (k-a-e)/3
+    L = (b-d)/3
+    M = (f-h)/3
+    N = (g-c)/3
+    O = (b-d)/3
+    P = (a+e+k)/3
     
-        # use intermediate values to calculate elements of quaternion matrix
-        A=(a-e-k)/3
-        B=(d+b)/3
-        C=(g+c)/3
-        D=(f-h)/3
-        E=(d+b)/3
-        F=(e-a-k)/3
-        G=(h+f)/3
-        H=(g-c)/3
-        I=(g+c)/3
-        J=(h+f)/3
-        K=(k-a-e)/3
-        L=(b-d)/3
-        M=(f-h)/3
-        N=(g-c)/3
-        O=(b-d)/3
-        P=(a+e+k)/3
-        
-        # construct the quaternion matrix
-        Q=np.array([[A,B,C,D],[E,F,G,H],[I,J,K,L],[M,N,O,P]])
-        
-        # find the maximum eigenvalue of the quaternion matrix
-        [D,V] = np.linalg.eig(Q)
-        max_eig=np.argmax(D)
-        
-        # find the eigenvector containing the largest eigenvalue and extract the 
-        # quaternion from its components.
-        q = V[:,max_eig]
-        q= [q[3],q[0],q[1],q[2]]
+    # construct the quaternion matrix
+    Q = np.array([[A,B,C,D],[E,F,G,H],[I,J,K,L],[M,N,O,P]])
+    Q = Q.swapaxes(0,2)
+    
+    # find the maximum eigenvalue of the quaternion matrix
+    [D,V] = np.linalg.eig(Q)
+    max_eig=np.argmax(D,1)
+    # find the eigenvector containing the largest eigenvalue and extract the 
+    # quaternion from its components.
+    q = np.zeros((len(max_eig), 4))
+    for row in range(len(max_eig)):
+        q[row,:] =  V[row,:,max_eig[row]]
+    q = np.vstack([q[:,3],q[:,0],q[:,1],q[:,2]]).T
     
     return q
     
