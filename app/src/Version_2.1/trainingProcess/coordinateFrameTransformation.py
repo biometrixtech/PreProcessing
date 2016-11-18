@@ -85,7 +85,7 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     lf_neutral = qo.quat_prod(lf_bf_quat, lf_n_transform)
     rf_neutral = qo.quat_prod(rf_bf_quat, rf_n_transform)
     
-    length = len(data)
+    length = len(data.HqW)
     hip_bf_euler = qc.quat_to_euler(hip_bf_quat)
     hip_bf_yaw_offset = np.hstack((np.zeros((length, 2)), 
                                    hip_bf_euler[:, 2].reshape(-1, 1)))

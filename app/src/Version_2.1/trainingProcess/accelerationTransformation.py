@@ -33,42 +33,37 @@ def acceleration_transform(hip_data,lf_data,rf_data,hip_acc,lf_acc,rf_acc,
     adjusted inertial frame.
     """
     
-    # Create storage for data
-    hip_aif=np.zeros_like(hip_data)
-    lf_aif=np.zeros_like(rf_data)
-    rf_aif=np.zeros_like(rf_data)
-    hip_s2aif_rot=np.zeros_like(hip_data)
-    lf_s2aif_rot=np.zeros_like(lf_data)
-    rf_s2aif_rot=np.zeros_like(rf_data)
-    hip_acc_aif=np.zeros_like(hip_acc)
-    lf_acc_aif=np.zeros_like(lf_acc)
-    rf_acc_aif=np.zeros_like(rf_acc)
-    
-    for i in range(len(hip_acc)):            
+#    for i in range(len(hip_acc)):            
         #take hip_bf and use q2eul to get to hip_bf
         #remove pitch and roll to get hip_aif
         #apply vect_rot to get to HaXYZ
         #do same for feet
         
-        # find hip adjusted inertial frame as isolated yaw from bf orientations
-        hip_aif[i]=tuple(qc.euler_to_quat(0,0,hip_bf_eul[i][2]))
-        lf_aif[i]=tuple(qc.euler_to_quat(0,0,lf_bf_eul[i][2]))
-        rf_aif[i]=tuple(qc.euler_to_quat(0,0,rf_bf_eul[i][2]))
+    length = len(hip_data)
+    # find hip adjusted inertial frame as isolated yaw from bf orientations
+    hip_bf_yaw_offset = np.hstack((np.zeros((length, 2)), hip_bf_eul[:, 2]))
+    hip_aif = qc.euler_to_quat(hip_bf_yaw_offset)
+    
+    lf_bf_yaw_offset = np.hstack((np.zeros((length, 2)), lf_bf_eul[:, 2]))
+    lf_aif = qc.euler_to_quat(lf_bf_yaw_offset)
+    
+    rf_bf_yaw_offset = np.hstack((np.zeros((length, 2)), rf_bf_eul[:, 2]))
+    rf_aif = qc.euler_to_quat(rf_bf_yaw_offset)
         
-        # calculate instantaneous rotation transform value from sensor to aif
-        hip_s2aif_rot[i]=tuple(qo.find_rot(hip_data[i],hip_aif[i]))
-        lf_s2aif_rot[i]=tuple(qo.find_rot(lf_data[i],lf_aif[i]))
-        rf_s2aif_rot[i]=tuple(qo.find_rot(rf_data[i],rf_aif[i]))
-        
-        # rotate vector with calculated rotation
-        hip_acc_aif[i]=tuple(qo.vect_rot(hip_acc[i],hip_s2aif_rot[i]))
-        lf_acc_aif[i]=tuple(qo.vect_rot(lf_acc[i],lf_s2aif_rot[i]))
-        rf_acc_aif[i]=tuple(qo.vect_rot(rf_acc[i],rf_s2aif_rot[i]))
-        
-        # subtract effect of gravity (1G from z axis) and convert from units of G/1000 to m/s**2
-        hip_acc_aif[i]=(np.array(hip_acc_aif[i].tolist())-[0,0,1000])*0.00980665
-        lf_acc_aif[i]=(np.array(lf_acc_aif[i].tolist())-[0,0,1000])*0.00980665
-        rf_acc_aif[i]=(np.array(rf_acc_aif[i].tolist())-[0,0,1000])*0.00980665
+    # calculate instantaneous rotation transform value from sensor to aif
+    hip_s2aif_rot = qo.find_rot(hip_data, hip_aif)
+    lf_s2aif_rot = qo.find_rot(lf_data, lf_aif)
+    rf_s2aif_rot = qo.find_rot(rf_data, rf_aif)
+    
+    # rotate vector with calculated rotation
+    hip_acc_aif = qo.vect_rot(hip_acc, hip_s2aif_rot)
+    lf_acc_aif = qo.vect_rot(lf_acc, lf_s2aif_rot)
+    rf_acc_aif = qo.vect_rot(rf_acc, rf_s2aif_rot)
+    
+    # subtract effect of gravity (1G from z axis) and convert from units of G/1000 to m/s**2
+    hip_acc_aif = (hip_acc_aif-[0,0,1000])*0.00980665
+    lf_acc_aif = (lf_acc_aif-[0,0,1000])*0.00980665
+    rf_acc_aif = (rf_acc_aif-[0,0,1000])*0.00980665
     
     return hip_acc_aif,lf_acc_aif,rf_acc_aif
     
