@@ -50,8 +50,6 @@ def test__computation_imaginary_quat(i_quat_len, qw_calc):
             else:
                 pass
 
-#    print "input array length: ", i_quat_len
-#
 @given(st.integers(1,25))
 def test_calc_quaternions(quat_array_len):
 
@@ -144,6 +142,23 @@ def test_handling_missing_data(array, intent_blank, corrup_magn_bool):
     elif too_many_nan:
         assert any(np.isnan(calc_col_data)) == True
         assert error_id == 10
+        
+
+@given(arrays(np.float, (7,1)))  
+@example(np.array([[1],[2],[3],[np.nan],[np.nan]]))      
+def test__zero_runs(data):
+    
+#    col_len = len(data)
+#    data[np.random.randint(0,col_len,int(np.random.random()*col_len*.3))] = np.nan
+    ranges = ppp._zero_runs(data)
+    check_nan = np.isnan(data)
+    nan_counts = [ sum( 1 for _ in group ) for key, group in itertools.groupby(check_nan) if key]
+    if len(ranges) > 0:
+        assert np.cumsum(nan_counts)[-1] == np.cumsum(ranges[:,1]-ranges[:,0])[-1]
+#    print nan_counts
+#    print np.cumsum(ranges[:,1]-ranges[:,0])[-1]
+#    print ranges
+#    print nan_counts
 
 
 if __name__ == '__main__' :
@@ -154,5 +169,6 @@ if __name__ == '__main__' :
 #    print "calc_quaternions() passed"
 #    test_check_duplicate_epochtime()
 #    print "check_duplicate_epochtime() passed"
-    test_handling_missing_data()
+#    test_handling_missing_data()
 #    print "ALL TESTS SUCCESSFUL"
+    test__zero_runs()
