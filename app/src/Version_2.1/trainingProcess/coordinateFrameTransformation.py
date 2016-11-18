@@ -26,8 +26,8 @@ https://sites.google.com/a/biometrixtech.com/wiki/home/preprocessing/anatomical/
 """
 
 
-def transform_data(data, hip_bf_transform,lf_bf_transform,rf_bf_transform,
-                   lf_n_transform,rf_n_transform,hip_n_transform):
+def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
+                   lf_n_transform, rf_n_transform, hip_n_transform):
 
     """
     Takes raw data set for full session to transformed coordinate frames.
@@ -38,69 +38,59 @@ def transform_data(data, hip_bf_transform,lf_bf_transform,rf_bf_transform,
     scripts.
     
     """
-    
+    hip_bf_transform = hip_bf_transform.reshape(1,-1)
+    lf_bf_transform = lf_bf_transform.reshape(1,-1)
+    rf_bf_transform = rf_bf_transform.reshape(1,-1)
+    lf_n_transform = lf_n_transform.reshape(1,-1)
+    rf_n_transform = rf_n_transform.reshape(1,-1)
+    hip_n_transform = hip_n_transform.reshape(1,-1)
     
     # divide data
-    hip_quat_db = np.hstack([data.HqW, data.HqX, data.HqY, data.HqZ]).reshape(-1,4)
-    lf_quat_db = np.hstack([data.LqW, data.LqX, data.LqY, data.LqZ]).reshape(-1,4)
-    rf_quat_db = np.hstack([data.RqW, data.RqX, data.RqY, data.RqZ]).reshape(-1,4)
-    hip_acc_db = np.hstack([data.HaX, data.HaY, data.HaZ]).reshape(-1,3)
-    lf_acc_db=np.hstack([data.LaX, data.LaY, data.LaZ]).reshape(-1,3)
-    rf_acc_db=np.hstack([data.RaX, data.RaY, data.RaZ]).reshape(-1,3)
-    epoch_time = np.array(data.epoch_time).reshape(-1,1)
+    hip_quat_db = np.hstack([data.HqW, data.HqX, data.HqY,
+                             data.HqZ]).reshape(-1, 4)
+    lf_quat_db = np.hstack([data.LqW, data.LqX, data.LqY,
+                            data.LqZ]).reshape(-1, 4)
+    rf_quat_db = np.hstack([data.RqW, data.RqX, data.RqY,
+                            data.RqZ]).reshape(-1, 4)
+    hip_acc = np.hstack([data.HaX, data.HaY, data.HaZ]).reshape(-1, 3)
+    lf_acc = np.hstack([data.LaX, data.LaY, data.LaZ]).reshape(-1, 3)
+    rf_acc = np.hstack([data.RaX, data.RaY, data.RaZ]).reshape(-1, 3)
+    epoch_time = np.array(data.epoch_time).reshape(-1, 1)
     
-    # create storage for vars
-    hip_quat=np.empty_like(hip_quat_db)
-    lf_quat=np.empty_like(lf_quat_db)
-    rf_quat=np.empty_like(rf_quat_db)
-    hip_acc=hip_acc_db
-    lf_acc=lf_acc_db
-    rf_acc=rf_acc_db
     
     # normalize sensor quaternion data
-    for i in range(len(hip_quat)):
-        hip_quat[i]=qo.quat_norm(hip_quat_db[i].tolist())
-        lf_quat[i]=qo.quat_norm(lf_quat_db[i].tolist())
-        rf_quat[i]=qo.quat_norm(rf_quat_db[i].tolist())
-
-    # create storage space for bf data
-    hip_bf_quat=np.zeros_like(hip_quat)
-    hip_bf_eul=np.zeros_like(hip_acc)
-    lf_bf_quat=np.zeros_like(lf_quat)
-    lf_bf_eul=np.zeros_like(lf_acc)
-    rf_bf_quat=np.zeros_like(rf_quat)
-    rf_bf_eul=np.zeros_like(rf_acc)
+    hip_quat = qo.quat_norm(hip_quat_db)
+    lf_quat = qo.quat_norm(lf_quat_db)
+    rf_quat = qo.quat_norm(rf_quat_db)
     
     # take hip sensor frame and add hip_bf_coordtrans to get hip bf
-    for i in range(len(hip_quat)):
-        hip_bf_quat[i]=qo.quat_prod(hip_quat[i],hip_bf_transform)
-        hip_bf_eul[i]=qc.quat_to_euler(hip_bf_quat[i])
-        
-        # take feet_sf and add feet_bf_transform to get feet_bf
-        lf_bf_quat[i]=qo.quat_prod(lf_quat[i],lf_bf_transform)
-        lf_bf_eul[i]=qc.quat_to_euler(lf_bf_quat[i])
-        rf_bf_quat[i]=qo.quat_prod(rf_quat[i],rf_bf_transform)
-        rf_bf_eul[i]=qc.quat_to_euler(rf_bf_quat[i])
+
+    hip_bf_quat = qo.quat_prod(hip_quat, hip_bf_transform)
+    hip_bf_eul = qc.quat_to_euler(hip_bf_quat)
+    
+    # take feet_sf and add feet_bf_transform to get feet_bf
+    lf_bf_quat = qo.quat_prod(lf_quat, lf_bf_transform)
+    lf_bf_eul = qc.quat_to_euler(lf_bf_quat)
+    rf_bf_quat = qo.quat_prod(rf_quat, rf_bf_transform)
+    rf_bf_eul = qc.quat_to_euler(rf_bf_quat)
         
     # call accelerationTransformation
-    hip_aif_acc,lf_aif_acc,rf_aif_acc=\
-            at.acceleration_transform(hip_quat,lf_quat,rf_quat,hip_acc,lf_acc,
-                                      rf_acc,hip_bf_eul,lf_bf_eul,rf_bf_eul)
+    hip_aif_acc, lf_aif_acc, rf_aif_acc=\
+            at.acceleration_transform(hip_quat, lf_quat, rf_quat, hip_acc,
+                                      lf_acc, rf_acc, hip_bf_eul, lf_bf_eul, 
+                                      rf_bf_eul)
     
     # convert body frame quaternions to respective "neutral" orientations
     #for comparison in balanceCME, operated through runAnalytics
-    lf_neutral=np.empty_like(hip_quat)
-    hip_neutral=np.empty_like(hip_quat)
-    hip_bf_yaw=np.empty((len(hip_quat),1))
-    hip_yaw_quat=np.empty_like(hip_quat)
-    rf_neutral=np.empty_like(hip_quat)
+    lf_neutral = qo.quat_prod(lf_bf_quat, lf_n_transform)
+    rf_neutral = qo.quat_prod(rf_bf_quat, rf_n_transform)
     
-    for i in range(len(hip_quat)):
-        lf_neutral[i]=qo.quat_prod(lf_bf_quat[i],lf_n_transform)
-        hip_bf_yaw[i]=qc.quat_to_euler(hip_bf_quat[i])[2]
-        hip_yaw_quat[i]=tuple(qc.euler_to_quat(0,0,hip_bf_yaw[i].item()))
-        hip_neutral[i]=qo.quat_prod(hip_yaw_quat[i],hip_n_transform)
-        rf_neutral[i]=qo.quat_prod(rf_bf_quat[i],rf_n_transform)
+    length = len(data)
+    hip_bf_euler = qc.quat_to_euler(hip_bf_quat)
+    hip_bf_yaw_offset = np.hstack((np.zeros((length, 2)), 
+                                   hip_bf_euler[:, 2].reshape(-1, 1)))
+    hip_yaw_quat = qc.euler_to_quat(hip_bf_yaw_offset)
+    hip_neutral = qo.quat_prod(hip_yaw_quat, hip_n_transform)
     
     # consolidate transformed data
     epoch_time_pd = pd.DataFrame(epoch_time)

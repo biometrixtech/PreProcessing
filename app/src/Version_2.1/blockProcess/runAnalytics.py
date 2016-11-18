@@ -337,7 +337,7 @@ class AnalyticsExecution(object):
             raise ValueError("Missing Offsets")
 
         # use transform values to adjust coordinate frame of all block data
-        _transformed_data, neutral_data= coord.transform_data(self.data, 
+        _transformed_data, neutral_data = coord.transform_data(self.data, 
             hip_bf_transform,lf_bf_transform,rf_bf_transform,lf_n_transform,
             rf_n_transform, hip_n_transform)
 
@@ -676,15 +676,10 @@ class AnalyticsExecution(object):
         hip_neutral = neutral_data[:, 4:8]
         rf_neutral = neutral_data[:, 8:]
 
-        # isolate actual euler angles                
-        hip_euler = np.empty((len(self.data.LaX), 3))
-        lf_euler = np.empty((len(self.data.LaX), 3))
-        rf_euler = np.empty((len(self.data.LaX), 3))
-
-        for i in range(len(hip_neutral)):
-            hip_euler[i] = qc.quat_to_euler(hip_neutral[i])
-            lf_euler[i] = qc.quat_to_euler(lf_neutral[i])
-            rf_euler[i] = qc.quat_to_euler(rf_neutral[i])
+        # isolate actual euler angles
+        hip_euler = qc.quat_to_euler(hip_neutral)
+        lf_euler = qc.quat_to_euler(lf_neutral)
+        rf_euler = qc.quat_to_euler(rf_neutral)
 
         # define balance CME dictionary
         cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15],
