@@ -8,7 +8,7 @@ from __future__ import division
 import numpy as np
 
 
-def control_score(LeX, ReX, HeX, ms_elapsed):
+def control_score(LeX, HeX, ReX, ms_elapsed):
     """Calculates instantaneous control scores
     Scoring is based on standard deviation of euler angle (x) within a certian
     window.
