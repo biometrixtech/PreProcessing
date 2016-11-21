@@ -14,7 +14,7 @@ import pandas as pd
 from createFeaturesIED import create_window, create_labels
 
 
-def preprocess_ied(data, training = False):
+def preprocess_ied(data, training=False):
     
     """
     Create signals, features to train/predict labels.
@@ -57,10 +57,10 @@ def preprocess_ied(data, training = False):
     df['exercise_id'] = data.exercise_id
     
     # split sampling rate, hip data, left foot data and right foot data
-    if training == False:
-        hz, lfoot, hipp, rfoot = _split_lf_hip_rf(df, training)
-    else:
+    if training:
         hz, lfoot, hipp, rfoot, labels = _split_lf_hip_rf(df, training)
+    else:
+        hz, lfoot, hipp, rfoot = _split_lf_hip_rf(df, training)
     
     # create signals to extract features
     lfsig = _create_signals(lfoot)  # creating the left foot signals
@@ -110,9 +110,9 @@ def preprocess_ied(data, training = False):
                                       weak_peak_thresh)
     
     combined_feature_matrix = np.concatenate((lf_feature_matrix, 
-                                              hip_feature_matrix), axis = 1)
+                                              hip_feature_matrix), axis=1)
     
-    if training == True:
+    if training:
         encoded_model = _encoding_labels(labels)  # create the encoded
         # label  model
         encoded_labels = encoded_model.transform(labels.reshape(-1,))  
@@ -161,17 +161,7 @@ def _split_lf_hip_rf(data, training):
             labels: exercise ID labels
     """
         
-    if training == False:
-        hz = np.array(data['epoch_time'].copy())
-        lfoot = np.array(data[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']]\
-                        .copy())
-        hipp = np.array(data[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']]\
-                        .copy())
-        rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']]\
-                        .copy())
-        
-        return hz, lfoot, hipp, rfoot
-    else:
+    if training:
         hz = np.array(data['epoch_time'].copy())
         lfoot = np.array(data[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']]\
                         .copy())
@@ -182,6 +172,16 @@ def _split_lf_hip_rf(data, training):
         labels = np.array(data['exercise_id'].copy())
         
         return hz, lfoot, hipp, rfoot, labels
+    else:
+        hz = np.array(data['epoch_time'].copy())
+        lfoot = np.array(data[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']]\
+                        .copy())
+        hipp = np.array(data[['HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ']]\
+                        .copy())
+        rfoot = np.array(data[['RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ']]\
+                        .copy())
+        
+        return hz, lfoot, hipp, rfoot
     
     
 def _create_signals(sensor_data):
@@ -197,28 +197,28 @@ def _create_signals(sensor_data):
     
     """
     
-    pca = PCA(n_components = 1)  # defining the PCA function
+    pca = PCA(n_components=1)  # defining the PCA function
     
     # Acceleration Signals
-    sig = sensor_data[:,0:3]  # copying aX, aY, aZ
-    sig = np.hstack((sig, np.array(sensor_data[:,0]**2 + sensor_data[:,1]**2 
-    + sensor_data[:,2]**2).reshape(len(sensor_data),1))) 
+    sig = sensor_data[:, 0:3]  # copying aX, aY, aZ
+    sig = np.hstack((sig, np.array(sensor_data[:, 0]**2 + \
+    sensor_data[:, 1]**2 + sensor_data[:, 2]**2).reshape(len(sensor_data), 1))) 
     # Acceleration magnitude
     sig = np.hstack((sig, np.array(pca.fit_transform(
-    sensor_data[:,0:3])).reshape(len(sensor_data),1)))  # First principal 
+        sensor_data[:, 0:3])).reshape(len(sensor_data), 1)))  # First principal 
     # component of aX, aY, aZ
     
     # Euler Signals
-    sig = np.hstack((sig, np.array(sensor_data[:,4]).reshape(
-    len(sensor_data),1)))  # copying eX, eY, eZ
-    sig = np.hstack((sig, np.array(sensor_data[:,3]**2 + sensor_data[:,4]**2 
-    + sensor_data[:,5]**2).reshape(len(sensor_data),1))) 
+    sig = np.hstack((sig, np.array(sensor_data[:, 4]).reshape(
+        len(sensor_data), 1)))  # copying eX, eY, eZ
+    sig = np.hstack((sig, np.array(sensor_data[:, 3]**2 + \
+    sensor_data[:, 4]**2 + sensor_data[:, 5]**2).reshape(len(sensor_data), 1))) 
     # Euler angle magnitude
     sig = np.hstack((sig, np.array(pca.fit_transform(
-    sensor_data[:,3:6])).reshape(len(sensor_data),1)))  # First principal 
+        sensor_data[:, 3:6])).reshape(len(sensor_data), 1)))  # First principal 
     # component of EulerX, EulerY, EulerZ
     sig = np.hstack((sig, np.array(pca.fit_transform(
-    sensor_data[:,4:6])).reshape(len(sensor_data),1)))  # First principal 
+        sensor_data[:, 4:6])).reshape(len(sensor_data), 1)))  # First principal 
     # component of EulerY, EulerZ
         
     return sig
@@ -244,11 +244,11 @@ def train_ied(data):
     train_lab = lab
     
     # train the classification model
-    clf = RandomForestClassifier(n_estimators = 20, max_depth = 10, 
-                                 criterion = 'entropy', max_features='auto', 
-                                 random_state = 1, n_jobs = -1)    
+    clf = RandomForestClassifier(n_estimators=20, max_depth=10, 
+                                 criterion='entropy', max_features='auto', 
+                                 random_state=1, n_jobs=-1)    
     trained_ied_model = clf.fit(traincombined_feature_matrix, 
-                  train_lab.reshape((len(train_lab),)))
+                                train_lab.reshape((len(train_lab),)))
                   
     return trained_ied_model, label_encoded_model
     
@@ -268,8 +268,8 @@ def mapping_labels_on_data(predicted_labels, len_data):
     """
     
     test_map_labels = []
-    for i in range(1,len(predicted_labels)):
-        for j in range(50):
+    for i in range(1, len(predicted_labels)):
+        for _ in range(50):
             test_map_labels.append(predicted_labels[i])
 #            if predicted_labels[i-1] == 0 and predicted_labels[i] == 0:
 #                test_map_labels.append(0)
@@ -298,16 +298,11 @@ def mapping_labels_on_data(predicted_labels, len_data):
 
     # check if length of mapped data is the same as that of the sensor data
     if len_data > len(test_map_labels):            
-        for k in range(len_data-len(test_map_labels)):
+        for _ in range(len_data-len(test_map_labels)):
             test_map_labels.append(0)
         
     return np.array(test_map_labels)
     
-if __name__ == "__main__":
-    
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import time
 
 
 

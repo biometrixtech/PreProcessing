@@ -9,7 +9,6 @@ import numpy as np
 from scipy.signal import periodogram
 from scipy.stats import kurtosis
 
-from findPeaks import detect_peaks
 from dynamicSamplingRate import handle_dynamic_sampling, \
 handle_dynamic_sampling_create_features
 
@@ -41,30 +40,29 @@ def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd,
     """
     
     for i in range(s.shape[1]):  # looping through each signal
-        feature_matrix = np.zeros((1,20))  # declaring feature matrix for 
+        feature_matrix = np.zeros((1, 20))  # declaring feature matrix for 
         # each signal  
-        overlap = [np.where(epoch_time-epoch_time[j]<=overlap_samples)\
+        overlap = [np.where(epoch_time-epoch_time[j] <= overlap_samples)\
         [-1][-1] - j for j in range(len(epoch_time))]
         k = 0
         while k < len(epoch_time)-1:
-           epoch_time_subset = epoch_time[k:]
-           w, fs = handle_dynamic_sampling_create_features(s[:,2], 
-                                                           epoch_time_subset, 
-                                                           window_samples, k)
-           feature_vector = _create_features(w, fs, prom_mpd, prom_mph, 
+            epoch_time_subset = epoch_time[k:]
+            w, fs = handle_dynamic_sampling_create_features(s[:, 2], 
+                                                            epoch_time_subset, 
+                                                            window_samples, k)
+            feature_vector = _create_features(w, fs, prom_mpd, prom_mph, 
                                               prom_peak_thresh, weak_mpd, 
                                               weak_mph, weak_peak_thresh)
-           feature_matrix = np.vstack((feature_matrix, feature_vector))
+            feature_matrix = np.vstack((feature_matrix, feature_vector))
         
-        feature_matrix = feature_matrix[1:,:]  # removing the first row of zeros
+        feature_matrix = feature_matrix[1:, :]  # removing the first row of zeros
         i = i + overlap[i]
         break
     
     return feature_matrix
 
 
-def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd, 
-                     weak_mph, weak_peak_thresh):
+def _create_features(w, fs):
     
     """
     Create feature vector for each sampling window.
@@ -72,14 +70,6 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
     Args:
         w: signal
         fs: sampling rate
-        prom_mpd: minimum peak distance for prominent peaks
-        prom_mph: minimum peak height for prominent peaks
-        prom_peak_thresh: height threshold for number of maximum peaks for
-        prominent peaks
-        weak_mpd: minimum peak distance for weak peaks
-        weak_mph: minimum peak height for weak peaks
-        weak_peak_thresh: height threshold for number of minimum peaks for
-        weak peaks
         
     Returns:
         feature_vector: a vector of feature values
@@ -123,7 +113,7 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
     for m in range(len(fband)-1):
         dummyPxx = pxx[f <= fband[m+1]]
         feature_vector = np.hstack((feature_vector, np.array(
-        np.mean(dummyPxx[f[:len(dummyPxx)] >= fband[m]]))))
+            np.mean(dummyPxx[f[:len(dummyPxx)] >= fband[m]]))))
    
     return feature_vector
     
@@ -147,13 +137,13 @@ def create_labels(labels, window_samples, overlap_samples, label_thresh,
     """
     
     label_vector = np.zeros(1)
-    overlap = [np.where(epoch_time-epoch_time[i]<=overlap_samples)[-1][-1] - \
+    overlap = [np.where(epoch_time-epoch_time[i] <= overlap_samples)[-1][-1] - \
     i for i in range(len(epoch_time))]
     i = 0
     while i < len(epoch_time)-1:
         epoch_time_subset = epoch_time[i:]
         labwin = handle_dynamic_sampling(labels, epoch_time_subset, 
-                                           window_samples, i)
+                                         window_samples, i)
         if float(len(labwin[labwin == 1]))/len(labwin) >= label_thresh:
             label_vector = np.vstack((label_vector, np.array([1])))
         elif float(len(labwin[labwin == 2]))/len(labwin) >= label_thresh:

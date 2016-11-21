@@ -75,8 +75,9 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
     # check if NaN exists in the real quaternion array
     indicator_col = indicator_col.reshape(-1,)
     if len(indicator_col) == len(corrupt_magn) == len(q_w):
-        corrupt_type = [2 if np.isnan(q_w[i]) and indicator_col[i] == 'N' else\
-        corrupt_magn[i] for i in range(len(q_w))]
+        corrupt_type = np.array([2 if np.isnan(q_w[i]) and \
+        indicator_col[i] == 'N' and corrupt_magn[i] != 1 else \
+        corrupt_magn[i] for i in range(len(q_w))])
     else:
         logger.warning('Error when creating corrupt type column.')
 #    if 'N' in indicator_col[np.where(np.isnan(q_w))[0]]:
@@ -135,9 +136,9 @@ def convert_epochtime_datetime_mselapsed(epoch_time):
     dummy_time_stamp = []
 
     dummy_time_elapsed = np.ediff1d(epoch_time, to_begin=0)
-    for i in range(len(epoch_time)):
+    for i in enumerate(epoch_time):
         dummy_time_stamp.append(datetime.datetime.fromtimestamp(np.array(
-            epoch_time[i]/1000.)).strftime('%Y-%m-%d %H:%M:%S.%f'))
+            epoch_time[i[0]]/1000.)).strftime('%Y-%m-%d %H:%M:%S.%f'))
 
     return np.array(dummy_time_stamp).reshape(-1, 1), \
     np.array(dummy_time_elapsed).reshape(-1, 1)
@@ -232,38 +233,38 @@ def handling_missing_data(obj_data):
 
     # Creating the missing data indicator column
     missing_data_indicator = []
-    for i in range(len(missing_data_indicator_l)):
-        if missing_data_indicator_l[i] == 'N' \
-        and missing_data_indicator_h[i] == 'N' \
-        and missing_data_indicator_r[i] == 'N':
+    for i in enumerate(missing_data_indicator_l):
+        if missing_data_indicator_l[i[0]] == 'N' \
+        and missing_data_indicator_h[i[0]] == 'N' \
+        and missing_data_indicator_r[i[0]] == 'N':
             missing_data_indicator.append('N')
-        elif missing_data_indicator_l[i] == 'L' \
-        and missing_data_indicator_h[i] == 'N' \
-        and missing_data_indicator_r[i] == 'N':
+        elif missing_data_indicator_l[i[0]] == 'L' \
+        and missing_data_indicator_h[i[0]] == 'N' \
+        and missing_data_indicator_r[i[0]] == 'N':
             missing_data_indicator.append('L')
-        elif missing_data_indicator_l[i] == 'N' \
-        and missing_data_indicator_h[i] == 'H' \
-        and missing_data_indicator_r[i] == 'N':
+        elif missing_data_indicator_l[i[0]] == 'N' \
+        and missing_data_indicator_h[i[0]] == 'H' \
+        and missing_data_indicator_r[i[0]] == 'N':
             missing_data_indicator.append('H')
-        elif missing_data_indicator_l[i] == 'N' \
-        and missing_data_indicator_h[i] == 'N' \
-        and missing_data_indicator_r[i] == 'R':
+        elif missing_data_indicator_l[i[0]] == 'N' \
+        and missing_data_indicator_h[i[0]] == 'N' \
+        and missing_data_indicator_r[i[0]] == 'R':
             missing_data_indicator.append('R')
-        elif missing_data_indicator_l[i] == 'L' \
-        and missing_data_indicator_h[i] == 'H' \
-        and missing_data_indicator_r[i] == 'N':
+        elif missing_data_indicator_l[i[0]] == 'L' \
+        and missing_data_indicator_h[i[0]] == 'H' \
+        and missing_data_indicator_r[i[0]] == 'N':
             missing_data_indicator.append('LH')
-        elif missing_data_indicator_l[i] == 'N' \
-        and missing_data_indicator_h[i] == 'H' \
-        and missing_data_indicator_r[i] == 'R':
+        elif missing_data_indicator_l[i[0]] == 'N' \
+        and missing_data_indicator_h[i[0]] == 'H' \
+        and missing_data_indicator_r[i[0]] == 'R':
             missing_data_indicator.append('HR')
-        elif missing_data_indicator_l[i] == 'L' \
-        and missing_data_indicator_h[i] == 'N' \
-        and missing_data_indicator_r[i] == 'R':
+        elif missing_data_indicator_l[i[0]] == 'L' \
+        and missing_data_indicator_h[i[0]] == 'N' \
+        and missing_data_indicator_r[i[0]] == 'R':
             missing_data_indicator.append('LR')
-        elif missing_data_indicator_l[i] == 'L' \
-        and missing_data_indicator_h[i] == 'H' \
-        and missing_data_indicator_r[i] == 'R':
+        elif missing_data_indicator_l[i[0]] == 'L' \
+        and missing_data_indicator_h[i[0]] == 'H' \
+        and missing_data_indicator_r[i[0]] == 'R':
             missing_data_indicator.append('LHR')
 
     # Adding the final missing data indicator column to the data object

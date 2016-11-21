@@ -5,13 +5,59 @@ Created on Thu Jul 07 16:27:47 2016
 @author: Ankur
 """
 
-from itertools import *
+from itertools import islice, count
 
 import numpy as np
 
 from phaseID import phase_id
 from dynamicSamplingRate import handle_dynamic_sampling
 
+
+def combine_phase(laccz, raccz, hz):
+    
+    """Combines the balance, foot in the air and the impact phases for the 
+    left and right feet.
+    
+    Args:
+        laccz: left foot vertical acceleration
+        raccz: right foot vertical acceleration
+        hz: sampling rate
+        
+    Returns:
+        lf_ph: an array of the different phases of the left foot
+        rf_ph: an array of the different phases of the right foot
+    
+    """
+    
+    ph = _body_phase(raccz, laccz, hz)  # balance phase for both the right 
+    # and left feet  
+    
+    lf_ph = list(ph)
+    rf_ph = list(ph)
+    
+    lf_sm, lf_em = _bound_det_lf(lf_ph)  # detecting the start and end 
+    # points of the left foot movement phase
+    rf_sm, rf_em = _bound_det_rf(rf_ph)  # detecting the start and end 
+    # points of the right foot movement phase 
+    
+    lf_imp = _impact_detect(lf_sm, lf_em, laccz)  # starting and ending 
+    # point of the impact phase for the left foot
+    rf_imp = _impact_detect(rf_sm, rf_em, raccz)  # starting and ending 
+    # points of the impact phase for the right foot
+
+    if len(lf_imp) > 0: #condition to check whether impacts exist in the 
+    # left foot data
+        for i, j in zip(lf_imp[:, 0], lf_imp[:, 1]):
+            lf_ph[i:j] = [phase_id.lf_imp.value]*int(j-i) #decide impact 
+            # phase for the left foot
+    
+    if len(rf_imp) > 0: #condition to check whether impacts exist in the 
+    # right foot data
+        for x, y in zip(rf_imp[:, 0], rf_imp[:, 1]):
+            rf_ph[x:y] = [phase_id.rf_imp.value]*int(y-x) #decide impact 
+            # phase for the right foot  
+            
+    return np.array(lf_ph).reshape(-1, 1), np.array(rf_ph).reshape(-1, 1)
 
 def _phase_detect(acc, epoch_time):
     
@@ -34,10 +80,10 @@ def _phase_detect(acc, epoch_time):
     MS_WIN_SIZE = 80
     for i in islice(count(), 0, len(epoch_time), NMSEC_JUMP):
         epoch_time_subset = epoch_time[i:i+25]
-        subset_data = handle_dynamic_sampling(acc, epoch_time_subset, 
-                                          MS_WIN_SIZE, i)
+        subset_data = handle_dynamic_sampling(acc, epoch_time_subset,
+                                              MS_WIN_SIZE, i)
         bal_win = len(subset_data)
-        for l in range(len(subset_data)):
+        for _ in range(bal_win):
             counter = 0
             for j in range(bal_win):
 #                print l,j
@@ -60,14 +106,14 @@ def _phase_detect(acc, epoch_time):
     # eliminating false movement phases 
     MIN_THRESH_WIN = 25  # a threshold for minimum number of samples required 
     # to be classified as a false movement phase
-    overlap = [np.where(epoch_time-epoch_time[i]<=MIN_THRESH_WIN)[-1][-1] - \
+    overlap = [np.where(epoch_time-epoch_time[i] <= MIN_THRESH_WIN)[-1][-1] - \
     i for i in range(len(epoch_time))]
 
     for i in range(len(start_bal) - 1):
         min_thresh_mov = overlap[start_bal[i]]
         diff = start_bal[i+1] - start_bal[i]
         if diff > 1 and diff <= min_thresh_mov:
-            for j in range(1,diff+1):
+            for j in range(1, diff+1):
                 start_bal.insert(i+j, start_bal[i]+j)
     
     # creating the balance phase array
@@ -98,14 +144,14 @@ def _body_phase(raz, laz, epoch_time):
     l = _phase_detect(laz, epoch_time)  # run phase detect on left foot
     
     phase = []  # store body phase decisions
-    for i in range(len(r)):
-        if r[i] == 0 and l[i] == 0:  # decide in balance phase
+    for i in enumerate(r):
+        if r[i[0]] == 0 and l[i[0]] == 0:  # decide in balance phase
             phase.append(phase_id.rflf_ground.value)  # append to list
-        elif r[i] == 1 and l[i] == 0:  # decide left foot on the ground
+        elif r[i[0]] == 1 and l[i[0]] == 0:  # decide left foot on the ground
             phase.append(phase_id.lf_ground.value)  # append to list
-        elif r[i] == 0 and l[i] == 1:  # decide right foot on the ground
+        elif r[i[0]] == 0 and l[i[0]] == 1:  # decide right foot on the ground
             phase.append(phase_id.rf_ground.value)  # append to list
-        elif r[i] == 1 and l[i] == 1:  # decide both feet off ground
+        elif r[i[0]] == 1 and l[i[0]] == 1:  # decide both feet off ground
             phase.append(phase_id.rflf_offground.value)  # append to list
     return np.array(phase)
  
@@ -204,7 +250,7 @@ def _bound_det_rf(p):
     return start_move, end_move
  
    
-def _impact_detect(start_move, end_move, az, epoch_time):
+def _impact_detect(start_move, end_move, az):
     
     """Detects when impact occurs.
     
@@ -214,7 +260,6 @@ def _impact_detect(start_move, end_move, az, epoch_time):
         end_move: an array of the indexes when the 'foot in the air' phase 
         ends for left/right foot
         az: vertical acceleration of left/right foot
-        epoch_time: epoch time from sensor
         
     Returns:
         imp: a 2d array that stores the indexes of when the impact phase 
@@ -230,7 +275,7 @@ def _impact_detect(start_move, end_move, az, epoch_time):
     start_imp = []
     end_imp = []
     
-    for i,j in zip(start_move, end_move):
+    for i, j in zip(start_move, end_move):
         arr_len = []
         dummy_start_imp = []
         dummy_end_imp = []
@@ -271,55 +316,9 @@ def _impact_detect(start_move, end_move, az, epoch_time):
                     break
                 
     imp = []
-    imp = [ [i,j] for i,j in zip(start_imp, end_imp) ]
+    imp = [[i, j] for i, j in zip(start_imp, end_imp)]
             
     return np.array(imp)
-
-def combine_phase(laccz, raccz, hz):
-    
-    """Combines the balance, foot in the air and the impact phases for the 
-    left and right feet.
-    
-    Args:
-        laccz: left foot vertical acceleration
-        raccz: right foot vertical acceleration
-        hz: sampling rate
-        
-    Returns:
-        lf_ph: an array of the different phases of the left foot
-        rf_ph: an array of the different phases of the right foot
-    
-    """
-    
-    ph = _body_phase(raccz, laccz, hz)  # balance phase for both the right 
-    # and left feet  
-    
-    lf_ph = list(ph)
-    rf_ph = list(ph)
-    
-    lf_sm, lf_em = _bound_det_lf(lf_ph)  # detecting the start and end 
-    # points of the left foot movement phase
-    rf_sm, rf_em = _bound_det_rf(rf_ph)  # detecting the start and end 
-    # points of the right foot movement phase 
-    
-    lf_imp = _impact_detect(lf_sm, lf_em, laccz, hz)  # starting and ending 
-    # point of the impact phase for the left foot
-    rf_imp = _impact_detect(rf_sm, rf_em, raccz, hz)  # starting and ending 
-    # points of the impact phase for the right foot
-
-    if len(lf_imp) > 0: #condition to check whether impacts exist in the 
-    # left foot data
-        for i,j in zip(lf_imp[:,0], lf_imp[:,1]):
-            lf_ph[i:j] = [phase_id.lf_imp.value]*int(j-i) #decide impact 
-            # phase for the left foot
-    
-    if len(rf_imp) > 0: #condition to check whether impacts exist in the 
-    # right foot data
-        for x,y in zip(rf_imp[:,0], rf_imp[:,1]):
-            rf_ph[x:y] = [phase_id.rf_imp.value]*int(y-x) #decide impact 
-            # phase for the right foot  
-            
-    return np.array(lf_ph).reshape(-1,1), np.array(rf_ph).reshape(-1,1)
 
     
 if __name__ == "__main__": 

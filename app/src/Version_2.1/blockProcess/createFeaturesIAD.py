@@ -39,32 +39,32 @@ def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd,
         feature_matrix: left foot/hip/right foot feature matrix
     """
 
-    feature_matrix = np.zeros((1,28))  # declaring feature matrix for 
+    feature_matrix = np.zeros((1, 28))  # declaring feature matrix for 
     # each signal      
     
-    overlap = [np.where(epoch_time-epoch_time[i]<=overlap_samples)[-1][-1] - \
+    overlap = [np.where(epoch_time-epoch_time[i] <= overlap_samples)[-1][-1] - \
     i for i in range(len(epoch_time))]
     i = 0
     while i < len(epoch_time)-1:
-       epoch_time_subset = epoch_time[i:]
-       w, fs = handle_dynamic_sampling_create_features(s[:,2], 
-                                                       epoch_time_subset, 
-                                                       window_samples, i)
+        epoch_time_subset = epoch_time[i:]
+        w, fs = handle_dynamic_sampling_create_features(s[:, 2], 
+                                                        epoch_time_subset, 
+                                                        window_samples, i)
        
-       feature_vector = _create_features(w, fs, prom_mpd, prom_mph, 
+        feature_vector = _create_features(w, fs, prom_mpd, prom_mph, 
                                           prom_peak_thresh, weak_mpd, 
                                           weak_mph, weak_peak_thresh)
-       feature_matrix = np.vstack((feature_matrix, feature_vector))
+        feature_matrix = np.vstack((feature_matrix, feature_vector))
         
-       i = i + overlap[i]
+        i = i + overlap[i]
         
-    feature_matrix = feature_matrix[1:,:]  # removing the first row of zeros
+    feature_matrix = feature_matrix[1:, :]  # removing the first row of zeros
 
     return feature_matrix
 
 
 def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd, 
-                   weak_mph, weak_peak_thresh):
+                     weak_mph, weak_peak_thresh):
                        
     """
     Create feature vector for each sampling window.
@@ -90,11 +90,11 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
     feature_vector = np.hstack((feature_vector, np.std(w)))
     feature_vector = np.hstack((feature_vector, np.var(w)))
     feature_vector = np.hstack((feature_vector, np.sqrt(np.mean(np.square(
-    np.cumsum(w))))))
+        np.cumsum(w))))))
     feature_vector = np.hstack((feature_vector, np.sqrt(np.mean(np.square(
-    w[:int(len(w)/2)])))))
+        w[:int(len(w)/2)])))))
     feature_vector = np.hstack((feature_vector, np.sqrt(np.mean(np.square(
-    w[int(len(w)/2):])))))
+        w[int(len(w)/2):])))))
     feature_vector = np.hstack((feature_vector, np.mean(w[:int(len(w)/2)])))
     feature_vector = np.hstack((feature_vector, np.mean(w[int(len(w)/2):])))
     feature_vector = np.hstack((feature_vector, np.std(w[:int(len(w)/2)])))
@@ -111,22 +111,22 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
     # autocorrelation values 
         
     feature_vector = np.hstack((feature_vector, np.array(
-    len(detect_peaks(c, show = False)))))  # number of autocorrelation peaks
+        len(detect_peaks(c, show=False)))))  # number of autocorrelation peaks
     
     # maximum autocorrelation value
-    if np.array(detect_peaks(c, show = False)).size == 0:
+    if np.array(detect_peaks(c, show=False)).size == 0:
         feature_vector = np.hstack((feature_vector, np.array([0])))
     else:
         feature_vector = np.hstack((feature_vector, np.array(
-        max(c[detect_peaks(c, show = False)]))))
+            max(c[detect_peaks(c, show=False)]))))
     
     # height of the first autocorrelation peak after zero crossing
     for k in range(len(c)-1):
         if c[k] <= 0 and c[k+1] > 0:
-            pks = np.array(detect_peaks(c[k+1:], show = False))
+            pks = np.array(detect_peaks(c[k+1:], show=False))
             break
-        elif c[k] >=0 and c[k+1] < 0:
-            pks = np.array(detect_peaks(c[k+1:], show = False))
+        elif c[k] >= 0 and c[k+1] < 0:
+            pks = np.array(detect_peaks(c[k+1:], show=False))
             break
         else:
             pks = np.array([])
@@ -138,12 +138,12 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
         
     # Prominent peaks
     max_peak_count = 0
-    if np.array(detect_peaks(c, mph = prom_mph, mpd = prom_mpd)).size == 0:
+    if np.array(detect_peaks(c, mph=prom_mph, mpd=prom_mpd)).size == 0:
         feature_vector = np.hstack((feature_vector, np.array([0])))
-    elif len(detect_peaks(c, mph = prom_mph, mpd = prom_mpd)) == 1:
+    elif len(detect_peaks(c, mph=prom_mph, mpd=prom_mpd)) == 1:
         feature_vector = np.hstack((feature_vector, np.array([1])))
     else:
-        pks = np.array(c[detect_peaks(c, mph = prom_mph, mpd = prom_mpd)])
+        pks = np.array(c[detect_peaks(c, mph=prom_mph, mpd=prom_mpd)])
         for l in range(len(pks)-1):
             if abs(pks[l] - pks[l+1]) >= prom_peak_thresh:
                 max_peak_count = max_peak_count + 1
@@ -151,12 +151,12 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
         
     # Weak peaks
     max_weak_peak_count = 0
-    if np.array(detect_peaks(c, mph = weak_mph, mpd = weak_mpd)).size == 0:
+    if np.array(detect_peaks(c, mph=weak_mph, mpd=weak_mpd)).size == 0:
         feature_vector = np.hstack((feature_vector, np.array([0])))
-    elif len(detect_peaks(c, mph = weak_mph, mpd = weak_mpd)) == 1:
+    elif len(detect_peaks(c, mph=weak_mph, mpd=weak_mpd)) == 1:
         feature_vector = np.hstack((feature_vector, np.array([1])))
     else:
-        pks = np.array(c[detect_peaks(c, mph = weak_mph, mpd = weak_mpd)])
+        pks = np.array(c[detect_peaks(c, mph=weak_mph, mpd=weak_mpd)])
         for l in range(len(pks)-1):
             if abs(pks[l] - pks[l+1]) <= weak_peak_thresh:
                 max_weak_peak_count = max_weak_peak_count + 1
@@ -169,7 +169,7 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
     for m in range(len(fband)-1):
         dummy_pxx = pxx[f <= fband[m+1]]
         feature_vector = np.hstack((feature_vector, np.mean(
-        dummy_pxx[f[:len(dummy_pxx)] >= fband[m]])))
+            dummy_pxx[f[:len(dummy_pxx)] >= fband[m]])))
    
     return feature_vector
     
@@ -194,19 +194,19 @@ def create_labels(labels, window_samples, overlap_samples, label_thresh,
     
     label_vector = np.zeros(1)
     
-    overlap = [np.where(epoch_time-epoch_time[i]<=overlap_samples)[-1][-1] - \
+    overlap = [np.where(epoch_time-epoch_time[i] <= overlap_samples)[-1][-1] - \
     i for i in range(len(epoch_time))]
     i = 0
     while i < len(epoch_time)-1:
-       epoch_time_subset = epoch_time[i:]
-       labwin = handle_dynamic_sampling(labels, epoch_time_subset, 
-                                           window_samples, i)
-       if float(len(labwin[labwin == 1]))/len(labwin) >= label_thresh:
-           label_vector = np.vstack((label_vector, np.array([1])))
-       else:
-           label_vector = np.vstack((label_vector, np.array([0])))
+        epoch_time_subset = epoch_time[i:]
+        labwin = handle_dynamic_sampling(labels, epoch_time_subset, 
+                                         window_samples, i)
+        if float(len(labwin[labwin == 1]))/len(labwin) >= label_thresh:
+            label_vector = np.vstack((label_vector, np.array([1])))
+        else:
+            label_vector = np.vstack((label_vector, np.array([0])))
            
-       i = i + overlap[i]
+        i = i + overlap[i]
             
     label_vector = label_vector[1:]
     

@@ -15,7 +15,7 @@ import pandas as pd
 from createFeaturesIAD import create_window, create_labels
 
 
-def preprocess_iad(data, training = False):
+def preprocess_iad(data, training=False):
     
     """
     Create signals, features to train/predict labels.
@@ -109,7 +109,7 @@ def preprocess_iad(data, training = False):
     
     # combine the left foot, hip and/or right foot feature matrices
     combined_feature_matrix = np.concatenate((lf_feature_matrix, 
-                                              hip_feature_matrix), axis = 1)
+                                              hip_feature_matrix), axis=1)
     
     # check if training is true/false
     if training == True:
@@ -175,28 +175,30 @@ def _create_signals(sensor_data):
     
     """
     
-    pca = PCA(n_components = 1)  # defining the PCA function
+    pca = PCA(n_components=1)  # defining the PCA function
     
     # Acceleration Signals
-    sig = sensor_data[:,0:3]  # copying aX, aY, aZ
-    sig = np.hstack((sig, np.array(sensor_data[:,0]**2 + sensor_data[:,1]**2 
-    + sensor_data[:,2]**2).reshape(len(sensor_data),1)))  # Acceleration 
+    sig = sensor_data[:, 0:3]  # copying aX, aY, aZ
+    sig = np.hstack((sig, np.array(sensor_data[:, 0]**2 + \
+        sensor_data[:, 1]**2 + sensor_data[:, 2]**2).reshape(
+            len(sensor_data), 1)))  # Acceleration 
     # magnitude
     sig = np.hstack((sig, np.array(
-    pca.fit_transform(sensor_data[:,0:3])).reshape(len(sensor_data),1))) 
+        pca.fit_transform(sensor_data[:, 0:3])).reshape(len(sensor_data), 1))) 
     # First principal component of aX, aY, aZ
     
     # Euler Signals
     sig = np.hstack((sig, np.array(
-    sensor_data[:,4]).reshape(len(sensor_data),1)))  # copying eX, eY, eZ
-    sig = np.hstack((sig, np.array(sensor_data[:,3]**2 + sensor_data[:,4]**2 
-    + sensor_data[:,5]**2).reshape(len(sensor_data),1))) 
+        sensor_data[:, 4]).reshape(len(sensor_data), 1)))  # copying eX, eY, eZ
+    sig = np.hstack((sig, np.array(sensor_data[:, 3]**2 + \
+        sensor_data[:, 4]**2 + sensor_data[:, 5]**2).reshape(len(
+            sensor_data), 1))) 
     # Euler angles magnitude
     sig = np.hstack((sig, np.array(pca.fit_transform(
-    sensor_data[:,3:6])).reshape(len(sensor_data),1)))  # First principal 
+        sensor_data[:, 3:6])).reshape(len(sensor_data), 1)))  # First principal 
     # component of eX, eY, eZ
     sig = np.hstack((sig, np.array(
-    pca.fit_transform(sensor_data[:,4:6])).reshape(len(sensor_data),1))) 
+        pca.fit_transform(sensor_data[:, 4:6])).reshape(len(sensor_data), 1))) 
     # First principal component of EulerY, EulerZ
         
     return sig
@@ -220,11 +222,11 @@ def train_iad(data):
     train_lab = lab
     
     # train the classification model
-    clf = RandomForestClassifier(n_estimators = 20, max_depth = 10, 
-                                 criterion = 'entropy', max_features='auto', 
-                                 random_state = 1, n_jobs = -1)    
+    clf = RandomForestClassifier(n_estimators=20, max_depth=10, 
+                                 criterion='entropy', max_features='auto', 
+                                 random_state=1, n_jobs=-1)    
     fit = clf.fit(traincombined_feature_matrix, train_lab.reshape((
-    len(train_lab),)))
+        len(train_lab),)))
     
     return fit
     
@@ -247,7 +249,7 @@ def label_aggregation(predicted_labels):
     exercise_state = 0
     
     # aggregating the labels to reduce false negatives
-    for j in range(1,len(predicted_labels)):
+    for j in range(1, len(predicted_labels)):
         if predicted_labels[j] == 1 and predicted_labels[j-1] == 1:
             count = 2
             exercise_state = 1
@@ -285,8 +287,8 @@ def mapping_labels_on_data(predicted_labels, len_data):
     """
     
     test_map_labels = []
-    for i in range(1,len(predicted_labels)):
-        for j in range(50):
+    for i in range(1, len(predicted_labels)):
+        for _ in range(50):
             if predicted_labels[i-1] == 0 and predicted_labels[i] == 0:
                 test_map_labels.append(0)
             else:
@@ -294,7 +296,7 @@ def mapping_labels_on_data(predicted_labels, len_data):
     
     # check if length of mapped data is the same as that of the sensor data
     if len_data > len(test_map_labels):            
-        for k in range(len_data-len(test_map_labels)):
+        for _ in range(len_data-len(test_map_labels)):
             test_map_labels.append(0)
             
     return np.array(test_map_labels)

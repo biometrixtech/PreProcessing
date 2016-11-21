@@ -31,24 +31,24 @@ def _imp_start_time(imp_time):
     
     first_instance_imp = []  # initializing a list
     count = 0  # initializing a count variable
-    for i in range(len(imp_time)):
-        if imp_time[i] == phase_id.lf_imp.value \
-        or imp_time[i] == phase_id.rf_imp.value:  # checking if an impact 
+    for i in enumerate(imp_time):
+        if imp_time[i[0]] == phase_id.lf_imp.value \
+        or imp_time[i[0]] == phase_id.rf_imp.value:  # checking if an impact 
         # phase exists (4 for left foot; 5 for right foot)
             if count < 1:
-                first_instance_imp.append(i)  # appending the first instance 
+                first_instance_imp.append(i[0])  # appending the first instance 
                 # of an impact phase 
                 count = count + 1
-        elif imp_time[i] == phase_id.rflf_ground.value \
-        or imp_time[i] == phase_id.lf_ground.value \
-        or imp_time[i] == phase_id.rf_ground.value \
-        or imp_time[i] == phase_id.rflf_offground.value:
+        elif imp_time[i[0]] == phase_id.rflf_ground.value \
+        or imp_time[i[0]] == phase_id.lf_ground.value \
+        or imp_time[i[0]] == phase_id.rf_ground.value \
+        or imp_time[i[0]] == phase_id.rflf_offground.value:
             count = 0
                         
     return first_instance_imp 
     
     
-def sync_time(imp_rf, imp_lf, epoch_time, len_data): 
+def sync_time(imp_rf, imp_lf, epoch_time): 
 
     """  
     Determine the land time on impact for right and left feet.
@@ -73,39 +73,39 @@ def sync_time(imp_rf, imp_lf, epoch_time, len_data):
     ltime_index = []  # initialize list to store index for land time
 
     # determine false impacts
-    for i in range(len(rf_start)):
-        for j in range(len(lf_start)):
-            if lf_start[j] > rf_start[i]:
-                epoch_time_subset = epoch_time[rf_start[i]:lf_start[j]]
+    for i in enumerate(rf_start):
+        for j in enumerate(lf_start):
+            if lf_start[j[0]] > rf_start[i[0]]:
+                epoch_time_subset = epoch_time[rf_start[i[0]]:lf_start[j[0]]]
                 sampl_rate = avg_sampl_rate_win(epoch_time_subset)
-            elif lf_start[j] < rf_start[i]:
-                epoch_time_subset = epoch_time[lf_start[j]:rf_start[i]]
+            elif lf_start[j[0]] < rf_start[i[0]]:
+                epoch_time_subset = epoch_time[lf_start[j[0]]:rf_start[i[0]]]
                 sampl_rate = avg_sampl_rate_win(epoch_time_subset)
-            if abs(lf_start[j] - rf_start[i]) <= 0.3*sampl_rate:  # checking 
-            # for false impact phases
-                if lf_start[j] > rf_start[i]:  # check if left foot 
+            if abs(lf_start[j[0]] - rf_start[i[0]]) <= 0.3*sampl_rate:  
+            # checking for false impact phases
+                if lf_start[j[0]] > rf_start[i[0]]:  # check if left foot 
                 # impacts first
-                    epoch_time_subset = epoch_time[rf_start[i]:lf_start[j]]
+                    epoch_time_subset = epoch_time[rf_start[i[0]]:lf_start[j[0]]]
                     sampl_rate = avg_sampl_rate_win(epoch_time_subset)
-                    diff.append(-(lf_start[j] - rf_start[i])\
+                    diff.append(-(lf_start[j[0]] - rf_start[i[0]])\
                     /float(sampl_rate)*1000) 
                     # appending the difference of time of impact between  
                     # left and right feet, dividing by the sampling rate to 
                     # convert the time difference to milli seconds
-                    ltime_index.append(int(i))
-                elif lf_start[j] < rf_start[j]:  # check if right foot
+                    ltime_index.append(int(i[0]))
+                elif lf_start[j[0]] < rf_start[j[0]]:  # check if right foot
                 # impacts first
-                    epoch_time_subset = epoch_time[lf_start[j]:rf_start[i]]
+                    epoch_time_subset = epoch_time[lf_start[j[0]]:rf_start[i[0]]]
                     sampl_rate = avg_sampl_rate_win(epoch_time_subset)
-                    diff.append((rf_start[j] - lf_start[i])\
+                    diff.append((rf_start[j[0]] - lf_start[i[0]])\
                     /float(sampl_rate)*1000) 
-                    ltime_index.append(int(i))
-                elif lf_start[j] == rf_start[j]:  # check impact time of 
+                    ltime_index.append(int(i[0]))
+                elif lf_start[j[0]] == rf_start[j[0]]:  # check impact time of 
                 # right foot equals left foot
                     diff.append(0.0)
-                    ltime_index.append(int(i))
+                    ltime_index.append(int(i[0]))
                 
-    return np.array(diff).reshape(-1,1), np.array(ltime_index).reshape(-1,1)
+    return np.array(diff).reshape(-1, 1), np.array(ltime_index).reshape(-1, 1)
     
     
 def landing_pattern(rf_euly, lf_euly, land_time): 
@@ -126,8 +126,8 @@ def landing_pattern(rf_euly, lf_euly, land_time):
     out_pattern = []
     
     for i in land_time:
-        out_pattern.append([np.rad2deg(rf_euly[int(land_time[i,0])]), 
-                            np.rad2deg(lf_euly[int(land_time[i,1])])])
+        out_pattern.append([np.rad2deg(rf_euly[int(land_time[i, 0])]), 
+                            np.rad2deg(lf_euly[int(land_time[i, 1])])])
                             # right and left feet pitch angles on impact
     
     return np.array(out_pattern) 
@@ -160,8 +160,8 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
     # sensor data
     count = 0
     for i in range(data_length):
-        if i in landtime_index[:,0]:
-            rf_quick_pattern.append(land_pattern[count,0])
+        if i in landtime_index[:, 0]:
+            rf_quick_pattern.append(land_pattern[count, 0])
             count = count + 1
         else:
             rf_quick_pattern.append(np.nan)
@@ -170,8 +170,8 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
     # sensor data
     count = 0
     for i in range(data_length):
-        if i in landtime_index[:,0]:
-            lf_quick_pattern.append(land_pattern[count,3])
+        if i in landtime_index[:, 0]:
+            lf_quick_pattern.append(land_pattern[count, 3])
             count = count + 1
         else:
             lf_quick_pattern.append(np.nan)
@@ -180,16 +180,16 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
     # sensor data
     count = 0
     for i in range(data_length):
-        if i in landtime_index[:,0]:
-            final_landtime.append(land_time[count,0])
+        if i in landtime_index[:, 0]:
+            final_landtime.append(land_time[count, 0])
             count = count + 1
         else:
             final_landtime.append(np.nan)
     
     # merge right foot and left foot land patterns into a single variable
     final_landpattern = []        
-    for i,j in zip(lf_quick_pattern, rf_quick_pattern):
-        final_landpattern.append([j,i]) 
+    for i, j in zip(lf_quick_pattern, rf_quick_pattern):
+        final_landpattern.append([j, i]) 
         
     if len(final_landpattern) != len(final_landtime):
         logger.warning('Length of land patterna nd land time are not equal.')

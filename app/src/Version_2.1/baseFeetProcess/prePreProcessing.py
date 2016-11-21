@@ -26,7 +26,6 @@ def check_duplicate_epochtime(epoch_time):
     # check if there are any duplicate epoch times in the sensor data file
     epoch_time_duplicate = False
     epoch_time_unique_ind = np.unique(epoch_time, return_counts=True)[1]
-
     if 2 in epoch_time_unique_ind:
         epoch_time_duplicate = True
         return epoch_time_duplicate
