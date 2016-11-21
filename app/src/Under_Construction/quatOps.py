@@ -7,6 +7,7 @@ Created on Wed Sep 28 17:42:39 2016
 
 # import relevant packages
 import numpy as np
+from sklearn.preprocessing import normalize
 
 """
 #########################################################################################
@@ -18,67 +19,148 @@ https://drive.google.com/drive/folders/0Bzd7PD0NIJ7ZZmJ5aVRsUnVOZ3c
 #########################################################################################
 """
 
-####Function to compute the product between two quaternions... q1 followed by a rotation of q2
+
 def quat_prod(q1, q2):
+    
+    """
+    Function to compute the product between two quaternions... q1 followed by 
+    a rotation of q2.
+    
+    Args:
+        Two quaternions, the first an orientation to be rotated by the second.
         
-    q2=quat_n(q2)
-    prod = np.zeros(4)
-    prod[0] = q1[0]*q2[0]-q1[1]*q2[1]-q1[2]*q2[2]-q1[3]*q2[3]
-    prod[1] = q1[0]*q2[1]+q1[1]*q2[0]+q1[2]*q2[3]-q1[3]*q2[2]
-    prod[2] = q1[0]*q2[2]-q1[1]*q2[3]+q1[2]*q2[0]+q1[3]*q2[1]    
-    prod[3] = q1[0]*q2[3]+q1[1]*q2[2]-q1[2]*q2[1]+q1[3]*q2[0]
+    Return:
+        Quaternion representing the final orientation.
+    
+    """
+
+    # normalize rotation quaternion
+    q2=quat_norm(q2)
+    
+    # create storage for quaternion
+    prod = np.zeros(q1.shape)
+    
+    # calculate product quaternion's elements
+    prod[:,0] = q1[:,0]*q2[:,0]-q1[:,1]*q2[:,1]-q1[:,2]*q2[:,2]-q1[:,3]*q2[:,3]
+    prod[:,1] = q1[:,0]*q2[:,1]+q1[:,1]*q2[:,0]+q1[:,2]*q2[:,3]-q1[:,3]*q2[:,2]
+    prod[:,2] = q1[:,0]*q2[:,2]-q1[:,1]*q2[:,3]+q1[:,2]*q2[:,0]+q1[:,3]*q2[:,1]
+    prod[:,3] = q1[:,0]*q2[:,3]+q1[:,1]*q2[:,2]-q1[:,2]*q2[:,1]+q1[:,3]*q2[:,0]
+    
     return prod
     
-def vquat_prod(q1, q2):
+def _vector_quat_prod(q1, q2):
+    
+    """
+    Function to compute the product between two quaternions during vector
+    rotation - does not include normalization step of regular quaternion
+    multiplication.
+    
+    Args:
+        Two quaternions, the first an orientation to be rotated by the second.
         
-    prod = np.zeros(4)
-    prod[0] = q1[0]*q2[0]-q1[1]*q2[1]-q1[2]*q2[2]-q1[3]*q2[3]
-    prod[1] = q1[0]*q2[1]+q1[1]*q2[0]+q1[2]*q2[3]-q1[3]*q2[2]
-    prod[2] = q1[0]*q2[2]-q1[1]*q2[3]+q1[2]*q2[0]+q1[3]*q2[1]    
-    prod[3] = q1[0]*q2[3]+q1[1]*q2[2]-q1[2]*q2[1]+q1[3]*q2[0]
+    Return:
+        Quaternion representing the final orientation.
+
+    """
+    
+    # create storage for quaternion
+    prod = np.zeros(q1.shape)
+#    print q1
+    
+    # calculate product quaternion's elements
+    prod[:,0] = q1[:,0]*q2[:,0]-q1[:,1]*q2[:,1]-q1[:,2]*q2[:,2]-q1[:,3]*q2[:,3]
+    prod[:,1] = q1[:,0]*q2[:,1]+q1[:,1]*q2[:,0]+q1[:,2]*q2[:,3]-q1[:,3]*q2[:,2]
+    prod[:,2] = q1[:,0]*q2[:,2]-q1[:,1]*q2[:,3]+q1[:,2]*q2[:,0]+q1[:,3]*q2[:,1]
+    prod[:,3] = q1[:,0]*q2[:,3]+q1[:,1]*q2[:,2]-q1[:,2]*q2[:,1]+q1[:,3]*q2[:,0]
+    
     return prod
 
-####Function that returns conjugate of input quaternion  
-def quat_conj(q):
-    
-    if np.linalg.norm(q) == 0:
-        raise DivideByZeroError
-        
-    conj = np.matrix([q[0], -q[1], -q[2], -q[3]]) #first term unchanged, last three terms are negative of inital quaternion
-    conj = conj/np.linalg.norm(conj) #normalize the quaternion by dividing by magnitude see line 74 for hardcoded example 
-    conj = np.squeeze(np.asarray(conj))    
-    return conj
-    
-    
-####function that normalizes quaternions
-def quat_n(q):
 
-    qn = q/np.linalg.norm(q) # normalize the quaternion by dividing Euler Parameters by magnitude
+
+def quat_norm(q):
+    """
+    Function that normalizes a quaternion
+    
+    """
+    
+    # Find the magnitude and divide
+    mag = np.linalg.norm(q, axis=1).reshape(-1,1)
+    qn = q/mag
+    
     return qn
    
-   
-#### function that rotates a vector v by rotation quaternion q
+ 
+def quat_conj(q):
+    
+    """
+    Function that returns conjugate of input quaternion.
+    
+    """
+    
+    # first term unchanged, last three terms are negative of inital quaternion    
+    conj = np.vstack([q[:,0], -q[:,1], -q[:,2], -q[:,3]]).T
+    
+    # normalize the conjugate
+    conj = quat_norm(conj)
+    
+    return conj
+
+
 def vect_rot(v,q):
+    
+    """
+    Function that rotates a vector v by rotation quaternion q.
+    
+    Args:
+        v: 3D vector to be rotated
+        q: 4D rotation quaternion
+        
+    Return:
+        3D rotated vector
+        
+    """
+    
+    # Create storage for variable values
+    rot_vect = np.zeros(q.shape)
+    
+    # Prepare values for rotation
+    V = np.hstack((np.zeros((len(v),1)),v)) # Convert 3D matrix to "quaternion" form
+    q=quat_norm(q) # Normalize the rotation quaternion
 
-    V = np.zeros((1,4)) # Create storage for variable values
-    V = [0,v[0],v[1],v[2]] # Convert 3D matrix to "quaternion" form
-    q=quat_n(q) # Normalize the rotation quaternion
-    rotvect = np.zeros((1,4)) # Create storage for variable values
-    rotvect = quat_prod(vquat_prod(quat_conj(q),V),q) # vector is rotated as rotvect = QVQ^(-1)
-    rotvect=[rotvect[1],rotvect[2],rotvect[3]]
-    return rotvect
+    # rotate vector as rot_vect = QVQ^(-1) and extract 3D values
+    rot_vect = quat_prod(_vector_quat_prod(quat_conj(q),V),q)
+    rot_vect=rot_vect[:,1:]
+    
+    return rot_vect
 
 
-#### Function that finds rotation between two quaternions
 def find_rot(q1,q2):
+    
+    """
+    Function that finds rotation between first and second quaternions.
+    
+    """
+    
+    # Create storage vector for product
+    rot_q = np.zeros(q1.shape)
+    
+    # rotation between normalized quaternions Q1 and Q2 produced as rot_q = Q1^(-1)Q2
+    rot_q = quat_prod(quat_conj(quat_norm(q1)), quat_norm(q2)) 
+    
+    return rot_q
 
-    rotq = np.zeros((1,4)) # create storage vector for product
-    rotq = quat_prod(quat_conj(quat_n(q1)),quat_n(q2)) # rotation between normalized quaternions Q1 and Q2 produced as rotq = Q1^(-1)Q2
-    return rotq
 
-
-#### Function that "averages" a string of quaternions
 def quat_avg(data):
-    avgquat=np.mean(data,0)
-    avgquat=quat_n(avgquat)
-    return avgquat
+    
+    """
+    Function that "averages" a column of quaternions into a single quaternion.
+    
+    """
+    
+    # Average data along columns
+    avg_quat=np.mean(data,0).reshape(1,-1)
+    
+    # Normalize the single quaternion produced
+    avg_quat=quat_norm(avg_quat)
+    
+    return avg_quat
