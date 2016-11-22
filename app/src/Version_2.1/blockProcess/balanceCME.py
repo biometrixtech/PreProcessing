@@ -6,11 +6,10 @@ Created on Fri Oct 14 05:34:54 2016
 """
 import numpy as np
 
-import quatOps as qo
 import quatConvs as qc
    
     
-def cont_rot_CME(data, state, states, neutral, cme):
+def cont_rot_CME(data, state, states, neutral):
     
     """
     Calculates the rotation of a body part from its "neutral" position.
@@ -20,7 +19,6 @@ def cont_rot_CME(data, state, states, neutral, cme):
         state: state of data (usually instantaneous phase)
         states: states during which data should be compared to neutral
         neutral: neutral value to which data should be compared
-        cme: appropriate dictionary
     
     Returns:
         comparison: array comparing body position to neutral, consisting of
