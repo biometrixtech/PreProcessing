@@ -41,7 +41,7 @@ def _special_hip_calib(data):
 
     # create storage for values and fill with normalized orientations
         
-    hip_data=qo.quat_norm(data)
+    hip_data = qo.quat_norm(data)
             
     # TODO(Courtney): incorporate bow into calculation of hip_asf_transform 
             
@@ -49,12 +49,12 @@ def _special_hip_calib(data):
 #    hip_asf_transform = qo.quat_prod([0.70710678,0.70710678,0,0],
 #                                      [0.70710678,0,0,0.70710678])  # FOR OLD SENSORS RUNNING SIDE TO SIDE
 #    hip_asf_transform = [0.70710678,0,-0.70710678,0]  # FOR OLD SENSORS RUNNING UP AND DOWN: -90 degrees about y axis
-    rot_y = np.array([0.707106781186548,0,0.707106781186548,0])[np.newaxis, :]
-    rot_x = np.array([0.707106781186548,0.707106781186548,0,0])[np.newaxis, :]
+    rot_y = np.array([np.sqrt(.5), 0, np.sqrt(.5), 0])[np.newaxis, :]
+    rot_x = np.array([np.sqrt(.5), np.sqrt(.5), 0, 0])[np.newaxis, :]
     # FOR NEW SENSORS: 90 deg about y axis, -90 deg about x axis
-    hip_asf_transform = qo.quat_prod(rot_y,rot_x) 
+    hip_asf_transform = qo.quat_prod(rot_y, rot_x) 
     
-    hip_asf = qo.quat_prod(hip_data,hip_asf_transform)
+    hip_asf = qo.quat_prod(hip_data, hip_asf_transform)
     
     # create storage for variables and calculate instantaneous hip offsets    
 #    hip_pitch_transform_inst=np.zeros_like(hip_asf)
@@ -77,10 +77,10 @@ def _special_hip_calib(data):
     hip_pitch_transform = qo.quat_norm(qo.quat_avg(hip_pitch_transform_inst))
     hip_roll_transform = qo.quat_norm(qo.quat_avg(hip_roll_transform_inst))
     
-    return hip_pitch_transform.reshape(-1,1),hip_roll_transform.reshape(-1,1)
+    return hip_pitch_transform.reshape(-1, 1),hip_roll_transform.reshape(-1, 1)
     
     
-def _special_foot_calib(foot_data,hip_data,hip_pitch_transform):
+def _special_foot_calib(foot_data, hip_data, hip_pitch_transform):
     
     """
     Special feet calibration analyzes data recorded while subject is seated, 
@@ -97,36 +97,27 @@ def _special_foot_calib(foot_data,hip_data,hip_pitch_transform):
         foot_roll_transform for one foot
     
     """
-    hip_pitch_transform  = hip_pitch_transform.reshape(1,-1)
+    hip_pitch_transform  = hip_pitch_transform.reshape(1, -1)
     # TODO(Courtney): incorporate bow into calculation of hip_asf_transform 
 
     # rotation from sensor frame to adjusted sensor frame 
 #    hip_asf_transform = qo.quat_prod([0.70710678,0.70710678,0,0],
 #                                      [0.70710678,0,0,0.70710678]) # FOR OLD SENSORS RUNNING SIDE TO SIDE
 #    hip_asf_transform = [0.70710678,0,-0.70710678,0]  # FOR OLD SENSORS RUNNING UP AND DOWN: -90 degrees about y axis
-    rot_y = np.array([0.707106781186548,0,0.707106781186548,0])[np.newaxis, :]
-    rot_x = np.array([0.707106781186548,0.707106781186548,0,0])[np.newaxis, :]
+    rot_y = np.array([np.sqrt(.5), 0, np.sqrt(.5), 0])[np.newaxis, :]
+    rot_x = np.array([np.sqrt(.5), np.sqrt(.5), 0, 0])[np.newaxis, :]
     # FOR NEW SENSORS: 90 deg about y axis, -90 deg about x axis
-    hip_asf_transform = qo.quat_prod(rot_y,rot_x)
+    hip_asf_transform = qo.quat_prod(rot_y, rot_x)
     
     # calculate adjusted sensor frame
     hip_asf = qo.quat_prod(hip_data, hip_asf_transform)
     
     # use hip_pitch_transform to get from hip_asf to hip_aif
     hip_pitch_transform_conj = qo.quat_conj(hip_pitch_transform)
-    hip_aif = qo.quat_prod(hip_asf,hip_pitch_transform_conj)
-    
-    # Create storage for values and calculate instantaneous transform values
-#    foot_asf=np.zeros_like(foot_data) # len(data)xwid(data)
-#    foot_asf_components=np.zeros((len(foot_data),3)) # len(data)x3
-#    foot_yaw_transform=np.zeros((len(foot_data),4)) # 1x4
-#    foot_asfj=np.zeros_like(foot_data) # len(data)xwid(data)
-#    foot_asfj_components=np.zeros((len(foot_data),3)) # len(data)x3
-#    foot_roll_transform_inst=np.zeros((len(foot_data),4)) # len(data)xwid(data)
+    hip_aif = qo.quat_prod(hip_asf, hip_pitch_transform_conj)
     
     # find yaw offset of foot from body adjusted inertial frame
-#    for i in range(len(hip_aif)):
-    foot_asf = qo.find_rot(hip_aif,foot_data)
+    foot_asf = qo.find_rot(hip_aif, foot_data)
     foot_asf_components = qc.quat_to_euler(foot_asf)
     # create offset using yaw
     length = len(hip_data)
@@ -139,7 +130,8 @@ def _special_foot_calib(foot_data,hip_data,hip_pitch_transform):
     
     # Isolate roll offset
     foot_asfj_components = qc.quat_to_euler(foot_asfj)
-    foot_asfj_roll_offset = np.hstack((foot_asfj_components[:, 0].reshape(-1, 1),
+    foot_asfj_roll_offset = np.hstack((foot_asfj_components[:, 0].reshape(-1,
+                                       1),
                                       np.zeros((length, 2))))
     foot_roll_transform_inst = qc.euler_to_quat(foot_asfj_roll_offset)
 
@@ -149,7 +141,7 @@ def _special_foot_calib(foot_data,hip_data,hip_pitch_transform):
     return foot_roll_transform
     
     
-def run_special_calib(hip_data,feet_data):
+def run_special_calib(hip_data, feet_data):
     
     """ 
     Runs special hip and feet calibration analyses. Takes separate data paths,
@@ -189,8 +181,13 @@ def run_special_calib(hip_data,feet_data):
 
     # calculate feet transforms from special feet calibration
 
-    lf_roll_transform=_special_foot_calib(lf_data, hipf_data, hip_pitch_transform)
-    rf_roll_transform=_special_foot_calib(rf_data, hipf_data, hip_pitch_transform)
+    lf_roll_transform = _special_foot_calib(lf_data, hipf_data,
+                                            hip_pitch_transform)
+    rf_roll_transform = _special_foot_calib(rf_data, hipf_data,
+                                            hip_pitch_transform)
     
     # reshape and return values
-    return hip_pitch_transform.reshape(-1,1),hip_roll_transform.reshape(-1,1),lf_roll_transform.reshape(-1,1),rf_roll_transform.reshape(-1,1)
+    return hip_pitch_transform.reshape(-1, 1),\
+            hip_roll_transform.reshape(-1, 1),\
+            lf_roll_transform.reshape(-1, 1),\
+            rf_roll_transform.reshape(-1, 1)

@@ -41,15 +41,27 @@ def test_anatomicalCalibration(hip_data, foot_data, hip_pitch_transform,
         --_sensor_to_aif
             -output hip_aif is same shape as hip_data
             -body_frame transform result is of shape (4,1)
-            -with example (unit_quaternion, unit_quaternion, unit_quaternion)
+            -with example (unit_quaternions, unit_quaternions, unit_quaternions
+                            unit_quaternions, unit_quaternions)
                 -hip_aif == hip_bf_transform (broadcasted into app. shape)
                 -hip_bf_transform == quat_prod(rot_y, rot_x)
                    where rot_y is rotation of 90 about y
                    rot x is rotation of -90 about x
         --_feet_transform_calculations
-            -Output data is same shape as q1
-            -Magnitude of all quaternions is 1 after normalizing
+            - lf_bf_transform is of shape (4,1)
+            - lf_yaw_transform is of shape (4,1)
+            - lf_pitch_transform is of shape (4,1)
     """
+    assume(not (hip_data == 0).all())
+    assume(all(np.linalg.norm(hip_data, axis=1) > .1))
+    assume(not (foot_data == 0).all())
+    assume(all(np.linalg.norm(foot_data, axis=1) > .1))
+    assume(not (hip_pitch_transform == 0).all())
+    assume(np.linalg.norm(hip_pitch_transform) > 0.1)
+    assume(not (hip_roll_transform == 0).all())
+    assume(np.linalg.norm(hip_roll_transform) > 0.1)
+    assume(not (foot_roll_transform == 0).all())
+    assume(np.linalg.norm(foot_roll_transform) > 0.1)
     ## _sensor_to_aif
     hip_aif, hip_bf_transform = ac._sensor_to_aif(hip_data, hip_pitch_transform,
                                                   hip_roll_transform)
@@ -57,16 +69,19 @@ def test_anatomicalCalibration(hip_data, foot_data, hip_pitch_transform,
     assert hip_bf_transform.shape == (4,1)
     
     if is_example == 1:
-        rot_y = np.array([0.707106781186548,0,0.707106781186548,0])[np.newaxis, :]
-        rot_x = np.array([0.707106781186548,0.707106781186548,0,0])[np.newaxis, :]
+        rot_y = np.array([np.sqrt(.5), 0, np.sqrt(.5), 0])[np.newaxis, :]
+        rot_x = np.array([np.sqrt(.5), np.sqrt(.5), 0, 0])[np.newaxis, :]
         # FOR NEW SENSORS: 90 deg about y axis, -90 deg about x axis
         hip_asf_transform = qo.quat_prod(rot_y,rot_x).reshape(-1,1)
         assert np.allclose(hip_bf_transform, hip_asf_transform, atol=1e-10)
         assert np.allclose(hip_aif, hip_bf_transform.reshape(1,-1))
-        
-    lf_bf_transform,lf_yaw_transform,lf_pitch_transform =\
-            ac._feet_transform_calculations(foot_data, hip_aif, foot_roll_transform)
+    ## _feet_transform_calculations    
+    lf_bf_transform, lf_yaw_transform, lf_pitch_transform =\
+            ac._feet_transform_calculations(foot_data, hip_aif,
+                                            foot_roll_transform)
     assert lf_bf_transform.shape == (4,1)
+    assert lf_yaw_transform.shape == (4,1)
+    assert lf_pitch_transform.shape == (4,1)
 
 
 if __name__ == '__main__' :

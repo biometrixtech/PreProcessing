@@ -14,15 +14,18 @@ import accelerationTransformation as at
 
 
 """
-#############################################INPUT/OUTPUT####################################################
-Input: csv file containing relevant raw data. All raw data is in sensor frame with respect to global frame.
-Output: data for orientations in body frame, accelerations in adjusted inertial frame
+#############################################INPUT/OUTPUT######################
+Input: csv file containing relevant raw data. All raw data is in sensor frame
+with respect to global frame.
+Output: data for orientations in body frame, accelerations in adjusted
+        inertial frame
 
 FIRST: Run special calibration and calibration scripts with relevant data sets.
 
 Conceptual explanations to be given under:
-https://sites.google.com/a/biometrixtech.com/wiki/home/preprocessing/anatomical/concepts
-#############################################################################################################
+https://sites.google.com/a/biometrixtech.com/wiki/home/preprocessing/
+anatomical/concepts
+##############################################################################
 """
 
 
@@ -38,12 +41,12 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     scripts.
     
     """
-    hip_bf_transform = hip_bf_transform.reshape(1,-1)
-    lf_bf_transform = lf_bf_transform.reshape(1,-1)
-    rf_bf_transform = rf_bf_transform.reshape(1,-1)
-    lf_n_transform = lf_n_transform.reshape(1,-1)
-    rf_n_transform = rf_n_transform.reshape(1,-1)
-    hip_n_transform = hip_n_transform.reshape(1,-1)
+    hip_bf_transform = hip_bf_transform.reshape(1, -1)
+    lf_bf_transform = lf_bf_transform.reshape(1, -1)
+    rf_bf_transform = rf_bf_transform.reshape(1, -1)
+    lf_n_transform = lf_n_transform.reshape(1, -1)
+    rf_n_transform = rf_n_transform.reshape(1, -1)
+    hip_n_transform = hip_n_transform.reshape(1, -1)
     
     # divide data
     hip_quat_db = np.hstack([data.HqW, data.HqX, data.HqY,
@@ -75,7 +78,7 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     rf_bf_eul = qc.quat_to_euler(rf_bf_quat)
         
     # call accelerationTransformation
-    hip_aif_acc, lf_aif_acc, rf_aif_acc=\
+    hip_aif_acc, lf_aif_acc, rf_aif_acc =\
             at.acceleration_transform(hip_quat, lf_quat, rf_quat, hip_acc,
                                       lf_acc, rf_acc, hip_bf_eul, lf_bf_eul, 
                                       rf_bf_eul)
@@ -107,8 +110,8 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     rf_bf_quat_pd = pd.DataFrame(rf_bf_quat)
     
     frames_transformed = [epoch_time_pd, lf_aif_acc_pd, lf_bf_eul_pd,
-                          lf_bf_quat_pd,hip_aif_acc_pd,hip_bf_eul_pd,
-                          hip_bf_quat_pd,rf_aif_acc_pd, rf_bf_eul_pd,
+                          lf_bf_quat_pd, hip_aif_acc_pd, hip_bf_eul_pd,
+                          hip_bf_quat_pd, rf_aif_acc_pd, rf_bf_eul_pd,
                           rf_bf_quat_pd]
     transformed_pd = pd.concat(frames_transformed, axis=1)
     transformed_data = transformed_pd.values
@@ -118,11 +121,11 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     hip_neutral_pd = pd.DataFrame(hip_neutral)
     rf_neutral_pd = pd.DataFrame(rf_neutral)
     
-    frames_neutral = [lf_neutral_pd,hip_neutral_pd,rf_neutral_pd]
+    frames_neutral = [lf_neutral_pd, hip_neutral_pd, rf_neutral_pd]
     neutral_pd = pd.concat(frames_neutral, axis=1)
     neutral_data = neutral_pd.values
     
-    return transformed_data,neutral_data
+    return transformed_data, neutral_data
 
     
 if __name__ == '__main__':
@@ -133,10 +136,11 @@ if __name__ == '__main__':
     ####READ IN DATA ~ Will change when we call from the database#####
     path = 'C:\Users\court\Desktop\BioMetrix\Research\Quaternions\Subject2_rawData.csv'
 # replace with func name from coordinateFrameTransform script    
-    data,neut_data= transformData(path,hip_bf_coordTrans,lf_bf_coordTrans,rf_bf_coordTrans)
+    data, neut_data= transform_data(path, hip_bf_coordTrans, lf_bf_coordTrans, 
+                                    rf_bf_coordTrans)
      
      
-    np.savetxt("Subject2_Transformed_Data.csv",data, delimiter=",")
+    np.savetxt("Subject2_Transformed_Data.csv", data, delimiter=",")
 #    np.savetxt("Subject2_Neutral_Data.csv",neut_data, delimiter=",")
     
     

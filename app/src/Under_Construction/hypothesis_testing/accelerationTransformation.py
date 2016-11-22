@@ -12,20 +12,23 @@ import quatConvs as qc
 
 
 """
-#############################################INPUT/OUTPUT####################################################
-Inputs: hip_data,lf_data,rf_data,hip_acc,lf_acc,rf_acc,hip_bf_eul,lf_bf_eul,rf_bf_eul
-Outputs: hip_acc_aif,lf_acc_aif,rf_acc_aif
+#############################################INPUT/OUTPUT######################
+Inputs: hip_data, lf_data, rf_data, hip_acc, lf_acc, rf_acc, hip_bf_eul,
+        lf_bf_eul, rf_bf_eul
+Outputs: hip_acc_aif, lf_acc_aif, rf_acc_aif
 
-Transform acceleration in x, y, and z directions with respect to the sensor frame. Convert to the adjusted 
+Transform acceleration in x, y, and z directions with respect to the
+   sensor frame. Convert to the adjusted 
 inertial frame.
 
-Script called on by coordinateFrameTransformationUpgrade.py, dependent on quatOps and quatConvs
-#############################################################################################################
+Script called on by coordinateFrameTransformation.py,
+ dependent on quatOps and quatConvs
+##########################################################################
 """
 
 
-def acceleration_transform(hip_data,lf_data,rf_data,hip_acc,lf_acc,rf_acc,
-                           hip_bf_eul,lf_bf_eul,rf_bf_eul):
+def acceleration_transform(hip_data, lf_data, rf_data, hip_acc, lf_acc, rf_acc,
+                           hip_bf_eul, lf_bf_eul, rf_bf_eul):
                                
     """ Take raw orientation and acceleration from all sensors,
     plus body frames in terms of euler angles.
@@ -33,21 +36,24 @@ def acceleration_transform(hip_data,lf_data,rf_data,hip_acc,lf_acc,rf_acc,
     adjusted inertial frame.
     """
     
-#    for i in range(len(hip_acc)):            
-        #take hip_bf and use q2eul to get to hip_bf
-        #remove pitch and roll to get hip_aif
-        #apply vect_rot to get to HaXYZ
-        #do same for feet
+          
+#    take hip_bf and use quat_to_euler to get to hip_bf
+#    remove pitch and roll to get hip_aif
+#    apply vect_rot to get to HaXYZ
+#    do same for feet
         
     length = len(hip_data)
     # find hip adjusted inertial frame as isolated yaw from bf orientations
-    hip_bf_yaw_offset = np.hstack((np.zeros((length, 2)), hip_bf_eul[:, 2].reshape(-1,1)))
+    hip_bf_yaw_offset = np.hstack((np.zeros((length, 2)),
+                                   hip_bf_eul[:, 2].reshape(-1, 1)))
     hip_aif = qc.euler_to_quat(hip_bf_yaw_offset)
     
-    lf_bf_yaw_offset = np.hstack((np.zeros((length, 2)), lf_bf_eul[:, 2].reshape(-1,1)))
+    lf_bf_yaw_offset = np.hstack((np.zeros((length, 2)),
+                                  lf_bf_eul[:, 2].reshape(-1, 1)))
     lf_aif = qc.euler_to_quat(lf_bf_yaw_offset)
     
-    rf_bf_yaw_offset = np.hstack((np.zeros((length, 2)), rf_bf_eul[:, 2].reshape(-1,1)))
+    rf_bf_yaw_offset = np.hstack((np.zeros((length, 2)),
+                                  rf_bf_eul[:, 2].reshape(-1, 1)))
     rf_aif = qc.euler_to_quat(rf_bf_yaw_offset)
         
     # calculate instantaneous rotation transform value from sensor to aif
@@ -61,11 +67,11 @@ def acceleration_transform(hip_data,lf_data,rf_data,hip_acc,lf_acc,rf_acc,
     rf_acc_aif = qo.vect_rot(rf_acc, rf_s2aif_rot)
     
     # subtract effect of gravity (1G from z axis) and convert from units of G/1000 to m/s**2
-    hip_acc_aif = (hip_acc_aif-[0,0,1000])*0.00980665
-    lf_acc_aif = (lf_acc_aif-[0,0,1000])*0.00980665
-    rf_acc_aif = (rf_acc_aif-[0,0,1000])*0.00980665
+    hip_acc_aif = (hip_acc_aif-[0, 0, 1000])*0.00980665
+    lf_acc_aif = (lf_acc_aif-[0, 0, 1000])*0.00980665
+    rf_acc_aif = (rf_acc_aif-[0, 0, 1000])*0.00980665
     
-    return hip_acc_aif,lf_acc_aif,rf_acc_aif
+    return hip_acc_aif, lf_acc_aif, rf_acc_aif
     
     
 if __name__ == '__main__':
