@@ -13,16 +13,15 @@ from hypothesis.extra.numpy import arrays
 import quatOps as qo
 
 
-
-def rnd_len_arrays(dtype, length, elements=None):
-    lengths = st.sampled_from([1, length])
-    return lengths.flatmap(lambda n: arrays(dtype, (n, 4), elements=elements))
-
-length = 1
-@given(arrays(np.float, (length, 4), elements=st.floats(min_value=-np.pi,max_value=np.pi)),
-       arrays(np.float, (1, 4), elements=st.floats(min_value=-np.pi,max_value=np.pi)),
+length = 5
+@given(arrays(np.float, (length, 4),
+              elements=st.floats(min_value=-np.pi, max_value=np.pi)),
+       arrays(np.float, (length, 4),
+              elements=st.floats(min_value=-np.pi, max_value=np.pi)),
        st.just(0))
-@example(np.ones(4).reshape(1,-1), np.array([[np.cos(np.deg2rad(45)), np.sin(np.deg2rad(45)),0,0]]),1)
+@example(np.ones(4).reshape(1, -1),
+         np.array([[np.cos(np.deg2rad(45)), np.sin(np.deg2rad(45)),0,0]]),
+         1)
 def test_quatOps(q1, q2, example):
     """Property and unit testing for quat_prod
     Args:
@@ -32,22 +31,22 @@ def test_quatOps(q1, q2, example):
         example: indicator for examples, auto generated values are always 0
     Tests included:
         --quat_prod
-            -Output data is same shape as q1
+            -Output data is same type and shape as q1
             -Product of a quaternion with its conjugate is unit quaternion
             -Multiplying by unit quaternion returns input
         --quat_norm
-            -Output data is same shape as q1
+            -Output data is same type and shape as q1
             -Magnitude of all quaternions is 1 after normalizing
         --find_rot
-            -Output data is same shape as q1
+            -Output data is same type and shape as q1
             -Rotation between self is [1,0,0,0]
             -Rotation between q1 and -q1 os [-1,0,0,0]
-            -Rotation between q1 and [1,0,0,0] is q1
+            -Rotation between [1,0,0,0] and q1 is quat_norm(q1)
         --quat_conj
-            -Output data is same shape as q1
+            -Output data is same type and shape as q1
             -quat_conj(quat_cont(q1)) is quat_norm(q1)
         --vect_rot
-            -Output data is same shape as v
+            -Output data is same type and shape as v
             -Rotating by unit vector returns v
             -Rotating 4 times about x-axis returns v
     Tests with Example:
@@ -61,10 +60,11 @@ def test_quatOps(q1, q2, example):
     assume(all(np.linalg.norm(q2, axis=1) > 0.1))
     
     ## quat_prod
+    assert type(qo.quat_prod(q1, q2)) == type(q1)
     assert qo.quat_prod(q1, q2).shape == q1.shape
     assert np.allclose(qo.quat_prod(qo.quat_norm(q1), qo.quat_conj(q1)),
-                       np.array([[1,0,0,0]]), atol=1e-10)
-    q_unit = np.array([[1,0,0,0]])
+                       np.array([[1, 0, 0, 0]]), atol=1e-10)
+    q_unit = np.array([[1, 0, 0, 0]])
     assert np.allclose(q1, qo.quat_prod(q1, q_unit))
     if example == 1:
         p1 = qo.quat_prod(q1, q2)
@@ -79,16 +79,20 @@ def test_quatOps(q1, q2, example):
         assert np.allclose(p8, q1, atol=1e-10)
     
     ## quat_norm
+    assert type(qo.quat_norm(q1)) == type(q1)
     assert qo.quat_norm(q1).shape == q1.shape
     assert np.allclose(np.linalg.norm(qo.quat_norm(q1), axis=1), 1)
     
     ## find_rot
+    assert type(qo.find_rot(q1, q2)) == type(q1)
     assert qo.find_rot(q1, q2).shape == q1.shape 
     assert np.allclose(qo.find_rot(q1,q1), np.array([[1, 0, 0, 0]]))
     assert np.allclose(qo.find_rot(q1,-q1), np.array([[-1, 0, 0, 0]]))
-    assert np.allclose(qo.find_rot(np.array([[1,0,0,0]]), q1), qo.quat_norm(q1))
+    assert np.allclose(qo.find_rot(np.array([[1, 0, 0, 0]]*len(q1)), q1),
+                       qo.quat_norm(q1))
 
     ## quat_conj
+    assert type(qo.quat_conj(q1)) == type(q1)
     assert qo.quat_conj(q1).shape == q1.shape
     assert np.allclose(qo.quat_conj(qo.quat_conj(q1)),
                        qo.quat_norm(q1), atol=1e-10)
@@ -96,6 +100,7 @@ def test_quatOps(q1, q2, example):
     ## vect_rot
     v = q1[:,0:3]
     q_unit = np.array([[1, 0, 0, 0]]*len(v))
+    assert type(qo.vect_rot(v,q1)) == type(v)
     assert qo.vect_rot(v, q1).shape == v.shape
     assert np.allclose(qo.vect_rot(v, q_unit), v, atol=1e-10)
     q_45_x = np.array([[np.cos(np.deg2rad(45)),
@@ -105,20 +110,7 @@ def test_quatOps(q1, q2, example):
     v3 = qo.vect_rot(v2, q_45_x)
     v4 = qo.vect_rot(v3, q_45_x)
     assert np.allclose(v4, v, atol=1e-10)
-    
-
-
 
 if __name__ == '__main__' :
-
-#    test__computation_imaginary_quat()
-#    print "_computation_imaginary_quat() passed"
-#    test_calc_quaternions()
-#    print "calc_quaternions() passed"
-#    test_check_duplicate_epochtime()
-#    print "check_duplicate_epochtime() passed"
     test_quatOps()
-#    arrays(np.float, (st.sampled_from([1,length]).example(),st.just(4).example()), elements=st.floats(min_value=-np.pi,max_value=np.pi)).example()
-    
-#    st.sampled_from([1,length]).example()
-#    print "ALL TESTS SUCCESSFUL"
+    print "ALL TESTS SUCCESSFUL"
