@@ -16,7 +16,7 @@ import quatOps as qo
 
 
 
-length = 30
+length = 5
 @given(arrays(np.float, (length, 4), elements=st.floats(min_value=-np.pi, max_value=np.pi)),
        arrays(np.float, (length, 4), elements=st.floats(min_value=-np.pi, max_value=np.pi)),
        arrays(np.float, (4, 1), elements=st.floats(min_value=-np.pi, max_value=np.pi)),
@@ -47,6 +47,8 @@ def test_anatomicalCalibration(hip_data, foot_data, hip_pitch_transform,
                    where rot_y is rotation of 90 about y
                    rot x is rotation of -90 about x
         --_feet_transform_calculations
+            -Output data is same shape as q1
+            -Magnitude of all quaternions is 1 after normalizing
     """
     ## _sensor_to_aif
     hip_aif, hip_bf_transform = ac._sensor_to_aif(hip_data, hip_pitch_transform,
@@ -61,8 +63,7 @@ def test_anatomicalCalibration(hip_data, foot_data, hip_pitch_transform,
         hip_asf_transform = qo.quat_prod(rot_y,rot_x).reshape(-1,1)
         assert np.allclose(hip_bf_transform, hip_asf_transform, atol=1e-10)
         assert np.allclose(hip_aif, hip_bf_transform.reshape(1,-1))
-    
-    ## _feet_transform_calculations    
+        
     lf_bf_transform,lf_yaw_transform,lf_pitch_transform =\
             ac._feet_transform_calculations(foot_data, hip_aif, foot_roll_transform)
     assert lf_bf_transform.shape == (4,1)

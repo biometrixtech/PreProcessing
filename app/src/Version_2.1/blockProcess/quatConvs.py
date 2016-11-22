@@ -36,15 +36,15 @@ def quat_to_euler(q):
     q = qo.quat_norm(q)
     
     # calculate relevant elements of direction cosine matrix
-    a = 2*q[:, 0]**2 - 1 + 2*q[:, 1]**2
-    b = 2*(q[:, 1]*q[:, 2] - q[:, 0]*q[:, 3])
-    c = 2*(q[:, 1]*q[:, 3] + q[:, 0]*q[:, 2])
-    d = 2*(q[:, 2]*q[:, 3] - q[:, 0]*q[:, 1])
-    e = 2*q[:, 0]**2 - 1 + 2*q[:, 3]**2
+    a = 2.*q[:, 0]**2 - 1. + 2.*q[:, 1]**2
+    b = 2.*(q[:, 1]*q[:, 2] - q[:, 0]*q[:, 3])
+    c = 2.*(q[:, 1]*q[:, 3] + q[:, 0]*q[:, 2])
+    d = 2.*(q[:, 2]*q[:, 3] - q[:, 0]*q[:, 1])
+    e = 2.*q[:, 0]**2 - 1. + 2.*q[:, 3]**2
     
     # calculate euler angles from direction cosine matrix components
     phi = np.arctan2(d, e)
-    C = c/np.sqrt(1 - c**2)
+    C = c/np.sqrt(np.abs(1 - c**2))
     theta = -np.arctan(C)
     psi = np.arctan2(b, a)
     
