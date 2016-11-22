@@ -80,7 +80,7 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     # call accelerationTransformation
     hip_aif_acc, lf_aif_acc, rf_aif_acc =\
             at.acceleration_transform(hip_quat, lf_quat, rf_quat, hip_acc,
-                                      lf_acc, rf_acc, hip_bf_eul, lf_bf_eul, 
+                                      lf_acc, rf_acc, hip_bf_eul, lf_bf_eul,
                                       rf_bf_eul)
     
     # convert body frame quaternions to respective "neutral" orientations
@@ -90,7 +90,7 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     
     length = len(data.HqW)
     hip_bf_euler = qc.quat_to_euler(hip_bf_quat)
-    hip_bf_yaw_offset = np.hstack((np.zeros((length, 2)), 
+    hip_bf_yaw_offset = np.hstack((np.zeros((length, 2)),
                                    hip_bf_euler[:, 2].reshape(-1, 1)))
     hip_yaw_quat = qc.euler_to_quat(hip_bf_yaw_offset)
     hip_neutral = qo.quat_prod(hip_yaw_quat, hip_n_transform)
@@ -129,19 +129,17 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
 
     
 if __name__ == '__main__':
-    
-    
-    import time
-    start_time = time.time()
-    ####READ IN DATA ~ Will change when we call from the database#####
-    path = 'C:\Users\court\Desktop\BioMetrix\Research\Quaternions\Subject2_rawData.csv'
-# replace with func name from coordinateFrameTransform script    
-    data, neut_data= transform_data(path, hip_bf_coordTrans, lf_bf_coordTrans, 
-                                    rf_bf_coordTrans)
-     
-     
-    np.savetxt("Subject2_Transformed_Data.csv", data, delimiter=",")
-#    np.savetxt("Subject2_Neutral_Data.csv",neut_data, delimiter=",")
-    
-    
-    print "My program took", time.time() - start_time, "to run"
+    pass
+#    import time
+#    start_time = time.time()
+#    ####READ IN DATA ~ Will change when we call from the database#####
+#    path = 'C:\Users\court\Desktop\BioMetrix\Research\Quaternions\
+#Subject2_rawData.csv'
+## replace with func name from coordinateFrameTransform script
+#    data, neut_data= transform_data(path, hip_bf_coordTrans, lf_bf_coordTrans,
+#                                    rf_bf_coordTrans)
+
+#    np.savetxt("Subject2_Transformed_Data.csv", data, delimiter=",")
+##    np.savetxt("Subject2_Neutral_Data.csv",neut_data, delimiter=",")
+
+#    print "My program took", time.time() - start_time, "to run"

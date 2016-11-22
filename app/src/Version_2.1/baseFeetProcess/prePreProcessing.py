@@ -20,9 +20,7 @@ def check_duplicate_epochtime(epoch_time):
         
     Returns:
         epoch_time_duplicate: Boolean, if duplicate epoch time exists or not
-        
     """
-    
     # check if there are any duplicate epoch times in the sensor data file
     epoch_time_duplicate = False
     epoch_time_unique_ind = np.unique(epoch_time, return_counts=True)[1]
@@ -30,7 +28,7 @@ def check_duplicate_epochtime(epoch_time):
         epoch_time_duplicate = True
         return epoch_time_duplicate
     else:
-        return epoch_time_duplicate                                                           
+        return epoch_time_duplicate
 
 
 def calc_quaternions(quat_array):
@@ -42,38 +40,40 @@ def calc_quaternions(quat_array):
         qY, qZ.
 
     Returns:
-        An array of real and imaginary quaternions, qW, qX, qY, qZ.
-
+        all_quaternions: An array of real and imaginary quaternions,
+        qW, qX, qY, qZ.
+        conversion_error: Boolean, error in type conversion of quaternions.
     """
 
     # assume no error, correct later if necessary
     conversion_error = False
 
     # determine the imaginary quaternions
-    q_i = _computation_imaginary_quat(quat_array[:, 0], False)  # imaginary 
+    q_i = _computation_imaginary_quat(quat_array[:, 0], False)  # imaginary
                                                                 # quaternion
-    q_j = _computation_imaginary_quat(quat_array[:, 1], False)  # imaginary 
+    q_j = _computation_imaginary_quat(quat_array[:, 1], False)  # imaginary
                                                                 # quaternion
-    q_k = _computation_imaginary_quat(quat_array[:, 2], False)  # imaginary 
+    q_k = _computation_imaginary_quat(quat_array[:, 2], False)  # imaginary
                                                                 # quaternion
     
     # determine the real quaternion
-    qi_calc_qw = _computation_imaginary_quat(quat_array[:, 0])  
+    qi_calc_qw = _computation_imaginary_quat(quat_array[:, 0])
     # imaginary quaternion
-    qj_calc_qw = _computation_imaginary_quat(quat_array[:, 1])  
+    qj_calc_qw = _computation_imaginary_quat(quat_array[:, 1])
     # imaginary quaternion
-    qk_calc_qw = _computation_imaginary_quat(quat_array[:, 2])  
+    qk_calc_qw = _computation_imaginary_quat(quat_array[:, 2])
     # imaginary quaternion
-    q_w = np.sqrt(1 - qi_calc_qw - qj_calc_qw - qk_calc_qw)  # real 
+    q_w = np.sqrt(1 - qi_calc_qw - qj_calc_qw - qk_calc_qw)  # real
                                                             # quaternion
 
     # check if NaN exists in the real quaternion array
     if np.any(np.isnan(q_w)):
+
         conversion_error = True
 
     # appending the real and imaginary quaternions arrays to a single array
     all_quaternions = np.hstack([q_w, q_i, q_j, q_k])
-
+    
     return all_quaternions, conversion_error
 
 
@@ -84,16 +84,17 @@ def _computation_imaginary_quat(i_quat, check_qw=True):
     determine the real quaternion.
 
     Args:
-        i_quat: imaginary quaternion
-        check_qw: boolean variable to check if the function is used to 
+        i_quat: an array, imaginary quaternion
+        check_qw: boolean variable to check if the function is used to
         calculate the real quaternion
 
     Returns:
         if check_qw == True:
-            comp_i_quat: computed imaginary quaternion to help determine the
-            real quaternion
+            comp_i_quat: an array, computed imaginary quaternion to help
+            determine the real quaternion
         else:
-            comp_i_quat: computed imaginary quaternion to scale it back
+            comp_i_quat: an array, computed imaginary quaternion to scale
+            it back
     """
 
     if check_qw:  # check if function is used to calculate real quaternion
@@ -107,15 +108,25 @@ def _computation_imaginary_quat(i_quat, check_qw=True):
 def handling_missing_data(epoch_time, col_data, corrup_magn):
 
     """
-    Args:
-        epoch_time: Timestamp integer
-        col_data: data to check for missing value
-        corrup_magn: indicator for corrupt magnetometer
-    Returns:
-        missing_ind: indocatoer boolean to indicate if missing values were
-        imputed(0) or not(1)
-        col_data: same as input col_data possibly with missing data imputed
+    Checking for missing data. Imputing the values if the number of
+    consecutive
+    missing values is less than the threshold.
 
+    Args:
+        epoch_time: an array, epoch time from the sensor
+        col_data: an array, each column data from the data file
+        corrup_magn: an array, binary values indicating if the
+        magnetometer is corrupted or not
+        
+    Returns:
+        col_data: an array, column data either with imputed values or data
+        as in the data file
+        ErrorId.missing.value: an int, if missing data is greater
+        than the threshold
+        ErrorId.no_error.value: an int, no missing data
+        ErrorId.corrupt_magn.value: an int, corrupted data becuase of the
+        magnetometer
+       
     """
 
     # threshold for acceptable number of consecutive missing values
@@ -151,8 +162,7 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
                 interp = interpolate.splrep(dummy_epochtime,
                                             dummy_data,
                                             k=3,
-                                            s=0)  # spline interpolation 
-                                                  # function
+                                            s=0)  # spline interpolation function
 
                 for i in range(len(ran)):
                     y_new = interpolate.splev(epoch_time[ran[i, 0]:ran[i, 1],
@@ -188,12 +198,12 @@ def _zero_runs(col_dat):
         t_b = 0
 
     # mark where column data changes to and from NaN
-    abs_diff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
     if isnan[-1] == 1:
-        abs_diff = np.concatenate([abs_diff, [1]], 0)
+        absdiff = np.concatenate([absdiff, [1]], 0)
 
     # determine the number of consecutive NaNs
-    ranges = np.where(abs_diff == 1)[0].reshape((-1, 2))
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
 
     return ranges
 
@@ -202,7 +212,7 @@ def _zero_runs(col_dat):
 #
 #    import pandas as pd
 #
-#    data = pd.read_csv('team1_session1_trainingset_anatomicalCalibration.csv')
+#    data = pd.read_csv('Subject4_rawData.csv')
 #    data.columns = data.columns.str.replace('Timestamp', 'epochtime')
 ##    df.columns = df.columns.str.replace('$','')
 ##    data = np.genfromtxt(data_path, delimiter =',', dtype = float,
@@ -210,46 +220,45 @@ def _zero_runs(col_dat):
 ##    new_data = data.as_matrix()
 ##    new_data1 = data.values
 ##    lq_xyz = data[:,4:7]
-##    print data.shape
+#
 #    # DETERMINE THE REAL PART OF THE QUATERNIONS
 #
 #    # Left foot
-#    lq_xyz = np.array(data.ix[:, ['LqX', 'LqY', 'LqZ']])
+#    lq_xyz = np.array(data.ix[:,['LqX','LqY','LqZ']])
 #    lq_wxyz = calc_quaternions(lq_xyz)
-##    lq_wxyz = lq_wxyz.reshape(-1,4)
-#    print lq_wxyz[0]
-#    data.insert(4, 'LqW', lq_wxyz[:, 0], allow_duplicates=False)  # adding the
+#    data.insert(4, 'LqW', lq_wxyz[:,0], allow_duplicates=False)  # adding the
 #    # real quaternion to the data table
-#    data['LqX'] = pd.Series(lq_wxyz[:, 1])  # adding the re calculated qX
-#    data['LqY'] = pd.Series(lq_wxyz[:, 2])  # adding the re calculated qY
-#    data['LqZ'] = pd.Series(lq_wxyz[:, 3])  # adding the re calculated qZ
+#    data['LqX'] = pd.Series(lq_wxyz[:,1])  # adding the re calculated qX
+#    data['LqY'] = pd.Series(lq_wxyz[:,2])  # adding the re calculated qY
+#    data['LqZ'] = pd.Series(lq_wxyz[:,3])  # adding the re calculated qZ
 ###    # Hip
-#    hq_xyz = np.array(data.ix[:, ['HqX', 'HqY', 'HqZ']])
+#    hq_xyz = np.array(data.ix[:,['HqX','HqY','HqZ']])
 #    hq_wxyz = calc_quaternions(hq_xyz)
-#    data.insert(11, 'HqW', hq_wxyz[:, 0], allow_duplicates=False)  # adding the
+#    data.insert(11, 'HqW', hq_wxyz[:,0], allow_duplicates=False)  # adding the
 #    # real quaternion to the data table
-#    data['HqX'] = pd.Series(hq_wxyz[:, 1])  # adding the re calculated qX
-#    data['HqY'] = pd.Series(hq_wxyz[:, 2])  # adding the re calculated qY
-#    data['HqZ'] = pd.Series(hq_wxyz[:, 3])  # adding the re calculated qZ
+#    data['HqX'] = pd.Series(hq_wxyz[:,1])  # adding the re calculated qX
+#    data['HqY'] = pd.Series(hq_wxyz[:,2])  # adding the re calculated qY
+#    data['HqZ'] = pd.Series(hq_wxyz[:,3])  # adding the re calculated qZ
 ##    #Right foot
-#    rq_xyz = np.array(data.ix[:, ['RqX', 'RqY', 'RqZ']])
+#    rq_xyz = np.array(data.ix[:,['RqX','RqY','RqZ']])
 #    rq_wxyz = calc_quaternions(rq_xyz)
-#    data.insert(18, 'RqW', rq_wxyz[:, 0], allow_duplicates=False)  # adding the
+#    data.insert(18, 'RqW', rq_wxyz[:,0], allow_duplicates=False)  # adding the
 #    # real quaternion to the data table
-#    data['RqX'] = pd.Series(rq_wxyz[:, 1])  # adding the re calculated qX
-#    data['RqY'] = pd.Series(rq_wxyz[:, 2])  # adding the re calculated qY
-#    data['RqZ'] = pd.Series(rq_wxyz[:, 3])  # adding the re calculated qZ
-#
+#    data['RqX'] = pd.Series(rq_wxyz[:,1])  # adding the re calculated qX
+#    data['RqY'] = pd.Series(rq_wxyz[:,2])  # adding the re calculated qY
+#    data['RqZ'] = pd.Series(rq_wxyz[:,3])  # adding the re calculated qZ
+##
 #    #CONVERT EPOCHTIME TO DATETIME WITH MILLISECOND RESOLUTION AND DETERMINE
 #    #TIME ELAPSED IN MILLISECONDS (INT)
 #    dummy_time_stamp = []
 ##    for i in range(data.shape[0]):
 ##        dummy_time_stamp.append(datetime.datetime.fromtimestamp(
 ##         np.array(data['epoch_time'].ix[i])).strftime('%Y-%m-%d %H:%M:%S.%f'))
-##    e_time, time_elapsed = convert_epochtime_datetime_mselapsed(data['epochtime'])
-##    data.insert(0, 'timestamp', e_time, allow_duplicates=False)  # adding the
+#    e_time, time_elapsed = convert_epochtime_datetime_mselapsed(
+#                                                    data['epochtime'])
+#    data.insert(0, 'timestamp', e_time, allow_duplicates=False)  # adding the
 #    # datetime column to the data table
-##    data.insert(2, 'msElapsed', time_elapsed, allow_duplicates=False)
+#    data.insert(2, 'msElapsed', time_elapsed, allow_duplicates=False)
 #    # adding the time elapsed column to the data table
 #
 #    data.to_csv('new_Subject4_Sensor_Data.csv', index=False)

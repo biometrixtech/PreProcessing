@@ -1,0 +1,219 @@
+************* Module phaseDetection
+C: 18, 0: Trailing whitespace (trailing-whitespace)
+C: 32, 0: Trailing whitespace (trailing-whitespace)
+C: 33, 0: Trailing whitespace (trailing-whitespace)
+C: 38, 0: Trailing whitespace (trailing-whitespace)
+C: 40, 0: Trailing whitespace (trailing-whitespace)
+C: 41, 0: Trailing whitespace (trailing-whitespace)
+C: 43, 0: Trailing whitespace (trailing-whitespace)
+C: 45, 0: Trailing whitespace (trailing-whitespace)
+C: 48, 0: Trailing whitespace (trailing-whitespace)
+C: 51, 0: Trailing whitespace (trailing-whitespace)
+C: 54, 0: Trailing whitespace (trailing-whitespace)
+C: 57, 0: Trailing whitespace (trailing-whitespace)
+C: 58, 0: Trailing whitespace (trailing-whitespace)
+C: 72, 0: Trailing whitespace (trailing-whitespace)
+C: 84, 0: Trailing whitespace (trailing-whitespace)
+C: 90, 0: Trailing whitespace (trailing-whitespace)
+C: 91, 0: Trailing whitespace (trailing-whitespace)
+C: 94, 0: Trailing whitespace (trailing-whitespace)
+C: 95, 0: Trailing whitespace (trailing-whitespace)
+C: 96, 0: Trailing whitespace (trailing-whitespace)
+C: 99, 0: Trailing whitespace (trailing-whitespace)
+C:102, 0: Trailing whitespace (trailing-whitespace)
+C:106, 0: Trailing whitespace (trailing-whitespace)
+C:107, 0: Trailing whitespace (trailing-whitespace)
+C:168, 0: Trailing whitespace (trailing-whitespace)
+C:170, 0: Trailing whitespace (trailing-whitespace)
+C:182, 0: Trailing whitespace (trailing-whitespace)
+C:185, 0: Trailing whitespace (trailing-whitespace)
+C:188, 0: Trailing whitespace (trailing-whitespace)
+C:197, 0: Trailing whitespace (trailing-whitespace)
+C:215, 0: Trailing whitespace (trailing-whitespace)
+C:217, 0: Trailing whitespace (trailing-whitespace)
+C:222, 0: Trailing whitespace (trailing-whitespace)
+C:258, 0: Trailing whitespace (trailing-whitespace)
+C:260, 0: Trailing whitespace (trailing-whitespace)
+C:265, 0: Trailing whitespace (trailing-whitespace)
+C:270, 0: Trailing whitespace (trailing-whitespace)
+C:271, 0: Trailing whitespace (trailing-whitespace)
+C:282, 0: Trailing whitespace (trailing-whitespace)
+C:287, 0: Trailing whitespace (trailing-whitespace)
+C:290, 0: Trailing whitespace (trailing-whitespace)
+C:291, 0: Trailing whitespace (trailing-whitespace)
+C:292, 0: Trailing whitespace (trailing-whitespace)
+C:297, 0: Trailing whitespace (trailing-whitespace)
+C:298, 0: Trailing whitespace (trailing-whitespace)
+C:300, 0: Trailing whitespace (trailing-whitespace)
+C:303, 0: Trailing whitespace (trailing-whitespace)
+C:305, 0: Trailing whitespace (trailing-whitespace)
+C:307, 0: Trailing whitespace (trailing-whitespace)
+C:308, 0: Trailing whitespace (trailing-whitespace)
+C:310, 0: Trailing whitespace (trailing-whitespace)
+C:312, 0: Trailing whitespace (trailing-whitespace)
+C:314, 0: Trailing whitespace (trailing-whitespace)
+C:324, 0: Trailing whitespace (trailing-whitespace)
+C:331, 0: Trailing whitespace (trailing-whitespace)
+C:346, 0: Trailing whitespace (trailing-whitespace)
+C:350, 0: Trailing whitespace (trailing-whitespace)
+C:351, 0: Trailing whitespace (trailing-whitespace)
+C:357, 0: Trailing whitespace (trailing-whitespace)
+C:363, 0: Trailing whitespace (trailing-whitespace)
+C:368, 0: Trailing whitespace (trailing-whitespace)
+C:  1, 0: Invalid module name "phaseDetection" (invalid-name)
+W:  8, 0: Wildcard import itertools (wildcard-import)
+C: 16, 0: Invalid argument name "hz" (invalid-name)
+C: 32, 4: Invalid variable name "ph" (invalid-name)
+C: 56,12: Invalid variable name "x" (invalid-name)
+C: 56,15: Invalid variable name "y" (invalid-name)
+C: 77, 4: Invalid variable name "BAL_THRESH" (invalid-name)
+C: 80, 4: Invalid variable name "NMSEC_JUMP" (invalid-name)
+C: 81, 4: Invalid variable name "MS_WIN_SIZE" (invalid-name)
+E:104,16: Instance of 'tuple' has no 'tolist' member (no-member)
+C:107, 4: Invalid variable name "MIN_THRESH_WIN" (invalid-name)
+C:143, 4: Invalid variable name "r" (invalid-name)
+C:147, 4: Consider using enumerate instead of iterating with range and len (consider-using-enumerate)
+C:159, 0: Invalid argument name "p" (invalid-name)
+C:206, 0: Invalid argument name "p" (invalid-name)
+C:253, 0: Invalid argument name "az" (invalid-name)
+C:269, 4: Invalid variable name "g" (invalid-name)
+C:305,19: Invalid variable name "n" (invalid-name)
+C:326, 4: Import "import matplotlib.pyplot as plt" should be placed at the top of the module (wrong-import-position)
+C:327, 4: Import "import time" should be placed at the top of the module (wrong-import-position)
+C:329, 4: Invalid constant name "datapath" (invalid-name)
+C:331, 4: Invalid constant name "data" (invalid-name)
+C:338, 4: Invalid constant name "sampl_rate" (invalid-name)
+C:345, 4: Invalid constant name "start_time" (invalid-name)
+C:346, 4: Invalid constant name "lf_phase" (invalid-name)
+C:346,14: Invalid constant name "rf_phase" (invalid-name)
+W:  8, 0: Unused import ifilter from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import product from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import combinations_with_replacement from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import starmap from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import chain from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import izip from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import permutations from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import compress from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import tee from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import groupby from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import imap from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import repeat from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import ifilterfalse from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import cycle from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import combinations from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import dropwhile from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import izip_longest from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import takewhile from wildcard import (unused-wildcard-import)
+C:326, 4: external import "import matplotlib.pyplot as plt" comes before "import numpy as np" (wrong-import-order)
+C:327, 4: standard import "import time" comes before "import matplotlib.pyplot as plt" (wrong-import-order)
+
+
+Report
+======
+160 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |NC         |NC         |100.00      |100.00   |
++---------+-------+-----------+-----------+------------+---------+
+|class    |0      |NC         |NC         |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|method   |0      |NC         |NC         |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|function |6      |NC         |NC         |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    dynamicSamplingRate (phaseDetection)
+    matplotlib 
+      \-pyplot (phaseDetection)
+    numpy (phaseDetection)
+    phaseID (phaseDetection)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |183    |49.19 |NC       |NC         |
++----------+-------+------+---------+-----------+
+|docstring |80     |21.51 |NC       |NC         |
++----------+-------+------+---------+-----------+
+|comment   |54     |14.52 |NC       |NC         |
++----------+-------+------+---------+-----------+
+|empty     |55     |14.78 |NC       |NC         |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |NC       |NC         |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |NC       |NC         |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |87     |NC       |NC         |
++-----------+-------+---------+-----------+
+|refactor   |0      |NC       |NC         |
++-----------+-------+---------+-----------+
+|warning    |19     |NC       |NC         |
++-----------+-------+---------+-----------+
+|error      |1      |NC       |NC         |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++-------------------------+------------+
+|message id               |occurrences |
++=========================+============+
+|trailing-whitespace      |61          |
++-------------------------+------------+
+|invalid-name             |21          |
++-------------------------+------------+
+|unused-wildcard-import   |18          |
++-------------------------+------------+
+|wrong-import-position    |2           |
++-------------------------+------------+
+|wrong-import-order       |2           |
++-------------------------+------------+
+|wildcard-import          |1           |
++-------------------------+------------+
+|no-member                |1           |
++-------------------------+------------+
+|consider-using-enumerate |1           |
++-------------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 3.06/10
+

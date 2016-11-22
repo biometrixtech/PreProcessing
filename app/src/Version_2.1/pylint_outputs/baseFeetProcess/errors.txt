@@ -1,0 +1,117 @@
+************* Module errors
+C: 31, 0: Line too long (103/100) (line-too-long)
+C: 35, 0: Line too long (106/100) (line-too-long)
+C: 37, 0: Line too long (107/100) (line-too-long)
+C: 41, 0: Line too long (108/100) (line-too-long)
+C: 57, 0: Line too long (103/100) (line-too-long)
+C: 61, 0: Line too long (106/100) (line-too-long)
+C: 63, 0: Line too long (107/100) (line-too-long)
+C: 67, 0: Line too long (108/100) (line-too-long)
+C: 73, 0: Line too long (102/100) (line-too-long)
+C: 11, 0: Missing class docstring (missing-docstring)
+R: 11, 0: Too few public methods (0/2) (too-few-public-methods)
+C: 26, 0: Missing class docstring (missing-docstring)
+R: 26, 0: Too few public methods (0/2) (too-few-public-methods)
+C: 52, 0: Missing class docstring (missing-docstring)
+R: 52, 0: Too few public methods (0/2) (too-few-public-methods)
+C: 79, 0: Missing class docstring (missing-docstring)
+R: 79, 0: Too few public methods (0/2) (too-few-public-methods)
+C:105, 0: Missing class docstring (missing-docstring)
+R:105, 0: Too few public methods (0/2) (too-few-public-methods)
+
+
+Report
+======
+109 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |NC         |NC         |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|class    |5      |NC         |NC         |0.00        |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|method   |4      |NC         |NC         |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|function |0      |NC         |NC         |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    enum (errors)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |110    |85.27 |NC       |NC         |
++----------+-------+------+---------+-----------+
+|docstring |5      |3.88  |NC       |NC         |
++----------+-------+------+---------+-----------+
+|comment   |1      |0.78  |NC       |NC         |
++----------+-------+------+---------+-----------+
+|empty     |13     |10.08 |NC       |NC         |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |NC       |NC         |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |NC       |NC         |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |14     |NC       |NC         |
++-----------+-------+---------+-----------+
+|refactor   |5      |NC       |NC         |
++-----------+-------+---------+-----------+
+|warning    |0      |NC       |NC         |
++-----------+-------+---------+-----------+
+|error      |0      |NC       |NC         |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++-----------------------+------------+
+|message id             |occurrences |
++=======================+============+
+|line-too-long          |9           |
++-----------------------+------------+
+|too-few-public-methods |5           |
++-----------------------+------------+
+|missing-docstring      |5           |
++-----------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 8.26/10
+

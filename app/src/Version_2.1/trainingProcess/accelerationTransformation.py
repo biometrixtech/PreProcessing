@@ -18,7 +18,7 @@ Inputs: hip_data, lf_data, rf_data, hip_acc, lf_acc, rf_acc, hip_bf_eul,
 Outputs: hip_acc_aif, lf_acc_aif, rf_acc_aif
 
 Transform acceleration in x, y, and z directions with respect to the
-   sensor frame. Convert to the adjusted 
+   sensor frame. Convert to the adjusted
 inertial frame.
 
 Script called on by coordinateFrameTransformation.py,
@@ -32,7 +32,7 @@ def acceleration_transform(hip_data, lf_data, rf_data, hip_acc, lf_acc, rf_acc,
                                
     """ Take raw orientation and acceleration from all sensors,
     plus body frames in terms of euler angles.
-    Use orientation data and body frame data to convert acceleration into the 
+    Use orientation data and body frame data to convert acceleration into the
     adjusted inertial frame.
     """
     
@@ -75,7 +75,9 @@ def acceleration_transform(hip_data, lf_data, rf_data, hip_acc, lf_acc, rf_acc,
     
     
 if __name__ == '__main__':
+    pass
     ####READ IN DATA ~ Will change when we call from the database#####
-    path = 'C:\Users\court\Desktop\BioMetrix\PreProcessing-master\PreProcessing\app\test\data\anatomicalCalibration\Good.csv'
+#    path = 'C:\Users\court\Desktop\BioMetrix\PreProcessing-master\
+#                PreProcessing\app\test\data\anatomicalCalibration\Good.csv'
 #    data = su.Analytics(path, 0, 0, 100)
 #    body = TransformData(data.hipdataset)

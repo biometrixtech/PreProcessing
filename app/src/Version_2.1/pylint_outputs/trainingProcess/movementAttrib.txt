@@ -1,0 +1,141 @@
+************* Module movementAttrib
+C:305, 0: Line too long (126/100) (line-too-long)
+C:  1, 0: Invalid module name "movementAttrib" (invalid-name)
+W:  8, 0: Wildcard import itertools (wildcard-import)
+W: 33,-1: String statement has no effect (pointless-string-statement)
+C:100, 4: Invalid variable name "RADIUS" (invalid-name)
+C:120, 4: Consider using enumerate instead of iterating with range and len (consider-using-enumerate)
+R: 59, 0: Too many branches (15/12) (too-many-branches)
+C:186, 4: Invalid variable name "NMSEC_JUMP" (invalid-name)
+C:187, 4: Invalid variable name "MS_WIN_SIZE" (invalid-name)
+C:189, 8: Invalid variable name "x" (invalid-name)
+C:270, 4: Invalid variable name "NMSEC_JUMP" (invalid-name)
+C:271, 4: Invalid variable name "MS_WIN_SIZE" (invalid-name)
+C:273, 8: Invalid variable name "x" (invalid-name)
+C:352, 4: Invalid variable name "NMSEC_JUMP" (invalid-name)
+C:353, 4: Invalid variable name "MS_WIN_SIZE" (invalid-name)
+C:355, 8: Invalid variable name "x" (invalid-name)
+W:  8, 0: Unused import ifilter from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import product from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import repeat from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import starmap from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import chain from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import izip from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import combinations_with_replacement from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import compress from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import tee from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import izip_longest from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import groupby from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import ifilterfalse from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import combinations from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import takewhile from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import dropwhile from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import permutations from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import imap from wildcard import (unused-wildcard-import)
+W:  8, 0: Unused import cycle from wildcard import (unused-wildcard-import)
+
+
+Report
+======
+142 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |1          |=          |100.00      |100.00   |
++---------+-------+-----------+-----------+------------+---------+
+|class    |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|method   |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|function |5      |5          |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    dynamicSamplingRate (movementAttrib)
+    numpy (movementAttrib)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |162    |39.32 |162      |=          |
++----------+-------+------+---------+-----------+
+|docstring |106    |25.73 |106      |=          |
++----------+-------+------+---------+-----------+
+|comment   |58     |14.08 |58       |=          |
++----------+-------+------+---------+-----------+
+|empty     |86     |20.87 |86       |=          |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |0        |=          |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |0.000    |=          |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |13     |13       |=          |
++-----------+-------+---------+-----------+
+|refactor   |1      |1        |=          |
++-----------+-------+---------+-----------+
+|warning    |20     |20       |=          |
++-----------+-------+---------+-----------+
+|error      |0      |0        |=          |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++---------------------------+------------+
+|message id                 |occurrences |
++===========================+============+
+|unused-wildcard-import     |18          |
++---------------------------+------------+
+|invalid-name               |11          |
++---------------------------+------------+
+|wildcard-import            |1           |
++---------------------------+------------+
+|too-many-branches          |1           |
++---------------------------+------------+
+|pointless-string-statement |1           |
++---------------------------+------------+
+|line-too-long              |1           |
++---------------------------+------------+
+|consider-using-enumerate   |1           |
++---------------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 7.61/10 (previous run: 7.61/10, +0.00)
+
