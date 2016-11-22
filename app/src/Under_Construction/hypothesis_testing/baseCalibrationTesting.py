@@ -6,7 +6,7 @@ Created on Tue Nov 22 09:18:04 2016
 """
 
 import numpy as np
-from hypothesis import given, example, assume
+from hypothesis import given, assume
 import hypothesis.strategies as st
 from hypothesis.extra.numpy import arrays
 
@@ -19,7 +19,6 @@ length = 10
        arrays(np.float, (length, 4),
               st.floats(min_value = -2000, max_value = 2000)),
        st.just(0))
-@example(np.array([[1, 0, 0, 0]]*5), np.array([[1, 0, 0, 0]]*5), 1)
 def test_baseCalibration(hip_data, feet_data, is_example):
     """Property and unit testing for quat_prod
     Args:
@@ -42,7 +41,6 @@ def test_baseCalibration(hip_data, feet_data, is_example):
     assert hip_pitch_transform.shape == (4, 1)
     assert type(hip_roll_transform) == np.ndarray
     assert hip_roll_transform.shape == (4, 1)
-#    print hip_aif[0, :]
     
     ## _special_foot_calib
     foot_roll_transform = bc._special_foot_calib(feet_data, hip_data,
@@ -52,5 +50,4 @@ def test_baseCalibration(hip_data, feet_data, is_example):
 
 
 if __name__ == '__main__' :
-
     test_baseCalibration()
