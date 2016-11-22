@@ -5,12 +5,12 @@ Created on Thu Jul 07 16:27:47 2016
 @author: Ankur
 """
 
-from itertools import *
+from itertools import islice, count
 
 import numpy as np
 
 from phaseID import phase_id
-from dynamicSamplingRate import handle_dynamic_sampling
+from dynamicSamplingRate import handle_dynamic_sampling, max_boundary
 
 
 def combine_phase(laccz, raccz, hz):
@@ -79,8 +79,9 @@ def _phase_detect(acc, epoch_time):
 
     NMSEC_JUMP = 1
     MS_WIN_SIZE = 80
+    max_bound = max_boundary(MS_WIN_SIZE)
     for i in islice(count(), 0, len(epoch_time), NMSEC_JUMP):
-        epoch_time_subset = epoch_time[i:i+25]
+        epoch_time_subset = epoch_time[i:i+max_bound]
         subset_data = handle_dynamic_sampling(acc, epoch_time_subset, 
                                               MS_WIN_SIZE, i)
         bal_win = len(subset_data)
@@ -106,8 +107,9 @@ def _phase_detect(acc, epoch_time):
     # eliminating false movement phases 
     MIN_THRESH_WIN = 25  # a threshold for minimum number of samples required 
     # to be classified as a false movement phase
-    overlap = [np.where(epoch_time-epoch_time[i] <= MIN_THRESH_WIN)[-1][-1] - \
-    i for i in range(len(epoch_time))]
+    max_bound = max_boundary(MIN_THRESH_WIN)
+    overlap = [np.where(epoch_time[i:i+max_bound]-epoch_time[i] <= \
+        MIN_THRESH_WIN)[-1][-1] for i in range(len(epoch_time))]
 
     for i in range(len(start_bal) - 1):
         min_thresh_mov = overlap[start_bal[i]]

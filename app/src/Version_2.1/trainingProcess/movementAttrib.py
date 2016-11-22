@@ -5,11 +5,11 @@ Created on Thu Oct 13 08:13:38 2016
 @author: court
 """
 
-from itertools import *
+from itertools import islice, count
 
 import numpy as np
 
-from dynamicSamplingRate import handle_dynamic_sampling
+from dynamicSamplingRate import handle_dynamic_sampling, max_boundary
 
 
 """"
@@ -115,7 +115,8 @@ def plane_analysis(hip_acc, hip_eul, ms_elapsed):
                     np.array(_ang_vel[i - 1].tolist()))*(1000/ms_elapsed[i])
 
         # calculate magnitude of angular acceleration
-        _rot_mag[i] = np.sqrt(_ang_acc[i][0]**2 + _ang_acc[i][1]**2 + _ang_acc[i][2]**2)
+        _rot_mag[i] = np.sqrt(_ang_acc[i][0]**2 + _ang_acc[i][1]**2 + \
+            _ang_acc[i][2]**2)
  
     for i in range(len(hip_acc)):
         
@@ -185,10 +186,11 @@ def standing_or_not(hip_eul, epoch_time):
     # define minimum window to be characterized as standing
     NMSEC_JUMP = 1
     MS_WIN_SIZE = 500
+    max_bound = max_boundary(MS_WIN_SIZE)
     
     for x in islice(count(), 0, len(epoch_time), NMSEC_JUMP):
         
-        epoch_time_subset = epoch_time[x:]
+        epoch_time_subset = epoch_time[x:x+max_bound]
         subset_data = handle_dynamic_sampling(hip_eul, epoch_time_subset,
                                               MS_WIN_SIZE, x)
         _standing_win = len(subset_data)
@@ -197,8 +199,8 @@ def standing_or_not(hip_eul, epoch_time):
             
             _stand_sum = 0
 
-            # use _stand_sum as counter to see where in past window of time subject
-                # has been vertical
+            # use _stand_sum as counter to see where in past window of time 
+            # subject has been vertical
             for k in range(_standing_win):
                 
                 if np.absolute(subset_data[i + k][1]) < np.pi/4:
@@ -209,8 +211,8 @@ def standing_or_not(hip_eul, epoch_time):
                     if _stand_sum == _standing_win:
                         standing[i] = 1
 
-                        # assume that they have been standing for entire duration
-                            # of window
+                        # assume that they have been standing for entire 
+                        # duration of window
                         for m in range(k):
                             standing[i + m] = 1
                     else:
@@ -269,10 +271,11 @@ def double_or_single_leg(lf_phase, rf_phase, standing, epoch_time):
     # define window to be classified as particular stance
     NMSEC_JUMP = 1
     MS_WIN_SIZE = 1000
+    max_bound = max_boundary(MS_WIN_SIZE)
     
     for x in islice(count(), 0, len(epoch_time), NMSEC_JUMP):
         
-        epoch_time_subset = epoch_time[x:]
+        epoch_time_subset = epoch_time[x:x+max_bound]
         subset_data = handle_dynamic_sampling(standing, epoch_time_subset,
                                               MS_WIN_SIZE, x)
         _double_win = len(subset_data)
@@ -284,7 +287,8 @@ def double_or_single_leg(lf_phase, rf_phase, standing, epoch_time):
             # time subject has been standing on 2 legs
             for k in range(_double_win):
                 
-                if _lf_phase_iso_stand[i + k].item() == 1 and _rf_phase_iso_stand[i+k].item() == 1:
+                if _lf_phase_iso_stand[i + k].item() == 1 and \
+                    _rf_phase_iso_stand[i+k].item() == 1:
                     _doub_sum = _doub_sum + 1
                    
                    # subject has been double leg standing for duration
@@ -302,7 +306,8 @@ def double_or_single_leg(lf_phase, rf_phase, standing, epoch_time):
                 
                 # subject not double leg standing but has at least 1 foot on
                 # ground, so single leg standing
-                elif (_lf_phase_iso_stand[i + k].item() in [2, 3, 5, 6] or _rf_phase_iso_stand[i + k].item() in [2, 3, 5, 6]):
+                elif (_lf_phase_iso_stand[i + k].item() in [2, 3, 5, 6] or \
+                    _rf_phase_iso_stand[i + k].item() in [2, 3, 5, 6]):
                     single_leg[i] = 1
                     
                 else:
@@ -351,10 +356,11 @@ def stationary_or_dynamic(lf_phase, rf_phase, single_leg, epoch_time):
     # define minimum window for "standing still"
     NMSEC_JUMP = 1
     MS_WIN_SIZE = 1000
+    max_bound = max_boundary(MS_WIN_SIZE)
     
     for x in islice(count(), 0, len(epoch_time), NMSEC_JUMP):
         
-        epoch_time_subset = epoch_time[x:]
+        epoch_time_subset = epoch_time[x:x+max_bound]
         subset_data = handle_dynamic_sampling(single_leg, epoch_time_subset,
                                               MS_WIN_SIZE, x)
         _stationary_win = len(subset_data)
@@ -363,21 +369,21 @@ def stationary_or_dynamic(lf_phase, rf_phase, single_leg, epoch_time):
         for i in range(len(subset_data)):
             _stat_sum = 0
             
-            # use _stand_sum as counter to see where in past window of time subject
-                # has been on one leg
+            # use _stand_sum as counter to see where in past window of time 
+            # subject has been on one leg
             for k in range(_stationary_win):
                 
                 # left leg analysis
                 if _lf_phase_iso_sing[i + k].item() == 2:
                     _stat_sum = _stat_sum + 1
 
-                    # subject has been on one leg for duration of window, assume
-                        # standing at that time
+                    # subject has been on one leg for duration of window, 
+                    # assume standing at that time
                     if _stat_sum == _stationary_win:
                         stationary[i] = 1
                         
-                        # assume that they have been standing for entire duration
-                            # of window
+                        # assume that they have been standing for entire 
+                        # duration of window
                         for m in range(k):
                             stationary[i + m] = 1
 
@@ -388,13 +394,13 @@ def stationary_or_dynamic(lf_phase, rf_phase, single_leg, epoch_time):
                 elif _rf_phase_iso_sing[i + k].item() == 3:
                     _stat_sum = _stat_sum + 1
 
-                    # subject has been on one leg for duration of window, assume
-                        # standing at that time
+                    # subject has been on one leg for duration of window, 
+                    # assume standing at that time
                     if _stat_sum == _stationary_win:
                         stationary[i] = 1
 
-                        # assume that they have been standing for entire duration
-                            # of window
+                        # assume that they have been standing for entire 
+                        # duration of window
                         for m in range(k):
                             stationary[i + m] = 1
 
