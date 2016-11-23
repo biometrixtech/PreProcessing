@@ -4,16 +4,16 @@ Created on Fri Oct 14 13:45:56 2016
 
 @author: ankur
 """
-
+import sys
+import pickle
+import cStringIO
+import logging
 import numpy as np
 import pandas as pd
-import pickle
-import sys
 import psycopg2
 import psycopg2.extras
 import boto3
-import cStringIO
-import logging
+
 
 import prePreProcessing as ppp
 import dataObject as do
@@ -67,7 +67,7 @@ class AnalyticsExecution(object):
     Returns:
         processed data object with attributes of:
             team_id, user_id, team_regimen_id, block_id, block_event_id,
-            training_session_log_id, session_event_id, session_type, 
+            training_session_log_id, session_event_id, session_type,
             exercise_id, obs_index, obs_master_index, time_stamp, epoch_time,
             ms_elapsed, phase_lf, phase_rf, activity_id, mech_stress,
             const_mech_stress, dest_mech_stress, total_accel, block_duration,
@@ -89,8 +89,8 @@ class AnalyticsExecution(object):
         quer_read_block_ids = """select id, block_id from block_events
                                  where sensor_data_filename = (%s)"""
 
-        quer_read_ids = """select * from 
-                        fn_get_all_ids_from_block_event_id((%s))"""
+        quer_read_ids = """select * from
+                         fn_get_all_ids_from_block_event_id((%s))"""
 
         quer_read_offsets = """select hip_n_transform, hip_bf_transform,
             lf_n_transform, lf_bf_transform,
@@ -115,8 +115,8 @@ class AnalyticsExecution(object):
 
         # Connect to the database
         try:
-            conn = psycopg2.connect("""dbname='biometrix' user='ubuntu' 
-            host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
+            conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
+            host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com'
             password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
             cur = conn.cursor()
             # Connect to AWS s3 container
@@ -214,19 +214,20 @@ class AnalyticsExecution(object):
         self.data = do.RawFrame(data, columns)
 
         # set ID information (dummy vars for now)
-        self.data.team_id = np.array([team_id]*len(sdata)).reshape(-1,1)
-        self.data.user_id = np.array([user_id]*len(sdata)).reshape(-1,1)
+        self.data.team_id = np.array([team_id]*len(sdata)).reshape(-1, 1)
+        self.data.user_id = np.array([user_id]*len(sdata)).reshape(-1, 1)
         self.data.team_regimen_id = np.array([team_regimen_id]*len(sdata))\
-                                    .reshape(-1,1)
-        self.data.block_id = np.array([block_id]*len(sdata)).reshape(-1,1)
+                                    .reshape(-1, 1)
+        self.data.block_id = np.array([block_id]*len(sdata)).reshape(-1, 1)
         self.data.block_event_id = np.array([block_event_id]*len(sdata))\
-                                    .reshape(-1,1)
+                                    .reshape(-1, 1)
         self.data.training_session_log_id = np.array([training_session_log_id]\
-                                                    *len(sdata)).reshape(-1,1)
+                                                    *len(sdata)).reshape(-1, 1)
         self.data.session_event_id = np.array([session_event_id]\
-                                               *len(sdata)).reshape(-1,1)
-        self.data.session_type = np.array([session_type]*len(sdata)).reshape(-1,1)
-        self.data.exercise_id = np.array(['']*len(sdata)).reshape(-1,1)
+                                               *len(sdata)).reshape(-1, 1)
+        self.data.session_type = np.array([session_type]*\
+                                    len(sdata)).reshape(-1, 1)
+        self.data.exercise_id = np.array(['']*len(sdata)).reshape(-1, 1)
 
         # Save raw values in different attributes to later populate table
         # left
@@ -256,8 +257,8 @@ class AnalyticsExecution(object):
         # PRE-PRE-PROCESSING
 
         # Check for duplicate epoch time
-        duplicate_epoch_time = ppp.check_duplicate_epochtime(
-        self.data.epoch_time)
+        duplicate_epoch_time =\
+                            ppp.check_duplicate_epochtime(self.data.epoch_time)
         if duplicate_epoch_time:
             logger.warning('Duplicate epoch time.')
 
@@ -267,9 +268,10 @@ class AnalyticsExecution(object):
         # determine the real quartenion
         # left
         _lq_xyz = np.hstack([self.data.LqX, self.data.LqY, self.data.LqZ])
-        _lq_wxyz, self.data.corrupt_type = ppp.calc_quaternions(_lq_xyz,
-                                        self.data.missing_data_indicator,
-                                        self.data.corrupt_magn)
+        _lq_wxyz, self.data.corrupt_type =\
+                        ppp.calc_quaternions(_lq_xyz,
+                                             self.data.missing_data_indicator,
+                                             self.data.corrupt_magn)
         #check for type conversion error in left foot quaternion data
         if 2 in self.data.corrupt_type:
             logger.warning('Error! Type conversion error: LF quat')
@@ -279,9 +281,10 @@ class AnalyticsExecution(object):
         self.data.LqZ = _lq_wxyz[:, 3].reshape(-1, 1)
         # hip
         _hq_xyz = np.hstack([self.data.HqX, self.data.HqY, self.data.HqZ])
-        _hq_wxyz, self.data.corrupt_type = ppp.calc_quaternions(_hq_xyz, 
-                                        self.data.missing_data_indicator,
-                                        self.data.corrupt_magn)
+        _hq_wxyz, self.data.corrupt_type =\
+                        ppp.calc_quaternions(_hq_xyz,
+                                             self.data.missing_data_indicator,
+                                             self.data.corrupt_magn)
         #check for type conversion error in hip quaternion data
         if 2 in self.data.corrupt_type:
             logger.warning('Error! Type conversion error: Hip quat')
@@ -291,9 +294,10 @@ class AnalyticsExecution(object):
         self.data.HqZ = _hq_wxyz[:, 3].reshape(-1, 1)
         # right
         _rq_xyz = np.hstack([self.data.RqX, self.data.RqY, self.data.RqZ])
-        _rq_wxyz, self.data.corrupt_type = ppp.calc_quaternions(_rq_xyz,
-                                        self.data.missing_data_indicator,
-                                        self.data.corrupt_magn)
+        _rq_wxyz, self.data.corrupt_type =\
+                        ppp.calc_quaternions(_rq_xyz,
+                                             self.data.missing_data_indicator,
+                                             self.data.corrupt_magn)
         #check for type conversion error in right foot quaternion data
         if 2 in self.data.corrupt_type:
             logger.warning('Error! Type conversion error: RF quat')
@@ -306,7 +310,7 @@ class AnalyticsExecution(object):
         self.data.time_stamp, self.data.ms_elapsed = \
             ppp.convert_epochtime_datetime_mselapsed(self.data.epoch_time)
 
-        logger.info('DONE WITH PRE-PRE-PROCESSING!')  
+        logger.info('DONE WITH PRE-PRE-PROCESSING!')
 
         # COORDINATE FRAME TRANSFORMATION
 
@@ -337,9 +341,11 @@ class AnalyticsExecution(object):
             raise ValueError("Missing Offsets")
 
         # use transform values to adjust coordinate frame of all block data
-        _transformed_data, neutral_data = coord.transform_data(self.data, 
-            hip_bf_transform,lf_bf_transform,rf_bf_transform,lf_n_transform,
-            rf_n_transform, hip_n_transform)
+        _transformed_data, neutral_data =\
+                coord.transform_data(self.data, hip_bf_transform,
+                                     lf_bf_transform, rf_bf_transform,
+                                     lf_n_transform, rf_n_transform,
+                                     hip_n_transform)
 
         # transform neutral orientations for each point in time to ndarray
         neutral_data = np.array(neutral_data)
@@ -381,8 +387,8 @@ class AnalyticsExecution(object):
         logger.info('DONE WITH COORDINATE FRAME TRANSFORMATION!')
 
         # PHASE DETECTION
-        self.data.phase_lf, self.data.phase_rf = phase.combine_phase(
-                                            self.data.LaZ, self.data.RaZ, 
+        self.data.phase_lf, self.data.phase_rf =\
+                        phase.combine_phase(self.data.LaZ, self.data.RaZ,
                                             self.data.epoch_time)
 
 #        self.data.phase_lf = np.array([0]*len(self.data.LaX))[:,np.newaxis]
@@ -391,10 +397,12 @@ class AnalyticsExecution(object):
 
         # CONTROL SCORE
         self.data.control, self.data.hip_control, self.data.ankle_control, \
-            self.data.control_lf, self.data.control_rf = control_score(
-            self.data.LeX, self.data.ReX, self.data.HeX, self.data.ms_elapsed)
+            self.data.control_lf, self.data.control_rf =\
+                                    control_score(self.data.LeX, self.data.ReX,
+                                                  self.data.HeX,
+                                                  self.data.ms_elapsed)
 
-        logger.info('DONE WITH CONTROL SCORES!')  
+        logger.info('DONE WITH CONTROL SCORES!')
 
         # INTELLIGENT ACTIVITY DETECTION (IAD)
         # load model
@@ -410,12 +418,12 @@ class AnalyticsExecution(object):
             raise error
 
         # predict activity state
-        iad_features = IAD.preprocess_iad(self.data, training = False)
+        iad_features = IAD.preprocess_iad(self.data, training=False)
         iad_labels = loaded_iad_model.predict(iad_features)
         iad_predicted_labels = IAD.label_aggregation(iad_labels)
-        self.data.activity_id = IAD.mapping_labels_on_data(
-                                            iad_predicted_labels, 
-                                            len(self.data.LaX)).reshape(-1,1)
+        self.data.activity_id =\
+                IAD.mapping_labels_on_data(iad_predicted_labels,
+                                           len(self.data.LaX)).reshape(-1, 1)
 
         logger.info('DONE WITH IAD!')
 
@@ -423,94 +431,94 @@ class AnalyticsExecution(object):
         sensor_data = ct.create_sensor_data(len(self.data.LaX), self.data)
         sensor_data_pd = pd.DataFrame(sensor_data)
         fileobj = cStringIO.StringIO()
-        sensor_data_pd.to_csv(fileobj,index = False)
+        sensor_data_pd.to_csv(fileobj, index=False)
         fileobj.seek(0)
         try:
             s3.Bucket(cont_write).put_object(Key="processed_"
-                                            +file_name, Body=fileobj)
+                                             +file_name, Body=fileobj)
         except boto3.exceptions as error:
             logger.warning("Cannot write processed file to s3!")
             raise error
 
 
 #        # SUBSETTING FOR ACTIVITY ID = 1
-#        # left foot body transformed data        
-#        self.data.LaX = self.data.LaX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LaY = self.data.LaY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LaZ = self.data.LaZ[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LeX = self.data.LeX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LeY = self.data.LeY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LeZ = self.data.LeZ[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LqW = self.data.LqW[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LqX = self.data.LqX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LqY = self.data.LqY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.LqZ = self.data.LqZ[self.data.activity_id == 1].reshape(-1,1)
+#        # left foot body transformed data
+#        self.data.LaX = self.data.LaX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LaY = self.data.LaY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LaZ = self.data.LaZ[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LeX = self.data.LeX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LeY = self.data.LeY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LeZ = self.data.LeZ[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LqW = self.data.LqW[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LqX = self.data.LqX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LqY = self.data.LqY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.LqZ = self.data.LqZ[self.data.activity_id == 1].reshape(-1, 1)
 #        # hip body transformed data
-#        self.data.HaX = self.data.HaX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HaY = self.data.HaY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HaZ = self.data.HaZ[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HeX = self.data.HeX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HeY = self.data.HeY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HeZ = self.data.HeZ[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HqW = self.data.HqW[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HqX = self.data.HqX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HqY = self.data.HqY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.HqZ = self.data.HqZ[self.data.activity_id == 1].reshape(-1,1)
+#        self.data.HaX = self.data.HaX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HaY = self.data.HaY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HaZ = self.data.HaZ[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HeX = self.data.HeX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HeY = self.data.HeY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HeZ = self.data.HeZ[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HqW = self.data.HqW[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HqX = self.data.HqX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HqY = self.data.HqY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.HqZ = self.data.HqZ[self.data.activity_id == 1].reshape(-1, 1)
 #        # right foot body transformed data
-#        self.data.RaX = self.data.RaX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.RaY = self.data.RaY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.RaZ = self.data.RaZ[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.ReX = self.data.ReX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.ReY = self.data.ReY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.ReZ = self.data.ReZ[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.RqW = self.data.RqW[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.RqX = self.data.RqX[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.RqY = self.data.RqY[self.data.activity_id == 1].reshape(-1,1)
-#        self.data.RqZ = self.data.RqZ[self.data.activity_id == 1].reshape(-1,1)
-# 
+#        self.data.RaX = self.data.RaX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.RaY = self.data.RaY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.RaZ = self.data.RaZ[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.ReX = self.data.ReX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.ReY = self.data.ReY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.ReZ = self.data.ReZ[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.RqW = self.data.RqW[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.RqX = self.data.RqX[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.RqY = self.data.RqY[self.data.activity_id == 1].reshape(-1, 1)
+#        self.data.RqZ = self.data.RqZ[self.data.activity_id == 1].reshape(-1, 1)
+#
 #        # phase
 #        self.data.phase_lf = self.data.phase_lf[
-#            self.data.activity_id == 1].reshape(-1,1)
+#            self.data.activity_id == 1].reshape(-1, 1)
 #        self.data.phase_rf = self.data.phase_rf[
-#            self.data.activity_id == 1].reshape(-1,1)
+#            self.data.activity_id == 1].reshape(-1, 1)
 #        self.data.obs_master_index = self.data.obs_master_index[
-#            self.data.activity_id == 1].reshape(-1,1)
+#            self.data.activity_id == 1].reshape(-1, 1)
 #        self.data.control = self.data.control[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.hip_control = self.data.hip_control[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.ankle_control = self.data.ankle_control[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.control_lf = self.data.control_lf[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.control_rf = self.data.control_rf[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.epoch_time = self.data.epoch_time[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.ms_elapsed = self.data.ms_elapsed[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.time_stamp = self.data.time_stamp[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #
 #        # identifiers
 #        self.data.team_id = self.data.team_id[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.user_id = self.data.user_id[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.team_regimen_id = self.data.team_regimen_id[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.block_id = self.data.block_id[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.block_event_id = self.data.block_event_id[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.training_session_log_id = self.data.training_session_log_id[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.session_event_id = self.data.session_event_id[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.exercise_id = self.data.exercise_id[
-#            self.data.activity_id==1].reshape(-1,1)
+#            self.data.activity_id==1].reshape(-1, 1)
 #        self.data.session_type = self.data.session_type[
-#            self.data.activity_id==1].reshape(-1,1)       
+#            self.data.activity_id==1].reshape(-1, 1)
 #
 #        # neutral orientations
 #        neutral_data = neutral_data[(self.data.activity_id==1).reshape(-1,)]
@@ -521,7 +529,7 @@ class AnalyticsExecution(object):
 
         # set observation index
         self.data.obs_index = (np.array(range(len(self.data.LaX)))\
-                                +1).reshape(-1,1)
+                                +1).reshape(-1, 1)
 
         # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
         # isolate hip acceleration and euler angle data
@@ -529,23 +537,25 @@ class AnalyticsExecution(object):
         hip_eul = np.hstack([self.data.HeX, self.data.HeY, self.data.HeZ])
 
         # analyze planes of movement
-        self.data.lat,self.data.vert,self.data.horz,self.data.rot,\
-            self.data.lat_binary,self.data.vert_binary,self.data.horz_binary,\
-            self.data.rot_binary,self.data.stationary_binary,\
-            self.data.total_accel = matrib.plane_analysis(hip_acc,hip_eul,
+        self.data.lat, self.data.vert, self.data.horz, self.data.rot,\
+            self.data.lat_binary, self.data.vert_binary, self.data.horz_binary,\
+            self.data.rot_binary, self.data.stationary_binary,\
+            self.data.total_accel = matrib.plane_analysis(hip_acc, hip_eul,
                                                           self.data.ms_elapsed)
 
         # analyze stance
-        self.data.standing,self.data.not_standing \
-            = matrib.standing_or_not(hip_eul,self.data.epoch_time)
-        self.data.double_leg,self.data.single_leg,self.data.feet_eliminated \
-            = matrib.double_or_single_leg(self.data.phase_lf,self.data.phase_rf,
+        self.data.standing, self.data.not_standing \
+            = matrib.standing_or_not(hip_eul, self.data.epoch_time)
+        self.data.double_leg, self.data.single_leg, self.data.feet_eliminated \
+            = matrib.double_or_single_leg(self.data.phase_lf,
+                                          self.data.phase_rf,
                                           self.data.standing,
                                           self.data.epoch_time)
-        self.data.single_leg_stationary,self.data.single_leg_dynamic \
-            = matrib.stationary_or_dynamic(self.data.phase_lf,\
-                                    self.data.phase_rf,self.data.single_leg,
-                                    self.data.epoch_time)
+        self.data.single_leg_stationary, self.data.single_leg_dynamic \
+            = matrib.stationary_or_dynamic(self.data.phase_lf,
+                                           self.data.phase_rf,
+                                           self.data.single_leg,
+                                           self.data.epoch_time)
 
         logger.info('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
 
@@ -569,19 +579,19 @@ class AnalyticsExecution(object):
             insert = False
             # Check if the block has changed
             if set(exercise_id_combinations) == set(exercise_ids):
-               train = False
+                train = False
             else:
-               train = True
+                train = True
 
         if train:
-            quer_get_filenames = """select exercise_id, sensor_data_filename 
+            quer_get_filenames = """select exercise_id, sensor_data_filename
                                 from training_events where exercise_id in %s"""
             exercises = tuple(exercise_ids.reshape(-1,).tolist())
             try:
                 cur.execute(quer_get_filenames, (exercises,))
                 out = cur.fetchall()
-                sensor_files  = np.array(out)[:,1]
-                exercises = np.array(out)[:,0]
+                sensor_files = np.array(out)[:, 1]
+                exercises = np.array(out)[:, 0]
             except Exception as error:
                 logger.warning("Cannot read training file names for exercises!")
                 raise error
@@ -591,7 +601,7 @@ class AnalyticsExecution(object):
                 self.result = "Fail!"
                 sys.exit()
             else:
-                i=0
+                i = 0
                 for files in sensor_files:
                     try:
                         obj = s3.Bucket(ied_read).Object('processed_'+files)
@@ -618,10 +628,10 @@ class AnalyticsExecution(object):
                 ied_exercise_id = IED.mapping_labels_on_data(ied_labels,
                                                              len(self.data.LaX))\
                                                              .astype(int)
-                self.data.exercise_id = ied_label_model.inverse_transform(
-                                                         ied_exercise_id)
+                self.data.exercise_id =\
+                            ied_label_model.inverse_transform(ied_exercise_id)
 
-                quer_update = """update exercise_training_models set 
+                quer_update = """update exercise_training_models set
                             exercise_id_combinations = %s,
                             model_file = (%s),
                             label_encoding_model_file = (%s),
@@ -639,33 +649,35 @@ class AnalyticsExecution(object):
                 ser_label_model = pickle.dumps(ied_label_model, 2)
                 if insert:
                     try:
-                        cur.execute(quer_insert, (exercise_ids,
-                                        psycopg2.Binary(ser_ied_model),
-                                        psycopg2.Binary(ser_label_model),
-                                        block_id))
+                        cur.execute(quer_insert,
+                                    (exercise_ids,
+                                     psycopg2.Binary(ser_ied_model),
+                                     psycopg2.Binary(ser_label_model),
+                                     block_id))
                         conn.commit()
                     except psycopg2.Error as error:
                         logger.info("Cannot write IED model to DB!")
                 else:
                     try:
-                        cur.execute(quer_update, (exercise_ids,
-                                       psycopg2.Binary(ser_ied_model),
-                                        psycopg2.Binary(ser_label_model),
-                                        block_id))
+                        cur.execute(quer_update,
+                                    (exercise_ids,
+                                     psycopg2.Binary(ser_ied_model),
+                                     psycopg2.Binary(ser_label_model),
+                                     block_id))
                         conn.commit()
                     except psycopg2.Error as error:
                         logger.info("Cannot write IED model to DB!")
                 logger.info("Trained and predicted IED")
 
-        else:        
+        else:
             # predict exercise ID
-            ied_features = IED.preprocess_ied(self.data, training = False)
+            ied_features = IED.preprocess_ied(self.data, training=False)
             ied_labels = ied_model.predict(ied_features)
-            ied_exercise_id = IED.mapping_labels_on_data(ied_labels, 
+            ied_exercise_id = IED.mapping_labels_on_data(ied_labels,
                                                          len(self.data.LaX
-                                                         )).astype(int)
-            self.data.exercise_id = ied_label_model.inverse_transform(
-                                                     ied_exercise_id)
+                                                            )).astype(int)
+            self.data.exercise_id =\
+                            ied_label_model.inverse_transform(ied_exercise_id)
             logger.info("Predicted IED with stored model")
         logger.info('DONE WITH IED!')
 
@@ -683,9 +695,9 @@ class AnalyticsExecution(object):
 
         # define balance CME dictionary
         cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15],
-                    'hipdropl':[-4, -7, 4, 15],'prosupr':[-4, -15, 4, 7],
+                    'hipdropl':[-4, -7, 4, 15], 'prosupr':[-4, -15, 4, 7],
                     'hiprotr':[-4, -15, 4, 7], 'hipdropr':[-4, -15, 4, 7],
-                    'hiprotd':[-4, -7, 4, 7]}  
+                    'hiprotd':[-4, -7, 4, 7]}
 
         # contralateral hip drop attributes
         self.nl_contra = cmed.cont_rot_CME(self.data.HeX, self.data.phase_lf,
@@ -694,26 +706,27 @@ class AnalyticsExecution(object):
         self.nr_contra = cmed.cont_rot_CME(self.data.HeX, self.data.phase_rf,
                                            [2], hip_euler[:, 0],
                                            cme_dict['hipdropr'])
-        self.data.contra_hip_drop_lf = self.nl_contra[:,1].reshape(-1, 1)
-        self.data.contra_hip_drop_lf = self.data.contra_hip_drop_lf*-1 # fix so superior > 0
+        self.data.contra_hip_drop_lf = self.nl_contra[:, 1].reshape(-1, 1)
+        # fix so superior > 0
+        self.data.contra_hip_drop_lf = self.data.contra_hip_drop_lf* - 1
         self.data.contra_hip_drop_rf = self.nr_contra[:, 1].reshape(-1, 1)
 
         # pronation/supination attributes
         self.nl_prosup = cmed.cont_rot_CME(self.data.LeX, self.data.phase_lf,
-                                           [0,1], lf_euler[:,0],
+                                           [0, 1], lf_euler[:, 0],
                                            cme_dict['prosupl'])
         self.nr_prosup = cmed.cont_rot_CME(self.data.ReX, self.data.phase_rf,
-                                           [0,2], rf_euler[:,0],
+                                           [0, 2], rf_euler[:, 0],
                                            cme_dict['prosupr'])
-        self.data.ankle_rot_lf = self.nl_prosup[:,1].reshape(-1,1)
+        self.data.ankle_rot_lf = self.nl_prosup[:, 1].reshape(-1, 1)
         self.data.ankle_rot_lf = self.data.ankle_rot_lf*-1 # fix so superior > 0
-        self.data.ankle_rot_rf = self.nr_prosup[:,1].reshape(-1,1)
+        self.data.ankle_rot_rf = self.nr_prosup[:, 1].reshape(-1, 1)
 
         # lateral hip rotation attributes
         self.cont_hiprot = cmed.cont_rot_CME(self.data.HeZ, self.data.phase_lf,
-                                             [0,1,2,3,4,5], hip_euler[:,2],
+                                             [0, 1, 2, 3, 4, 5], hip_euler[:, 2],
                                              cme_dict['hiprotd'])
-        self.data.hip_rot = self.cont_hiprot[:,1].reshape(-1,1)
+        self.data.hip_rot = self.cont_hiprot[:, 1].reshape(-1, 1)
         self.data.hip_rot = self.data.hip_rot*-1 # fix so clockwise > 0
 
         logger.info('DONE WITH BALANCE CME!')
@@ -722,23 +735,23 @@ class AnalyticsExecution(object):
         # define dictionary for msElapsed
 
         # landing time attributes
-        self.n_landtime, self.ltime_index = impact.sync_time(self.data.phase_rf,
-                                           self.data.phase_lf, 
-                                           self.data.epoch_time,
-                                           len(self.data.LaX))
+        self.n_landtime, self.ltime_index =\
+                        impact.sync_time(self.data.phase_rf, self.data.phase_lf,
+                                         self.data.epoch_time,
+                                         len(self.data.LaX))
         # landing pattern attributes
         if len(self.n_landtime) != 0:
-            self.n_landpattern = impact.landing_pattern(
-                                 self.data.ReY,
-                                 self.data.LeY, self.n_landtime) 
-            self.land_time, self.land_pattern = impact.continuous_values(
-                                 self.n_landpattern, self.n_landtime,
-                                 len(self.data.LaX), self.ltime_index)
-            self.data.land_time = self.land_time[:,0].reshape(-1, 1)
+            self.n_landpattern = impact.landing_pattern(self.data.ReY,
+                                                        self.data.LeY,
+                                                        self.n_landtime)
+            self.land_time, self.land_pattern =\
+                impact.continuous_values(self.n_landpattern, self.n_landtime,
+                                         len(self.data.LaX), self.ltime_index)
+            self.data.land_time = self.land_time[:, 0].reshape(-1, 1)
             self.data.land_pattern_rf = self.land_pattern[:, 0].reshape(-1, 1)
             self.data.land_pattern_lf = self.land_pattern[:, 1].reshape(-1, 1)
         else:
-            self.data.land_time = np.zeros((len(self.data.LaX),1))*np.nan
+            self.data.land_time = np.zeros((len(self.data.LaX), 1))*np.nan
             self.data.land_pattern_lf = np.zeros((len(self.data.LaX), 1))*np.nan
             self.data.land_pattern_rf = np.zeros((len(self.data.LaX), 1))*np.nan
 
@@ -786,7 +799,7 @@ class AnalyticsExecution(object):
             self.data.destr_multiplier, self.data.dest_mech_stress, \
             self.data.const_mech_stress, self.data.block_duration, \
             self.data.session_duration, self.data.block_mech_stress_elapsed, \
-            self.data.session_mech_stress_elapsed = score(self.data,userDB)
+            self.data.session_mech_stress_elapsed = score(self.data, userDB)
 
         logger.info('DONE WITH EVERYTHING!')
 
@@ -801,16 +814,16 @@ class AnalyticsExecution(object):
         fileobj.seek(0)
         try:
             s3.Bucket(cont_write).put_object(Key="movement_"
-                                            +file_name, Body=fileobj)
+                                             +file_name, Body=fileobj)
         except:
             logger.warning("Cannot write movement talbe to s3")
 
         fileobj_db = cStringIO.StringIO()
         try:
             movement_data_pd.to_csv(fileobj_db, index=False, header=False,
-                                    na_rep = 'NaN')
+                                    na_rep='NaN')
             fileobj_db.seek(0)
-            cur.copy_from(file=fileobj_db, table='movement',sep=',',
+            cur.copy_from(file=fileobj_db, table='movement', sep=',',
                           columns=movement_data.dtype.names)
             conn.commit()
             conn.close()
@@ -820,12 +833,13 @@ class AnalyticsExecution(object):
             
 
 if __name__ == "__main__":
+    pass
 
-    import time
-    import pandas as pd
-    import os
-    mov_data = AnalyticsExecution('team1_session1_Subj1_block2.csv', 
-                                  '53a803ac-514d-43c9-950c-a7cacdd1a057')
+#    import time
+#    import pandas as pd
+#    import os
+#    mov_data = AnalyticsExecution('team1_session1_Subj1_block2.csv',
+#                                  '53a803ac-514d-43c9-950c-a7cacdd1a057')
 #    import re
 #    import sys
 #    f = "data\\team1_Subj3_practice.csv"
@@ -848,7 +862,4 @@ if __name__ == "__main__":
 #    data = pd.read_csv(data_path)
 #    start_time = time.time()
 ##    movement_variables = analytics_execution(data_path)
-#    print "My program took", time.time() - start_time, "to run" 
-
-    
-    
+#    print "My program took", time.time() - start_time, "to run"
