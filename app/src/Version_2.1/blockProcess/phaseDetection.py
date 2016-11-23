@@ -10,7 +10,7 @@ from itertools import islice, count
 import numpy as np
 
 from phaseID import phase_id
-from dynamicSamplingRate import handle_dynamic_sampling
+from dynamicSamplingRate import handle_dynamic_sampling, max_boundary
 
 
 def combine_phase(laccz, raccz, hz):
@@ -59,6 +59,7 @@ def combine_phase(laccz, raccz, hz):
             
     return np.array(lf_ph).reshape(-1, 1), np.array(rf_ph).reshape(-1, 1)
 
+
 def _phase_detect(acc, epoch_time):
     
     """Detects when the foot is on the ground vs. when the foot is in the air
@@ -78,25 +79,25 @@ def _phase_detect(acc, epoch_time):
 
     NMSEC_JUMP = 1
     MS_WIN_SIZE = 80
+    max_bound = max_boundary(MS_WIN_SIZE)
     for i in islice(count(), 0, len(epoch_time), NMSEC_JUMP):
-        epoch_time_subset = epoch_time[i:i+25]
-        subset_data = handle_dynamic_sampling(acc, epoch_time_subset,
+        epoch_time_subset = epoch_time[i:i+max_bound]
+        subset_data = handle_dynamic_sampling(acc, epoch_time_subset, 
                                               MS_WIN_SIZE, i)
         bal_win = len(subset_data)
-        for _ in range(bal_win):
-            counter = 0
-            for j in range(bal_win):
+        counter = 0
+        for j in range(bal_win):
 #                print l,j
-                if abs(subset_data[j]) <= BAL_THRESH:  # checking whether 
-                # each data point in the sampling window is lesser than or 
-                # equal to the thresh
-                    counter = counter + 1
-            if counter == bal_win:  # checking if the number of data points that 
-            # are considered as "balance phase" equal the sampling window 
-            # (minimum number of data points required for the set of data 
-            # points to be considered as "balance phase")
-                for k in range(bal_win):
-                    dummy_balphase.append(i+k)       
+            if abs(subset_data[j]) <= BAL_THRESH:  # checking whether 
+            # each data point in the sampling window is lesser than or 
+            # equal to the thresh
+                counter = counter + 1
+        if counter == bal_win:  # checking if the number of data points that 
+        # are considered as "balance phase" equal the sampling window 
+        # (minimum number of data points required for the set of data 
+        # points to be considered as "balance phase")
+            for k in range(bal_win):
+                dummy_balphase.append(i+k)       
         
     # determinig the unique indexes in the dummy list
     start_bal = []    
@@ -106,8 +107,9 @@ def _phase_detect(acc, epoch_time):
     # eliminating false movement phases 
     MIN_THRESH_WIN = 25  # a threshold for minimum number of samples required 
     # to be classified as a false movement phase
-    overlap = [np.where(epoch_time-epoch_time[i] <= MIN_THRESH_WIN)[-1][-1] - \
-    i for i in range(len(epoch_time))]
+    max_bound = max_boundary(MIN_THRESH_WIN)
+    overlap = [np.where(epoch_time[i:i+max_bound]-epoch_time[i] <= \
+        MIN_THRESH_WIN)[-1][-1] for i in range(len(epoch_time))]
 
     for i in range(len(start_bal) - 1):
         min_thresh_mov = overlap[start_bal[i]]
@@ -144,14 +146,14 @@ def _body_phase(raz, laz, epoch_time):
     l = _phase_detect(laz, epoch_time)  # run phase detect on left foot
     
     phase = []  # store body phase decisions
-    for i in enumerate(r):
-        if r[i[0]] == 0 and l[i[0]] == 0:  # decide in balance phase
+    for i in range(len(r)):
+        if r[i] == 0 and l[i] == 0:  # decide in balance phase
             phase.append(phase_id.rflf_ground.value)  # append to list
-        elif r[i[0]] == 1 and l[i[0]] == 0:  # decide left foot on the ground
+        elif r[i] == 1 and l[i] == 0:  # decide left foot on the ground
             phase.append(phase_id.lf_ground.value)  # append to list
-        elif r[i[0]] == 0 and l[i[0]] == 1:  # decide right foot on the ground
+        elif r[i] == 0 and l[i] == 1:  # decide right foot on the ground
             phase.append(phase_id.rf_ground.value)  # append to list
-        elif r[i[0]] == 1 and l[i[0]] == 1:  # decide both feet off ground
+        elif r[i] == 1 and l[i] == 1:  # decide both feet off ground
             phase.append(phase_id.rflf_offground.value)  # append to list
     return np.array(phase)
  
@@ -326,26 +328,10 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import time
     
-#    rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
-    #rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\ChangeDirection\\Rheel_Gabby_changedirection_set1.csv'
-    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'   
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
-    #lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\ChangeDirection\\Lheel_Gabby_changedirection_set1.csv'
-#    lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\Subject5_lfdatabody_LESS.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
-    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
-    #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
-#    hpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_hipdatabody_LESS.csv'
-    
-#    datapath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\GRF Data _Abigail\\combined\\combined_bodyframe_sensordata.csv'
-
-    #rdata = np.genfromtxt(rpath, delimiter = ",", dtype = float, names = True)
-    #ldata = np.genfromtxt(lpath, delimiter = ",", dtype = float, names = True)
-    
-    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/bodyframe_Subject5_LESS.csv'
-    data = np.genfromtxt(datapath, delimiter = ",", dtype = float, names = True)
+    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets\
+    /bodyframe_Subject5_LESS.csv'
+    data = np.genfromtxt(datapath, delimiter=",", dtype=float, 
+                         names=True)
     
     #rdata = pd.read_csv(rpath)
     #ldata = pd.read_csv(lpath)
@@ -359,7 +345,8 @@ if __name__ == "__main__":
     #lf_ph = _phase_detect(lacc, sampl_rate)
     
     start_time = time.time()
-    lf_phase, rf_phase = combine_phase(data['LAccZ'], data['RAccZ'], data['Timestamp'])
+    lf_phase, rf_phase = combine_phase(data['LAccZ'], data['RAccZ'], 
+                                       data['Timestamp'])
     print time.time() - start_time
     
     #Plotting    

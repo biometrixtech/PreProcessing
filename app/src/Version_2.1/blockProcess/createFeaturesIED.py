@@ -10,7 +10,7 @@ from scipy.signal import periodogram
 from scipy.stats import kurtosis
 
 from dynamicSamplingRate import handle_dynamic_sampling, \
-handle_dynamic_sampling_create_features
+handle_dynamic_sampling_create_features, max_boundary
 
 
 def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd, 
@@ -42,11 +42,14 @@ def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd,
     for i in range(s.shape[1]):  # looping through each signal
         feature_matrix = np.zeros((1, 20))  # declaring feature matrix for 
         # each signal  
-        overlap = [np.where(epoch_time-epoch_time[j] <= overlap_samples)\
-        [-1][-1] - j for j in range(len(epoch_time))]
+        max_bound_overlap = max_boundary(overlap_samples)
+        max_bound_win = max_boundary(window_samples)
+        
+        overlap = [np.where(epoch_time[j:j+max_bound_overlap]-epoch_time[j] <=\
+        overlap_samples)[-1][-1] for j in range(len(epoch_time))]
         k = 0
         while k < len(epoch_time)-1:
-            epoch_time_subset = epoch_time[k:]
+            epoch_time_subset = epoch_time[k:k+max_bound_win]
             w, fs = handle_dynamic_sampling_create_features(s[:, 2], 
                                                             epoch_time_subset, 
                                                             window_samples, k)
@@ -137,11 +140,13 @@ def create_labels(labels, window_samples, overlap_samples, label_thresh,
     """
     
     label_vector = np.zeros(1)
-    overlap = [np.where(epoch_time-epoch_time[i] <= overlap_samples)[-1][-1] - \
-    i for i in range(len(epoch_time))]
+    max_bound_overlap = max_boundary(overlap_samples)
+    max_bound_win = max_boundary(window_samples)
+    overlap = [np.where(epoch_time[i:i+max_bound_overlap]-epoch_time[i] <= \
+    overlap_samples)[-1][-1] for i in range(len(epoch_time))]
     i = 0
     while i < len(epoch_time)-1:
-        epoch_time_subset = epoch_time[i:]
+        epoch_time_subset = epoch_time[i:i+max_bound_win]
         labwin = handle_dynamic_sampling(labels, epoch_time_subset, 
                                          window_samples, i)
         if float(len(labwin[labwin == 1]))/len(labwin) >= label_thresh:

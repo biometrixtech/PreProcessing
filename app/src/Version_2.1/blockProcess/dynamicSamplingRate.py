@@ -58,7 +58,7 @@ def handle_dynamic_sampling_create_features(data, epoch_time_subset,
         avg_hz: an int, mean of the sampling rate in a window
        
     """
-   
+       
     # determine the smallest sampling window size
     LOWEST_HZ = 100
     len_thresh_epoch_time = int(MS_WIN_SIZE/1000.0 * LOWEST_HZ)
@@ -66,7 +66,8 @@ def handle_dynamic_sampling_create_features(data, epoch_time_subset,
     # obtain data equivalent to sampling window size
     if len(epoch_time_subset) < len_thresh_epoch_time:
         subset_data = data[ind:]
-        return subset_data
+        avg_hz = avg_sampl_rate_win(epoch_time_subset)
+        return subset_data, avg_hz
     else:
         subset_data = data[ind:ind + np.where(epoch_time_subset - \
         epoch_time_subset[0] <= MS_WIN_SIZE)[0][-1]]
@@ -90,14 +91,32 @@ def avg_sampl_rate_win(epoch_time_subset):
         avg_hz: an int, mean of sampling rate in a window
     """
    
-    dummy_time_elapsed = np.ediff1d(epoch_time_subset, to_begin=0)
+    dummy_time_elapsed = np.ediff1d(epoch_time_subset)
        
-    hz = [int(1000/dummy_time_elapsed[1])]
+    hz = []
    
-    for i in dummy_time_elapsed[1:]:
+    for i in dummy_time_elapsed:
         hz.append(int(1000/i))
      
     avg_hz = int(np.mean(hz))
 
     return avg_hz 
+    
+    
+def max_boundary(win_size):
+    """
+    Determine maximum number of samples given window size.
+    
+    Args:
+        win_size: int, size of window in ms.
+        
+    Returns:
+        max_bound: int, maximum nunber of samples.
+    """
+    
+    max_hz = 250
+    max_bound = int((max_hz*win_size)/1000)
+    
+    return max_bound
+
                            
