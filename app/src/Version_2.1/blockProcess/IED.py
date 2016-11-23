@@ -19,7 +19,7 @@ def preprocess_ied(data, training=False):
     """
     Create signals, features to train/predict labels.
     
-    Args: 
+    Args:
         data: sensor data
         training: True/False, train the IED system or just predicting
         
@@ -70,10 +70,10 @@ def preprocess_ied(data, training=False):
     # define parameters
     # Parameters for the sampling window
 #    fs = 250  # sampling frequency
-    window_time = 5*1000  # number of milli seconds to determine length of 
+    window_time = 5*1000  # number of milli seconds to determine length of
     # sliding window
     window_samples = window_time #int(fs*window_time)  # sliding window length
-    nsecjump = 0.2*1000  # number of milli seconds for the sliding window 
+    nsecjump = 0.2*1000  # number of milli seconds for the sliding window
     # to jump
     overlap_samples = nsecjump  # int(fs*nsecjump)
     
@@ -83,41 +83,41 @@ def preprocess_ied(data, training=False):
     # defining the parameters to determine the number of prominent peaks
     prom_mpd = 20  # minimum peak distance for prominent peaks
     prom_mph = -1  # minimum peak height for prominent peaks
-    prom_peak_thresh = 0.5  # height threshold for number of maximum 
+    prom_peak_thresh = 0.5  # height threshold for number of maximum
     # peaks feature
     
     # defining the parameters to determine the number of weak peaks
     weak_mpd = 20  # minimum peak distance for weak peaks
     weak_mph = -1  # minimum peak height for weak peaks
-    weak_peak_thresh = 0.3  # height threshold for number of minimum 
+    weak_peak_thresh = 0.3  # height threshold for number of minimum
     # peaks feature
     
     # Parameters for labelling each window
-    label_thresh = 0.5  # x% of window 
+    label_thresh = 0.5  # x% of window
     
     # determine the features and labels for each window
-    lf_feature_matrix = create_window(lfsig, data.epoch_time, window_samples, 
-                                      overlap_samples, prom_mpd, prom_mph, 
-                                      prom_peak_thresh, weak_mpd, weak_mph, 
+    lf_feature_matrix = create_window(lfsig, data.epoch_time, window_samples,
+                                      overlap_samples, prom_mpd, prom_mph,
+                                      prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
-    hip_feature_matrix = create_window(hipsig, data.epoch_time, window_samples, 
-                                       overlap_samples, prom_mpd, prom_mph, 
-                                       prom_peak_thresh, weak_mpd, weak_mph, 
+    hip_feature_matrix = create_window(hipsig, data.epoch_time, window_samples,
+                                       overlap_samples, prom_mpd, prom_mph,
+                                       prom_peak_thresh, weak_mpd, weak_mph,
                                        weak_peak_thresh)
-    rf_feature_matrix = create_window(rfsig, data.epoch_time, window_samples, 
-                                      overlap_samples, prom_mpd, prom_mph, 
-                                      prom_peak_thresh, weak_mpd, weak_mph, 
+    rf_feature_matrix = create_window(rfsig, data.epoch_time, window_samples,
+                                      overlap_samples, prom_mpd, prom_mph,
+                                      prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
     
-    combined_feature_matrix = np.concatenate((lf_feature_matrix, 
+    combined_feature_matrix = np.concatenate((lf_feature_matrix,
                                               hip_feature_matrix), axis=1)
     
     if training:
         encoded_model = _encoding_labels(labels)  # create the encoded
         # label  model
-        encoded_labels = encoded_model.transform(labels.reshape(-1,))  
+        encoded_labels = encoded_model.transform(labels.reshape(-1,))
         # converting the exercise ids to the categorical values
-        lab = create_labels(encoded_labels, window_samples, overlap_samples, 
+        lab = create_labels(encoded_labels, window_samples, overlap_samples,
                             label_thresh, data.epoch_time)
         return combined_feature_matrix, lab, encoded_model
     else:
@@ -129,7 +129,7 @@ def _encoding_labels(labels):
     """
     Encode the exercise_id to categorical values.
     
-    Args: 
+    Args:
         labels: an array of the exercise ids
         
     Returns:
@@ -202,23 +202,23 @@ def _create_signals(sensor_data):
     # Acceleration Signals
     sig = sensor_data[:, 0:3]  # copying aX, aY, aZ
     sig = np.hstack((sig, np.array(sensor_data[:, 0]**2 + \
-    sensor_data[:, 1]**2 + sensor_data[:, 2]**2).reshape(len(sensor_data), 1))) 
+    sensor_data[:, 1]**2 + sensor_data[:, 2]**2).reshape(len(sensor_data), 1)))
     # Acceleration magnitude
     sig = np.hstack((sig, np.array(pca.fit_transform(
-        sensor_data[:, 0:3])).reshape(len(sensor_data), 1)))  # First principal 
+        sensor_data[:, 0:3])).reshape(len(sensor_data), 1)))  # First principal
     # component of aX, aY, aZ
     
     # Euler Signals
     sig = np.hstack((sig, np.array(sensor_data[:, 4]).reshape(
         len(sensor_data), 1)))  # copying eX, eY, eZ
     sig = np.hstack((sig, np.array(sensor_data[:, 3]**2 + \
-    sensor_data[:, 4]**2 + sensor_data[:, 5]**2).reshape(len(sensor_data), 1))) 
+    sensor_data[:, 4]**2 + sensor_data[:, 5]**2).reshape(len(sensor_data), 1)))
     # Euler angle magnitude
     sig = np.hstack((sig, np.array(pca.fit_transform(
-        sensor_data[:, 3:6])).reshape(len(sensor_data), 1)))  # First principal 
+        sensor_data[:, 3:6])).reshape(len(sensor_data), 1)))  # First principal
     # component of EulerX, EulerY, EulerZ
     sig = np.hstack((sig, np.array(pca.fit_transform(
-        sensor_data[:, 4:6])).reshape(len(sensor_data), 1)))  # First principal 
+        sensor_data[:, 4:6])).reshape(len(sensor_data), 1)))  # First principal
     # component of EulerY, EulerZ
         
     return sig
@@ -237,17 +237,17 @@ def train_ied(data):
         label_encoded_model: encoded label data
     """
     
-    # create the feature matrix and labels for the window 
+    # create the feature matrix and labels for the window
     combined_feature_matrix, lab, label_encoded_model = preprocess_ied(data,
                                                                        True)
     traincombined_feature_matrix = combined_feature_matrix
     train_lab = lab
     
     # train the classification model
-    clf = RandomForestClassifier(n_estimators=20, max_depth=10, 
-                                 criterion='entropy', max_features='auto', 
-                                 random_state=1, n_jobs=-1)    
-    trained_ied_model = clf.fit(traincombined_feature_matrix, 
+    clf = RandomForestClassifier(n_estimators=20, max_depth=10,
+                                 criterion='entropy', max_features='auto',
+                                 random_state=1, n_jobs=-1)
+    trained_ied_model = clf.fit(traincombined_feature_matrix,
                                 train_lab.reshape((len(train_lab),)))
                   
     return trained_ied_model, label_encoded_model
@@ -297,7 +297,7 @@ def mapping_labels_on_data(predicted_labels, len_data):
 #                test_map_labels.append(15)
 
     # check if length of mapped data is the same as that of the sensor data
-    if len_data > len(test_map_labels):            
+    if len_data > len(test_map_labels):
         for _ in range(len_data-len(test_map_labels)):
             test_map_labels.append(0)
         

@@ -122,7 +122,7 @@ class DiagnosticChecks(object):
         self.no_nans_rot = not any(np.isnan(self.rot))
         self.no_nans_lat = not any(np.isnan(self.lat))
         self.no_nans_vert = not any(np.isnan(self.vert))
-        self.no_nans_horz= not any(np.isnan(self.horz))
+        self.no_nans_horz = not any(np.isnan(self.horz))
         self.no_nans_rot_binary = not any(np.isnan(self.rot_binary))
         self.no_nans_lat_binary = not any(np.isnan(self.lat_binary))
         self.no_nans_vert_binary = not any(np.isnan(self.vert_binary))
@@ -184,32 +184,32 @@ class DiagnosticChecks(object):
 
         # check that defined binaries are actually binaries
         self.rot_bin_is_bin = all(np.in1d(self.rot_binary.reshape(-1,),
-                                          [0,1]) == True)
+                                          [0, 1]) == True)
         self.lat_bin_is_bin = all(np.in1d(self.lat_binary.reshape(-1,),
-                                          [0,1]) == True)
+                                          [0, 1]) == True)
         self.vert_bin_is_bin = all(np.in1d(self.vert_binary.reshape(-1,),
-                                           [0,1]) == True)
+                                           [0, 1]) == True)
         self.horz_bin_is_bin = all(np.in1d(self.horz_binary.reshape(-1,),
-                                           [0,1]) == True)
+                                           [0, 1]) == True)
 
         # check if phase values are integers [0,6)
         self.phase_lf_enum = all(np.in1d(self.phase_lf.reshape(-1,),
-                                         [0,1,2,3,4,5]) == True)
+                                         [0, 1, 2, 3, 4, 5]) == True)
         self.phase_rf_enum = all(np.in1d(self.phase_rf.reshape(-1,),
-                                         [0,1,2,3,4,5]) == True)
+                                         [0, 1, 2, 3, 4, 5]) == True)
 
         # check if all euler angles are in reasonable ranges for relevant phase
         # Isolate angles to be used in CMES
 
         # angles relevant for pronation
-        left_pron_angs = np.in1d(self.LeX, [0,1,4])*self.LeX
+        left_pron_angs = np.in1d(self.LeX, [0, 1, 4])*self.LeX
         self.safe_left_pron_angs = ((-np.pi/2 < left_pron_angs)
             & (left_pron_angs < np.pi/2)).sum() == len(np.nonzero(
-            np.in1d(self.LeX, [0,1,4])))
-        right_pron_angs = np.in1d(self.ReX, [0,2,5])*self.ReX
+            np.in1d(self.LeX, [0, 1, 4])))
+        right_pron_angs = np.in1d(self.ReX, [0, 2, 5])*self.ReX
         self.safe_right_pron_angs = ((-np.pi/2 < right_pron_angs)
             & (right_pron_angs < np.pi/2)).sum() == len(np.nonzero(
-            np.in1d(self.ReX, [0,2,5])))
+            np.in1d(self.ReX, [0, 2, 5])))
 
 #        # angles relevant for foot position
 #        left_foot_pos_angs = np.in1d(self.LeY, [1,4])*self.LeY
@@ -222,14 +222,14 @@ class DiagnosticChecks(object):
 #            np.in1d(self.ReY, [2,5])))
 
         # angles relevant for contralateral hip drop
-        left_hip_drop_angs = np.in1d(self.HeX, [1,4])*self.HeX
+        left_hip_drop_angs = np.in1d(self.HeX, [1, 4])*self.HeX
         self.safe_left_hip_drop_angs = ((-np.pi/2 < left_hip_drop_angs)
             & (left_hip_drop_angs < np.pi/2)).sum() == len(np.nonzero(
-            np.in1d(self.HeX, [1,4])))
-        right_hip_drop_angs = np.in1d(self.HeX, [2,5])*self.HeX
+            np.in1d(self.HeX, [1, 4])))
+        right_hip_drop_angs = np.in1d(self.HeX, [2, 5])*self.HeX
         self.safe_right_hip_drop_angs = ((-np.pi/2 < right_hip_drop_angs)
             & (right_hip_drop_angs < np.pi/2)).sum() == len(np.nonzero(
-            np.in1d(self.HeX, [2,5])))
+            np.in1d(self.HeX, [2, 5])))
 
 #        # angles relevant for lateral hip rotation
 #        lat_hip_rot_angs = np.in1d(self.HeZ, [0,1,2,4,5])*self.HeZ

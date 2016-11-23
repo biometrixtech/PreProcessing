@@ -20,7 +20,7 @@ def preprocess_iad(data, training=False):
     """
     Create signals, features to train/predict labels.
     
-    Args: 
+    Args:
         data: sensor data
         training: True/False, train the IAD system or just predicting
         
@@ -55,7 +55,7 @@ def preprocess_iad(data, training=False):
     df['ReZ'] = data.ReZ
     
     # split sampling rate, hip data, left foot data and right foot data
-    if training == False:
+    if training is False:
         hz, lfoot, hipp, rfoot = _split_lf_hip_rf(df, training)
     else:
         hz, lfoot, hipp, rfoot, labels = _split_lf_hip_rf(df, training)
@@ -68,10 +68,10 @@ def preprocess_iad(data, training=False):
     # define parameters
     # Parameters for the sampling window
 #    fs = 250  # sampling frequency
-    window_time = 5*1000  # number of milli seconds to determine length of 
+    window_time = 5*1000  # number of milli seconds to determine length of
     # sliding window
     window_samples = window_time #int(fs*window_time)  # sliding window length
-    nsecjump = 0.2*1000  # number of milli seconds for the sliding window 
+    nsecjump = 0.2*1000  # number of milli seconds for the sliding window
     # to jump
     overlap_samples = nsecjump  # int(fs*nsecjump)
     
@@ -81,39 +81,39 @@ def preprocess_iad(data, training=False):
     # defining the parameters to determine the number of prominent peaks
     prom_mpd = 20  # minimum peak distance for prominent peaks
     prom_mph = -1  # minimum peak height for prominent peaks
-    prom_peak_thresh = 0.5  # height threshold for number of maximum peaks 
+    prom_peak_thresh = 0.5  # height threshold for number of maximum peaks
     # feature
     
     # defining the parameters to determine the number of weak peaks
     weak_mpd = 20  # minimum peak distance for weak peaks
     weak_mph = -1  # minimum peak height for weak peaks
-    weak_peak_thresh = 0.3  # height threshold for number of minimum peaks 
+    weak_peak_thresh = 0.3  # height threshold for number of minimum peaks
     # feature
     
     # Parameters for labelling each window
-    label_thresh = 0.5  # x% of window 
+    label_thresh = 0.5  # x% of window
     
     # determine the features and labels for each window
-    lf_feature_matrix = create_window(lfsig, data.epoch_time, window_samples, 
-                                      overlap_samples, prom_mpd, prom_mph, 
-                                      prom_peak_thresh, weak_mpd, weak_mph, 
+    lf_feature_matrix = create_window(lfsig, data.epoch_time, window_samples,
+                                      overlap_samples, prom_mpd, prom_mph,
+                                      prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
-    hip_feature_matrix = create_window(hipsig, data.epoch_time, window_samples, 
-                                       overlap_samples, prom_mpd, 
-                                       prom_mph, prom_peak_thresh, 
+    hip_feature_matrix = create_window(hipsig, data.epoch_time, window_samples,
+                                       overlap_samples, prom_mpd,
+                                       prom_mph, prom_peak_thresh,
                                        weak_mpd, weak_mph, weak_peak_thresh)
-    rf_feature_matrix = create_window(rfsig, data.epoch_time, window_samples, 
-                                      overlap_samples, prom_mpd, prom_mph, 
-                                      prom_peak_thresh, weak_mpd, weak_mph, 
+    rf_feature_matrix = create_window(rfsig, data.epoch_time, window_samples,
+                                      overlap_samples, prom_mpd, prom_mph,
+                                      prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
     
     # combine the left foot, hip and/or right foot feature matrices
-    combined_feature_matrix = np.concatenate((lf_feature_matrix, 
+    combined_feature_matrix = np.concatenate((lf_feature_matrix,
                                               hip_feature_matrix), axis=1)
     
     # check if training is true/false
-    if training == True:
-        lab = create_labels(labels, window_samples, overlap_samples, 
+    if training is True:
+        lab = create_labels(labels, window_samples, overlap_samples,
                             label_thresh, data.epoch_time)
         return combined_feature_matrix, lab
     else:
@@ -139,7 +139,7 @@ def _split_lf_hip_rf(data, training):
             labels: activity ID labels, 1 for activity & 0 for non-activity
     """
         
-    if training == False:
+    if training is False:
         hz = np.array(data['epoch_time'].copy())
         lfoot = np.array(data[['LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ']]\
                         .copy())
@@ -181,10 +181,10 @@ def _create_signals(sensor_data):
     sig = sensor_data[:, 0:3]  # copying aX, aY, aZ
     sig = np.hstack((sig, np.array(sensor_data[:, 0]**2 + \
         sensor_data[:, 1]**2 + sensor_data[:, 2]**2).reshape(
-            len(sensor_data), 1)))  # Acceleration 
+            len(sensor_data), 1)))  # Acceleration
     # magnitude
     sig = np.hstack((sig, np.array(
-        pca.fit_transform(sensor_data[:, 0:3])).reshape(len(sensor_data), 1))) 
+        pca.fit_transform(sensor_data[:, 0:3])).reshape(len(sensor_data), 1)))
     # First principal component of aX, aY, aZ
     
     # Euler Signals
@@ -192,13 +192,13 @@ def _create_signals(sensor_data):
         sensor_data[:, 4]).reshape(len(sensor_data), 1)))  # copying eX, eY, eZ
     sig = np.hstack((sig, np.array(sensor_data[:, 3]**2 + \
         sensor_data[:, 4]**2 + sensor_data[:, 5]**2).reshape(len(
-            sensor_data), 1))) 
+            sensor_data), 1)))
     # Euler angles magnitude
     sig = np.hstack((sig, np.array(pca.fit_transform(
-        sensor_data[:, 3:6])).reshape(len(sensor_data), 1)))  # First principal 
+        sensor_data[:, 3:6])).reshape(len(sensor_data), 1)))  # First principal
     # component of eX, eY, eZ
     sig = np.hstack((sig, np.array(
-        pca.fit_transform(sensor_data[:, 4:6])).reshape(len(sensor_data), 1))) 
+        pca.fit_transform(sensor_data[:, 4:6])).reshape(len(sensor_data), 1)))
     # First principal component of EulerY, EulerZ
         
     return sig
@@ -216,15 +216,15 @@ def train_iad(data):
         fit: trained IAD model
     """
     
-    # create the feature matrix and labels for the window 
+    # create the feature matrix and labels for the window
     combined_feature_matrix, lab = preprocess_iad(data)
     traincombined_feature_matrix = combined_feature_matrix
     train_lab = lab
     
     # train the classification model
-    clf = RandomForestClassifier(n_estimators=20, max_depth=10, 
-                                 criterion='entropy', max_features='auto', 
-                                 random_state=1, n_jobs=-1)    
+    clf = RandomForestClassifier(n_estimators=20, max_depth=10,
+                                 criterion='entropy', max_features='auto',
+                                 random_state=1, n_jobs=-1)
     fit = clf.fit(traincombined_feature_matrix, train_lab.reshape((
         len(train_lab),)))
     
@@ -234,13 +234,13 @@ def train_iad(data):
 def label_aggregation(predicted_labels):
     
     """
-    Aggregating the labels for each window after predicting the labels. 
-    Reduce number of false negatives. 
+    Aggregating the labels for each window after predicting the labels.
+    Reduce number of false negatives.
     
     Args:
         predicted_labels: array of labels predicted for each window
         
-    Returns: 
+    Returns:
         predicted_labels: aggregated labels
     """
     
@@ -295,7 +295,7 @@ def mapping_labels_on_data(predicted_labels, len_data):
                 test_map_labels.append(1)
     
     # check if length of mapped data is the same as that of the sensor data
-    if len_data > len(test_map_labels):            
+    if len_data > len(test_map_labels):
         for _ in range(len_data-len(test_map_labels)):
             test_map_labels.append(0)
             
@@ -308,13 +308,15 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import time
     
-    datapath = 'C:\\Users\\court\\Desktop\\BioMetrix\\analytics execution (3)\\analytics execution\\subject4_bodyform.csv'
+    datapath = '''C:\\Users\\court\\Desktop\\BioMetrix\\analytics execution (3)\\
+                analytics execution\\subject4_bodyform.csv'''
     
-    data = np.genfromtxt(datapath, dtype = float, delimiter = ',', names=True)
+    data = np.genfromtxt(datapath, dtype=float, delimiter=',', names=True)
     
-    filename = 'C:\\Users\\court\\Desktop\\BioMetrix\\analytics execution (3)\\analytics execution\\iad_finalized model.sav'
+    filename = '''C:\\Users\\court\\Desktop\\BioMetrix\\
+        analytics execution (3)\\analytics execution\\iad_finalized model.sav'''
     loaded_model = pickle.load(open(filename, 'rb'))
-    x = preprocess_iad(data, training = False)
+    x = preprocess_iad(data, training=False)
     x = combined_feature_matrix
     y = loaded_model.predict(x)
     predicted_labels = label_aggregation(y)
