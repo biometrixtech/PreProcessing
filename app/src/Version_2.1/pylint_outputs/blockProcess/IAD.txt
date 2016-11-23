@@ -3,7 +3,6 @@ W: 18,19: Redefining name 'data' from outer scope (line 314) (redefined-outer-na
 C: 34, 4: Invalid variable name "df" (invalid-name)
 C: 59, 8: Invalid variable name "hz" (invalid-name)
 C: 61, 8: Invalid variable name "hz" (invalid-name)
-W: 59, 8: Unused variable 'hz' (unused-variable)
 W: 79, 4: Unused variable 'nfeatures' (unused-variable)
 W:105, 4: Unused variable 'rf_feature_matrix' (unused-variable)
 W:124,21: Redefining name 'data' from outer scope (line 314) (redefined-outer-name)
@@ -20,10 +19,7 @@ C:311, 4: Invalid constant name "datapath" (invalid-name)
 C:314, 4: Invalid constant name "data" (invalid-name)
 C:316, 4: Invalid constant name "filename" (invalid-name)
 C:318, 4: Invalid constant name "loaded_model" (invalid-name)
-C:319, 4: Invalid constant name "x" (invalid-name)
-C:320, 4: Invalid constant name "x" (invalid-name)
 E:320, 8: Undefined variable 'combined_feature_matrix' (undefined-variable)
-C:321, 4: Invalid constant name "y" (invalid-name)
 C:322, 4: Invalid constant name "predicted_labels" (invalid-name)
 C:323, 4: Invalid constant name "activity_id" (invalid-name)
 W:309, 4: Unused import time (unused-import)
@@ -104,11 +100,11 @@ Messages by category
 +-----------+-------+---------+-----------+
 |type       |number |previous |difference |
 +===========+=======+=========+===========+
-|convention |20     |23       |-3.00      |
+|convention |17     |20       |-3.00      |
 +-----------+-------+---------+-----------+
 |refactor   |0      |0        |=          |
 +-----------+-------+---------+-----------+
-|warning    |10     |10       |=          |
+|warning    |9      |10       |-1.00      |
 +-----------+-------+---------+-----------+
 |error      |1      |1        |=          |
 +-----------+-------+---------+-----------+
@@ -121,15 +117,15 @@ Messages
 +----------------------+------------+
 |message id            |occurrences |
 +======================+============+
-|invalid-name          |14          |
+|invalid-name          |11          |
 +----------------------+------------+
 |redefined-outer-name  |5           |
 +----------------------+------------+
 |wrong-import-position |3           |
 +----------------------+------------+
-|unused-variable       |3           |
-+----------------------+------------+
 |wrong-import-order    |2           |
++----------------------+------------+
+|unused-variable       |2           |
 +----------------------+------------+
 |unused-import         |1           |
 +----------------------+------------+
@@ -144,5 +140,5 @@ Messages
 
 Global evaluation
 -----------------
-Your code has been rated at 7.37/10 (previous run: 7.14/10, +0.23)
+Your code has been rated at 7.67/10 (previous run: 7.37/10, +0.30)
 
