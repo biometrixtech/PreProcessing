@@ -94,15 +94,15 @@ def preprocess_iad(data, training=False):
     label_thresh = 0.5  # x% of window
     
     # determine the features and labels for each window
-    lf_feature_matrix = create_window(lfsig, data.epoch_time, window_samples,
+    lf_feature_matrix = create_window(lfsig, hz, window_samples,
                                       overlap_samples, prom_mpd, prom_mph,
                                       prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
-    hip_feature_matrix = create_window(hipsig, data.epoch_time, window_samples,
+    hip_feature_matrix = create_window(hipsig, hz, window_samples,
                                        overlap_samples, prom_mpd,
                                        prom_mph, prom_peak_thresh,
                                        weak_mpd, weak_mph, weak_peak_thresh)
-    rf_feature_matrix = create_window(rfsig, data.epoch_time, window_samples,
+    rf_feature_matrix = create_window(rfsig, hz, window_samples,
                                       overlap_samples, prom_mpd, prom_mph,
                                       prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
@@ -114,7 +114,7 @@ def preprocess_iad(data, training=False):
     # check if training is true/false
     if training is True:
         lab = create_labels(labels, window_samples, overlap_samples,
-                            label_thresh, data.epoch_time)
+                            label_thresh, hz)
         return combined_feature_matrix, lab
     else:
         return combined_feature_matrix
@@ -131,7 +131,7 @@ def _split_lf_hip_rf(data, training):
         training: True/False, if we are training the IAD model or not
         
     Returns:
-        hz: sampling rate
+        hz: epoch time
         lfoot: all left foot data
         hipp: all hip data
         rfoot: all right foot data

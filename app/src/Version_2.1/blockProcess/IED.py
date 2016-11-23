@@ -96,15 +96,15 @@ def preprocess_ied(data, training=False):
     label_thresh = 0.5  # x% of window
     
     # determine the features and labels for each window
-    lf_feature_matrix = create_window(lfsig, data.epoch_time, window_samples,
+    lf_feature_matrix = create_window(lfsig, hz, window_samples,
                                       overlap_samples, prom_mpd, prom_mph,
                                       prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
-    hip_feature_matrix = create_window(hipsig, data.epoch_time, window_samples,
+    hip_feature_matrix = create_window(hipsig, hz, window_samples,
                                        overlap_samples, prom_mpd, prom_mph,
                                        prom_peak_thresh, weak_mpd, weak_mph,
                                        weak_peak_thresh)
-    rf_feature_matrix = create_window(rfsig, data.epoch_time, window_samples,
+    rf_feature_matrix = create_window(rfsig, hz, window_samples,
                                       overlap_samples, prom_mpd, prom_mph,
                                       prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
@@ -118,7 +118,7 @@ def preprocess_ied(data, training=False):
         encoded_labels = encoded_model.transform(labels.reshape(-1,))
         # converting the exercise ids to the categorical values
         lab = create_labels(encoded_labels, window_samples, overlap_samples,
-                            label_thresh, data.epoch_time)
+                            label_thresh, hz)
         return combined_feature_matrix, lab, encoded_model
     else:
         return combined_feature_matrix
@@ -153,7 +153,7 @@ def _split_lf_hip_rf(data, training):
         training: True/False, if we are training the IED model or not
         
     Returns:
-        hz: sampling rate
+        hz: epoch time
         lfoot: all left foot data
         hipp: all hip data
         rfoot: all right foot data
@@ -273,27 +273,49 @@ def mapping_labels_on_data(predicted_labels, len_data):
             test_map_labels.append(predicted_labels[i])
 #            if predicted_labels[i-1] == 0 and predicted_labels[i] == 0:
 #                test_map_labels.append(0)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 1) or (predicted_labels[i-1] == 1 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 1 and predicted_labels[i] == 1):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 1) or \
+#            (predicted_labels[i-1] == 1 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 1 and predicted_labels[i] == 1):
 #                test_map_labels.append(1)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 2) or (predicted_labels[i-1] == 2 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 2 and predicted_labels[i] == 2):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 2) or\
+#            (predicted_labels[i-1] == 2 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 2 and predicted_labels[i] == 2):
 #                test_map_labels.append(2)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 3) or (predicted_labels[i-1] == 3 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 3 and predicted_labels[i] == 3):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 3) or\
+#            (predicted_labels[i-1] == 3 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 3 and predicted_labels[i] == 3):
 #                test_map_labels.append(3)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 4) or (predicted_labels[i-1] == 4 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 4 and predicted_labels[i] == 4):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 4) or \
+#            (predicted_labels[i-1] == 4 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 4 and predicted_labels[i] == 4):
 #                test_map_labels.append(4)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 5) or (predicted_labels[i-1] == 5 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 5 and predicted_labels[i] == 5):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 5) or \
+#            (predicted_labels[i-1] == 5 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 5 and predicted_labels[i] == 5):
 #                test_map_labels.append(5)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 6) or (predicted_labels[i-1] == 6 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 6 and predicted_labels[i] == 6):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 6) or \
+#            (predicted_labels[i-1] == 6 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 6 and predicted_labels[i] == 6):
 #                test_map_labels.append(6)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 7) or (predicted_labels[i-1] == 7 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 7 and predicted_labels[i] == 7):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 7) or \
+#            (predicted_labels[i-1] == 7 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 7 and predicted_labels[i] == 7):
 #                test_map_labels.append(7)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 8) or (predicted_labels[i-1] == 8 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 8 and predicted_labels[i] == 8):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 8) or \
+#            (predicted_labels[i-1] == 8 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 8 and predicted_labels[i] == 8):
 #                test_map_labels.append(8)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 9) or (predicted_labels[i-1] == 9 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 9 and predicted_labels[i] == 9):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 9) or \
+#            (predicted_labels[i-1] == 9 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 9 and predicted_labels[i] == 9):
 #                test_map_labels.append(9)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 10) or (predicted_labels[i-1] == 10 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 10 and predicted_labels[i] == 10):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 10) or\
+#            (predicted_labels[i-1] == 10 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 10 and predicted_labels[i] == 10):
 #                test_map_labels.append(10)
-#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 15) or (predicted_labels[i-1] == 15 and predicted_labels[i] == 0) or (predicted_labels[i-1] == 15 and predicted_labels[i] == 15):
+#            elif (predicted_labels[i-1] == 0 and predicted_labels[i] == 15) or\
+#            (predicted_labels[i-1] == 15 and predicted_labels[i] == 0) or \
+#            (predicted_labels[i-1] == 15 and predicted_labels[i] == 15):
 #                test_map_labels.append(15)
 
     # check if length of mapped data is the same as that of the sensor data
