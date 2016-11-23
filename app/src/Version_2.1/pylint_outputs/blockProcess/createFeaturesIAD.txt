@@ -1,0 +1,110 @@
+************* Module createFeaturesIAD
+C:  1, 0: Invalid module name "createFeaturesIAD" (invalid-name)
+C: 16, 0: Invalid argument name "s" (invalid-name)
+C: 52, 8: Invalid variable name "w" (invalid-name)
+C: 52,11: Invalid variable name "fs" (invalid-name)
+C: 68, 0: Invalid argument name "w" (invalid-name)
+C: 68, 0: Invalid argument name "fs" (invalid-name)
+C:108, 4: Invalid variable name "c" (invalid-name)
+C:110, 4: Invalid variable name "c" (invalid-name)
+C:112, 4: Invalid variable name "c" (invalid-name)
+R: 68, 0: Too many branches (19/12) (too-many-branches)
+
+
+Report
+======
+91 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |1          |=          |100.00      |100.00   |
++---------+-------+-----------+-----------+------------+---------+
+|class    |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|method   |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|function |3      |3          |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    dynamicSamplingRate (createFeaturesIAD)
+    findPeaks (createFeaturesIAD)
+    numpy (createFeaturesIAD)
+    scipy 
+      \-signal (createFeaturesIAD)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |117    |53.42 |117      |=          |
++----------+-------+------+---------+-----------+
+|docstring |58     |26.48 |58       |=          |
++----------+-------+------+---------+-----------+
+|comment   |11     |5.02  |11       |=          |
++----------+-------+------+---------+-----------+
+|empty     |33     |15.07 |33       |=          |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |0        |=          |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |0.000    |=          |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |9      |10       |-1.00      |
++-----------+-------+---------+-----------+
+|refactor   |1      |1        |=          |
++-----------+-------+---------+-----------+
+|warning    |0      |0        |=          |
++-----------+-------+---------+-----------+
+|error      |0      |0        |=          |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++------------------+------------+
+|message id        |occurrences |
++==================+============+
+|invalid-name      |9           |
++------------------+------------+
+|too-many-branches |1           |
++------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 8.90/10 (previous run: 8.79/10, +0.11)
+
