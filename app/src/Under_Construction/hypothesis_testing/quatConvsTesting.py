@@ -19,30 +19,24 @@ import quatOps as qo
               max_value=2)))
 def test_quatConvs(q):
 
-    assume (not (q == 0).all())
-    assume (np.sqrt(q[0][0]**2+q[0][1]**2+q[0][2]**2+q[0][3]**2)>0.05)
-    print q.shape
-    quat = qo.quat_norm(q)
-    print "quat",quat
-    print "quat shape",quat.shape
-    comp_eul = qc.quat_to_euler(quat)
-    print "EUL",comp_eul
-#    print type(comp_eul)
+    assume ((q == 0).all() == False)
+    quat = qo.quat_norm(q.reshape(-1,))
+    assume (np.sqrt(quat[0]**2+quat[1]**2+quat[2]**2+quat[3]**2)>0.05)
+    comp_eul_phi, comp_eul_theta, comp_eul_psi = qc.quat_to_euler(quat)
+    print type(comp_eul_phi)
 #    print comp_eul
-    comp_quat = qc.euler_to_quat(comp_eul)
+    comp_quat = qc.euler_to_quat(comp_eul_phi,comp_eul_theta,comp_eul_psi)
 #    print type(comp_quat)
     assert type(quat) == np.ndarray
-    assert quat.shape == q.shape
+#    assert quat.shape == q.shape
 #    print len(comp_eul_phi+comp_eul_theta+comp_eul_psi), len(quat)
-    assert len(comp_eul[0]) == 3
-    assert len(quat[0]) == 4
-    assert len(comp_eul) == len(quat)
-    assert comp_quat.shape == quat.shape
-    print "comp",comp_quat
-    print "orig",quat
-    assert type(comp_eul) == np.ndarray
-    assert type(comp_quat) == np.ndarray
-    assert (np.allclose(quat, comp_quat, rtol=1e-05, atol=1e-08, equal_nan=True) or np.allclose(quat, -comp_quat, rtol=1e-05, atol=1e-08, equal_nan=True)) == True
+#    assert len(comp_eul_phi+comp_eul_theta+comp_eul_psi) == 3
+    assert len(quat) == 4
+#    assert comp_quat.shape == quat.shape
+    print type(comp_eul_phi)
+    assert type(comp_eul_phi) == np.ndarray
+#    assert type(comp_quat) == np.ndarray
+    assert comp_quat == quat
 
 if __name__ == '__main__' :    
 
