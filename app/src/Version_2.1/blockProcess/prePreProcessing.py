@@ -28,13 +28,13 @@ def check_duplicate_epochtime(epoch_time):
     
     # check if there are any duplicate epoch times in the sensor data file
     epoch_time_duplicate = False
-    epoch_time_unique, epoch_time_unique_ind = np.unique(epoch_time, 
+    epoch_time_unique, epoch_time_unique_ind = np.unique(epoch_time,
                                                          return_counts=True)
     if 2 in epoch_time_unique_ind:
         epoch_time_duplicate = True
         return epoch_time_duplicate
     else:
-        return epoch_time_duplicate                                                           
+        return epoch_time_duplicate
         
         
 def calc_quaternions(quat_array, indicator_col, corrupt_magn):
@@ -44,31 +44,31 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
     Args:
         quat_array: an array of the quaternions from the sensor data, qX,
         qY, qZ.
-        indicator_col: an array, values indicate missing data. 
-        corrupt_magn: an array, binary values indicating data is 
+        indicator_col: an array, values indicate missing data.
+        corrupt_magn: an array, binary values indicating data is
         corrupted due to uncalibrated magnetometer.
 
     Returns:
-        all_quaternions: An array of real and imaginary quaternions, 
+        all_quaternions: An array of real and imaginary quaternions,
         qW, qX, qY, qZ.
         corrupt_type: an array, indicator for corrupted data
 
     """
 
     # determine the imaginary quaternions
-    q_i = _computation_imaginary_quat(quat_array[:, 0], False)  # imaginary 
+    q_i = _computation_imaginary_quat(quat_array[:, 0], False)  # imaginary
                                                                 # quaternion
-    q_j = _computation_imaginary_quat(quat_array[:, 1], False)  # imaginary 
+    q_j = _computation_imaginary_quat(quat_array[:, 1], False)  # imaginary
                                                                 # quaternion
-    q_k = _computation_imaginary_quat(quat_array[:, 2], False)  # imaginary 
+    q_k = _computation_imaginary_quat(quat_array[:, 2], False)  # imaginary
                                                                 # quaternion
     
     # determine the real quaternion
-    qi_calc_qw = _computation_imaginary_quat(quat_array[:, 0])  # imaginary 
+    qi_calc_qw = _computation_imaginary_quat(quat_array[:, 0])  # imaginary
                                                                 # quaternion
-    qj_calc_qw = _computation_imaginary_quat(quat_array[:, 1])  # imaginary 
+    qj_calc_qw = _computation_imaginary_quat(quat_array[:, 1])  # imaginary
                                                                 # quaternion
-    qk_calc_qw = _computation_imaginary_quat(quat_array[:, 2])  # imaginary 
+    qk_calc_qw = _computation_imaginary_quat(quat_array[:, 2])  # imaginary
                                                                 # quaternion
     q_w = np.sqrt(1 - qi_calc_qw - qj_calc_qw - qk_calc_qw)  # real quaternion
 
@@ -98,7 +98,7 @@ def _computation_imaginary_quat(i_quat, check_qw=True):
 
     Args:
         i_quat: imaginary quaternion
-        check_qw: boolean variable to check if the function is used to 
+        check_qw: boolean variable to check if the function is used to
         calculate the real quaternion
 
     Returns:

@@ -10,11 +10,11 @@ from scipy.signal import periodogram
 
 from findPeaks import detect_peaks
 from dynamicSamplingRate import handle_dynamic_sampling, \
-handle_dynamic_sampling_create_features
+handle_dynamic_sampling_create_features, max_boundary
 
 
-def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd, 
-                  prom_mph, prom_peak_thresh, weak_mpd, weak_mph, 
+def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd,
+                  prom_mph, prom_peak_thresh, weak_mpd, weak_mph,
                   weak_peak_thresh):
     
     """
@@ -24,7 +24,7 @@ def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd,
         s: left foot/hip/right foot signals
         epoch_time: an array, epoch time from sensor
         window_samples: sliding window length
-        overlap_samples: how many samples must the next window overlap of 
+        overlap_samples: how many samples must the next window overlap of
         the previous window
         prom_mpd: minimum peak distance for prominent peaks
         prom_mph: minimum peak height for prominent peaks
@@ -39,20 +39,22 @@ def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd,
         feature_matrix: left foot/hip/right foot feature matrix
     """
 
-    feature_matrix = np.zeros((1, 28))  # declaring feature matrix for 
-    # each signal      
+    feature_matrix = np.zeros((1, 28))  # declaring feature matrix for
+    # each signal
+    max_bound_overlap = max_boundary(overlap_samples)
+    max_bound_win = max_boundary(window_samples)
     
-    overlap = [np.where(epoch_time-epoch_time[i] <= overlap_samples)[-1][-1] - \
-    i for i in range(len(epoch_time))]
+    overlap = [np.where(epoch_time[i:i+max_bound_overlap]-epoch_time[i] <= \
+        overlap_samples)[-1][-1] for i in range(len(epoch_time))]
     i = 0
     while i < len(epoch_time)-1:
-        epoch_time_subset = epoch_time[i:]
-        w, fs = handle_dynamic_sampling_create_features(s[:, 2], 
-                                                        epoch_time_subset, 
+        epoch_time_subset = epoch_time[i:i+max_bound_win]
+        w, fs = handle_dynamic_sampling_create_features(s[:, 2],
+                                                        epoch_time_subset,
                                                         window_samples, i)
        
-        feature_vector = _create_features(w, fs, prom_mpd, prom_mph, 
-                                          prom_peak_thresh, weak_mpd, 
+        feature_vector = _create_features(w, fs, prom_mpd, prom_mph,
+                                          prom_peak_thresh, weak_mpd,
                                           weak_mph, weak_peak_thresh)
         feature_matrix = np.vstack((feature_matrix, feature_vector))
         
@@ -63,7 +65,7 @@ def create_window(s, epoch_time, window_samples, overlap_samples, prom_mpd,
     return feature_matrix
 
 
-def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd, 
+def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
                      weak_mph, weak_peak_thresh):
                        
     """
@@ -103,12 +105,12 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
     feature_vector = np.hstack((feature_vector, np.var(w[int(len(w)/2):])))
     
     # autocorrelation
-    c = np.correlate(w, w, 'full')  # determining the autocorrelation of the 
+    c = np.correlate(w, w, 'full')  # determining the autocorrelation of the
     # sampled window
-    c = c[len(w):]  # only reading autocorrelation values with greater than 
+    c = c[len(w):]  # only reading autocorrelation values with greater than
     # zero lag
-    c = (2*(c - min(c))/(max(c) - min(c))) - 1  # normalizing the 
-    # autocorrelation values 
+    c = (2*(c - min(c))/(max(c) - min(c))) - 1  # normalizing the
+    # autocorrelation values
         
     feature_vector = np.hstack((feature_vector, np.array(
         len(detect_peaks(c, show=False)))))  # number of autocorrelation peaks
@@ -160,7 +162,7 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
         for l in range(len(pks)-1):
             if abs(pks[l] - pks[l+1]) <= weak_peak_thresh:
                 max_weak_peak_count = max_weak_peak_count + 1
-        feature_vector = np.hstack((feature_vector, 
+        feature_vector = np.hstack((feature_vector,
                                     np.array(max_weak_peak_count)))
         
     # Power band
@@ -183,7 +185,7 @@ def create_labels(labels, window_samples, overlap_samples, label_thresh,
     Args:
         labels: activity labels, 1's & 0's
         window_samples: sliding window length
-        overlap_samples: how many samples must the next window overlap of 
+        overlap_samples: how many samples must the next window overlap of
         the previous window
         label_thresh: threshold for labelling a window 1 or 0
         epoch_time: an array, epoch time from sensor
@@ -193,13 +195,15 @@ def create_labels(labels, window_samples, overlap_samples, label_thresh,
     """
     
     label_vector = np.zeros(1)
+    max_bound_overlap = max_boundary(overlap_samples)
+    max_bound_win = max_boundary(window_samples)
     
-    overlap = [np.where(epoch_time-epoch_time[i] <= overlap_samples)[-1][-1] - \
-    i for i in range(len(epoch_time))]
+    overlap = [np.where(epoch_time[i:i+max_bound_overlap]-epoch_time[i] <= \
+    overlap_samples)[-1][-1] for i in range(len(epoch_time))]
     i = 0
     while i < len(epoch_time)-1:
-        epoch_time_subset = epoch_time[i:]
-        labwin = handle_dynamic_sampling(labels, epoch_time_subset, 
+        epoch_time_subset = epoch_time[i:i+max_bound_win]
+        labwin = handle_dynamic_sampling(labels, epoch_time_subset,
                                          window_samples, i)
         if float(len(labwin[labwin == 1]))/len(labwin) >= label_thresh:
             label_vector = np.vstack((label_vector, np.array([1])))

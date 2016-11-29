@@ -1,0 +1,123 @@
+************* Module findPeaks
+C: 57, 0: Trailing whitespace (trailing-whitespace)
+C:182, 0: Final newline missing (missing-final-newline)
+C:  1, 0: Invalid module name "findPeaks" (invalid-name)
+W:  8, 0: String statement has no effect (pointless-string-statement)
+C: 18, 0: Invalid argument name "x" (invalid-name)
+C: 18, 0: Invalid argument name "ax" (invalid-name)
+C:101, 4: Invalid variable name "dx" (invalid-name)
+E:117, 7: Instance of 'tuple' has no 'size' member (no-member)
+E:121, 7: Instance of 'tuple' has no 'size' member (no-member)
+E:123, 7: Instance of 'tuple' has no 'size' member (no-member)
+E:126, 7: Instance of 'tuple' has no 'size' member (no-member)
+E:129, 7: Instance of 'tuple' has no 'size' member (no-member)
+C:130, 8: Invalid variable name "dx" (invalid-name)
+E:133, 7: Instance of 'tuple' has no 'size' member (no-member)
+R: 18, 0: Too many branches (18/12) (too-many-branches)
+C:155, 0: Invalid argument name "x" (invalid-name)
+C:155, 0: Invalid argument name "ax" (invalid-name)
+
+
+Report
+======
+72 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |NC         |NC         |100.00      |100.00   |
++---------+-------+-----------+-----------+------------+---------+
+|class    |0      |NC         |NC         |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|method   |0      |NC         |NC         |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|function |2      |NC         |NC         |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    matplotlib 
+      \-pyplot (findPeaks)
+    numpy (findPeaks)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |78     |42.62 |NC       |NC         |
++----------+-------+------+---------+-----------+
+|docstring |80     |43.72 |NC       |NC         |
++----------+-------+------+---------+-----------+
+|comment   |13     |7.10  |NC       |NC         |
++----------+-------+------+---------+-----------+
+|empty     |12     |6.56  |NC       |NC         |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |NC       |NC         |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |NC       |NC         |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |9      |NC       |NC         |
++-----------+-------+---------+-----------+
+|refactor   |1      |NC       |NC         |
++-----------+-------+---------+-----------+
+|warning    |1      |NC       |NC         |
++-----------+-------+---------+-----------+
+|error      |6      |NC       |NC         |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++---------------------------+------------+
+|message id                 |occurrences |
++===========================+============+
+|invalid-name               |7           |
++---------------------------+------------+
+|no-member                  |6           |
++---------------------------+------------+
+|trailing-whitespace        |1           |
++---------------------------+------------+
+|too-many-branches          |1           |
++---------------------------+------------+
+|pointless-string-statement |1           |
++---------------------------+------------+
+|missing-final-newline      |1           |
++---------------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 4.31/10
+

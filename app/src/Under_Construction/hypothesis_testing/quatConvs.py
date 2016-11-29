@@ -9,7 +9,8 @@ Created on Wed Sep 28 17:42:39 2016
 import numpy as np
 import quatOps as qo
 import warnings
-
+from decimal import *
+getcontext().prec = 40
 """
 ############################################################################
 Conversions between quaternions and Euler angles, using embedded direction
@@ -50,17 +51,44 @@ def quat_to_euler(q):
     c = 2*(q[:, 1]*q[:, 3] + q[:, 0]*q[:, 2])
     d = 2*(q[:, 2]*q[:, 3] - q[:, 0]*q[:, 1])
     e = 2*q[:, 0]**2 - 1 + 2*q[:, 3]**2
+    c[c >1] = 1
+    phi = np.arctan2(d, e)
+    theta = -np.arcsin(c)
+    psi = np.arctan2(b, a)
+    if any(c > .999999999):
+        q1 = q[c > .999999999]
+        phi[c > .999999999] = 0
+        theta[c > .999999999] = -np.pi/2
+#        print psi, "before"
+#        print sum(c > .999999999), "count"
+        psi[c > .999999999] = np.arctan2(-2*(q1[:, 1]*q1[:, 2] + q1[:, 0]*q1[:, 3]),
+                         -2*(q1[:, 1]*q1[:, 3] - q1[:, 0]*q1[:, 2]))
+#        print psi, "after"
+    elif any(c < -.999999999):
+        q1 = q[c < -.999999999]
+        phi[c < -.999999999] = 0
+        theta[c < -.999999999] = np.pi/2
+        psi[c < -.999999999] = np.arctan2(2*(q1[:, 1]*q1[:, 2] + q1[:, 0]*q1[:, 3]),
+                         2*(q1[:, 1]*q1[:, 3] - q1[:, 0]*q1[:, 2]))
+    elif any(np.sum(np.abs(q - np.array([[0, 0, np.sqrt(.5), 0]])) < np.array([[1e-8]*4]), axis=1) == 4):
+        ind = np.sum(np.abs(q - np.array([[0, 0, np.sqrt(.5), 0]])) < np.array([[1e-8]*4]), axis=1) == 4
+        print ind
+        phi[ind] = 0
+        theta[ind] = np.pi
+        psi[ind] = 0
 
-    C = c/np.sqrt(abs(1 - c**2))
+#    C = c/np.sqrt(abs(1 - c**2))
 
     # calculate euler angles from direction cosine matrix components
-    phi = np.arctan2(d, e)
-
-    theta = np.zeros(C.shape)
-    theta[np.isfinite(C)] = -np.arctan(C)
-    theta[np.isinf(C)] = np.pi/2
-
-    psi = np.arctan2(b, a)
+#    phi = np.arctan2(d, e)
+#
+##    theta = np.zeros(C.shape)
+#    theta[np.isfinite(C)] = -np.arctan(C)
+##    theta = -np.arctan(C)
+#    theta = -np.arcsin(c)
+##    theta[np.isinf(C)] = np.pi/2
+#
+#    psi = np.arctan2(b, a)
 
     return np.vstack([phi, theta, psi]).T
 

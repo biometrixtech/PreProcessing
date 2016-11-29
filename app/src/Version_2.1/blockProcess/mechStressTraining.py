@@ -28,7 +28,7 @@ def prepare_data(data, train=True):
     data_pd = pd.DataFrame()
     data_pd['LaX'] = np.array(data.LaX.reshape(-1,))
     data_pd['LaY'] = np.array(data.LaY)
-    data_pd['LaZ']= np.array(data.LaZ)
+    data_pd['LaZ'] = np.array(data.LaZ)
     data_pd['LeX'] = np.array(data.LeX)
     data_pd['LeY'] = np.array(data.LeY)
     data_pd['LeZ'] = np.array(data.LeZ)
@@ -47,8 +47,9 @@ def prepare_data(data, train=True):
     data_pd['HeY'] = np.array(data.HeY)
     data_pd['HeZ'] = np.array(data.HeZ)
     
-    total_column = ['LaX', 'LaY', 'LaZ','RaX', 'RaY', 'RaZ', 'HaX','HaY', 'HaZ',
-                    'LeX', 'LeY', 'LeZ','ReX', 'ReY', 'ReZ', 'HeX','HeY', 'HeZ']
+    total_column = ['LaX', 'LaY', 'LaZ', 'RaX', 'RaY', 'RaZ',
+                    'HaX', 'HaY', 'HaZ', 'LeX', 'LeY', 'LeZ',
+                    'ReX', 'ReY', 'ReZ', 'HeX', 'HeY', 'HeZ']
     
     X = data_pd[total_column].values
     if train:
@@ -70,7 +71,7 @@ def _model_fit(X, Y):
     """
     params = {'n_estimators': 1000, 'max_depth': 4, 'min_samples_split': 1,
               'learning_rate': 0.01, 'loss': 'lad'}
-    slr = GradientBoostingRegressor(**params)    
+    slr = GradientBoostingRegressor(**params)
     fit = slr.fit(X, Y)
 
     return fit
@@ -78,7 +79,7 @@ def _model_fit(X, Y):
 def train_model(data, path):
     """Run the model training and model fit to pickle
     Args:
-        data: 
+        data:
         path: filepath where the fit object is pickled
         
     Returns:
@@ -93,23 +94,24 @@ def train_model(data, path):
         pickle.dump(fit, file_path)
     
 if __name__ == '__main__':
+    pass
 #    import matplotlib.pyplot as plt
 #    import os
 #    import numpy as np
-    import time
-#    os.chdir('C:\\Users\\dipesh\\Desktop\\biometrix\\python_scripts')
-    from phaseDetection import combine_phase
-    path = 'C:\\Users\\dipesh\\Desktop\\biometrix\\'
-    data0 = np.genfromtxt(path+"combined\\sensor&grfdata.csv", delimiter=",",
-                          names=True)
-    sampl_rate = 250
-    lf_phase, rf_phase = combine_phase(data0['LaZ'], data0['RaZ'], sampl_rate)
-    data = pd.DataFrame(data0)
-    data['phase_l'] = lf_phase
-    data['phase_r'] = rf_phase
-    s = time.time()
-    train_model(data, path+"ms_trainmodel.pkl")
-    print "it took", time.time()-s, "to train the model"
+#    import time
+##    os.chdir('C:\\Users\\dipesh\\Desktop\\biometrix\\python_scripts')
+#    from phaseDetection import combine_phase
+#    path = 'C:\\Users\\dipesh\\Desktop\\biometrix\\'
+#    data0 = np.genfromtxt(path+"combined\\sensor&grfdata.csv", delimiter=",",
+#                          names=True)
+#    sampl_rate = 250
+#    lf_phase, rf_phase = combine_phase(data0['LaZ'], data0['RaZ'], sampl_rate)
+#    data = pd.DataFrame(data0)
+#    data['phase_l'] = lf_phase
+#    data['phase_r'] = rf_phase
+#    s = time.time()
+#    train_model(data, path+"ms_trainmodel.pkl")
+#    print "it took", time.time()-s, "to train the model"
 #    with open(path + "fittedModel.pkl") as f:
 #        fit = pickle.load(f)
 #    X = prepareData(data,False)
@@ -117,7 +119,3 @@ if __name__ == '__main__':
 #    y_true = (data['RFz']+data['LFz']).values
 #    diff = np.abs(y_true-y_pred)
 #    plt.plot(y_pred)
-    
-
-
-
