@@ -67,8 +67,8 @@ def run_scoring(sensor_data, file_name):
 
     # Create a RawFrame object with initial data
     columns = sensor_data.dtype.names
-    data = _dynamic_name(sensor_data)
-    data = do.RawFrame(data, columns)
+#    data = _dynamic_name(sensor_data)
+    data = do.RawFrame(sensor_data, columns)
 
 
     # CONTROL SCORE
@@ -133,14 +133,14 @@ def _connect_db_s3():
         return conn, cur, s3
 
 
-def _dynamic_name(sdata):
-    """ Isolates data from input data object.
-    """
-    _names = sdata.dtype.names[1:]
-    _width = len(_names)+1
-    data = sdata.view((float, _width))
-
-    return data
+#def _dynamic_name(sdata):
+#    """ Isolates data from input data object.
+#    """
+#    _names = sdata.dtype.names[1:]
+#    _width = len(_names)+1
+#    data = sdata.view((float, _width))
+#
+#    return data
 
 
 def _define_sql_queries():
