@@ -59,36 +59,23 @@ def quat_to_euler(q):
         q1 = q[c > .999999999]
         phi[c > .999999999] = 0
         theta[c > .999999999] = -np.pi/2
-#        print psi, "before"
-#        print sum(c > .999999999), "count"
-        psi[c > .999999999] = np.arctan2(-2*(q1[:, 1]*q1[:, 2] + q1[:, 0]*q1[:, 3]),
+        psi[c > .999999999] = np.arctan2(-2*(q1[:, 1]*q1[:, 2] + q1[:, 0] \
+                                         *q1[:, 3]),
                          -2*(q1[:, 1]*q1[:, 3] - q1[:, 0]*q1[:, 2]))
-#        print psi, "after"
     elif any(c < -.999999999):
         q1 = q[c < -.999999999]
         phi[c < -.999999999] = 0
         theta[c < -.999999999] = np.pi/2
-        psi[c < -.999999999] = np.arctan2(2*(q1[:, 1]*q1[:, 2] + q1[:, 0]*q1[:, 3]),
-                         2*(q1[:, 1]*q1[:, 3] - q1[:, 0]*q1[:, 2]))
-    elif any(np.sum(np.abs(q - np.array([[0, 0, np.sqrt(.5), 0]])) < np.array([[1e-8]*4]), axis=1) == 4):
-        ind = np.sum(np.abs(q - np.array([[0, 0, np.sqrt(.5), 0]])) < np.array([[1e-8]*4]), axis=1) == 4
-        print ind
+        psi[c < -.999999999] = np.arctan2(2*(q1[:, 1]*q1[:, 2] + q1[:, 0] \
+                                          *q1[:, 3]), 2*(q1[:, 1]*q1[:, 3] \
+                                          - q1[:, 0]*q1[:, 2]))
+    elif any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
+             < np.array([[1e-8]*4]), axis=1) == 4):
+        ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
+                     < np.array([[1e-8]*4]), axis=1) == 4
         phi[ind] = 0
         theta[ind] = np.pi
         psi[ind] = 0
-
-#    C = c/np.sqrt(abs(1 - c**2))
-
-    # calculate euler angles from direction cosine matrix components
-#    phi = np.arctan2(d, e)
-#
-##    theta = np.zeros(C.shape)
-#    theta[np.isfinite(C)] = -np.arctan(C)
-##    theta = -np.arctan(C)
-#    theta = -np.arcsin(c)
-##    theta[np.isinf(C)] = np.pi/2
-#
-#    psi = np.arctan2(b, a)
 
     return np.vstack([phi, theta, psi]).T
 
@@ -147,7 +134,7 @@ def euler_to_quat(euler_data):
 
     max_eig=np.argmax(D,1)
     # find the eigenvector containing the largest eigenvalue and extract the
-    # quaternion from its components.
+        # quaternion from its components.
     q = np.zeros((len(max_eig), 4))
 
     for row in range(len(max_eig)):
