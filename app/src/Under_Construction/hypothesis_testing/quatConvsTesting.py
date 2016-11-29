@@ -14,9 +14,10 @@ import numpy as np
 import quatConvs as qc
 import quatOps as qo
 
-@given(arrays(np.float, (random.randint(1,5),4), elements=st.floats(min_value=-1,
+@given(arrays(np.float, (random.randint(5,10),4), elements=st.floats(min_value=-1,
               max_value=1)))
 @example(np.array([[1,0,0,0]]))
+@example(np.array([[0,0,1,1]]))
 def test_quatConvs(q):
     """
     Propert and unit testing for quaternion - euler conversions.
@@ -44,12 +45,14 @@ def test_quatConvs(q):
             for these cases.
 
     """
+    assume(not (q == 0).all())
+    assume(all(np.linalg.norm(q, axis=1) > 0.1))
 
     # pass data with value through conversions
-    for row in range(len(q)):
-        assume (not (q[row] == 0).all())
-        assume ((np.sqrt(q[row][0]**2 + q[row][1]**2 + q[row][2]**2 \
-            + q[row][3]**2)).all() > 0.05)
+#    for row in range(len(q)):
+#        assume (not (q[row] == 0).all())
+#        assume ((np.sqrt(q[row][0]**2 + q[row][1]**2 + q[row][2]**2 \
+#            + q[row][3]**2)).all() > 0.05)
     quat_n = qo.quat_norm(q)
     c_mag = np.absolute(quat_n[:, 1]*quat_n[:, 3] + quat_n[:, 0]*quat_n[:, 2])
     assume ((np.absolute(c_mag-0.5)).all() > 0.1)
@@ -71,9 +74,10 @@ def test_quatConvs(q):
     assert type(comp_eul) == np.ndarray
     assert type(comp_quat) == np.ndarray
     # check that conversions cancel each other out.
-    assert (np.allclose(quat_n, comp_quat, rtol=1, atol=1e-01,
-                        equal_nan=True) or np.allclose(quat_n, -comp_quat,
-                        rtol=1e-02, atol=1e-03, equal_nan=True)) == True
+    for row in range(len(quat_n)):
+           assert (np.allclose(quat_n[row], comp_quat[row], atol = 1e-6,
+                           equal_nan=True) or np.allclose(quat_n[row], -comp_quat[row],
+                           atol = 1e-6, equal_nan=True)) == True
 
 if __name__ == '__main__' :    
 
