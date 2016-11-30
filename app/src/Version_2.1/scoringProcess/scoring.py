@@ -55,13 +55,13 @@ def score(data, user_hist):
     #divide each feature value by (totalAccel*mechStress) to control
     #for these performance variables
     # TODO (Dipesh) need to find better control
-    hDL = np.array(data.hip_drop_l).reshape(-1, )/(mS*tA)
-    hDR = np.array(data.hip_drop_r).reshape(-1, )/(mS*tA)
+    hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(mS*tA)
+    hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(mS*tA)
     hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
-    aRL = np.array(data.ankle_rot_l).reshape(-1, )/(mS*tA)
-    aRR = np.array(data.ankle_rot_r).reshape(-1, )/(mS*tA)
-    lPL = np.array(data.land_pattern_l).reshape(-1, )/(mS*tA)
-    lPR = np.array(data.land_pattern_r).reshape(-1, )/(mS*tA)
+    aRL = np.array(data.ankle_rot_lf).reshape(-1, )/(mS*tA)
+    aRR = np.array(data.ankle_rot_rf).reshape(-1, )/(mS*tA)
+    lPL = np.array(data.land_pattern_lf).reshape(-1, )/(mS*tA)
+    lPR = np.array(data.land_pattern_rf).reshape(-1, )/(mS*tA)
     lT = np.array(data.land_time).reshape(-1, )/(mS*tA)
 
     control = np.array(data.control).reshape(-1, )
@@ -145,13 +145,13 @@ def _create_distribution(data):
     """
     mS = np.array(np.abs(data.mech_stress))
     tA = np.array(np.abs(data.total_accel))
-    fn_hDL = _con_fun(np.array(data.hip_drop_l/(tA*mS)))
-    fn_hDR = _con_fun(np.array(data.hip_drop_r/(tA*mS)))
+    fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(tA*mS)))
+    fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(tA*mS)))
     fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
-    fn_aRL = _con_fun(np.array(data.ankle_rot_l/(tA*mS)), True)
-    fn_aRR = _con_fun(np.array(data.ankle_rot_r/(tA*mS)), True)
-    fn_lPL = _con_fun(np.array(data.land_pattern_l/(tA*mS)))
-    fn_lPR = _con_fun(np.array(data.land_pattern_r/(tA*mS)))
+    fn_aRL = _con_fun(np.array(data.ankle_rot_lf/(tA*mS)), True)
+    fn_aRR = _con_fun(np.array(data.ankle_rot_rf/(tA*mS)), True)
+    fn_lPL = _con_fun(np.array(data.land_pattern_lf/(tA*mS)))
+    fn_lPR = _con_fun(np.array(data.land_pattern_rf/(tA*mS)))
     fn_lT = _con_fun(np.array(data.land_time/(tA*mS)))
 #    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
 

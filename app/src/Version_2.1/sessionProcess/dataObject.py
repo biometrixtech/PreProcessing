@@ -32,8 +32,8 @@ class DataObject(object): #Abstract dataObject class
     @abc.abstractmethod
     def __init__(self, data=None, columns=None):
         # set attributes using column names
-        for i in range(len(data.transpose())):
-            setattr(self, columns[i], data[:, i].reshape(-1, 1))
+        for i in range(len(columns)):
+            setattr(self, columns[i], data[columns[i]].reshape(-1, 1))
 
 class RawFrame(DataObject):
     """

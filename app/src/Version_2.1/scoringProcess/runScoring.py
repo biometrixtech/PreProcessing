@@ -1,30 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct 14 13:45:56 2016
+Created on Tues Nov 29 13:45:56 2016
 
-@author: ankur
-"""
-#import sys
-#import pickle
-import cStringIO
-import logging
-#import numpy as np
-import pandas as pd
-import psycopg2
-import psycopg2.extras
-import boto3
+@author: dipesh
 
-from controlScore import control_score
-from scoring import score
-import createTables as ct
-import dataObject as do
-
-
-logger = logging.getLogger()
-psycopg2.extras.register_uuid()
-
-
-"""
 Execution script to run scoring. Takes movement quality features and performance
 variables and returns scores for control, symmetry and consistency of movement.
 
@@ -35,10 +14,27 @@ historical MQF and PV: from s3 container (to be changed later)
 Output data stored in TrainingEvents or BlockEvents table.
 
 """
+import sys
+#import pickle
+import cStringIO
+import logging
+import numpy as np
+import pandas as pd
+import psycopg2
+import psycopg2.extras
+import boto3
+
+from controlScore import control_score
+from scoring import score
+import createTables as ct
+import dataObject as do
+import scoringProcessQueries as queries
+
+logger = logging.getLogger()
+psycopg2.extras.register_uuid()
 
 
-
-def run_scoring(sensor_data, file_name):
+def run_scoring(sensor_data, file_name, aws=True):
     """Creates object attributes according to block analysis process.
 
     Args:
@@ -60,23 +56,24 @@ def run_scoring(sensor_data, file_name):
             hip_control, ankle_control, control_lf, control_rf
     """
     cont = 'biometrix-blockprocessedcontainer'
-    
+
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
-    queries = _define_sql_queries()
 
     # Create a RawFrame object with initial data
-    columns = sensor_data.dtype.names
-#    data = _dynamic_name(sensor_data)
-    data = do.RawFrame(sensor_data, columns)
-
+    sdata = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
+                          names=True)
+    columns = sdata.dtype.names
+    data = do.RawFrame(sdata, columns)
 
     # CONTROL SCORE
     data.control, data.hip_control, data.ankle_control, data.control_lf,\
                     data.control_rf = control_score(data.LeX, data.ReX,
                                                     data.HeX, data.ms_elapsed)
-
-    logger.info('DONE WITH CONTROL SCORES!')
+    if aws:
+        logger.info('DONE WITH CONTROL SCORES!')
+    else:
+        print('DONE WITH CONTROL SCORES!')
 
     # SCORING
     # Symmetry, Consistency, Destructive/Constructive Multiplier and
@@ -84,17 +81,20 @@ def run_scoring(sensor_data, file_name):
     # At this point we need to load the historical data for the subject
 
     # read historical data
-    try:
-        obj = s3.Bucket(cont).Object('subject3_DblSquat_hist.csv')
-        fileobj = obj.get()
-        body = fileobj["Body"].read()
-        hist_data = cStringIO.StringIO(body)
-    except Exception as error:
-        logger.info("Cannot read historical user data from s3!")
-        raise error
+    if aws:
+        try:
+            obj = s3.Bucket(cont).Object('subject3_DblSquat_hist.csv')
+            fileobj = obj.get()
+            body = fileobj["Body"].read()
+            hist_data = cStringIO.StringIO(body)
+        except Exception as error:
+            logger.info("Cannot read historical user data from s3!")
+            raise error
+        userDB = pd.read_csv(hist_data)
+        logger.info("user history captured")
+    else:
+        userDB = pd.read_csv("subject3_DblSquat_hist.csv")
 
-    userDB = pd.read_csv(hist_data)
-    logger.info("user history captured")
     data.consistency, data.hip_consistency, \
         data.ankle_consistency, data.consistency_lf, \
         data.consistency_rf, data.symmetry, \
@@ -104,13 +104,13 @@ def run_scoring(sensor_data, file_name):
         data.session_duration, data.block_mech_stress_elapsed, \
         data.session_mech_stress_elapsed = score(data, userDB)
 
-    logger.info('DONE WITH EVERYTHING!')
-
-
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
-    result = _write_table_db(movement_data, cur, conn, queries)
-    print result
+    if aws:
+        result = _write_table_db(movement_data, cur, conn)
+        return result
+    else:
+        return movement_data
 
 
 def _connect_db_s3():
@@ -143,55 +143,51 @@ def _connect_db_s3():
 #    return data
 
 
-def _define_sql_queries():
-    """Define all the sql queries needed
-    """
-    quer_create = "CREATE TEMP TABLE temp_mov AS SELECT * FROM movement LIMIT 0"
+#def _define_sql_queries():
+#    """Define all the sql queries needed
+#    """
+#    quer_create = "CREATE TEMP TABLE temp_mov AS SELECT * FROM movement LIMIT 0"
+#
+#    # Query to copy data over from temp table to movement table
+#    quer_update = """UPDATE movement
+#        set control = temp_mov.control,
+#            hip_control = temp_mov.hip_control,
+#            ankle_control = temp_mov.ankle_control,
+#            control_lf = temp_mov.control_lf,
+#            control_rf = temp_mov.control_rf,
+#            consistency = temp_mov.consistency,
+#            hip_consistency = temp_mov.hip_consistency,
+#            ankle_consistency = temp_mov.ankle_consistency,
+#            consistency_lf = temp_mov.consistency_lf,
+#            consistency_rf = temp_mov.consistency_rf,
+#            symmetry = temp_mov.symmetry,
+#            hip_symmetry = temp_mov.hip_symmetry,
+#            ankle_symmetry = temp_mov.ankle_symmetry,
+#            destr_multiplier = temp_mov.destr_multiplier,
+#            dest_mech_stress = temp_mov.dest_mech_stress,
+#            const_mech_stress = temp_mov.const_mech_stress,
+#            block_duration = temp_mov.block_duration,
+#            session_duration = temp_mov.session_duration,
+#            block_mech_stress_elapsed = temp_mov.block_mech_stress_elapsed,
+#            session_mech_stress_elapsed = temp_mov.session_mech_stress_elapsed
+#        from temp_mov
+#        where movement.user_id = temp_mov.user_id and
+#              movement.session_id = temp_mov.session_id and
+#              movement.obs_index = temp_mov.obs_index"""
+#
+#    # finally drop the temp table
+#    quer_drop = "DROP TABLE temp_mov"
 
-    # Query to copy data over from temp table to movement table
-    quer_update = """UPDATE movement
-        set control = temp_mov.control,
-            hip_control = temp_mov.hip_control,
-            ankle_control = temp_mov.ankle_control,
-            control_lf = temp_mov.control_lf,
-            control_rf = temp_mov.control_rf,
-            consistency = temp_mov.consistency,
-            hip_consistency = temp_mov.hip_consistency,
-            ankle_consistency = temp_mov.ankle_consistency,
-            consistency_lf = temp_mov.consistency_lf,
-            consistency_rf = temp_mov.consistency_rf,
-            symmetry = temp_mov.symmetry,
-            hip_symmetry = temp_mov.hip_symmetry,
-            ankle_symmetry = temp_mov.ankle_symmetry,
-            destr_multiplier = temp_mov.destr_multiplier,
-            dest_mech_stress = temp_mov.dest_mech_stress,
-            const_mech_stress = temp_mov.const_mech_stress,
-            block_duration = temp_mov.block_duration,
-            session_duration = temp_mov.session_duration,
-            block_mech_stress_elapsed = temp_mov.block_mech_stress_elapsed,
-            session_mech_stress_elapsed = temp_mov.session_mech_stress_elapsed
-        from temp_mov
-        where movement.user_id = temp_mov.user_id and
-              movement.session_id = temp_mov.session_id and
-              movement.obs_index = temp_mov.obs_index"""
-
-    # finally drop the temp table
-    quer_drop = "DROP TABLE temp_mov"
-
-    return {'quer_create': quer_create, 'quer_update': quer_update,
-            'quer_drop': quer_drop}
+#    return {'quer_create': quer_create, 'quer_update': quer_update,
+#            'quer_drop': quer_drop}
 
 
-def _write_table_db(movement_data, cur, conn, queries):
+def _write_table_db(movement_data, cur, conn):
     """Update the movement table with all the scores
     Args:
         movement_data: numpy recarray with complete data
         cur: cursor pointing to the current db connection
         conn: db connection
-        queries: sql queries needed to write to the table includes
-            queries[0]: create temp table
-            queries[1]: update movement table
-            queries[2]: drop temp table
     Returns:
         result: string signifying success
     """
@@ -207,15 +203,15 @@ def _write_table_db(movement_data, cur, conn, queries):
 
     fileobj_db = cStringIO.StringIO()
     try:
-        cur.execute(queries['quer_create'])
+        cur.execute(queries.quer_create)
         movement_data_pd.to_csv(fileobj_db, index=False, header=False,
                                 na_rep='NaN')
         fileobj_db.seek(0)
         cur.copy_from(file=fileobj_db, table='temp_mov', sep=',',
                       columns=movement_data.dtype.names)
-        cur.execute(queries['quer_update'])
+        cur.execute(queries.quer_update)
         conn.commit()
-        cur.execute(queries['quer_drop'])
+        cur.execute(queries.quer_drop)
         conn.commit()
         conn.close()
     except Exception as error:
@@ -227,4 +223,6 @@ def _write_table_db(movement_data, cur, conn, queries):
 
 
 if __name__ == "__main__":
-    pass
+    file_name = 'subject3_DblSquat_hist.csv'
+    data = 'subject3_DblSquat_hist.csv'
+    out_data = run_scoring(data, file_name, aws=False)
