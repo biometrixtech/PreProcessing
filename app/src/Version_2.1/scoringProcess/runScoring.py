@@ -178,7 +178,8 @@ def _define_sql_queries():
     # finally drop the temp table
     quer_drop = "DROP TABLE temp_mov"
 
-    return [quer_create, quer_update, quer_drop]
+    return {'quer_create': quer_create, 'quer_update': quer_update,
+            'quer_drop': quer_drop}
 
 
 def _write_table_db(movement_data, cur, conn, queries):
@@ -206,15 +207,15 @@ def _write_table_db(movement_data, cur, conn, queries):
 
     fileobj_db = cStringIO.StringIO()
     try:
-        cur.execute(queries[0])
+        cur.execute(queries['quer_create'])
         movement_data_pd.to_csv(fileobj_db, index=False, header=False,
                                 na_rep='NaN')
         fileobj_db.seek(0)
         cur.copy_from(file=fileobj_db, table='temp_mov', sep=',',
                       columns=movement_data.dtype.names)
-        cur.execute(queries[1])
+        cur.execute(queries['quer_update'])
         conn.commit()
-        cur.execute(queries[2])
+        cur.execute(queries['quer_drop'])
         conn.commit()
         conn.close()
     except Exception as error:
