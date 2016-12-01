@@ -67,11 +67,14 @@ def control_score(LeX, HeX, ReX, ms_elapsed, phase_lf, phase_rf):
 
 
 if __name__ == '__main__':
+    import time
     file_name = 'subject3_DblSquat_hist.csv'
     data = pd.read_csv(file_name)
-    control, hip_control, ankle_control, control_lf_1,\
-            control_rf_1 = control_score(data.LeX, data.ReX, data.HeX,
-                                            data.ms_elapsed, data.phase_lf,
-                                            data.phase_rf)
+    start = time.time()
+    control, hip_control, ankle_control, control_lf,\
+            control_rf = control_score(data.LeX, data.ReX, data.HeX,
+                                       data.ms_elapsed, data.phase_lf,
+                                       data.phase_rf)
+    print time.time() - start
     pass
 

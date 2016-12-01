@@ -79,7 +79,10 @@ def run_session(sensor_data, file_name, aws=True):
     conn, cur, s3 = _connect_db_s3()
     
     # read session_event_id and other relevant ids
-    ids_from_db = _read_ids(cur, aws, file_name)
+    try:
+        ids_from_db = _read_ids(cur, aws, file_name)
+    except IndexError:
+        return "Fail!"
     session_event_id = ids_from_db[0]
 
     #Read transformation offset values
@@ -200,139 +203,146 @@ def run_session(sensor_data, file_name, aws=True):
 
     # INTELLIGENT ACTIVITY DETECTION (IAD)
     # load model
-    try:
-        iad_obj = s3.Bucket(cont_models).Object('iad_finalized_model.sav')
-        iad_fileobj = iad_obj.get()
-        iad_body = iad_fileobj["Body"].read()
-
-        # we're reading the first model on the list, there are multiple
-        loaded_iad_model = pickle.loads(iad_body)
-    except Exception as error:
-        _logger("Cannot load iad_model from s3", aws, info=False)
-        raise error
-
-    # predict activity state
-    iad_features = IAD.preprocess_iad(data, training=False)
-    iad_labels = loaded_iad_model.predict(iad_features)
-    iad_predicted_labels = IAD.label_aggregation(iad_labels)
-    data.activity_id =\
-            IAD.mapping_labels_on_data(iad_predicted_labels,
-                                       len(data.LaX)).reshape(-1, 1)
-
-    _logger('DONE WITH IAD!', aws)
-
-    # save sensor data before subsetting
-    sensor_data = ct.create_sensor_data(len(data.LaX), data)
-    sensor_data_pd = pd.DataFrame(sensor_data)
-    if aws:
-        fileobj = cStringIO.StringIO()
-        sensor_data_pd.to_csv(fileobj, index=False)
-        fileobj.seek(0)
-        try:
-            s3.Bucket(cont_write).put_object(Key="processed_"+file_name,
-                                             Body=fileobj)
-        except boto3.exceptions as error:
-            _logger("Cannot write processed file to s3!", aws, info=False)
-            raise error
-    else:
-        sensor_data_pd.to_csv("processed_"+file_name, index=False)
+#    try:
+#        iad_obj = s3.Bucket(cont_models).Object('iad_finalized_model.sav')
+#        iad_fileobj = iad_obj.get()
+#        iad_body = iad_fileobj["Body"].read()
+#
+#        # we're reading the first model on the list, there are multiple
+#        loaded_iad_model = pickle.loads(iad_body)
+#    except Exception as error:
+#        if aws:
+#            _logger("Cannot load iad_model from s3", aws, info=False)
+#            raise error
+#        else:
+#            try:
+#                with open('iad_finalized_model.sav') as model_file:
+#                    loaded_iad_model = pickle.load(model_file)
+#            except:
+#                raise IOError("Model file not found in S3 or local directory")
+#
+#    # predict activity state
+#    iad_features = IAD.preprocess_iad(data, training=False)
+#    iad_labels = loaded_iad_model.predict(iad_features)
+#    iad_predicted_labels = IAD.label_aggregation(iad_labels)
+#    data.activity_id =\
+#            IAD.mapping_labels_on_data(iad_predicted_labels,
+#                                       len(data.LaX)).reshape(-1, 1)
+#
+#    _logger('DONE WITH IAD!', aws)
+#
+#    # save sensor data before subsetting
+#    sensor_data = ct.create_sensor_data(len(data.LaX), data)
+#    sensor_data_pd = pd.DataFrame(sensor_data)
+#    if aws:
+#        fileobj = cStringIO.StringIO()
+#        sensor_data_pd.to_csv(fileobj, index=False)
+#        fileobj.seek(0)
+#        try:
+#            s3.Bucket(cont_write).put_object(Key="processed_"+file_name,
+#                                             Body=fileobj)
+#        except boto3.exceptions as error:
+#            _logger("Cannot write processed file to s3!", aws, info=False)
+#            raise error
+#    else:
+#        sensor_data_pd.to_csv("processed_"+file_name, index=False)
 
 #    data = _subset_data(data, neutral_data)
 #    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
 
     # set observation index
-    data.obs_index = np.array(range(len(data.LaX))).reshape(-1, 1) + 1
-
-    # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
-    # isolate hip acceleration and euler angle data
-    hip_acc = np.hstack([data.HaX, data.HaY, data.HaZ])
-    hip_eul = np.hstack([data.HeX, data.HeY, data.HeZ])
-
-    # analyze planes of movement
-    data.lat, data.vert, data.horz, data.rot,\
-        data.lat_binary, data.vert_binary, data.horz_binary,\
-        data.rot_binary, data.stationary_binary,\
-        data.total_accel = matrib.plane_analysis(hip_acc, hip_eul,
-                                                 data.ms_elapsed)
-
-    # analyze stance
-    data.standing, data.not_standing \
-        = matrib.standing_or_not(hip_eul, data.epoch_time)
-    data.double_leg, data.single_leg, data.feet_eliminated \
-        = matrib.double_or_single_leg(data.phase_lf, data.phase_rf,
-                                      data.standing, data.epoch_time)
-    data.single_leg_stationary, data.single_leg_dynamic \
-        = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
-                                       data.single_leg, data.epoch_time)
-
-    _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!', aws)
-
-    # MOVEMENT QUALITY FEATURES
-
-    # isolate neutral quaternions
-    lf_neutral = neutral_data[:, :4]
-    hip_neutral = neutral_data[:, 4:8]
-    rf_neutral = neutral_data[:, 8:]
-
-    # isolate actual euler angles
-    hip_euler = qc.quat_to_euler(hip_neutral)
-    lf_euler = qc.quat_to_euler(lf_neutral)
-    rf_euler = qc.quat_to_euler(rf_neutral)
-
-    # define balance CME dictionary
-    cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15],
-                'hipdropl':[-4, -7, 4, 15], 'prosupr':[-4, -15, 4, 7],
-                'hiprotr':[-4, -15, 4, 7], 'hipdropr':[-4, -15, 4, 7],
-                'hiprotd':[-4, -7, 4, 7]}
-
-    # contralateral hip drop attributes
-    nl_contra = cmed.cont_rot_CME(data.HeX, data.phase_lf, [1], hip_euler[:, 0],
-                                  cme_dict['hipdropl'])
-    nr_contra = cmed.cont_rot_CME(data.HeX, data.phase_rf, [2], hip_euler[:, 0],
-                                  cme_dict['hipdropr'])
-    data.contra_hip_drop_lf = nl_contra[:, 1].reshape(-1, 1)
-    # fix so superior > 0
-    data.contra_hip_drop_lf = data.contra_hip_drop_lf* - 1
-    data.contra_hip_drop_rf = nr_contra[:, 1].reshape(-1, 1)
-
-    # pronation/supination attributes
-    nl_prosup = cmed.cont_rot_CME(data.LeX, data.phase_lf, [0, 1],
-                                  lf_euler[:, 0], cme_dict['prosupl'])
-    nr_prosup = cmed.cont_rot_CME(data.ReX, data.phase_rf, [0, 2],
-                                  rf_euler[:, 0], cme_dict['prosupr'])
-    data.ankle_rot_lf = nl_prosup[:, 1].reshape(-1, 1)
-    data.ankle_rot_lf = data.ankle_rot_lf*-1 # fix so superior > 0
-    data.ankle_rot_rf = nr_prosup[:, 1].reshape(-1, 1)
-
-    # lateral hip rotation attributes
-    cont_hiprot = cmed.cont_rot_CME(data.HeZ, data.phase_lf, [0, 1, 2, 3, 4, 5],
-                                    hip_euler[:, 2], cme_dict['hiprotd'])
-    data.hip_rot = cont_hiprot[:, 1].reshape(-1, 1)
-    data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
-
-    _logger('DONE WITH BALANCE CME!', aws)
-
-    # IMPACT CME
-    # define dictionary for msElapsed
-
-    # landing time attributes
-    n_landtime, ltime_index = impact.sync_time(data.phase_rf, data.phase_lf,
-                                               data.epoch_time, len(data.LaX))
-    # landing pattern attributes
-    if len(n_landtime) != 0:
-        n_landpattern = impact.landing_pattern(data.ReY, data.LeY, n_landtime)
-        land_time, land_pattern =\
-            impact.continuous_values(n_landpattern, n_landtime,
-                                     len(data.LaX), ltime_index)
-        data.land_time = land_time[:, 0].reshape(-1, 1)
-        data.land_pattern_rf = land_pattern[:, 0].reshape(-1, 1)
-        data.land_pattern_lf = land_pattern[:, 1].reshape(-1, 1)
-    else:
-        data.land_time = np.zeros((len(data.LaX), 1))*np.nan
-        data.land_pattern_lf = np.zeros((len(data.LaX), 1))*np.nan
-        data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
-
-    _logger('DONE WITH IMPACT CME!', aws)
+#    data.obs_index = np.array(range(len(data.LaX))).reshape(-1, 1) + 1
+#
+#    # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
+#    # isolate hip acceleration and euler angle data
+#    hip_acc = np.hstack([data.HaX, data.HaY, data.HaZ])
+#    hip_eul = np.hstack([data.HeX, data.HeY, data.HeZ])
+#
+#    # analyze planes of movement
+#    data.lat, data.vert, data.horz, data.rot,\
+#        data.lat_binary, data.vert_binary, data.horz_binary,\
+#        data.rot_binary, data.stationary_binary,\
+#        data.total_accel = matrib.plane_analysis(hip_acc, hip_eul,
+#                                                 data.ms_elapsed)
+#
+#    # analyze stance
+#    data.standing, data.not_standing \
+#        = matrib.standing_or_not(hip_eul, data.epoch_time)
+#    data.double_leg, data.single_leg, data.feet_eliminated \
+#        = matrib.double_or_single_leg(data.phase_lf, data.phase_rf,
+#                                      data.standing, data.epoch_time)
+#    data.single_leg_stationary, data.single_leg_dynamic \
+#        = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
+#                                       data.single_leg, data.epoch_time)
+#
+#    _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!', aws)
+#
+#    # MOVEMENT QUALITY FEATURES
+#
+#    # isolate neutral quaternions
+#    lf_neutral = neutral_data[:, :4]
+#    hip_neutral = neutral_data[:, 4:8]
+#    rf_neutral = neutral_data[:, 8:]
+#
+#    # isolate actual euler angles
+#    hip_euler = qc.quat_to_euler(hip_neutral)
+#    lf_euler = qc.quat_to_euler(lf_neutral)
+#    rf_euler = qc.quat_to_euler(rf_neutral)
+#
+#    # define balance CME dictionary
+#    cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15],
+#                'hipdropl':[-4, -7, 4, 15], 'prosupr':[-4, -15, 4, 7],
+#                'hiprotr':[-4, -15, 4, 7], 'hipdropr':[-4, -15, 4, 7],
+#                'hiprotd':[-4, -7, 4, 7]}
+#
+#    # contralateral hip drop attributes
+#    nl_contra = cmed.cont_rot_CME(data.HeX, data.phase_lf, [1], hip_euler[:, 0],
+#                                  cme_dict['hipdropl'])
+#    nr_contra = cmed.cont_rot_CME(data.HeX, data.phase_rf, [2], hip_euler[:, 0],
+#                                  cme_dict['hipdropr'])
+#    data.contra_hip_drop_lf = nl_contra[:, 1].reshape(-1, 1)
+#    # fix so superior > 0
+#    data.contra_hip_drop_lf = data.contra_hip_drop_lf* - 1
+#    data.contra_hip_drop_rf = nr_contra[:, 1].reshape(-1, 1)
+#
+#    # pronation/supination attributes
+#    nl_prosup = cmed.cont_rot_CME(data.LeX, data.phase_lf, [0, 1],
+#                                  lf_euler[:, 0], cme_dict['prosupl'])
+#    nr_prosup = cmed.cont_rot_CME(data.ReX, data.phase_rf, [0, 2],
+#                                  rf_euler[:, 0], cme_dict['prosupr'])
+#    data.ankle_rot_lf = nl_prosup[:, 1].reshape(-1, 1)
+#    data.ankle_rot_lf = data.ankle_rot_lf*-1 # fix so superior > 0
+#    data.ankle_rot_rf = nr_prosup[:, 1].reshape(-1, 1)
+#
+#    # lateral hip rotation attributes
+#    cont_hiprot = cmed.cont_rot_CME(data.HeZ, data.phase_lf, [0, 1, 2, 3, 4, 5],
+#                                    hip_euler[:, 2], cme_dict['hiprotd'])
+#    data.hip_rot = cont_hiprot[:, 1].reshape(-1, 1)
+#    data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
+#
+#    _logger('DONE WITH BALANCE CME!', aws)
+#
+#    # IMPACT CME
+#    # define dictionary for msElapsed
+#
+#    # landing time attributes
+#    n_landtime, ltime_index = impact.sync_time(data.phase_rf, data.phase_lf,
+#                                               data.epoch_time, len(data.LaX))
+#    # landing pattern attributes
+#    if len(n_landtime) != 0:
+#        n_landpattern = impact.landing_pattern(data.ReY, data.LeY, n_landtime)
+#        land_time, land_pattern =\
+#            impact.continuous_values(n_landpattern, n_landtime,
+#                                     len(data.LaX), ltime_index)
+#        data.land_time = land_time[:, 0].reshape(-1, 1)
+#        data.land_pattern_rf = land_pattern[:, 0].reshape(-1, 1)
+#        data.land_pattern_lf = land_pattern[:, 1].reshape(-1, 1)
+#    else:
+#        data.land_time = np.zeros((len(data.LaX), 1))*np.nan
+#        data.land_pattern_lf = np.zeros((len(data.LaX), 1))*np.nan
+#        data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
+#
+#    _logger('DONE WITH IMPACT CME!', aws)
 
     # MECHANICAL STRESS
     # load model
@@ -344,8 +354,15 @@ def run_session(sensor_data, file_name, aws=True):
         # we're reading the first model on the list, there are multiple
         mstress_fit = pickle.loads(ms_body)
     except Exception as error:
-        _logger("Cannot load Mechanical stress model from s3!", aws, info=False)
-        raise error
+        if aws:
+            _logger("Cannot load MS model from s3!", aws, info=False)
+            raise error
+        else:
+            try:
+                with open('iad_finalized_model.sav') as model_file:
+                    mstress_fit = pickle.load(model_file)
+            except:
+                raise IOError("MS model file not found in s3/local directory")
     ms_data = prepare_data(data, False)
     
     # calculate mechanical stress
@@ -432,42 +449,52 @@ def _read_ids(cur, aws, file_name):
         team_id: uuid
         session_type: integer, should be 1
     '''
-    if aws:
-        try:
-            cur.execute(queries.quer_read_ids, (file_name,))
-            ids = cur.fetchall()[0]
-        except psycopg2.Error as error:
+    dummy_uuid = '00000000-0000-0000-0000-000000000000'
+    try:
+        cur.execute(queries.quer_read_ids, (file_name,))
+        ids = cur.fetchall()[0]
+    except psycopg2.Error as error:
+        if aws:
             logger.warning("Error reading ids!")
             raise error
-        except IndexError:
-            logger.warning("sensor_data_filename not found in DB!")
-            raise error
         else:
-            session_event_id = ids[0]
-            if session_event_id is None:
-                session_event_id = '00000000-0000-0000-0000-000000000000'
-            training_session_log_id = ids[1]
-            if training_session_log_id is None:
-                training_session_log_id = '00000000-0000-0000-0000-000000000000'
-            user_id = ids[2]
-            if user_id is None:
-                user_id = '00000000-0000-0000-0000-000000000000'
-            team_regimen_id = ids[3]
-            if team_regimen_id is None:
-                team_regimen_id = '00000000-0000-0000-0000-000000000000'
-            team_id = ids[4]
-            if team_id is None:
-                team_id = '00000000-0000-0000-0000-000000000000'
-            session_type = ids[5]
-            if session_type is None:
-                session_type = 1
+            session_event_id = dummy_uuid
+            training_session_log_id = dummy_uuid
+            user_id = dummy_uuid
+            team_regimen_id = dummy_uuid
+            team_id = dummy_uuid
+            session_type = 1
+            
+    except IndexError:
+        if aws:
+            logger.warning("sensor_data_filename not found in DB!")
+            raise IndexError
+        else:
+            session_event_id = dummy_uuid
+            training_session_log_id = dummy_uuid
+            user_id = dummy_uuid
+            team_regimen_id = dummy_uuid
+            team_id = dummy_uuid
+            session_type = 1
     else:
-        session_event_id = '00000000-0000-0000-0000-000000000000'
-        training_session_log_id = '00000000-0000-0000-0000-000000000000'
-        user_id = '00000000-0000-0000-0000-000000000000'
-        team_regimen_id = '00000000-0000-0000-0000-000000000000'
-        team_id = '00000000-0000-0000-0000-000000000000'
-        session_type = 1
+        session_event_id = ids[0]
+        if session_event_id is None:
+            session_event_id = dummy_uuid
+        training_session_log_id = ids[1]
+        if training_session_log_id is None:
+            training_session_log_id = dummy_uuid
+        user_id = ids[2]
+        if user_id is None:
+            user_id = dummy_uuid
+        team_regimen_id = ids[3]
+        if team_regimen_id is None:
+            team_regimen_id = dummy_uuid
+        team_id = ids[4]
+        if team_id is None:
+            team_id = dummy_uuid
+        session_type = ids[5]
+        if session_type is None:
+            session_type = 1
 
     return (session_event_id, training_session_log_id, user_id, team_regimen_id,
             team_id, session_type)
@@ -475,34 +502,46 @@ def _read_ids(cur, aws, file_name):
 
 def _read_offsets(cur, session_event_id, aws):
     '''Read the offsets for coordinateframe transformation.
+    
+    If it's in aws lambda, it'll try to find offsets in DB and raise
+    appropriate error,
+    If it's a local run for testing, it'll look for associated offsets in DB
+    first, if not found, it'll check local memory to see if the offset values
+    are stored. If both these fail, ValueError is raised.
     '''
-    if aws:
-        try:
-            cur.execute(queries.quer_read_offsets, (session_event_id,))
-            offsets_read = cur.fetchall()[0]
-        except psycopg2.Error as error:
+    try:
+        cur.execute(queries.quer_read_offsets, (session_event_id,))
+        offsets_read = cur.fetchall()[0]
+    except psycopg2.Error as error:
+        
+        if aws:
             logger.warning("Cannot read transform offsets!")
             raise error
-        except IndexError as error:
+        else:
+            try:
+                # these should be the offsets calculated by separate runs of 
+                # calibration script. If not found, load some random values
+                offsets_read = (hip_n_transform, hip_bf_transform,
+                                lf_n_transform, lf_bf_transform,
+                                rf_n_transform, rf_bf_transform)
+            except NameError:
+                raise ValueError("No associated offset values found in "+
+                                 "the database or local memory")           
+    except IndexError as error:
+        if aws:
             logger.warning("Transform offesets cannot be found!")
             raise error
-    else:
-        try:
-            offsets_read = offsets
-        except NameError:
-            offsets_read = ([-0.977591322051451, -0.209436159456973,
-                             0.0207817219668881, -0.00445221222556902],
-                            [0.510513704655285, 0.489260418753793,
-                             0.489260418753793, -0.510513704655285],
-                            [-0.0499004404574009, 0.0865193482640869,
-                             0.617087934855438, -0.780529838682651],
-                            [-0.0728092937037351, 0.0584434865388423,
-                             0.623240381955825, -0.776437113957791],
-                            [-0.148385859486174, -0.662764989289399,
-                             -0.0317876506067429, -0.733289677375644],
-                            [-0.0728092937037351, 0.0584434865388423,
-                             0.623240381955825, -0.776437113957791])
-
+        else:
+            try:
+                # these should be the offsets calculated by separate runs of 
+                # calibration script. If not found, load some random values
+                offsets_read = (hip_n_transform, hip_bf_transform,
+                                lf_n_transform, lf_bf_transform,
+                                rf_n_transform, rf_bf_transform)
+            except NameError:
+                raise ValueError("No associated offset values found in "+
+                                 "the database or local memory")
+#                offsets_read = dummy_offsets   
     return offsets_read
 
 
@@ -693,4 +732,4 @@ def _subset_data(data, neutral_data):
 if __name__ == "__main__":
     sensor_data = 'trainingset_explosiveJump.csv'
     file_name = 'fakefilename'
-    iad_features = run_session(sensor_data, file_name, aws=False)
+    result = run_session(sensor_data, file_name, aws=False)

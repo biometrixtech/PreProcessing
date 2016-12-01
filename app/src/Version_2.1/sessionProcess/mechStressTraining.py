@@ -32,14 +32,14 @@ def prepare_data(data, train=True):
     data_pd['LeX'] = np.array(data.LeX)
     data_pd['LeY'] = np.array(data.LeY)
     data_pd['LeZ'] = np.array(data.LeZ)
-    data_pd['phase_l'] = np.array(data.phase_l)
+    data_pd['phase_lf'] = np.array(data.phase_lf)
     data_pd['RaX'] = np.array(data.RaX)
     data_pd['RaY'] = np.array(data.RaY)
     data_pd['RaZ'] = np.array(data.RaZ)
     data_pd['ReX'] = np.array(data.ReX)
     data_pd['ReY'] = np.array(data.ReY)
     data_pd['ReZ'] = np.array(data.ReZ)
-    data_pd['phase_r'] = np.array(data.phase_r)
+    data_pd['phase_rf'] = np.array(data.phase_rf)
     data_pd['HaX'] = np.array(data.HaX)
     data_pd['HaY'] = np.array(data.HaY)
     data_pd['HaZ'] = np.array(data.HaZ)
@@ -53,8 +53,8 @@ def prepare_data(data, train=True):
     
     X = data_pd[total_column].values
     if train:
-        data_pd['totalLoad'] = np.array(data.LFz) + np.array(data.RFz)
-        Y = data_pd['totalLoad'].values
+        data_pd['total_load'] = np.array(data.LFz) + np.array(data.RFz)
+        Y = data_pd['total_load'].values
         return X, Y
     else:
         return X
