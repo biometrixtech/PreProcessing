@@ -203,146 +203,146 @@ def run_session(sensor_data, file_name, aws=True):
 
     # INTELLIGENT ACTIVITY DETECTION (IAD)
     # load model
-#    try:
-#        iad_obj = s3.Bucket(cont_models).Object('iad_finalized_model.sav')
-#        iad_fileobj = iad_obj.get()
-#        iad_body = iad_fileobj["Body"].read()
-#
-#        # we're reading the first model on the list, there are multiple
-#        loaded_iad_model = pickle.loads(iad_body)
-#    except Exception as error:
-#        if aws:
-#            _logger("Cannot load iad_model from s3", aws, info=False)
-#            raise error
-#        else:
-#            try:
-#                with open('iad_finalized_model.sav') as model_file:
-#                    loaded_iad_model = pickle.load(model_file)
-#            except:
-#                raise IOError("Model file not found in S3 or local directory")
-#
-#    # predict activity state
-#    iad_features = IAD.preprocess_iad(data, training=False)
-#    iad_labels = loaded_iad_model.predict(iad_features)
-#    iad_predicted_labels = IAD.label_aggregation(iad_labels)
-#    data.activity_id =\
-#            IAD.mapping_labels_on_data(iad_predicted_labels,
-#                                       len(data.LaX)).reshape(-1, 1)
-#
-#    _logger('DONE WITH IAD!', aws)
-#
-#    # save sensor data before subsetting
-#    sensor_data = ct.create_sensor_data(len(data.LaX), data)
-#    sensor_data_pd = pd.DataFrame(sensor_data)
-#    if aws:
-#        fileobj = cStringIO.StringIO()
-#        sensor_data_pd.to_csv(fileobj, index=False)
-#        fileobj.seek(0)
-#        try:
-#            s3.Bucket(cont_write).put_object(Key="processed_"+file_name,
-#                                             Body=fileobj)
-#        except boto3.exceptions as error:
-#            _logger("Cannot write processed file to s3!", aws, info=False)
-#            raise error
-#    else:
-#        sensor_data_pd.to_csv("processed_"+file_name, index=False)
+    try:
+        iad_obj = s3.Bucket(cont_models).Object('iad_finalized_model.sav')
+        iad_fileobj = iad_obj.get()
+        iad_body = iad_fileobj["Body"].read()
 
-#    data = _subset_data(data, neutral_data)
-#    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
+        # we're reading the first model on the list, there are multiple
+        loaded_iad_model = pickle.loads(iad_body)
+    except Exception as error:
+        if aws:
+            _logger("Cannot load iad_model from s3", aws, info=False)
+            raise error
+        else:
+            try:
+                with open('iad_finalized_model.sav') as model_file:
+                    loaded_iad_model = pickle.load(model_file)
+            except:
+                raise IOError("Model file not found in S3 or local directory")
 
-    # set observation index
-#    data.obs_index = np.array(range(len(data.LaX))).reshape(-1, 1) + 1
-#
-#    # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
-#    # isolate hip acceleration and euler angle data
-#    hip_acc = np.hstack([data.HaX, data.HaY, data.HaZ])
-#    hip_eul = np.hstack([data.HeX, data.HeY, data.HeZ])
-#
-#    # analyze planes of movement
-#    data.lat, data.vert, data.horz, data.rot,\
-#        data.lat_binary, data.vert_binary, data.horz_binary,\
-#        data.rot_binary, data.stationary_binary,\
-#        data.total_accel = matrib.plane_analysis(hip_acc, hip_eul,
-#                                                 data.ms_elapsed)
-#
-#    # analyze stance
-#    data.standing, data.not_standing \
-#        = matrib.standing_or_not(hip_eul, data.epoch_time)
-#    data.double_leg, data.single_leg, data.feet_eliminated \
-#        = matrib.double_or_single_leg(data.phase_lf, data.phase_rf,
-#                                      data.standing, data.epoch_time)
-#    data.single_leg_stationary, data.single_leg_dynamic \
-#        = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
-#                                       data.single_leg, data.epoch_time)
-#
-#    _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!', aws)
-#
-#    # MOVEMENT QUALITY FEATURES
-#
-#    # isolate neutral quaternions
-#    lf_neutral = neutral_data[:, :4]
-#    hip_neutral = neutral_data[:, 4:8]
-#    rf_neutral = neutral_data[:, 8:]
-#
-#    # isolate actual euler angles
-#    hip_euler = qc.quat_to_euler(hip_neutral)
-#    lf_euler = qc.quat_to_euler(lf_neutral)
-#    rf_euler = qc.quat_to_euler(rf_neutral)
-#
-#    # define balance CME dictionary
-#    cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15],
-#                'hipdropl':[-4, -7, 4, 15], 'prosupr':[-4, -15, 4, 7],
-#                'hiprotr':[-4, -15, 4, 7], 'hipdropr':[-4, -15, 4, 7],
-#                'hiprotd':[-4, -7, 4, 7]}
-#
-#    # contralateral hip drop attributes
-#    nl_contra = cmed.cont_rot_CME(data.HeX, data.phase_lf, [1], hip_euler[:, 0],
-#                                  cme_dict['hipdropl'])
-#    nr_contra = cmed.cont_rot_CME(data.HeX, data.phase_rf, [2], hip_euler[:, 0],
-#                                  cme_dict['hipdropr'])
-#    data.contra_hip_drop_lf = nl_contra[:, 1].reshape(-1, 1)
-#    # fix so superior > 0
-#    data.contra_hip_drop_lf = data.contra_hip_drop_lf* - 1
-#    data.contra_hip_drop_rf = nr_contra[:, 1].reshape(-1, 1)
-#
-#    # pronation/supination attributes
-#    nl_prosup = cmed.cont_rot_CME(data.LeX, data.phase_lf, [0, 1],
-#                                  lf_euler[:, 0], cme_dict['prosupl'])
-#    nr_prosup = cmed.cont_rot_CME(data.ReX, data.phase_rf, [0, 2],
-#                                  rf_euler[:, 0], cme_dict['prosupr'])
-#    data.ankle_rot_lf = nl_prosup[:, 1].reshape(-1, 1)
-#    data.ankle_rot_lf = data.ankle_rot_lf*-1 # fix so superior > 0
-#    data.ankle_rot_rf = nr_prosup[:, 1].reshape(-1, 1)
-#
-#    # lateral hip rotation attributes
-#    cont_hiprot = cmed.cont_rot_CME(data.HeZ, data.phase_lf, [0, 1, 2, 3, 4, 5],
-#                                    hip_euler[:, 2], cme_dict['hiprotd'])
-#    data.hip_rot = cont_hiprot[:, 1].reshape(-1, 1)
-#    data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
-#
-#    _logger('DONE WITH BALANCE CME!', aws)
-#
-#    # IMPACT CME
-#    # define dictionary for msElapsed
-#
-#    # landing time attributes
-#    n_landtime, ltime_index = impact.sync_time(data.phase_rf, data.phase_lf,
-#                                               data.epoch_time, len(data.LaX))
-#    # landing pattern attributes
-#    if len(n_landtime) != 0:
-#        n_landpattern = impact.landing_pattern(data.ReY, data.LeY, n_landtime)
-#        land_time, land_pattern =\
-#            impact.continuous_values(n_landpattern, n_landtime,
-#                                     len(data.LaX), ltime_index)
-#        data.land_time = land_time[:, 0].reshape(-1, 1)
-#        data.land_pattern_rf = land_pattern[:, 0].reshape(-1, 1)
-#        data.land_pattern_lf = land_pattern[:, 1].reshape(-1, 1)
-#    else:
-#        data.land_time = np.zeros((len(data.LaX), 1))*np.nan
-#        data.land_pattern_lf = np.zeros((len(data.LaX), 1))*np.nan
-#        data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
-#
-#    _logger('DONE WITH IMPACT CME!', aws)
+    # predict activity state
+    iad_features = IAD.preprocess_iad(data, training=False)
+    iad_labels = loaded_iad_model.predict(iad_features)
+    iad_predicted_labels = IAD.label_aggregation(iad_labels)
+    data.activity_id =\
+            IAD.mapping_labels_on_data(iad_predicted_labels,
+                                       len(data.LaX)).reshape(-1, 1)
+
+    _logger('DONE WITH IAD!', aws)
+
+    # save sensor data before subsetting
+    sensor_data = ct.create_sensor_data(len(data.LaX), data)
+    sensor_data_pd = pd.DataFrame(sensor_data)
+    if aws:
+        fileobj = cStringIO.StringIO()
+        sensor_data_pd.to_csv(fileobj, index=False)
+        fileobj.seek(0)
+        try:
+            s3.Bucket(cont_write).put_object(Key="processed_"+file_name,
+                                             Body=fileobj)
+        except boto3.exceptions as error:
+            _logger("Cannot write processed file to s3!", aws, info=False)
+            raise error
+    else:
+        sensor_data_pd.to_csv("processed_"+file_name, index=False)
+
+    data = _subset_data(data, neutral_data)
+    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
+
+     set observation index
+    data.obs_index = np.array(range(len(data.LaX))).reshape(-1, 1) + 1
+
+    # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
+    # isolate hip acceleration and euler angle data
+    hip_acc = np.hstack([data.HaX, data.HaY, data.HaZ])
+    hip_eul = np.hstack([data.HeX, data.HeY, data.HeZ])
+
+    # analyze planes of movement
+    data.lat, data.vert, data.horz, data.rot,\
+        data.lat_binary, data.vert_binary, data.horz_binary,\
+        data.rot_binary, data.stationary_binary,\
+        data.total_accel = matrib.plane_analysis(hip_acc, hip_eul,
+                                                 data.ms_elapsed)
+
+    # analyze stance
+    data.standing, data.not_standing \
+        = matrib.standing_or_not(hip_eul, data.epoch_time)
+    data.double_leg, data.single_leg, data.feet_eliminated \
+        = matrib.double_or_single_leg(data.phase_lf, data.phase_rf,
+                                      data.standing, data.epoch_time)
+    data.single_leg_stationary, data.single_leg_dynamic \
+        = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
+                                       data.single_leg, data.epoch_time)
+
+    _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!', aws)
+
+    # MOVEMENT QUALITY FEATURES
+
+    # isolate neutral quaternions
+    lf_neutral = neutral_data[:, :4]
+    hip_neutral = neutral_data[:, 4:8]
+    rf_neutral = neutral_data[:, 8:]
+
+    # isolate actual euler angles
+    hip_euler = qc.quat_to_euler(hip_neutral)
+    lf_euler = qc.quat_to_euler(lf_neutral)
+    rf_euler = qc.quat_to_euler(rf_neutral)
+
+    # define balance CME dictionary
+    cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15],
+                'hipdropl':[-4, -7, 4, 15], 'prosupr':[-4, -15, 4, 7],
+                'hiprotr':[-4, -15, 4, 7], 'hipdropr':[-4, -15, 4, 7],
+                'hiprotd':[-4, -7, 4, 7]}
+
+    # contralateral hip drop attributes
+    nl_contra = cmed.cont_rot_CME(data.HeX, data.phase_lf, [1], hip_euler[:, 0],
+                                  cme_dict['hipdropl'])
+    nr_contra = cmed.cont_rot_CME(data.HeX, data.phase_rf, [2], hip_euler[:, 0],
+                                  cme_dict['hipdropr'])
+    data.contra_hip_drop_lf = nl_contra[:, 1].reshape(-1, 1)
+    # fix so superior > 0
+    data.contra_hip_drop_lf = data.contra_hip_drop_lf* - 1
+    data.contra_hip_drop_rf = nr_contra[:, 1].reshape(-1, 1)
+
+    # pronation/supination attributes
+    nl_prosup = cmed.cont_rot_CME(data.LeX, data.phase_lf, [0, 1],
+                                  lf_euler[:, 0], cme_dict['prosupl'])
+    nr_prosup = cmed.cont_rot_CME(data.ReX, data.phase_rf, [0, 2],
+                                  rf_euler[:, 0], cme_dict['prosupr'])
+    data.ankle_rot_lf = nl_prosup[:, 1].reshape(-1, 1)
+    data.ankle_rot_lf = data.ankle_rot_lf*-1 # fix so superior > 0
+    data.ankle_rot_rf = nr_prosup[:, 1].reshape(-1, 1)
+
+    # lateral hip rotation attributes
+    cont_hiprot = cmed.cont_rot_CME(data.HeZ, data.phase_lf, [0, 1, 2, 3, 4, 5],
+                                    hip_euler[:, 2], cme_dict['hiprotd'])
+    data.hip_rot = cont_hiprot[:, 1].reshape(-1, 1)
+    data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
+
+    _logger('DONE WITH BALANCE CME!', aws)
+
+    # IMPACT CME
+    # define dictionary for msElapsed
+
+    # landing time attributes
+    n_landtime, ltime_index = impact.sync_time(data.phase_rf, data.phase_lf,
+                                               data.epoch_time, len(data.LaX))
+    # landing pattern attributes
+    if len(n_landtime) != 0:
+        n_landpattern = impact.landing_pattern(data.ReY, data.LeY, n_landtime)
+        land_time, land_pattern =\
+            impact.continuous_values(n_landpattern, n_landtime,
+                                     len(data.LaX), ltime_index)
+        data.land_time = land_time[:, 0].reshape(-1, 1)
+        data.land_pattern_rf = land_pattern[:, 0].reshape(-1, 1)
+        data.land_pattern_lf = land_pattern[:, 1].reshape(-1, 1)
+    else:
+        data.land_time = np.zeros((len(data.LaX), 1))*np.nan
+        data.land_pattern_lf = np.zeros((len(data.LaX), 1))*np.nan
+        data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
+
+    _logger('DONE WITH IMPACT CME!', aws)
 
     # MECHANICAL STRESS
     # load model
