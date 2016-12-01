@@ -69,7 +69,6 @@ def run_session(sensor_data, file_name, aws=True):
             HqX, HqY, HqZ, RaX, RaY, RaZ, ReX, ReY, ReZ, RqW, RqX, RqY, RqZ
     """
 
-
     # Define containers to read from and write to
     cont_write = 'biometrix-sessionprocessedcontainer'
 
@@ -488,7 +487,21 @@ def _read_offsets(cur, session_event_id, aws):
             logger.warning("Transform offesets cannot be found!")
             raise error
     else:
-        offsets_read = offsets
+        try:
+            offsets_read = offsets
+        except NameError:
+            offsets_read = ([-0.977591322051451, -0.209436159456973,
+                             0.0207817219668881, -0.00445221222556902],
+                            [0.510513704655285, 0.489260418753793,
+                             0.489260418753793, -0.510513704655285],
+                            [-0.0499004404574009, 0.0865193482640869,
+                             0.617087934855438, -0.780529838682651],
+                            [-0.0728092937037351, 0.0584434865388423,
+                             0.623240381955825, -0.776437113957791],
+                            [-0.148385859486174, -0.662764989289399,
+                             -0.0317876506067429, -0.733289677375644],
+                            [-0.0728092937037351, 0.0584434865388423,
+                             0.623240381955825, -0.776437113957791])
 
     return offsets_read
 
@@ -678,6 +691,6 @@ def _subset_data(data, neutral_data):
 
 
 if __name__ == "__main__":
-    sensor_data = 'subject3_DblSquat_hist.csv'
+    sensor_data = 'trainingset_explosiveJump.csv'
     file_name = 'fakefilename'
-    run_session(sensor_data, file_name, aws=False)
+    iad_features = run_session(sensor_data, file_name, aws=False)

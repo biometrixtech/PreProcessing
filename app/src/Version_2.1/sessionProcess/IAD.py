@@ -299,7 +299,7 @@ def mapping_labels_on_data(predicted_labels, len_data):
         for _ in range(len_data-len(test_map_labels)):
             test_map_labels.append(0)
             
-    return np.array(test_map_labels)
+    return np.array(test_map_labels[0:len_data])
 
 
 if __name__ == "__main__":
