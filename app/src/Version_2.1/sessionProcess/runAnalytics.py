@@ -71,6 +71,7 @@ def run_session(sensor_data, file_name, aws=True):
 
     # Define containers to read from and write to
     cont_write = 'biometrix-sessionprocessedcontainer'
+    cont_write_final = 'biometrix-scoringcontainer'
 
     # Define container that holds models
     cont_models = 'biometrix-globalmodels'
@@ -85,7 +86,7 @@ def run_session(sensor_data, file_name, aws=True):
         return "Fail!"
     session_event_id = ids_from_db[0]
 
-    #Read transformation offset values
+    # read transformation offset values from DB/local Memory
     offsets_read = _read_offsets(cur, session_event_id, aws)
 
     # read sensor data as ndarray
@@ -118,7 +119,7 @@ def run_session(sensor_data, file_name, aws=True):
     # convert epoch time to date time and determine milliseconds elapsed
     data.time_stamp, data.ms_elapsed = \
         ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
-
+    sampl_freq = int(1000./data.ms_elapsed[1])
     _logger('DONE WITH PRE-PRE-PROCESSING!', aws)
 
     # COORDINATE FRAME TRANSFORMATION
@@ -196,7 +197,7 @@ def run_session(sensor_data, file_name, aws=True):
 
     # PHASE DETECTION
     data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ,
-                                                       data.epoch_time)
+                                                       sampl_freq)
 
     _logger('DONE WITH PHASE DETECTION!', aws)
 
@@ -247,8 +248,8 @@ def run_session(sensor_data, file_name, aws=True):
     else:
         sensor_data_pd.to_csv("processed_"+file_name, index=False)
 
-    data = _subset_data(data, neutral_data)
-    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
+#    data = _subset_data(data, neutral_data)
+#    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
 
     # set observation index
     data.obs_index = np.array(range(len(data.LaX))).reshape(-1, 1) + 1
@@ -267,13 +268,13 @@ def run_session(sensor_data, file_name, aws=True):
 
     # analyze stance
     data.standing, data.not_standing \
-        = matrib.standing_or_not(hip_eul, data.epoch_time)
+        = matrib.standing_or_not(hip_eul, sampl_freq)
     data.double_leg, data.single_leg, data.feet_eliminated \
         = matrib.double_or_single_leg(data.phase_lf, data.phase_rf,
-                                      data.standing, data.epoch_time)
+                                      data.standing, sampl_freq)
     data.single_leg_stationary, data.single_leg_dynamic \
         = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
-                                       data.single_leg, data.epoch_time)
+                                       data.single_leg, sampl_freq)
 
     _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!', aws)
 
@@ -290,16 +291,10 @@ def run_session(sensor_data, file_name, aws=True):
     rf_euler = qc.quat_to_euler(rf_neutral)
 
     # define balance CME dictionary
-    cme_dict = {'prosupl':[-4, -7, 4, 15], 'hiprotl':[-4, -7, 4, 15],
-                'hipdropl':[-4, -7, 4, 15], 'prosupr':[-4, -15, 4, 7],
-                'hiprotr':[-4, -15, 4, 7], 'hipdropr':[-4, -15, 4, 7],
-                'hiprotd':[-4, -7, 4, 7]}
 
     # contralateral hip drop attributes
-    nl_contra = cmed.cont_rot_CME(data.HeX, data.phase_lf, [1], hip_euler[:, 0],
-                                  cme_dict['hipdropl'])
-    nr_contra = cmed.cont_rot_CME(data.HeX, data.phase_rf, [2], hip_euler[:, 0],
-                                  cme_dict['hipdropr'])
+    nl_contra = cmed.cont_rot_CME(data.HeX, data.phase_lf, [1], hip_euler[:, 0])
+    nr_contra = cmed.cont_rot_CME(data.HeX, data.phase_rf, [2], hip_euler[:, 0])
     data.contra_hip_drop_lf = nl_contra[:, 1].reshape(-1, 1)
     # fix so superior > 0
     data.contra_hip_drop_lf = data.contra_hip_drop_lf* - 1
@@ -307,16 +302,16 @@ def run_session(sensor_data, file_name, aws=True):
 
     # pronation/supination attributes
     nl_prosup = cmed.cont_rot_CME(data.LeX, data.phase_lf, [0, 1],
-                                  lf_euler[:, 0], cme_dict['prosupl'])
+                                  lf_euler[:, 0])
     nr_prosup = cmed.cont_rot_CME(data.ReX, data.phase_rf, [0, 2],
-                                  rf_euler[:, 0], cme_dict['prosupr'])
+                                  rf_euler[:, 0])
     data.ankle_rot_lf = nl_prosup[:, 1].reshape(-1, 1)
     data.ankle_rot_lf = data.ankle_rot_lf*-1 # fix so superior > 0
     data.ankle_rot_rf = nr_prosup[:, 1].reshape(-1, 1)
 
     # lateral hip rotation attributes
     cont_hiprot = cmed.cont_rot_CME(data.HeZ, data.phase_lf, [0, 1, 2, 3, 4, 5],
-                                    hip_euler[:, 2], cme_dict['hiprotd'])
+                                    hip_euler[:, 2])
     data.hip_rot = cont_hiprot[:, 1].reshape(-1, 1)
     data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
 
@@ -327,7 +322,7 @@ def run_session(sensor_data, file_name, aws=True):
 
     # landing time attributes
     n_landtime, ltime_index = impact.sync_time(data.phase_rf, data.phase_lf,
-                                               data.epoch_time, len(data.LaX))
+                                               data.epoch_time)
     # landing pattern attributes
     if len(n_landtime) != 0:
         n_landpattern = impact.landing_pattern(data.ReY, data.LeY, n_landtime)
@@ -359,7 +354,7 @@ def run_session(sensor_data, file_name, aws=True):
             raise error
         else:
             try:
-                with open('iad_finalized_model.sav') as model_file:
+                with open('ms_trainmodel.pkl') as model_file:
                     mstress_fit = pickle.load(model_file)
             except:
                 raise IOError("MS model file not found in s3/local directory")
@@ -380,8 +375,8 @@ def run_session(sensor_data, file_name, aws=True):
         movement_data_pd.to_csv(fileobj, index=False)
         fileobj.seek(0)
         try:
-            s3.Bucket(cont_write).put_object(Key="movement_"
-                                             +file_name, Body=fileobj)
+            s3.Bucket(cont_write_final).put_object(Key="movement_"
+                                                   +file_name, Body=fileobj)
         except:
             _logger("Cannot write movement talbe to s3", aws)
 
@@ -599,6 +594,12 @@ def _add_ids_rawdata(data, ids):
 
 
 def _real_quaternions(data, aws):
+    """Calculate real quaternion from the imaginary quaternions
+    
+    Args:
+        data: either rawframe object or pandas df with quaternions
+        aws: indicator for running on aws or locally
+    """
     # left
     _lq_xyz = np.hstack([data.LqX, data.LqY, data.LqZ])
     _lq_wxyz, corrupt_type =\
@@ -683,16 +684,6 @@ def _subset_data(data, neutral_data):
     data.phase_rf = data.phase_rf[
         data.activity_id == 1].reshape(-1, 1)
     data.obs_master_index = data.obs_master_index[
-        data.activity_id == 1].reshape(-1, 1)
-    data.control = data.control[
-        data.activity_id == 1].reshape(-1, 1)
-    data.hip_control = data.hip_control[
-        data.activity_id == 1].reshape(-1, 1)
-    data.ankle_control = data.ankle_control[
-        data.activity_id == 1].reshape(-1, 1)
-    data.control_lf = data.control_lf[
-        data.activity_id == 1].reshape(-1, 1)
-    data.control_rf = data.control_rf[
         data.activity_id == 1].reshape(-1, 1)
     data.epoch_time = data.epoch_time[
         data.activity_id == 1].reshape(-1, 1)

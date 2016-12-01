@@ -72,8 +72,7 @@ def handle_dynamic_sampling_create_features(data, epoch_time_subset,
         subset_data = data[ind:ind + np.where(epoch_time_subset - \
         epoch_time_subset[0] <= MS_WIN_SIZE)[0][-1]]
        
-        epoch_time_win = epoch_time_subset[ind:ind + np.where(
-            epoch_time_subset - epoch_time_subset[0] <= MS_WIN_SIZE)[0][-1]]
+        epoch_time_win = epoch_time_subset[0:len(subset_data)]
          
         avg_hz = avg_sampl_rate_win(epoch_time_win)
 
