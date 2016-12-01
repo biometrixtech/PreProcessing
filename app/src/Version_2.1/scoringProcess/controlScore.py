@@ -6,9 +6,10 @@ Created on Mon Oct 10 12:34:44 2016
 """
 from __future__ import division
 import numpy as np
+import pandas as pd
 
 
-def control_score(LeX, HeX, ReX, ms_elapsed):
+def control_score(LeX, HeX, ReX, ms_elapsed, phase_lf, phase_rf):
     """Calculates instantaneous control scores
     Scoring is based on standard deviation of euler angle (x) within a certian
     window.
@@ -18,6 +19,8 @@ def control_score(LeX, HeX, ReX, ms_elapsed):
         ReX: right euler X
         HeX: hip euler x
         ms_elapsed: time in milliseconds since last sample
+        phase_lf: left foot phase
+        phase_rf: right foot phase
     Returns:
         control, hip_control, ankle_control, control_lf, control_rf scores for
         each timepoint all these should be (n,1) numpy arrays
@@ -26,55 +29,15 @@ def control_score(LeX, HeX, ReX, ms_elapsed):
     Pandas 0.19 has a feature to get rolling calculation based on time window
     rather than number of points which will make calculations more efficient.
     """
-    N = len(LeX)
-    m = 15 #max number of entries to look for
-    score_raw_l = np.zeros(N)
-    score_raw_r = np.zeros(N)
-    score_raw_h = np.zeros(N)
-    for i in range(N):
-        subset_l = []
-        subset_r = []
-        subset_h = []
-        prev = 0
-        forwd = 0
-        #get data for window/2 time from past timepoints
-        for j in range(m):
-            #Check if we're at the start of the list, assign nan and break so
-            #rows without enough data in the past don't get calculated
-            if (i-j) <= 0:
-                subset_l.append(np.nan)
-                subset_r.append(np.nan)
-                subset_h.append(np.nan)
-                break
-            else:
-                prev += ms_elapsed[i-j]
-                if prev <= 60: #Append to the list timepoints from past within half the window
-                    subset_l.append(LeX[i-j])
-                    subset_r.append(ReX[i-j])
-                    subset_h.append(HeX[i-j])
-                else:
-                    break
-        #get data for window/2 from future timepoints
-        for k in range(1, m):
-            #Check if we're at the end of the list, assign nan and break so
-            #rows without enough data in the future don't get calculated
-            if (i+k) >= N:
-                subset_l.append(np.nan)
-                subset_r.append(np.nan)
-                subset_h.append(np.nan)
-                break
-            else:
-                forwd += ms_elapsed[i+k]
-                if forwd <= 60:#Append to the list timepoints from future within half the window
-                    subset_l.append(LeX[i+k])
-                    subset_r.append(ReX[i+k])
-                    subset_h.append(HeX[i+k])
-                else:
-                    break
-        #raw score is the rolling standard deviation
-        score_raw_l[i] = np.std(subset_l)
-        score_raw_r[i] = np.std(subset_r)
-        score_raw_h[i] = np.std(subset_h)
+    N = int(120/ms_elapsed[1]) + 1
+    
+    LeX[[i not in [0, 1, 4] for i in phase_lf]] = np.nan
+    ReX[[i not in [0, 2, 5] for i in phase_rf]] = np.nan
+    HeX[phase_lf == 3] = np.nan
+
+    score_raw_l = LeX.rolling(min_periods=N, window=N, center=True).std()
+    score_raw_h = HeX.rolling(min_periods=N, window=N, center=True).std()
+    score_raw_r = ReX.rolling(min_periods=N, window=N, center=True).std()
 
     #TODO(Dipesh) Need to update the bounds based on data
     upper = .25 # upper bound for what sd is considered 0 score
@@ -104,4 +67,11 @@ def control_score(LeX, HeX, ReX, ms_elapsed):
 
 
 if __name__ == '__main__':
+    file_name = 'subject3_DblSquat_hist.csv'
+    data = pd.read_csv(file_name)
+    control, hip_control, ankle_control, control_lf_1,\
+            control_rf_1 = control_score(data.LeX, data.ReX, data.HeX,
+                                            data.ms_elapsed, data.phase_lf,
+                                            data.phase_rf)
     pass
+

@@ -68,8 +68,9 @@ def run_scoring(sensor_data, file_name, aws=True):
 
     # CONTROL SCORE
     data.control, data.hip_control, data.ankle_control, data.control_lf,\
-                    data.control_rf = control_score(data.LeX, data.ReX,
-                                                    data.HeX, data.ms_elapsed)
+            data.control_rf = control_score(data.LeX, data.ReX, data.HeX,
+                                            data.ms_elapsed, data.phase_lf,
+                                            data.phase_rf)
     if aws:
         logger.info('DONE WITH CONTROL SCORES!')
     else:
