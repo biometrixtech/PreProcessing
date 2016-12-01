@@ -250,7 +250,7 @@ def run_session(sensor_data, file_name, aws=True):
     data = _subset_data(data, neutral_data)
     _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
 
-     set observation index
+    # set observation index
     data.obs_index = np.array(range(len(data.LaX))).reshape(-1, 1) + 1
 
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
