@@ -14,11 +14,10 @@ historical MQF and PV: from s3 container (to be changed later)
 Output data stored in TrainingEvents or BlockEvents table.
 
 """
-import sys
-#import pickle
+#import sys
 import cStringIO
 import logging
-import numpy as np
+#import numpy as np
 import pandas as pd
 import psycopg2
 import psycopg2.extras
@@ -55,15 +54,17 @@ def run_scoring(sensor_data, file_name, aws=True):
             ankle_consistency, consistency_lf, consistency_rf, control,
             hip_control, ankle_control, control_lf, control_rf
     """
-    cont = 'biometrix-blockprocessedcontainer'
+    cont_write = 'biometrix-sessionprocessedcontainer'
+    cont_read = 'biometrix-blockprocessedcontainer'
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
 
     # Create a RawFrame object with initial data
-    sdata = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
-                          names=True)
-    columns = sdata.dtype.names
+#    sdata = np.genfromtxt(sensor_data, delimiter=',', names=True)
+#    columns = sdata.dtype.names
+    sdata = pd.read_csv(sensor_data)
+    columns = sdata.columns
     data = do.RawFrame(sdata, columns)
 
     # CONTROL SCORE
@@ -71,10 +72,8 @@ def run_scoring(sensor_data, file_name, aws=True):
             data.control_rf = control_score(data.LeX, data.ReX, data.HeX,
                                             data.ms_elapsed, data.phase_lf,
                                             data.phase_rf)
-    if aws:
-        logger.info('DONE WITH CONTROL SCORES!')
-    else:
-        print('DONE WITH CONTROL SCORES!')
+
+    _logger('DONE WITH CONTROL SCORES!', aws)
 
     # SCORING
     # Symmetry, Consistency, Destructive/Constructive Multiplier and
@@ -82,19 +81,23 @@ def run_scoring(sensor_data, file_name, aws=True):
     # At this point we need to load the historical data for the subject
 
     # read historical data
-    if aws:
-        try:
-            obj = s3.Bucket(cont).Object('subject3_DblSquat_hist.csv')
-            fileobj = obj.get()
-            body = fileobj["Body"].read()
-            hist_data = cStringIO.StringIO(body)
-        except Exception as error:
-            logger.info("Cannot read historical user data from s3!")
-            raise error
+    try:
+        obj = s3.Bucket(cont_read).Object('user_hist.csv')
+        fileobj = obj.get()
+        body = fileobj["Body"].read()
+        hist_data = cStringIO.StringIO(body)
         userDB = pd.read_csv(hist_data)
-        logger.info("user history captured")
-    else:
-        userDB = pd.read_csv("subject3_DblSquat_hist.csv")
+    except Exception as error:
+        if aws:
+            _logger("Cannot read historical user data from s3!", aws, False)
+            raise error
+        else:
+            try:
+                userDB = pd.read_csv("user_hist.csv")
+            except:
+                raise IOError("User history not found in s3/local directory")
+    
+    _logger("user history captured", aws)
 
     data.consistency, data.hip_consistency, \
         data.ankle_consistency, data.consistency_lf, \
@@ -107,11 +110,13 @@ def run_scoring(sensor_data, file_name, aws=True):
 
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
-    if aws:
-        result = _write_table_db(movement_data, cur, conn)
-        return result
-    else:
-        return movement_data
+    
+    # write to s3 container
+    _write_table_s3(movement_data, file_name, s3, cont_write, aws)
+    # write table to DB
+    result = _write_table_db(movement_data, cur, conn, aws)
+
+    return result
 
 
 def _connect_db_s3():
@@ -134,96 +139,80 @@ def _connect_db_s3():
         return conn, cur, s3
 
 
-#def _dynamic_name(sdata):
-#    """ Isolates data from input data object.
-#    """
-#    _names = sdata.dtype.names[1:]
-#    _width = len(_names)+1
-#    data = sdata.view((float, _width))
-#
-#    return data
+def _logger(message, aws, info=True):
+    if aws:
+        if info:
+            logger.info(message)
+        else:
+            logger.warning(message)
+    else:
+        print message
 
 
-#def _define_sql_queries():
-#    """Define all the sql queries needed
-#    """
-#    quer_create = "CREATE TEMP TABLE temp_mov AS SELECT * FROM movement LIMIT 0"
-#
-#    # Query to copy data over from temp table to movement table
-#    quer_update = """UPDATE movement
-#        set control = temp_mov.control,
-#            hip_control = temp_mov.hip_control,
-#            ankle_control = temp_mov.ankle_control,
-#            control_lf = temp_mov.control_lf,
-#            control_rf = temp_mov.control_rf,
-#            consistency = temp_mov.consistency,
-#            hip_consistency = temp_mov.hip_consistency,
-#            ankle_consistency = temp_mov.ankle_consistency,
-#            consistency_lf = temp_mov.consistency_lf,
-#            consistency_rf = temp_mov.consistency_rf,
-#            symmetry = temp_mov.symmetry,
-#            hip_symmetry = temp_mov.hip_symmetry,
-#            ankle_symmetry = temp_mov.ankle_symmetry,
-#            destr_multiplier = temp_mov.destr_multiplier,
-#            dest_mech_stress = temp_mov.dest_mech_stress,
-#            const_mech_stress = temp_mov.const_mech_stress,
-#            block_duration = temp_mov.block_duration,
-#            session_duration = temp_mov.session_duration,
-#            block_mech_stress_elapsed = temp_mov.block_mech_stress_elapsed,
-#            session_mech_stress_elapsed = temp_mov.session_mech_stress_elapsed
-#        from temp_mov
-#        where movement.user_id = temp_mov.user_id and
-#              movement.session_id = temp_mov.session_id and
-#              movement.obs_index = temp_mov.obs_index"""
-#
-#    # finally drop the temp table
-#    quer_drop = "DROP TABLE temp_mov"
-
-#    return {'quer_create': quer_create, 'quer_update': quer_update,
-#            'quer_drop': quer_drop}
-
-
-def _write_table_db(movement_data, cur, conn):
+def _write_table_db(movement_data, cur, conn, aws):
     """Update the movement table with all the scores
     Args:
         movement_data: numpy recarray with complete data
         cur: cursor pointing to the current db connection
         conn: db connection
+        aws: boolean to indicate aws vs local
     Returns:
         result: string signifying success
     """
     movement_data_pd = pd.DataFrame(movement_data)
-#    fileobj = cStringIO.StringIO()
-#    movement_data_pd.to_csv(fileobj, index=False)
-#    fileobj.seek(0)
-#    try:
-#        s3.Bucket(cont).put_object(Key="movement_"
-#                                         +file_name, Body=fileobj)
-#    except:
-#        logger.warning("Cannot write movement talbe to s3")
-
     fileobj_db = cStringIO.StringIO()
     try:
+        # create a temporary table with the schema of movement table
         cur.execute(queries.quer_create)
         movement_data_pd.to_csv(fileobj_db, index=False, header=False,
                                 na_rep='NaN')
+        # copy data to the empty temp table
         fileobj_db.seek(0)
         cur.copy_from(file=fileobj_db, table='temp_mov', sep=',',
                       columns=movement_data.dtype.names)
+        # copy relevant columns from temp table to movement table
         cur.execute(queries.quer_update)
         conn.commit()
+        # drop temp table
         cur.execute(queries.quer_drop)
         conn.commit()
         conn.close()
     except Exception as error:
-        logger.info("Cannot write movement data to DB!")
-        raise error
+        if aws:
+            logger.warning("Cannot write movement data to DB!")
+            raise error
+        else:
+            raise error
+            print "Cannot write movement data to DB!"
+            return movement_data
     else:
-        return "Success!"
+        if aws:
+            return "Success!"
+        else:
+            return movement_data
 
+
+def _write_table_s3(movement_data, file_name, s3, cont, aws):
+    """write final table to s3
+    """
+    movement_data_pd = pd.DataFrame(movement_data)
+    try:
+        fileobj = cStringIO.StringIO()
+        movement_data_pd.to_csv(fileobj, index=False)
+        fileobj.seek(0)
+        s3.Bucket(cont).put_object(Key="movement_" + file_name, Body=fileobj)
+    except:
+        if aws:
+            logger.warning("Cannot write movement talbe to s3")
+        else:
+            print "Cannot write file to s3 writing locally!"
+            movement_data_pd.to_csv("movement_" + file_name, index=False)
 
 
 if __name__ == "__main__":
-    file_name = 'subject3_DblSquat_hist.csv'
-    data = 'subject3_DblSquat_hist.csv'
+    file_name = 'data_for_scoring.csv'
+    data = 'data_for_scoring.csv'
     out_data = run_scoring(data, file_name, aws=False)
+    sdata = pd.read_csv(data)
+    pass
+
