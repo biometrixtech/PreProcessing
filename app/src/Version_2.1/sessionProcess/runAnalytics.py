@@ -711,7 +711,7 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
         fileobj = cStringIO.StringIO()
         movement_data_pd.to_csv(fileobj, index=False)
         fileobj.seek(0)
-        s3.Bucket(cont).put_object(Key="scoring_" + file_name, Body=fileobj)
+        s3.Bucket(cont).put_object(Key=file_name, Body=fileobj)
     except:
         if aws:
             logger.warning("Cannot write movement talbe to s3")
