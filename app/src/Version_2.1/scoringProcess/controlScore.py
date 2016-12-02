@@ -34,6 +34,10 @@ def control_score(LeX, HeX, ReX, ms_elapsed, phase_lf, phase_rf):
     LeX[[i not in [0, 1, 4] for i in phase_lf]] = np.nan
     ReX[[i not in [0, 2, 5] for i in phase_rf]] = np.nan
     HeX[phase_lf == 3] = np.nan
+    
+    LeX = pd.Series(LeX.reshape(-1,))
+    HeX = pd.Series(HeX.reshape(-1,))
+    ReX = pd.Series(ReX.reshape(-1,))
 
     score_raw_l = LeX.rolling(min_periods=N, window=N, center=True).std()
     score_raw_h = HeX.rolling(min_periods=N, window=N, center=True).std()
