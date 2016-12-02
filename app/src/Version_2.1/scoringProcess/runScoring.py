@@ -210,8 +210,8 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
 
 
 if __name__ == "__main__":
-    file_name = 'data_for_scoring.csv'
-    data = 'data_for_scoring.csv'
+    file_name = 'scoring_fakefilename.csv'
+    data = 'scoring_fakefilename.csv'
     out_data = run_scoring(data, file_name, aws=False)
     sdata = pd.read_csv(data)
     pass

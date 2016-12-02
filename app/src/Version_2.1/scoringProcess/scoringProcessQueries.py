@@ -32,7 +32,7 @@ quer_update = """UPDATE movement
         session_mech_stress_elapsed = temp_mov.session_mech_stress_elapsed
     from temp_mov
     where movement.user_id = temp_mov.user_id and
-          movement.session_id = temp_mov.session_id and
+          movement.session_event_id = temp_mov.session_event_id and
           movement.obs_index = temp_mov.obs_index"""
 
 # finally drop the temp table
