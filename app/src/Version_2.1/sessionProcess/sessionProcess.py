@@ -12,7 +12,7 @@ import runAnalytics as ra
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-logger.info('Loading blockProcess')
+logger.info('Loading sessionProcess')
     
 def lambda_handler(event, context):
     

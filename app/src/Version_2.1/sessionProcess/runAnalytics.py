@@ -234,19 +234,7 @@ def run_session(sensor_data, file_name, aws=True):
 
     # save sensor data before subsetting
     sensor_data = ct.create_sensor_data(len(data.LaX), data)
-    sensor_data_pd = pd.DataFrame(sensor_data)
-    if aws:
-        fileobj = cStringIO.StringIO()
-        sensor_data_pd.to_csv(fileobj, index=False)
-        fileobj.seek(0)
-        try:
-            s3.Bucket(cont_write).put_object(Key="processed_"+file_name,
-                                             Body=fileobj)
-        except boto3.exceptions as error:
-            _logger("Cannot write processed file to s3!", aws, info=False)
-            raise error
-    else:
-        sensor_data_pd.to_csv("processed_"+file_name, index=False)
+    _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write, aws)
 
 #    data = _subset_data(data, neutral_data)
 #    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)

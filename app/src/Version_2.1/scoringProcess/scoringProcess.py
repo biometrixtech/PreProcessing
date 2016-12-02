@@ -7,12 +7,12 @@ import logging
 import cStringIO
 import zipfile as zf
 
-import runAnalytics as ra
+import runScoring as rs
 
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-logger.info('Loading blockProcess')
+logger.info('Loading scoringProcess')
     
 def lambda_handler(event, context):
     
@@ -32,20 +32,10 @@ def lambda_handler(event, context):
         body = fileobj["Body"].read()
         logger.info('Read Content')        
         content = cStringIO.StringIO(body)
-        logger.info('Converted Content')
-        zipped = zf.ZipFile(content)
-        try:
-            name = zipped.namelist()[0]
-        except IndexError:
-            logger.warning('Fail!, no data inside zipped file')
-            return 'success'
-        else:
-            unzipped_content = cStringIO.StringIO()
-            unzipped_content = zipped.open(name)
-            logger.info('Unzipped File')          
-            result = ra.run_session(unzipped_content, key)
-            logger.info('outcome:' + result)
-            return 'success'
+        logger.info('Converted Content')       
+        result = rs.run_scoring(content, key)
+        logger.info('outcome:' + result)
+        return 'success'
 
     except Exception as e:
         logger.info(e)
