@@ -11,7 +11,7 @@ Input data called from 'biometrix-blockcontainer'
 
 Output data collected in BlockEvent Table.
 """
-import sys
+#import sys
 import pickle
 import cStringIO
 import logging
@@ -368,36 +368,16 @@ def run_session(sensor_data, file_name, aws=True):
 
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
-    movement_data_pd = pd.DataFrame(movement_data)
     
-    if aws:
-        fileobj = cStringIO.StringIO()
-        movement_data_pd.to_csv(fileobj, index=False)
-        fileobj.seek(0)
-        try:
-            s3.Bucket(cont_write_final).put_object(Key="movement_"
-                                                   +file_name, Body=fileobj)
-        except:
-            _logger("Cannot write movement talbe to s3", aws)
+    # write table to s3
+    _write_table_s3(movement_data, file_name, s3, cont_write_final, aws)
 
-        fileobj_db = cStringIO.StringIO()
-        try:
-            movement_data_pd.to_csv(fileobj_db, index=False, header=False,
-                                    na_rep='NaN')
-            fileobj_db.seek(0)
-            cur.copy_from(file=fileobj_db, table='movement', sep=',',
-                          columns=movement_data.dtype.names)
-            conn.commit()
-            conn.close()
-        except Exception as error:
-            _logger("Cannot write movement data to DB!", aws, info=False)
-            raise error
-    else:
-        movement_data_pd.to_csv("movement_"+file_name, index=False)
+    # write table to DB
+    result = _write_table_db(movement_data, cur, conn, aws)
 
     _logger('Done with everything!', aws)
 
-    return "Success!"
+    return result
 
 
 def _logger(message, aws, info=True):
@@ -549,21 +529,22 @@ def _add_ids_rawdata(data, ids):
     team_id = ids[4]
     session_type = ids[5]
     # set ID information
+    dummy_uuid = '00000000-0000-0000-0000-000000000000'
     length = len(data.LaX)
     setattr(data, 'team_id', np.array([team_id]*length).reshape(-1, 1))
     setattr(data, 'user_id', np.array([user_id]*length).reshape(-1, 1))
     setattr(data, 'team_regimen_id',
             np.array([team_regimen_id]*length).reshape(-1, 1))
-    setattr(data, 'block_id', np.array([None]*length).reshape(-1, 1))
+    setattr(data, 'block_id', np.array([dummy_uuid]*length).reshape(-1, 1))
     setattr(data, 'block_event_id',
-            np.array([None]*length).reshape(-1, 1))
+            np.array([dummy_uuid]*length).reshape(-1, 1))
     setattr(data, 'training_session_log_id',
             np.array([training_session_log_id]*length).reshape(-1, 1))
     setattr(data, 'session_event_id',
             np.array([session_event_id]*length).reshape(-1, 1))
     setattr(data, 'session_type',
             np.array([session_type]*length).reshape(-1, 1))
-    setattr(data, 'exercise_id', np.array([None]*length).reshape(-1, 1))
+    setattr(data, 'exercise_id', np.array([dummy_uuid]*length).reshape(-1, 1))
 
     # Save raw values in different attributes to later populate table
     # left
@@ -602,11 +583,11 @@ def _real_quaternions(data, aws):
     """
     # left
     _lq_xyz = np.hstack([data.LqX, data.LqY, data.LqZ])
-    _lq_wxyz, corrupt_type =\
+    _lq_wxyz, corrupt_type_l =\
                     ppp.calc_quaternions(_lq_xyz, data.missing_data_indicator,
                                          data.corrupt_magn)
     #check for type conversion error in left foot quaternion data
-    if 2 in corrupt_type:
+    if 2 in corrupt_type_l:
         _logger('Error! Type conversion error: LF quat', aws, info=False)
     setattr(data, 'LqW', _lq_wxyz[:, 0].reshape(-1, 1))
     data.LqX = _lq_wxyz[:, 1].reshape(-1, 1)
@@ -614,11 +595,11 @@ def _real_quaternions(data, aws):
     data.LqZ = _lq_wxyz[:, 3].reshape(-1, 1)
     # hip
     _hq_xyz = np.hstack([data.HqX, data.HqY, data.HqZ])
-    _hq_wxyz, corrupt_type =\
+    _hq_wxyz, corrupt_type_h =\
                     ppp.calc_quaternions(_hq_xyz, data.missing_data_indicator,
                                          data.corrupt_magn)
     #check for type conversion error in hip quaternion data
-    if 2 in corrupt_type:
+    if 2 in corrupt_type_h:
         _logger('Error! Type conversion error: Hip quat', aws, info=False)
     setattr(data, 'HqW', _hq_wxyz[:, 0].reshape(-1, 1))
     data.HqX = _hq_wxyz[:, 1].reshape(-1, 1)
@@ -626,17 +607,20 @@ def _real_quaternions(data, aws):
     data.HqZ = _hq_wxyz[:, 3].reshape(-1, 1)
     # right
     _rq_xyz = np.hstack([data.RqX, data.RqY, data.RqZ])
-    _rq_wxyz, corrupt_type =\
+    _rq_wxyz, corrupt_type_r =\
                     ppp.calc_quaternions(_rq_xyz,
                                          data.missing_data_indicator,
                                          data.corrupt_magn)
     #check for type conversion error in right foot quaternion data
-    if 2 in corrupt_type:
+    if 2 in corrupt_type_r:
         _logger('Error! Type conversion error: RF quat', aws, info=False)
     setattr(data, 'RqW', _rq_wxyz[:, 0].reshape(-1, 1))
     data.RqX = _rq_wxyz[:, 1].reshape(-1, 1)
     data.RqY = _rq_wxyz[:, 2].reshape(-1, 1)
     data.RqZ = _rq_wxyz[:, 3].reshape(-1, 1)
+    corrupt_types = np.hstack([corrupt_type_l, corrupt_type_h, corrupt_type_r])
+    corrupt_type = np.max(corrupt_types, axis=1)
+    setattr(data, 'corrupt_type', corrupt_type.reshape(-1, 1))
 
     return data    
 
@@ -719,6 +703,55 @@ def _subset_data(data, neutral_data):
     
     return data
 
+def _write_table_s3(movement_data, file_name, s3, cont, aws):
+    """write final table to s3
+    """
+    movement_data_pd = pd.DataFrame(movement_data)
+    try:
+        fileobj = cStringIO.StringIO()
+        movement_data_pd.to_csv(fileobj, index=False)
+        fileobj.seek(0)
+        s3.Bucket(cont).put_object(Key="scoring_" + file_name, Body=fileobj)
+    except:
+        if aws:
+            logger.warning("Cannot write movement talbe to s3")
+        else:
+            print "Cannot write file to s3 writing locally!"
+            movement_data_pd.to_csv("scoring_" + file_name, index=False)
+
+def _write_table_db(movement_data, cur, conn, aws):
+    """Update the movement table with all the scores
+    Args:
+        movement_data: numpy recarray with complete data
+        cur: cursor pointing to the current db connection
+        conn: db connection
+        aws: boolean to indicate aws vs local
+    Returns:
+        result: string signifying success
+    """
+    movement_data_pd = pd.DataFrame(movement_data)
+    fileobj_db = cStringIO.StringIO()
+    try:
+        movement_data_pd.to_csv(fileobj_db, index=False, header=False,
+                                na_rep='NaN')
+        fileobj_db.seek(0)
+        cur.copy_from(file=fileobj_db, table='movement', sep=',',
+                      columns=movement_data.dtype.names)
+        conn.commit()
+        conn.close()
+    except Exception as error:
+        if aws:
+            logger.warning("Cannot write movement data to DB!")
+            raise error
+        else:
+            print "Cannot write movement data to DB!"
+            raise error
+            return movement_data
+    else:
+        if aws:
+            return "Success!"
+        else:
+            return movement_data
 
 if __name__ == "__main__":
     sensor_data = 'trainingset_explosiveJump.csv'
