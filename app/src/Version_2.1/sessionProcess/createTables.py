@@ -306,8 +306,8 @@ def create_movement_data(N, data):
     movement_data.knee_valgus_rf = np.zeros(N)*np.nan
     movement_data.knee_disp_lk = np.zeros(N)*np.nan
     movement_data.knee_disp_rk = np.zeros(N)*np.nan
-    movement_data.single_leg_random = np.zeros(N)*np.nan
-    movement_data.single_leg_alternating = np.zeros(N)*np.nan
+    movement_data.single_leg_random = np.zeros(N)*-999
+    movement_data.single_leg_alternating = np.zeros(N)*-999
 
     movement_data.single_leg_stationary = data.single_leg_stationary.reshape(-1,)
     movement_data.single_leg_dynamic = data.single_leg_dynamic.reshape(-1,)
@@ -318,10 +318,10 @@ def create_movement_data(N, data):
 #    movement_data.sidelying_right = data.sidelying_right.reshape(-1,)
 #    movement_data.supine = data.supine.reshape(-1,)
 #    movement_data.prone = data.prone.reshape(-1,)
-    movement_data.sidelying_left = np.zeros(N)*np.nan
-    movement_data.sidelying_right = np.zeros(N)*np.nan
-    movement_data.supine = np.zeros(N)*np.nan
-    movement_data.prone = np.zeros(N)*np.nan
+    movement_data.sidelying_left = np.zeros(N)*-999
+    movement_data.sidelying_right = np.zeros(N)*-999
+    movement_data.supine = np.zeros(N)*-999
+    movement_data.prone = np.zeros(N)*-99
     
     movement_data.rot = data.rot.reshape(-1,)
     movement_data.lat = data.lat.reshape(-1,)
@@ -337,8 +337,8 @@ def create_movement_data(N, data):
 #    movement_data.knee_dom = data.knee_dom.reshape(-1,)
 #    movement_data.unknown10 = data.unknown10.reshape(-1,)
 #    movement_data.unknown11 = data.unknown11.reshape(-1,)
-    movement_data.hip_dom = np.zeros(N)*np.nan
-    movement_data.knee_dom = np.zeros(N)*np.nan
+    movement_data.hip_dom = np.zeros(N)*-999
+    movement_data.knee_dom = np.zeros(N)*-999
     movement_data.unknown10 = np.zeros(N)*np.nan
     movement_data.unknown11 = np.zeros(N)*np.nan
 
