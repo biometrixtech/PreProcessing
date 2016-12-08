@@ -59,9 +59,12 @@ def combine_phase(laccz, raccz, hz):
             rf_ph[x:y] = [phase_id.rf_imp.value]*int(y-x) #decide impact
             # phase for the right foot
             
+    rf_ph = np.array(rf_ph)
+    lf_ph = np.array(lf_ph)
+            
     lf_ph, rf_ph = _final_phases(rf_ph, lf_ph)
                         
-    return np.array(lf_ph).reshape(-1, 1), np.array(rf_ph).reshape(-1, 1)
+    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1)
     
     
 def _body_phase(raz, laz, hz):
@@ -326,17 +329,17 @@ def _final_phases(rf_ph, lf_ph):
         lf_ph: a list, left foot final phase
         rf_ph: a list, right foot final phase
     '''
-    
+        
     if len(rf_ph) != len(lf_ph):
         logger.warning("Rf phase and lf phase array lengths are different!")
     else:
         for i in enumerate(rf_ph):
-            if rf_ph[i[0]] == phase_id.rf_imp and \
-            lf_ph[i[0]] == phase_id.rflf_ground:
-                lf_ph[i[0]] = phase_id.rf_ground
-            elif lf_ph[i[0]] == phase_id.lf_imp and \
-            rf_ph[i[0]] == phase_id.rflf_ground:
-                rf_ph[i[0]] = phase_id.lf_ground
+            if rf_ph[i[0]] == phase_id.rf_imp.value and \
+            lf_ph[i[0]] == phase_id.rflf_offground.value:
+                lf_ph[i[0]] = phase_id.rf_ground.value
+            elif lf_ph[i[0]] == phase_id.lf_imp.value and \
+            rf_ph[i[0]] == phase_id.rflf_offground.value:
+                rf_ph[i[0]] = phase_id.lf_ground.value
                 
     return lf_ph, rf_ph
 
@@ -346,46 +349,30 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import time
     
-    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets\
-    /bodyframe_Subject5_LESS.csv'
-    data = np.genfromtxt(datapath, delimiter=",", dtype=float,
-                         names=True)
+    file_name = '250to125_bodyframe_Subject5_LESS.csv'
     
-    #rdata = pd.read_csv(rpath)
-    #ldata = pd.read_csv(lpath)
-    #hdata = pd.read_csv(hpath)
-        
-    sampl_rate = 250
-    #comp = 'AccZ'
-    #racc = rdata[comp]
-    #lacc = ldata[comp] #input AccZ values!
-    #rf_ph = _phase_detect(racc, sampl_rate)
-    #lf_ph = _phase_detect(lacc, sampl_rate)
+#    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/' + file_name
+    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/250to125/' + file_name
+    
+    data = np.genfromtxt(datapath, names=True, delimiter=',', dtype=float)
+            
+    sampl_rate = 125
     
     start_time = time.time()
-    lf_phase, rf_phase = combine_phase(data['LAccZ'], data['RAccZ'],
-                                       data['Timestamp'])
+    lf_phase, rf_phase = combine_phase(data['LAccZ'], data['RAccZ'], 
+                                       sampl_rate)
     print time.time() - start_time
     
     #Plotting
-    #plt.figure(1)
-    #plt.plot(rf_ph)
-    #plt.plot(rdata['AccZ'])
-    #plt.title(comp)
-    #plt.show()
     
     plt.figure(2)
+    plt.title('Left foot')
     plt.plot(lf_phase)
     plt.plot(data['LAccZ'])
-#    plt.title(comp)
     plt.show()
     
     plt.figure(3)
+    plt.title('Right foot')
     plt.plot(rf_phase)
     plt.plot(data['RAccZ'])
-    #plt.title(comp)
     plt.show()
-#
-#    plt.figure(4)
-#    plt.plot(data['epoch_time'])
-#    plt.show()
