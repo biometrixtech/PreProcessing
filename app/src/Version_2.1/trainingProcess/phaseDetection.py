@@ -5,9 +5,14 @@ Created on Thu Jul 07 16:27:47 2016
 @author: Ankur
 """
 
+import logging
+
 import numpy as np
 
 from phaseID import phase_id
+
+
+logger = logging.getLogger()
 
 
 def combine_phase(laccz, raccz, hz):
@@ -53,6 +58,8 @@ def combine_phase(laccz, raccz, hz):
         for x, y in zip(rf_imp[:, 0], rf_imp[:, 1]):
             rf_ph[x:y] = [phase_id.rf_imp.value]*int(y-x) #decide impact
             # phase for the right foot
+            
+    lf_ph, rf_ph = _final_phases(rf_ph, lf_ph)
                         
     return np.array(lf_ph).reshape(-1, 1), np.array(rf_ph).reshape(-1, 1)
     
@@ -305,6 +312,33 @@ def _impact_detect(start_move, end_move, az, hz):
     imp = [[i,j] for i,j in zip(start_imp, end_imp)]
             
     return np.array(imp)
+    
+    
+def _final_phases(rf_ph, lf_ph):
+    '''
+    Determine the final phases of right and left feet.
+    
+    Args:
+        rf_ph: a list, right foot phase
+        lf_ph: a list, left foot phase
+        
+    Returns:
+        lf_ph: a list, left foot final phase
+        rf_ph: a list, right foot final phase
+    '''
+    
+    if len(rf_ph) != len(lf_ph):
+        logger.warning("Rf phase and lf phase array lengths are different!")
+    else:
+        for i in enumerate(rf_ph):
+            if rf_ph[i[0]] == phase_id.rf_imp and \
+            lf_ph[i[0]] == phase_id.rflf_ground:
+                lf_ph[i[0]] = phase_id.rf_ground
+            elif lf_ph[i[0]] == phase_id.lf_imp and \
+            rf_ph[i[0]] == phase_id.rflf_ground:
+                rf_ph[i[0]] = phase_id.lf_ground
+                
+    return lf_ph, rf_ph
 
     
 if __name__ == "__main__":
