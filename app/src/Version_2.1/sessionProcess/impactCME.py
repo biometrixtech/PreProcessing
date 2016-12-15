@@ -53,20 +53,20 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
                     # appending the difference of time of impact between
                     # left and right feet, dividing by the sampling rate to
                     # convert the time difference to milli seconds
-                    ltime_index.append(int(i[0]))
+                    ltime_index.append(int(i[1]))
                     lf_rf_imp_indicator.append('l')
                 elif lf_start[j[0]] < rf_start[j[0]]:  # check if right foot
                 # impacts first
                     diff.append((rf_start[j[0]] - lf_start[i[0]])\
                     /float(sampl_rate)*1000)
-                    ltime_index.append(int(i[0]))
+                    ltime_index.append(int(i[1]))
                     lf_rf_imp_indicator.append('r')
                 elif lf_start[j[0]] == rf_start[j[0]]:  # check impact time of
                 # right foot equals left foot
                     diff.append(0.0)
-                    ltime_index.append(int(i[0]))
+                    ltime_index.append(int(i[1]))
                     lf_rf_imp_indicator.append('n')
-                
+#    print ltime_index            
     return np.array(diff).reshape(-1, 1), \
     np.array(ltime_index).reshape(-1, 1), \
     np.array(lf_rf_imp_indicator).reshape(-1, 1)
@@ -122,22 +122,21 @@ def landing_pattern(rf_euly, lf_euly, land_time_index, l_r_imp_ind, sampl_rate,
     """
         
     out_pattern = []
-    
     # right and left feet pitch angles on impact
     for i, j, k in zip(land_time_index, l_r_imp_ind, land_time):
         if j == 'l':
-            out_pattern.append([np.rad2deg(rf_euly[int(land_time_index[i, 0])]),
-                                np.rad2deg(lf_euly[int(land_time_index[i+\
-                                int(k/1000*sampl_rate), 0])])])
+            out_pattern.append([np.rad2deg(rf_euly[int(i)]),
+                                np.rad2deg(lf_euly[i+\
+                                int(abs(k)/1000*sampl_rate)])])
         elif j == 'r':
-            out_pattern.append([np.rad2deg(rf_euly[int(land_time_index[i, 0])]),
-                                np.rad2deg(lf_euly[int(land_time_index[i-\
-                                int(k/1000*sampl_rate), 0])])])
+            print i
+            out_pattern.append([np.rad2deg(rf_euly[int(i)]),
+                                np.rad2deg(lf_euly[i-\
+                                int(abs(k)/1000*sampl_rate)])])
         elif j == 'n':
-            out_pattern.append([np.rad2deg(rf_euly[int(land_time_index[i, 0])]),
-                                np.rad2deg(lf_euly[int(land_time_index[i, 0])])])
-
-    return np.array(out_pattern)
+            out_pattern.append([np.rad2deg(rf_euly[int(i)]),
+                                np.rad2deg(lf_euly[int(i)])])
+    return np.array(out_pattern).reshape(-1, 2)
 
 
 def continuous_values(land_pattern, land_time, data_length, landtime_index):
@@ -177,7 +176,7 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
     count = 0
     for i in range(data_length):
         if i in landtime_index[:, 0]:
-            lf_quick_pattern.append(land_pattern[count, 3])
+            lf_quick_pattern.append(land_pattern[count, 1])
             count = count + 1
         else:
             lf_quick_pattern.append(np.nan)
