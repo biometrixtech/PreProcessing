@@ -309,11 +309,17 @@ def run_session(sensor_data, file_name, aws=True):
     # define dictionary for msElapsed
 
     # landing time attributes
-    n_landtime, ltime_index = impact.sync_time(data.phase_rf, data.phase_lf,
-                                               data.epoch_time)
+    n_landtime, ltime_index, lf_rf_imp_indicator =\
+                            impact.sync_time(data.phase_rf, data.phase_lf,
+                                             sampl_freq)
+
     # landing pattern attributes
     if len(n_landtime) != 0:
-        n_landpattern = impact.landing_pattern(data.ReY, data.LeY, n_landtime)
+        n_landpattern = impact.landing_pattern(data.ReY, data.LeY,
+                                               land_time_index=ltime_index,
+                                               l_r_imp_ind=lf_rf_imp_indicator,
+                                               sampl_rate=sampl_freq,
+                                               land_time=n_landtime)
         land_time, land_pattern =\
             impact.continuous_values(n_landpattern, n_landtime,
                                      len(data.LaX), ltime_index)
