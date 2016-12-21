@@ -49,24 +49,8 @@ def run_session(sensor_data, file_name, aws=True):
             LqZ, HaX, HaY, HaZ, HqX, HqY, HqZ, RaX, RaY, RaZ, RqX, RqY, RqZ
     
     Returns:
-        processed data object with attributes of:
-            team_id, user_id, team_regimen_id, block_id, block_event_id,
-            training_session_log_id, session_event_id, session_type,
-            exercise_id, obs_index, obs_master_index, time_stamp, epoch_time,
-            ms_elapsed, phase_lf, phase_rf, activity_id, mech_stress,
-            const_mech_stress, dest_mech_stress, total_accel, block_duration,
-            session_duration, block_mech_stress_elapsed,
-            session_mech_stress_elapsed, destr_multiplier, symmetry,
-            hip_symmetry, ankle_symmetry, consistency, hip_consistency,
-            ankle_consistency, consistency_lf, consistency_rf, control,
-            hip_control, ankle_control, control_lf, control_rf,
-            perc_mech_stress_l, contra_hip_drop_lf, contra_hip_drop_rf, hip_rot,
-            ankle_rot_lf,ankle_rot_rf, land_pattern_lf, land_pattern_rf,
-            land_time, single_leg_stationary, single_leg_dynamic, double_leg,
-            feet_eliminated, rot, lat, vert, horz, rot_binary, lat_binary,
-            vert_binary, horz_binary, stationary_binary, LaX, LaY, LaZ, LeX,
-            LeY, LeZ, LqW, LqX, LqY, LqZ, HaX, HaY, HaZ, HeX, HeY, HeZ, HqW,
-            HqX, HqY, HqZ, RaX, RaY, RaZ, ReX, ReY, ReZ, RqW, RqX, RqY, RqZ
+        result: string signifying success or failure.
+        Note: In case of completion for local run returns movement table.
     """
 
     # Define containers to read from and write to
@@ -472,10 +456,10 @@ def _read_ids(cur, aws, file_name):
 def _read_offsets(cur, session_event_id, aws):
     '''Read the offsets for coordinateframe transformation.
     
-    If it's in aws lambda, it'll try to find offsets in DB and raise
+    If it's in aws lambda, try to find offsets in DB and raise
     appropriate error,
-    If it's a local run for testing, it'll look for associated offsets in DB
-    first, if not found, it'll check local memory to see if the offset values
+    If it's a local run for testing, look for associated offsets in DB
+    first, if not found, check local memory to see if the offset values
     are stored. If both these fail, ValueError is raised.
     '''
     try:
@@ -498,7 +482,7 @@ def _read_offsets(cur, session_event_id, aws):
                                  "the database or local memory")           
     except IndexError as error:
         if aws:
-            logger.warning("Transform offesets cannot be found!")
+            logger.warning("Transform offsets cannot be found!")
             raise error
         else:
             try:
@@ -740,7 +724,7 @@ def _write_table_db(movement_data, cur, conn, aws):
         else:
             print "Cannot write movement data to DB!"
             raise error
-            return movement_data
+#            return movement_data
     else:
         if aws:
             return "Success!"
