@@ -340,6 +340,19 @@ def run_calibration(sensor_data, file_name):
             msg = ErrorMessageSession(ind).error_message
             r_push_data = RPushDataSession(ind).value
 
+            ###Write to S3
+            data_calib['failure_type'] = ind
+            data_pd = pd.DataFrame(data_calib)
+            data_pd['base_calibration'] = int(is_base)
+            f = cStringIO.StringIO()
+            data_pd.to_csv(f, index=False)
+            f.seek(0)
+            try:
+                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+            except boto3.exceptions as error:
+                logger.warning("Cannot write to s3!")
+                raise error
+
             if is_base:
                 #read from S3
                 try:
@@ -434,7 +447,7 @@ def run_calibration(sensor_data, file_name):
                                                 rf_bf_transform,
                                                 file_name))
                     conn.commit()
-                except boto3.exceptions as error:
+                except psycopg2.Error as error:
                     logger.warning("Cannot write to DB after success!")
                     raise error
                 try:
@@ -490,18 +503,6 @@ def run_calibration(sensor_data, file_name):
                 else:
                     return "Success!"
 
-            ###Write to S3
-            data_calib['failure_type'] = ind
-            data_pd = pd.DataFrame(data_calib)
-            data_pd['base_calibration'] = int(is_base)
-            f = cStringIO.StringIO()
-            data_pd.to_csv(f, index=False)
-            f.seek(0)
-            try:
-                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-            except boto3.exceptions as error:
-                logger.warning("Cannot write to s3!")
-                raise error
 
 if __name__ == '__main__':
     path = 'team1_session1_trainingset_anatomicalCalibration.csv'

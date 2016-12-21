@@ -50,7 +50,7 @@ def run_session(sensor_data, file_name, aws=True):
     
     Returns:
         result: string signifying success or failure.
-        Note: In case of completion for local run returns movement table.
+        Note: In case of completion for local run, returns movement table.
     """
 
     # Define containers to read from and write to
@@ -723,8 +723,8 @@ def _write_table_db(movement_data, cur, conn, aws):
             raise error
         else:
             print "Cannot write movement data to DB!"
-            raise error
-#            return movement_data
+#            raise error
+            return movement_data
     else:
         if aws:
             return "Success!"

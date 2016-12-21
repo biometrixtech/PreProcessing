@@ -42,17 +42,8 @@ def run_scoring(sensor_data, file_name, aws=True):
             LqZ, HaX, HaY, HaZ, HqX, HqY, HqZ, RaX, RaY, RaZ, RqX, RqY, RqZ
 
     Returns:
-        processed data object with attributes of:
-            team_id, user_id, team_regimen_id, block_id, block_event_id,
-            training_session_log_id, session_event_id, session_type,
-            exercise_id, obs_index, obs_master_index, time_stamp, epoch_time,
-            ms_elapsed, phase_lf, phase_rf, activity_id, mech_stress,
-            const_mech_stress, dest_mech_stress, total_accel, block_duration,
-            session_duration, block_mech_stress_elapsed,
-            session_mech_stress_elapsed, destr_multiplier, symmetry,
-            hip_symmetry, ankle_symmetry, consistency, hip_consistency,
-            ankle_consistency, consistency_lf, consistency_rf, control,
-            hip_control, ankle_control, control_lf, control_rf
+        result: string signifying success or failure.
+        Note: In case of completion for local run, returns movement table.
     """
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_read = 'biometrix-blockprocessedcontainer'
@@ -86,14 +77,14 @@ def run_scoring(sensor_data, file_name, aws=True):
         fileobj = obj.get()
         body = fileobj["Body"].read()
         hist_data = cStringIO.StringIO(body)
-        userDB = pd.read_csv(hist_data)
+        user_hist = pd.read_csv(hist_data)
     except Exception as error:
         if aws:
             _logger("Cannot read historical user data from s3!", aws, False)
             raise error
         else:
             try:
-                userDB = pd.read_csv("user_hist.csv")
+                user_hist = pd.read_csv("user_hist.csv")
             except:
                 raise IOError("User history not found in s3/local directory")
     
@@ -106,7 +97,7 @@ def run_scoring(sensor_data, file_name, aws=True):
         data.destr_multiplier, data.dest_mech_stress, \
         data.const_mech_stress, data.block_duration, \
         data.session_duration, data.block_mech_stress_elapsed, \
-        data.session_mech_stress_elapsed = score(data, userDB)
+        data.session_mech_stress_elapsed = score(data, user_hist)
 
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
@@ -182,7 +173,6 @@ def _write_table_db(movement_data, cur, conn, aws):
             logger.warning("Cannot write movement data to DB!")
             raise error
         else:
-            raise error
             print "Cannot write movement data to DB!"
             return movement_data
     else:
@@ -193,7 +183,8 @@ def _write_table_db(movement_data, cur, conn, aws):
 
 
 def _write_table_s3(movement_data, file_name, s3, cont, aws):
-    """write final table to s3
+    """write final table to s3. In case of local run, if it can't be written to
+    s3, it'll be written locally
     """
     movement_data_pd = pd.DataFrame(movement_data)
     try:
@@ -203,7 +194,7 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
         s3.Bucket(cont).put_object(Key="movement_" + file_name, Body=fileobj)
     except:
         if aws:
-            logger.warning("Cannot write movement talbe to s3")
+            logger.warning("Cannot write movement table to s3")
         else:
             print "Cannot write file to s3 writing locally!"
             movement_data_pd.to_csv("movement_" + file_name, index=False)
