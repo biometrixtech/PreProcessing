@@ -329,20 +329,21 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import time
     
-    file_name = '250to125_bodyframe_Subject5_LESS.csv'
+#    file_name = 'bodyframe_Subject3_LESS.csv'
     
 #    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/' + file_name
-    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/250to125/' + file_name
-#    file_name = 'movement_data_ankur_IV_combined.csv'
-#    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/12132016/Calibration/' + file_name
-
+#    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/250to125/' + file_name
+    file_name = 'movement_data_ankur_IV_combined.csv'
+    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/12132016/Calibration/' + file_name
+#    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/' + file_name    
+    
     data = np.genfromtxt(datapath, names=True, delimiter=',', dtype=float)
             
-    sampl_rate = 125
+    sampl_rate = 250
     
     start_time = time.time()
-    lf_phase, rf_phase = combine_phase(laccz = data['LAccZ'], 
-                                       raccz = data['RAccZ'], 
+    lf_phase, rf_phase = combine_phase(laccz = data['LaZ'], 
+                                       raccz = data['RaZ'], 
                                        hz = sampl_rate)
 #    lf_phase = _phase_detect(data['LaZ'], sampl_rate)
     print time.time() - start_time
@@ -352,11 +353,16 @@ if __name__ == "__main__":
     plt.figure(1)
     plt.title('with Phases: Left foot')
     plt.plot(lf_phase)
-    plt.plot(data['LAccZ'])
+    plt.plot(data['LaZ'])
     plt.show()
     
     plt.figure(2)
     plt.title('with Phases: Right foot')
     plt.plot(rf_phase)
-    plt.plot(data['RAccZ'])
+    plt.plot(data['RaZ'])
+    plt.show()
+    
+    plt.figure(3)
+    plt.title('Hip')
+    plt.plot(data['HaZ'])
     plt.show()
