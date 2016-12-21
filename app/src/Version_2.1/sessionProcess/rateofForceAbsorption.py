@@ -8,7 +8,6 @@ Created on Wed Dec 21 08:01:53 2016
 import numpy as np
 from phaseDetection import combine_phase
 from phaseID import phase_id
-from mechStressTraining import prepare_data
 
 
 def det_rofa(l_ph, r_ph, laccz, raccz, user_mass, hz):
