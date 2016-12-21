@@ -5,7 +5,7 @@ Created on Tue Oct 18 15:18:54 2016
 @author: court
 """
 import cStringIO
-import sys
+#import sys
 import logging
 
 import boto3
@@ -14,7 +14,7 @@ import pandas as pd
 import psycopg2
 
 import prePreProcessing as ppp
-import anatomicalCalibration as ac
+#import anatomicalCalibration as ac
 from errors import ErrorMessageBase, RPushDataBase
 from placementCheck import placement_check
 
@@ -22,7 +22,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def record_special_feet(sensor_data, file_name):
+def record_base_feet(sensor_data, file_name):
     """Checks the validity of base calibration step and writes transformed
     base feet calibration data to the database.
 
@@ -300,4 +300,4 @@ def record_special_feet(sensor_data, file_name):
 
 if __name__ == '__main__':
     path = 'team1_session1_trainingset_anatomicalCalibration.csv'
-    result = record_special_feet(path, path)
+    result = record_base_feet(path, path)

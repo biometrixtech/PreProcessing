@@ -7,7 +7,7 @@ Created on Tue Oct 18 18:30:17 2016
 
 
 import cStringIO
-import sys
+#import sys
 import logging
 
 import boto3
@@ -42,9 +42,9 @@ def run_calibration(sensor_data, file_name):
     """
     # Setup Queries based on different situations
 
-    # Read relevant information from special_anatomical_calibration_events
+    # Read relevant information from base_anatomical_calibration_events
     # based on provided sensor_data_filename and
-    # special_anatomical_calibration_event_id tied to the filename
+    # base_anatomical_calibration_event_id tied to the filename
     quer_read = """select user_id, expired, feet_success, hip_success,
                 feet_processed_sensor_data_filename, hip_pitch_transform,
                 hip_roll_transform, lf_roll_transform, rf_roll_transform
@@ -61,8 +61,8 @@ def run_calibration(sensor_data, file_name):
                 updated_at = now()
                 where sensor_data_filename=(%s);"""
 
-    # For base calibration, update special_anatomical_calibration_events
-    quer_spe_succ = """update  base_anatomical_calibration_events set
+    # For base calibration, update base_anatomical_calibration_events
+    quer_base_succ = """update  base_anatomical_calibration_events set
                 hip_success = (%s),
                 hip_pitch_transform = (%s),
                 hip_roll_transform = (%s),
@@ -74,10 +74,10 @@ def run_calibration(sensor_data, file_name):
                             sensor_data_filename = (%s));"""
 
     # For both base and session calibration, update
-    # anatomical_calibration_events with relevant info
+    # session_anatomical_calibration_events with relevant info
     # for base calibration, session calibration follows base calibration
     # for session calibration, it's independent and uses values read earlier
-    quer_reg_succ = """update session_anatomical_calibration_events set
+    quer_session_succ = """update session_anatomical_calibration_events set
                     success = (%s),
                     base_calibration = (%s),
                     hip_n_transform = (%s),
@@ -340,19 +340,6 @@ def run_calibration(sensor_data, file_name):
             msg = ErrorMessageSession(ind).error_message
             r_push_data = RPushDataSession(ind).value
 
-            ###Write to S3
-            data_calib['failure_type'] = ind
-            data_pd = pd.DataFrame(data_calib)
-            data_pd['base_calibration'] = int(is_base)
-            f = cStringIO.StringIO()
-            data_pd.to_csv(f, index=False)
-            f.seek(0)
-            try:
-                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-            except boto3.exceptions as error:
-                logger.warning("Cannot write to s3!")
-                raise error
-
             if is_base:
                 #read from S3
                 try:
@@ -396,7 +383,7 @@ def run_calibration(sensor_data, file_name):
                 # Save base calibration offsets to
                 # BaseAnatomicalCalibrationEvent along with hip_success
                 try:
-                    cur.execute(quer_spe_succ, (True, hip_pitch_transform,
+                    cur.execute(quer_base_succ, (True, hip_pitch_transform,
                                                 hip_roll_transform,
                                                 lf_roll_transform,
                                                 rf_roll_transform,
@@ -438,7 +425,7 @@ def run_calibration(sensor_data, file_name):
                 hip_n_transform = hip_n_transform.reshape(-1,).tolist()
 
                 try:
-                    cur.execute(quer_reg_succ, (True, is_base,
+                    cur.execute(quer_session_succ, (True, is_base,
                                                 hip_n_transform,
                                                 hip_bf_transform,
                                                 lf_n_transform,
@@ -480,7 +467,7 @@ def run_calibration(sensor_data, file_name):
                 # SessionAnatomicalCalibrationEvent
                 # along with base_calibration=False and success=True
                 try:
-                    cur.execute(quer_reg_succ, (True, is_base,
+                    cur.execute(quer_session_succ, (True, is_base,
                                                 hip_n_transform,
                                                 hip_bf_transform,
                                                 lf_n_transform,
@@ -503,6 +490,18 @@ def run_calibration(sensor_data, file_name):
                 else:
                     return "Success!"
 
+            ###Write to S3
+            data_calib['failure_type'] = ind
+            data_pd = pd.DataFrame(data_calib)
+            data_pd['base_calibration'] = int(is_base)
+            f = cStringIO.StringIO()
+            data_pd.to_csv(f, index=False)
+            f.seek(0)
+            try:
+                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+            except boto3.exceptions as error:
+                logger.warning("Cannot write to s3!")
+                raise error
 
 if __name__ == '__main__':
     path = 'team1_session1_trainingset_anatomicalCalibration.csv'

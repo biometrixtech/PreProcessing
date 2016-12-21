@@ -44,7 +44,7 @@ def lambda_handler(event, context):
             unzipped_content = cStringIO.StringIO()
             unzipped_content = zipped.open(name)
             logger.info('Unzipped File')
-            result = rb.record_special_feet(unzipped_content, key)
+            result = rb.record_base_feet(unzipped_content, key)
             logger.info('outcome:' + result)
             return 'success'
             
