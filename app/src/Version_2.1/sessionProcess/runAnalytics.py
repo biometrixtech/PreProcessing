@@ -34,6 +34,7 @@ import quatConvs as qc
 import impactCME as impact
 import createTables as ct
 import sessionProcessQueries as queries
+import checkProcessed as cp
 
 
 logger = logging.getLogger()
@@ -86,6 +87,7 @@ def run_session(sensor_data, file_name, aws=True):
 
     columns = sdata.dtype.names
     data = do.RawFrame(sdata, columns)
+    data = cp.handle_processed(data)
     data = _add_ids_rawdata(data, ids_from_db)
 
     # PRE-PRE-PROCESSING

@@ -17,6 +17,7 @@ import prePreProcessing as ppp
 #import anatomicalCalibration as ac
 from errors import ErrorMessageBase, RPushDataBase
 from placementCheck import placement_check
+import checkProcessed as cp
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -97,6 +98,9 @@ def record_base_feet(sensor_data, file_name):
         logger.warning("Sensor data is empty!")
         return "Fail!"
 
+    # check if the raw quaternions have been converted already
+    data = cp.handle_processed(data)
+    
     out_file = "processed_" + file_name
     epoch_time = data['epoch_time']
     corrupt_magn = data['corrupt_magn']

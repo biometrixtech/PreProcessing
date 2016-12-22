@@ -20,6 +20,7 @@ from placementCheck import placement_check
 import baseCalibration as bc
 import prePreProcessing as ppp
 from errors import ErrorMessageSession, RPushDataSession
+import checkProcessed as cp
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -164,7 +165,10 @@ def run_calibration(sensor_data, file_name):
     if len(data) == 0:
         logger.warning("Sensor data is empty!")
         return "Fail!"
-
+    
+    # check if the raw quaternions have been converted already
+    data = cp.handle_processed(data)
+    
     out_file = "processed_" + file_name
     epoch_time = data['epoch_time']
     corrupt_magn = data['corrupt_magn']
