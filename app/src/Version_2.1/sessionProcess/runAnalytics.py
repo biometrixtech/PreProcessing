@@ -90,6 +90,18 @@ def run_session(sensor_data, file_name, aws=True):
     data = do.RawFrame(sdata, columns)
     data = cp.handle_processed(data)
     data = _add_ids_rawdata(data, ids_from_db)
+    user_id = data.user_id[0][0]
+    try:
+        cur.execute(queries.quer_read_mass, (user_id,))
+        mass = cur.fetchall()[0][0]
+    except psycopg2.Error as error:
+        _logger("Cannot read user's mass", aws, info=False)
+        raise error
+    else:
+        if mass is None:
+            mass = 60
+#            raise ValueError("User's mass does not exist in DB!")
+            
 
     # PRE-PRE-PROCESSING
     # Check for duplicate epoch time
