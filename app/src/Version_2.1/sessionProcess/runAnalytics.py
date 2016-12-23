@@ -11,7 +11,7 @@ Input data called from 'biometrix-blockcontainer'
 
 Output data collected in BlockEvent Table.
 """
-#import sys
+import sys
 import pickle
 import cStringIO
 import logging
@@ -35,6 +35,7 @@ import impactCME as impact
 import createTables as ct
 import sessionProcessQueries as queries
 import checkProcessed as cp
+import rateofForceAbsorption as fa
 
 
 logger = logging.getLogger()
@@ -53,7 +54,7 @@ def run_session(sensor_data, file_name, aws=True):
         result: string signifying success or failure.
         Note: In case of completion for local run, returns movement table.
     """
-
+#%%
     # Define containers to read from and write to
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_write_final = 'biometrix-scoringcontainer'
@@ -107,7 +108,7 @@ def run_session(sensor_data, file_name, aws=True):
         ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
     sampl_freq = int(1000./data.ms_elapsed[1])
     _logger('DONE WITH PRE-PRE-PROCESSING!', aws)
-
+#%%
     # COORDINATE FRAME TRANSFORMATION
 
     # pull relevant transform offset values from SessionCalibrationEvent
@@ -180,14 +181,14 @@ def run_session(sensor_data, file_name, aws=True):
     data.RqZ = _transformed_data[:, 30].reshape(-1, 1)
 
     _logger('DONE WITH COORDINATE FRAME TRANSFORMATION!', aws)
-
+#%%
     # PHASE DETECTION
     data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ,
                                                        sampl_freq)
 
     _logger('DONE WITH PHASE DETECTION!', aws)
 
-
+#%%
     # INTELLIGENT ACTIVITY DETECTION (IAD)
     # load model
     try:
@@ -217,7 +218,7 @@ def run_session(sensor_data, file_name, aws=True):
                                        len(data.LaX)).reshape(-1, 1)
 
     _logger('DONE WITH IAD!', aws)
-
+#%%
     # save sensor data before subsetting
     sensor_data = ct.create_sensor_data(len(data.LaX), data)
     _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write, aws)
@@ -227,7 +228,7 @@ def run_session(sensor_data, file_name, aws=True):
 
     # set observation index
     data.obs_index = np.array(range(len(data.LaX))).reshape(-1, 1) + 1
-
+#%%
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
     # isolate hip acceleration and euler angle data
     hip_acc = np.hstack([data.HaX, data.HaY, data.HaZ])
@@ -251,7 +252,7 @@ def run_session(sensor_data, file_name, aws=True):
                                        data.single_leg, sampl_freq)
 
     _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!', aws)
-
+#%%
     # MOVEMENT QUALITY FEATURES
 
     # isolate neutral quaternions
@@ -290,7 +291,7 @@ def run_session(sensor_data, file_name, aws=True):
     data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
 
     _logger('DONE WITH BALANCE CME!', aws)
-
+#%%
     # IMPACT CME
     # define dictionary for msElapsed
 
@@ -309,7 +310,7 @@ def run_session(sensor_data, file_name, aws=True):
         land_time, land_pattern =\
             impact.continuous_values(n_landpattern, n_landtime,
                                      len(data.LaX), ltime_index)
-        data.land_time = land_time[:, 0].reshape(-1, 1)
+        data.land_time = land_time.reshape(-1, 1)
         data.land_pattern_rf = land_pattern[:, 0].reshape(-1, 1)
         data.land_pattern_lf = land_pattern[:, 1].reshape(-1, 1)
     else:
@@ -318,7 +319,7 @@ def run_session(sensor_data, file_name, aws=True):
         data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
 
     _logger('DONE WITH IMPACT CME!', aws)
-
+#%%
     # MECHANICAL STRESS
     # load model
     try:
@@ -339,13 +340,21 @@ def run_session(sensor_data, file_name, aws=True):
             except:
                 raise IOError("MS model file not found in s3/local directory")
     ms_data = prepare_data(data, False)
-    
+   
     # calculate mechanical stress
     data.mech_stress = mstress_fit.predict(ms_data).reshape(-1, 1)
 
     _logger('DONE WITH MECH STRESS!', aws)
-
-
+#%%
+    # RATE OF FORCE ABSORPTION
+    mass = 50
+    rofa_lf, rofa_rf = fa.det_rofa(l_ph=data.phase_lf, r_ph=data.phase_rf,
+                                   laccz=data.LaZ, raccz=data.RaZ,
+                                   user_mass=mass, hz=sampl_freq) 
+    data.rate_force_absorption_lf = rofa_lf
+    data.rate_force_absorption_rf = rofa_rf
+    _logger('DONE WITH RATE OF FORCE ABSORPTION', aws)
+#%%
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
     
@@ -359,7 +368,7 @@ def run_session(sensor_data, file_name, aws=True):
 
     return result
 
-
+#%%
 def _logger(message, aws, info=True):
     if aws:
         if info:
@@ -369,7 +378,7 @@ def _logger(message, aws, info=True):
     else:
         print message
 
-
+#%%
 def _connect_db_s3():
     """Start a connection to the database and to s3 resource.
     """
@@ -388,7 +397,7 @@ def _connect_db_s3():
         raise error
     else:
         return conn, cur, s3
-
+#%%
 def _read_ids(cur, aws, file_name):
     '''Read relevant ids from database and assign zeros if not found
     Args:
@@ -454,7 +463,7 @@ def _read_ids(cur, aws, file_name):
     return (session_event_id, training_session_log_id, user_id, team_regimen_id,
             team_id, session_type)
 
-
+#%%
 def _read_offsets(cur, session_event_id, aws):
     '''Read the offsets for coordinateframe transformation.
     
@@ -499,7 +508,7 @@ def _read_offsets(cur, session_event_id, aws):
 #                offsets_read = dummy_offsets   
     return offsets_read
 
-
+#%%
 def _add_ids_rawdata(data, ids):
     # retrieve ids
     session_event_id = ids[0]
@@ -553,7 +562,7 @@ def _add_ids_rawdata(data, ids):
 
     return data
 
-
+#%%
 def _real_quaternions(data, aws):
     """Calculate real quaternion from the imaginary quaternions
     
@@ -604,7 +613,7 @@ def _real_quaternions(data, aws):
 
     return data    
 
-
+#%%
 def _subset_data(data, neutral_data):
     """SUBSETTING FOR ACTIVITY ID = 1
     """
@@ -682,7 +691,7 @@ def _subset_data(data, neutral_data):
     data.activity_id = data.activity_id[data.activity_id == 1]
     
     return data
-
+#%%
 def _write_table_s3(movement_data, file_name, s3, cont, aws):
     """write final table to s3
     """
@@ -698,7 +707,7 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
         else:
             print "Cannot write file to s3 writing locally!"
             movement_data_pd.to_csv("scoring_" + file_name, index=False)
-
+#%%
 def _write_table_db(movement_data, cur, conn, aws):
     """Update the movement table with all the scores
     Args:
@@ -733,7 +742,8 @@ def _write_table_db(movement_data, cur, conn, aws):
         else:
             return movement_data
 
+#%%
 if __name__ == "__main__":
-    sensor_data = 'trainingset_explosiveJump.csv'
+    sensor_data = 'dipesh_merged_II.csv'
     file_name = 'fakefilename'
     result = run_session(sensor_data, file_name, aws=False)

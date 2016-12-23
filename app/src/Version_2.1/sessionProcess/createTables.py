@@ -195,12 +195,12 @@ def create_movement_data(N, data):
     movement_data.const_mech_stress = np.zeros(N)*np.nan
     movement_data.dest_mech_stress = np.zeros(N)*np.nan
     
-#    movement_data.rate_force_absorption_lf = data.rate_force_absorption_lf.reshape(-1,)
-#    movement_data.rate_force_absorption_rf = data.rate_force_absorption_rf.reshape(-1,)
+    movement_data.rate_force_absorption_lf = data.rate_force_absorption_lf.reshape(-1,)
+    movement_data.rate_force_absorption_rf = data.rate_force_absorption_rf.reshape(-1,)
 #    movement_data.rate_force_production_lf = data.rate_force_production_lf.reshape(-1,)
 #    movement_data.rate_force_production_rf = data.rate_force_production_rf.reshape(-1,)
-    movement_data.rate_force_absorption_lf = np.zeros(N)*np.nan
-    movement_data.rate_force_absorption_rf = np.zeros(N)*np.nan
+#    movement_data.rate_force_absorption_lf = np.zeros(N)*np.nan
+#    movement_data.rate_force_absorption_rf = np.zeros(N)*np.nan
     movement_data.rate_force_production_lf = np.zeros(N)*np.nan
     movement_data.rate_force_production_rf = np.zeros(N)*np.nan
     
