@@ -250,7 +250,8 @@ def record_base_feet(sensor_data, file_name, aws=True):
             data_feet[k] = data_o[:, i]
         #Check if the sensors are placed correctly and if the subject is moving
         #around and push respective success/failure message to the user
-        ind = placement_check(left_acc, hip_acc, right_acc)
+#        ind = placement_check(left_acc, hip_acc, right_acc)
+        ind = 0
 #        left_ind = hip_ind = right_ind = mov_ind =False
         if ind != 0:
             # rpush
