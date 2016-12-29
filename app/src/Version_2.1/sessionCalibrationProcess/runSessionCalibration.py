@@ -386,11 +386,18 @@ def run_calibration(sensor_data, file_name):
                 try:
                     feet_data = np.genfromtxt(feet, dtype=float, delimiter=',',
                                               names=True)
+
                 except IndexError:
                     logger.warning("Feet data doesn't have column names!")
                     raise error
                 if len(feet_data) == 0:
                     logger.warning("Feet sensor data is empty!")
+
+                # cut out first of recording where quats are settling
+                freq = 100
+                beg = 1 + np.asarray(range(int(1.5 * freq)))
+                feet_data = np.delete(feet_data, beg.tolist(), 0)
+
                 #Run base calibration
                 hip_pitch_transform, hip_roll_transform,\
                 lf_roll_transform, rf_roll_transform = \
