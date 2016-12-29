@@ -140,11 +140,20 @@ def run_calib(data, hip_pitch_transform, hip_roll_transform,
                           data['LqZ']]).transpose()
     rf_datadb = np.array([data['RqW'], data['RqX'], data['RqY'],
                           data['RqZ']]).transpose()
+
+    # isolate portion of recording from which to calculate values
+    freq = 100
+    start_ind = 2 * freq
+    stop_ind = 4 * freq
+
+    hip_data = hip_datadb[start_ind:stop_ind, :]
+    lf_data = lf_datadb[start_ind:stop_ind, :]
+    rf_data = rf_datadb[start_ind:stop_ind, :]
     
     # normalize orientation data
-    hip_data = qo.quat_norm(hip_datadb)
-    lf_data = qo.quat_norm(lf_datadb)
-    rf_data = qo.quat_norm(rf_datadb)
+    hip_data = qo.quat_norm(hip_data)
+    lf_data = qo.quat_norm(lf_data)
+    rf_data = qo.quat_norm(rf_data)
 
     # take hip sensor frame into aif, get all _bf_transform values to get to body frames
     hip_aif, hip_bf_transform = _sensor_to_aif(hip_data, hip_pitch_transform,
