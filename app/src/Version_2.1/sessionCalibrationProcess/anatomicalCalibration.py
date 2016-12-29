@@ -156,8 +156,7 @@ def run_calib(data, hip_pitch_transform, hip_roll_transform,
     rf_data = qo.quat_norm(rf_data)
 
     # take hip sensor frame into aif, get all _bf_transform values to get to body frames
-    hip_aif, hip_bf_transform = _sensor_to_aif(hip_data, hip_pitch_transform,
-                                               hip_roll_transform)
+    hip_aif, hip_bf_transform = _sensor_to_aif(hip_data, hip_pitch_transform)
     lf_bf_transform, lf_yaw_transform, lf_pitch_transform =\
             _feet_transform_calculations(lf_data, hip_aif, lf_roll_transform)
     rf_bf_transform, rf_yaw_transform, rf_pitch_transform =\
