@@ -31,13 +31,14 @@ def check_duplicate_epochtime(epoch_time):
         return epoch_time_duplicate
 
 
-def calc_quaternions(quat_array):
+def calc_quaternions(quat_array, missing_type):
 
     """Calculating the real quaternion.
 
     Args:
         quat_array: an array of the quaternions from the sensor data, qX,
         qY, qZ.
+        missing_type: array, indicator for type of missing value
 
     Returns:
         all_quaternions: An array of real and imaginary quaternions,
@@ -65,10 +66,12 @@ def calc_quaternions(quat_array):
     # imaginary quaternion
     q_w = np.sqrt(1 - qi_calc_qw - qj_calc_qw - qk_calc_qw)  # real
                                                             # quaternion
+    
+    # define constant, enumerated value for unintentional value
+    unintentional_missing_type = 1
 
     # check if NaN exists in the real quaternion array
-    if np.any(np.isnan(q_w)):
-
+    if np.any(np.isnan(q_w[missing_type != unintentional_missing_type])):
         conversion_error = True
 
     # appending the real and imaginary quaternions arrays to a single array
@@ -105,7 +108,7 @@ def _computation_imaginary_quat(i_quat, check_qw=True):
         return comp_i_quat.reshape(-1, 1)
 
 
-def handling_missing_data(epoch_time, col_data, corrup_magn):
+def handling_missing_data(epoch_time, col_data, corrup_magn, missing_type):
 
     """
     Checking for missing data. Imputing the values if the number of
@@ -117,6 +120,8 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
         col_data: an array, each column data from the data file
         corrup_magn: an array, binary values indicating if the
         magnetometer is corrupted or not
+        missing_type: array, enumerated values indicating if blank is 
+        intentional or unintentional
         
     Returns:
         col_data: an array, column data either with imputed values or data
@@ -131,6 +136,9 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
 
     # threshold for acceptable number of consecutive missing values
     MISSING_DATA_THRESH = 3
+    
+    # enumerated value to indicate unitentional missing data 
+    intentional_missing_data = 1
 
     # where magnetometer corrupt, return 'Fail' notification to user
     if 1 in corrup_magn:
@@ -138,11 +146,12 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
 
     # where magnetometer not corrupt, correct for missing values
     else:
-        ran = _zero_runs(col_data.reshape(-1,))
+        ran = _zero_runs(col_data.reshape(-1,), missing_type, 
+                         intentional_missing_data)
 
         # if missing data, check if it is enough to cross error threshold
         if ran.shape[0] != 0:
-
+            
             # if missing data crosses threshold, return with error
             if np.any(ran[:, 1].reshape(-1, 1)-ran[:, 0].reshape(-1, 1) \
                 > MISSING_DATA_THRESH):
@@ -175,13 +184,17 @@ def handling_missing_data(epoch_time, col_data, corrup_magn):
             return col_data, ErrorId.no_error.value
             
             
-def _zero_runs(col_dat):
+def _zero_runs(col_dat, miss_type, intentional_missing_data):
 
     """
     Determining the number of consecutive nan's.
 
     Args:
         col_dat: column data as a numpy array.
+        miss_type: array, enumerated values indicating if blank is 
+        intentional or unintentional
+        intentional_missing_data: int, enumerated value to indicate
+        intentioal blank
 
     Returns:
         ranges: 2D numpy array. 1st column is the starting position of the
@@ -192,6 +205,8 @@ def _zero_runs(col_dat):
 
     # determine where column data is NaN
     isnan = np.isnan(col_dat).astype(int)
+    isnan = isnan[miss_type != intentional_missing_data]  # subsetting for when
+    # missing value is an intentional blank
     if isnan[0] == 1:
         t_b = 1
     else:

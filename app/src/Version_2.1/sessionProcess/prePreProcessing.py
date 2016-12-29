@@ -169,11 +169,15 @@ def handling_missing_data(obj_data):
     missing_data_indicator_l = np.array(['N']*len(obj_data.LaX))
     missing_data_indicator_h = np.array(['N']*len(obj_data.LaX))
     missing_data_indicator_r = np.array(['N']*len(obj_data.LaX))
+    
+    # enumerated value to indicate unitentional missing data 
+    intentional_missing_data = 1
 
     # ADD INDICATORS FOR MISSING VALUES
     # Checking if the number of consecutive missing values for the left foot
     # sensor data is greater than the threshold
-    r_l = _zero_runs(obj_data.LaX)
+    r_l = _zero_runs(obj_data.LaX, obj_data.missing_type, 
+                     intentional_missing_data)
     if r_l.shape[0] != 0:
         for i in range(len(r_l[np.where(r_l[:, 1]-r_l[:, 0] \
         > MISSING_DATA_THRESH)[0], 1])):
@@ -184,7 +188,8 @@ def handling_missing_data(obj_data):
 
     # Checking if the number of consecutive missing values for the hip sensor
     # data is greater than the threshold
-    r_h = _zero_runs(obj_data.HaX)
+    r_h = _zero_runs(obj_data.HaX, obj_data.missing_type, 
+                     intentional_missing_data)
     if r_h.shape[0] != 0:
         for i in range(len(r_h[np.where(r_h[:, 1]-r_h[:, 0] \
         > MISSING_DATA_THRESH)[0], 1])):
@@ -195,7 +200,8 @@ def handling_missing_data(obj_data):
 
     # Checking if the number of consecutive missing values for the right foot
     # sensor data is greater than the threshold
-    r_r = _zero_runs(obj_data.RaX)
+    r_r = _zero_runs(obj_data.RaX, obj_data.missing_type, 
+                     intentional_missing_data)
     if r_r.shape[0] != 0:
         for i in range(len(r_r[np.where(r_r[:, 1]-r_r[:, 0] \
         > MISSING_DATA_THRESH)[0], 1])):
@@ -213,7 +219,8 @@ def handling_missing_data(obj_data):
     epoch_time = obj_data.epoch_time
     for i in var:
         col_data = getattr(obj_data, i)
-        ran = _zero_runs(col_data.reshape(-1, ))
+        ran = _zero_runs(col_data.reshape(-1, ), obj_data.missing_type, 
+                     intentional_missing_data)
         dummy_data = col_data[np.isfinite(col_data).reshape((-1, ))]
         dummy_epochtime = epoch_time[np.isfinite(col_data).reshape((-1, ))]
         interp = interpolate.splrep(dummy_epochtime, dummy_data, k=3, s=0)
@@ -273,13 +280,16 @@ def handling_missing_data(obj_data):
     return obj_data
     
     
-def _zero_runs(col_dat):
+def _zero_runs(col_dat, miss_type, intentional_missing_data):
 
     """
     Determining the number of consecutive nan's.
 
     Args:
         col_dat - column data as a numpy array.
+        miss_type: array, indicator for type of missing blanks
+        intentional_missing_data: int, enumerated value to indicate
+        intentioal blank
 
     Returns:
         ranges - 2D numpy array. 1st column is the starting position of the
@@ -290,6 +300,8 @@ def _zero_runs(col_dat):
 
     # determine where column data is NaN
     isnan = np.isnan(col_dat).astype(int)
+    isnan = isnan[miss_type != intentional_missing_data]  # subsetting for when
+    # missing value is an intentional blank
     if isnan[0] == 1:
         t_b = 1
     else:

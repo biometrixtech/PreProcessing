@@ -195,13 +195,15 @@ def run_calibration(sensor_data, file_name):
     for var in columns:
         out, ind = ppp.handling_missing_data(epoch_time,
                                              data[var].reshape(-1, 1),
-                                             corrupt_magn.reshape(-1, 1))
+                                             corrupt_magn.reshape(-1, 1),
+                                             missing_type.reshape(-1, 1))
         data[var] = out.reshape(-1, )
         if ind in [1, 10]:
             break
 
         # check if nan's exist even after imputing
-        if np.any(np.isnan(out)):
+        if np.any(np.isnan(out[missing_type != 1])):  # subsetting for when
+        # a missing value is an intentional blank
             logger.warning('Bad data! NaNs exist even after imputing. \
             Column: ' + var)
             return "Fail"
@@ -243,7 +245,8 @@ def run_calibration(sensor_data, file_name):
         # Left foot
         left_q_xyz = np.array([data['LqX'], data['LqY'],
                                data['LqZ']]).transpose()
-        left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz)
+        left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz,
+                                                       missing_type)
 
         # Check for type conversion error in left foot quaternion data
         if conv_error:
@@ -253,7 +256,8 @@ def run_calibration(sensor_data, file_name):
         # Hip
         hip_q_xyz = np.array([data['HqX'], data['HqY'],
                               data['HqZ']]).transpose()
-        hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz)
+        hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz,
+                                                      missing_type)
 
         # Check for type conversion error in hip quaternion data
         if conv_error:
@@ -263,7 +267,8 @@ def run_calibration(sensor_data, file_name):
         # Right foot
         right_q_xyz = np.array([data['RqX'], data['RqY'],
                                 data['RqZ']]).transpose()
-        right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz)
+        right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz,
+                                                        missing_type)
 
         #check for type conversion error in right foot quaternion data
         if conv_error:
