@@ -181,7 +181,8 @@ def _create_features(w, fs, prom_mpd, prom_mph, prom_peak_thresh, weak_mpd,
         dummy_pxx = pxx[f <= fband[m+1]]
         feature_vector = np.hstack((feature_vector, np.mean(
             dummy_pxx[f[:len(dummy_pxx)] >= fband[m]])))
-   
+    feature_vector[np.isnan(feature_vector)] = 0
+
     return feature_vector
     
 
