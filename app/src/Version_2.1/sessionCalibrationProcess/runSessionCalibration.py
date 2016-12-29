@@ -247,6 +247,9 @@ def run_calibration(sensor_data, file_name):
                                data['LqZ']]).transpose()
         left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz,
                                                        missing_type)
+        len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])                                              
+        logger.warning('Bad data! Percentage of NaNs in LqW: ' +
+        len_nan_real_quat)
 
         # Check for type conversion error in left foot quaternion data
         if conv_error:
@@ -258,6 +261,9 @@ def run_calibration(sensor_data, file_name):
                               data['HqZ']]).transpose()
         hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz,
                                                       missing_type)
+        len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])                                              
+        logger.warning('Bad data! Percentage of NaNs in HqW: ' +
+        len_nan_real_quat)
 
         # Check for type conversion error in hip quaternion data
         if conv_error:
@@ -269,6 +275,9 @@ def run_calibration(sensor_data, file_name):
                                 data['RqZ']]).transpose()
         right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz,
                                                         missing_type)
+        len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])                                              
+        logger.warning('Bad data! Percentage of NaNs in RqW: ' +
+        len_nan_real_quat)
 
         #check for type conversion error in right foot quaternion data
         if conv_error:
