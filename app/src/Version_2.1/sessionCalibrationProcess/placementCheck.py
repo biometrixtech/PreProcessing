@@ -39,19 +39,19 @@ def placement_check(left_acc, hip_acc, right_acc):
     _right_max = np.nanmax(right_acc)
     
     # left x should be pos and y should be neg
-    if _left_mean[0] > 200 and _left_mean[1] < -200 and np.absolute(_left_mean[2]) < 200:
+    if _left_mean[0] > 200 and _left_mean[1] < -200 and np.absolute(_left_mean[2]) < 400:
         bad_left_placement = False
     else:
         bad_left_placement = True
         
     # hip y should be very neg and other axes minimally affected by grav
-    if np.absolute(_hip_mean[0]) < 200 and _hip_mean[1] < -800 and np.absolute(_hip_mean[2]) < 200:
+    if np.absolute(_hip_mean[0]) < 400 and _hip_mean[1] < -800 and np.absolute(_hip_mean[2]) < 500:
         bad_hip_placement = False
     else:
         bad_hip_placement = True
         
     # right x should be eg and y should be neg
-    if _right_mean[0] < -200 and _right_mean[1] < -200 and np.absolute(_right_mean[2]) < 200:
+    if _right_mean[0] < -200 and _right_mean[1] < -200 and np.absolute(_right_mean[2]) < 400:
         bad_right_placement = False
     else:
         bad_right_placement = True
