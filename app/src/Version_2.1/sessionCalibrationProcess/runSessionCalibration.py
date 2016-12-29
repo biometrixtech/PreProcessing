@@ -319,7 +319,6 @@ def run_calibration(sensor_data, file_name):
         #Check if the sensors are placed correctly and if the subject is moving
         #around and push respective success/failure message to the user
         ind = placement_check(left_acc, hip_acc, right_acc)
-        ind = 0
 #        left_ind = hip_ind = right_ind = mov_ind =False
         if ind != 0:
             # rPush
@@ -414,19 +413,19 @@ def run_calibration(sensor_data, file_name):
                 elif np.any(np.isnan(rf_roll_transform)):
                     logger.info('RF roll transform has missing values.')
 
-                hip_pitch_transform = hip_pitch_transform.reshape(-1, ).tolist()
-                hip_roll_transform = hip_roll_transform.reshape(-1, ).tolist()
-                lf_roll_transform = lf_roll_transform.reshape(-1, ).tolist()
-                rf_roll_transform = rf_roll_transform.reshape(-1, ).tolist()
+                hip_p_transform = hip_pitch_transform.reshape(-1, ).tolist()
+                hip_r_transform = hip_roll_transform.reshape(-1, ).tolist()
+                lf_r_transform = lf_roll_transform.reshape(-1, ).tolist()
+                rf_r_transform = rf_roll_transform.reshape(-1, ).tolist()
 
                 # Save base calibration offsets to
                 # BaseAnatomicalCalibrationEvent along with hip_success
                 try:
-                    cur.execute(quer_base_succ, (True, hip_pitch_transform,
-                                                hip_roll_transform,
-                                                lf_roll_transform,
-                                                rf_roll_transform,
-                                                file_name))
+                    cur.execute(quer_base_succ, (True, hip_p_transform,
+                                                 hip_r_transform,
+                                                 lf_r_transform,
+                                                 rf_r_transform,
+                                                 file_name))
                     conn.commit()
                 except psycopg2.Error as error:
                     logger.warning("Cannot write base transform values to DB")
