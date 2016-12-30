@@ -40,7 +40,7 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
 
     # Testing with no data but filename exists in DB
     def test_record_base_feet_no_data(self):
-        file_name = "team1_session1_trainingset_anatomicalCalibration.csv"
+        file_name = "67fd2d25-3ac7-482d-a659-6c452acbe900"
         self.assertRaises(IOError, record_base_feet, "test", file_name)
 
     # Testing with no file_name in db
@@ -49,7 +49,7 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
 
     # Testing with no data but filename exists in DB
     def test_session_calibration_no_data(self):
-        file_name = "team1_session1_trainingset_anatomicalCalibration.csv"
+        file_name = "67fd2d25-3ac7-482d-a659-6c452acbe900"
         self.assertRaises(IOError, run_calibration, "test", file_name)
 
 
