@@ -34,6 +34,10 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
     def tearDown(self):
         testing.tearDown()
 
+    # Testing with no file_name in db
+    def test_record_base_feet_no_file_db(self):
+        self.assertRaises(IndexError, record_base_feet, "test", "test")
+
     # Testing with no data but filename exists in DB
     def test_record_base_feet_no_data(self):
         file_name = "team1_session1_trainingset_anatomicalCalibration.csv"
@@ -48,9 +52,7 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
         file_name = "team1_session1_trainingset_anatomicalCalibration.csv"
         self.assertRaises(IOError, run_calibration, "test", file_name)
 
-    # Testing with no file_name in db
-    def test_record_base_feet_no_file_db(self):
-        self.assertRaises(IndexError, record_base_feet, "test", "test")
+
 
     # Testing for expected test case
     def test_base_and_session_happy_path(self):
