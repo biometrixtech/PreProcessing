@@ -34,34 +34,42 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
     def tearDown(self):
         testing.tearDown()
 
+    # Testing with no data but filename exists in DB
     def test_record_base_feet_no_data(self):
         file_name = "team1_session1_trainingset_anatomicalCalibration.csv"
         self.assertRaises(IOError, record_base_feet, "test", file_name)
 
+    # Testing with no file_name in db
     def test_session_calibration_no_file_db(self):
         self.assertRaises(IndexError, run_calibration, "test", "test")
 
+    # Testing with no data but filename exists in DB
     def test_session_calibration_no_data(self):
         file_name = "team1_session1_trainingset_anatomicalCalibration.csv"
         self.assertRaises(IOError, run_calibration, "test", file_name)
 
+    # Testing with no file_name in db
     def test_record_base_feet_no_file_db(self):
         self.assertRaises(IndexError, record_base_feet, "test", "test")
-        
+
+    # Testing for expected test case
     def test_base_and_session_happy_path(self):
         sensor_data_base = "dipesh_baseAnatomicalCalibration.csv"
         file_name_base = "67fd2d25-3ac7-482d-a659-6c452acbe900"
         response = record_base_feet(sensor_data_base, file_name_base, aws=False)
+
         #Assert the process ran successfully!
         self.assertEqual(response, "Success!")
+
         #Read from base_calibration_events and make sure values are as expected
         read_from_base = """select feet_processed_sensor_data_filename,
                             feet_success from base_anatomical_calibration_events
                             where feet_sensor_data_filename = %s"""
         cur.execute(read_from_base, (file_name_base,))
         data_from_base = cur.fetchall()[0]
-        self.assertTrue(data_from_base[0])
-        self.assertIsNotNone(data_from_base[1])
+        self.assertIsNotNone(data_from_base[0])
+        self.assertIsInstance(data_from_base[0], str)
+        self.assertTrue(data_from_base[1])
 
         #Run session calibration and assert everything ran successfully
         sensor_data_session = "dipesh_sessionAnatomicalCalibration.csv"
@@ -79,16 +87,16 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
                             from base_anatomical_calibration_events
                             where feet_sensor_data_filename = %s"""
         cur.execute(read_from_base_2, (file_name_base,))
-        data_from_base = cur.fetchall()[0]
-        self.assertTrue(data_from_base[0])
-        self.assertIsNotNone(data_from_base[1])
-        self.assertIsInstance(data_from_base[1], list)
-        self.assertIsNotNone(data_from_base[2])
-        self.assertIsInstance(data_from_base[2], list)
-        self.assertIsNotNone(data_from_base[3])
-        self.assertIsInstance(data_from_base[3], list)
-        self.assertIsNotNone(data_from_base[4])
-        self.assertIsInstance(data_from_base[4], list)
+        data_from_base_2 = cur.fetchall()[0]
+        self.assertTrue(data_from_base_2[0])
+        self.assertIsNotNone(data_from_base_2[1])
+        self.assertIsInstance(data_from_base_2[1], list)
+        self.assertIsNotNone(data_from_base_2[2])
+        self.assertIsInstance(data_from_base_2[2], list)
+        self.assertIsNotNone(data_from_base_2[3])
+        self.assertIsInstance(data_from_base_2[3], list)
+        self.assertIsNotNone(data_from_base_2[4])
+        self.assertIsInstance(data_from_base_2[4], list)
 
         read_from_session = """select success,
                             base_calibration,
