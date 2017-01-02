@@ -167,4 +167,4 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         conn.commit()
         
 if __name__ == "__main__":      
-    unittest.main()
+    unittest.main(TestBaseAndSessionCalib.test_base_and_session_happy_path)

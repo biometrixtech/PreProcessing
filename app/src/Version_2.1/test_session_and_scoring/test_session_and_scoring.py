@@ -161,4 +161,4 @@ class TestSessionAndScoring(unittest.TestCase):
 #        conn.close()
 #%%
 if __name__ == "__main__":      
-    unittest.main()
+    unittest.main(TestSessionAndScoring.test_run_session_no_file_db)
