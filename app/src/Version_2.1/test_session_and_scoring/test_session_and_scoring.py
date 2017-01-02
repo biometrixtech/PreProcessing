@@ -5,14 +5,17 @@ Created on Fri Dec 30 15:50:58 2016
 @author: Gautam
 """
 
-
+import sys
 import unittest
 from pyramid import testing
 import psycopg2
 
+sys.path.insert(0, '..\\sessionProcess')
+#import file
 from runAnalytics import run_session
-from runScoring import run_scoring
 import sessionProcessQueries as queries
+sys.path.insert(0, '..\\scoringProcess')
+from runScoring import run_scoring
 
 
 conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
@@ -63,7 +66,7 @@ class TestSessionAndScoring(unittest.TestCase):
     def test_session_and_scoring_happy_path(self):
         sensor_data = "dipesh_merged_II.csv"
         file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
-        response = run_session(sensor_data, file_name, aws=False)
+        response = run_session(sensor_data, file_name)
 
         #Assert the process ran successfully!
         self.assertEqual(response, "Success!")

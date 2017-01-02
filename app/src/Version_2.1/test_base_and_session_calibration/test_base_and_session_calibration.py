@@ -5,11 +5,15 @@ Created on Thu Dec 29 11:19:15 2016
 @author: Gautam
 """
 
+import sys
 import unittest
 from pyramid import testing
 import psycopg2
 
+sys.path.insert(0, '..\\baseFeetProcess')
 from runBaseFeet import record_base_feet
+
+sys.path.insert(0, '..\\sessionCalibrationProcess')
 from runSessionCalibration import run_calibration
 
 
@@ -49,7 +53,7 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
 
     # Testing with no data but filename exists in DB
     def test_session_calibration_no_data(self):
-        file_name = "67fd2d25-3ac7-482d-a659-6c452acbe900"
+        file_name = "8051538e-9046-4aac-acef-c37418d392e7"
         self.assertRaises(IOError, run_calibration, "test", file_name)
 
 
@@ -156,4 +160,5 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
         conn.commit()
         conn.close()
         
-unittest.main()
+if __name__ == "__main__":      
+    unittest.main()
