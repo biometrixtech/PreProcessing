@@ -30,14 +30,6 @@ cont_scoring = 'biometrix-scoringcontainer'
 cont_sess = 'biometrix-sessionprocessedcontainer'
 
 class TestSessionAndScoring(unittest.TestCase):
-    """Tests for Session and Scoring processes
-    -IO error for missing file
-    -IndexError for file_name missing in DB
-    -Return 'Success!' for test case
-    -Written to correct fields in base_anatomical_calibration_events
-    -Written to correct fields in session_anatomical_calibration_events
-    
-    """
     def setUp(self):
         self.config = testing.setUp()
 
@@ -66,6 +58,20 @@ class TestSessionAndScoring(unittest.TestCase):
 #
     # Testing for expected test case
     def test_session_and_scoring_happy_path(self):
+        """Tests Included:
+        1) Successful run of run_session with "Success!" returned
+        2) File written to scoringcontainer
+        3) Successful run of run_scoring with "Success!" returned
+        4) File written to sessionprocessedcontainer by run_session
+        5) File written to sessionprocessedcontainer by run_scoring
+        6) Data written to movement table is same length as data fed in
+        
+        Note: Data written to movement table is deleted at the end of run
+              Files written to scoringcontainer and sessionprocessedcontainer
+              also deleted at the end of run.
+        
+        
+        """
         sensor_data = "dipesh_merged_II.csv"
         data = pd.read_csv(sensor_data)
         file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
@@ -106,105 +112,17 @@ class TestSessionAndScoring(unittest.TestCase):
         count = cur.fetchall()[0][0]
         self.assertEqual(count, len(data))
 
-        #Remove file from scoringcontainer
+        #Remove file from scoringcontainer and sessionprocessedcontainer
         S3.Object(cont_scoring, file_name).delete()
+        S3.Object(cont_sess, 'processed_'+file_name).delete()
+        S3.Object(cont_sess, 'movement_'+file_name).delete()
+        
         #Remove data from movement table
         quer_delete = """delete from movement where session_event_id = %s"""
         cur.execute(quer_delete, (session_event_id,))
         conn.commit()
         conn.close()
-        
-#        #Read from base_calibration_events and make sure values are as expected
-#        read_from_base = """select feet_processed_sensor_data_filename,
-#                            feet_success from base_anatomical_calibration_events
-#                            where feet_sensor_data_filename = %s"""
-#        cur.execute(read_from_base, (file_name_base,))
-#        data_from_base = cur.fetchall()[0]
-#        self.assertIsNotNone(data_from_base[0])
-#        self.assertIsInstance(data_from_base[0], str)
-#        self.assertTrue(data_from_base[1])
 
-        #Run session calibration and assert everything ran successfully
-#        scoring_data = "dipesh_sessionAnatomicalCalibration.csv"
-#        response2 = run_scoring(scoring_data, file_name, aws=False)
-#        self.assertEqual(response2, "Success!")
-
-#        # Read from session_calibration events and make sure the values are as
-#        # expected
-#        read_from_base_2 = """select hip_success,
-#                            hip_pitch_transform,
-#                            hip_roll_transform,
-#                            lf_roll_transform,
-#                            rf_roll_transform
-#                            from base_anatomical_calibration_events
-#                            where feet_sensor_data_filename = %s"""
-#        cur.execute(read_from_base_2, (file_name_base,))
-#        data_from_base_2 = cur.fetchall()[0]
-#        self.assertTrue(data_from_base_2[0])
-#        self.assertIsNotNone(data_from_base_2[1])
-#        self.assertIsInstance(data_from_base_2[1], list)
-#        self.assertIsNotNone(data_from_base_2[2])
-#        self.assertIsInstance(data_from_base_2[2], list)
-#        self.assertIsNotNone(data_from_base_2[3])
-#        self.assertIsInstance(data_from_base_2[3], list)
-#        self.assertIsNotNone(data_from_base_2[4])
-#        self.assertIsInstance(data_from_base_2[4], list)
-#
-#        read_from_session = """select success,
-#                            base_calibration,
-#                            hip_n_transform,
-#                            hip_bf_transform,
-#                            lf_n_transform,
-#                            lf_bf_transform,
-#                            rf_n_transform,
-#                            rf_bf_transform
-#                            from session_anatomical_calibration_events
-#                            where sensor_data_filename = %s"""
-#        cur.execute(read_from_session, (file_name_session,))
-#        data_from_session = cur.fetchall()[0]
-#        self.assertTrue(data_from_session[0])
-#        self.assertTrue(data_from_session[1])
-#        self.assertIsNotNone(data_from_session[2])
-#        self.assertIsInstance(data_from_session[2], list)
-#        self.assertIsNotNone(data_from_session[3])
-#        self.assertIsInstance(data_from_session[3], list)
-#        self.assertIsNotNone(data_from_session[4])
-#        self.assertIsInstance(data_from_session[4], list)
-#        self.assertIsNotNone(data_from_session[5])
-#        self.assertIsInstance(data_from_session[5], list)
-#        self.assertIsNotNone(data_from_session[6])
-#        self.assertIsInstance(data_from_session[6], list)
-#        self.assertIsNotNone(data_from_session[7])
-#        self.assertIsInstance(data_from_session[7], list)    
-
-#        # remove all the data written to the DB at the end of test
-#        remove_data_base= """update base_anatomical_calibration_events set 
-#                                hip_roll_transform = %s,
-#                                lf_roll_transform = %s,
-#                                rf_roll_transform = %s,
-#                                hip_pitch_transform = %s,
-#                                hip_success = Null,
-#                                feet_success = Null,
-#                                failure_type = Null,
-#                                feet_processed_sensor_data_filename = Null
-#                                where feet_sensor_data_filename = %s"""
-#        cur.execute(remove_data_base, ([],[],[],[], file_name_base))
-#        conn.commit()
-#        
-#        remove_data_session = """update session_anatomical_calibration_events
-#                                set
-#                                success = Null,
-#                                base_calibration = Null,
-#                                hip_bf_transform = %s,
-#                                lf_bf_transform = %s,
-#                                rf_bf_transform = %s,
-#                                hip_n_transform = %s,
-#                                lf_n_transform = %s,
-#                                rf_n_transform = %s
-#                                where sensor_data_filename = %s"""
-#        cur.execute(remove_data_session, ([],[],[],[],[],[], file_name_session))
-#        conn.commit()
-#        conn.close()
 #%%
 if __name__ == "__main__":      
     unittest.main(TestSessionAndScoring.test_run_session_no_file_db)
