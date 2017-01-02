@@ -68,12 +68,13 @@ def preprocess_iad(data, training=False):
     # define parameters
     # Parameters for the sampling window
 #    fs = 250  # sampling frequency
-    window_time = 5*1000  # number of milli seconds to determine length of
+    fs = int(1000.0/data.ms_elapsed[1])
+    window_time = 5  # number of seconds to determine length of
     # sliding window
-    window_samples = window_time #int(fs*window_time)  # sliding window length
-    nsecjump = 0.2*1000  # number of milli seconds for the sliding window
+    window_samples = int(fs*window_time)  # sliding window length
+    nsecjump = 0.2  # number of seconds for the sliding window
     # to jump
-    overlap_samples = nsecjump  # int(fs*nsecjump)
+    overlap_samples = int(fs*nsecjump)
     
     # Parameters for feature creation
     nfeatures = 28  # number of features
@@ -94,15 +95,15 @@ def preprocess_iad(data, training=False):
     label_thresh = 0.5  # x% of window
     
     # determine the features and labels for each window
-    lf_feature_matrix = create_window(lfsig, hz, window_samples,
+    lf_feature_matrix = create_window(lfsig, fs, window_samples,
                                       overlap_samples, prom_mpd, prom_mph,
                                       prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
-    hip_feature_matrix = create_window(hipsig, hz, window_samples,
+    hip_feature_matrix = create_window(hipsig, fs, window_samples,
                                        overlap_samples, prom_mpd,
                                        prom_mph, prom_peak_thresh,
                                        weak_mpd, weak_mph, weak_peak_thresh)
-    rf_feature_matrix = create_window(rfsig, hz, window_samples,
+    rf_feature_matrix = create_window(rfsig, fs, window_samples,
                                       overlap_samples, prom_mpd, prom_mph,
                                       prom_peak_thresh, weak_mpd, weak_mph,
                                       weak_peak_thresh)
@@ -114,7 +115,7 @@ def preprocess_iad(data, training=False):
     # check if training is true/false
     if training is True:
         lab = create_labels(labels, window_samples, overlap_samples,
-                            label_thresh, hz)
+                            label_thresh)
         return combined_feature_matrix, lab
     else:
         return combined_feature_matrix
