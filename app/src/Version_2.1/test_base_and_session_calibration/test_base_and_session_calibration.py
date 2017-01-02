@@ -9,6 +9,8 @@ import sys
 import unittest
 from pyramid import testing
 import psycopg2
+import boto3
+#import cStringIO
 
 sys.path.insert(0, '..\\baseFeetProcess')
 from runBaseFeet import record_base_feet
@@ -16,21 +18,19 @@ from runBaseFeet import record_base_feet
 sys.path.insert(0, '..\\sessionCalibrationProcess')
 from runSessionCalibration import run_calibration
 
-
-
 conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
 host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
 password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
 cur = conn.cursor()
 
+S3 = boto3.resource('s3')
+cont_base = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
+cont_session = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
+
 class TestBaseAndSessionCalib(unittest.TestCase):
     """Tests for Base and Session process
     -IO error for missing file
     -IndexError for file_name missing in DB
-    -Return 'Success!' for test case
-    -Written to correct fields in base_anatomical_calibration_events
-    -Written to correct fields in session_anatomical_calibration_events
-    
     """
     def setUp(self):
         self.config = testing.setUp()
@@ -60,6 +60,22 @@ class TestBaseAndSessionCalib(unittest.TestCase):
 
     # Testing for expected test case
     def test_base_and_session_happy_path(self):
+        """Tests Included:
+        1) Successful run of baseFeetProcess
+        2) processed_file_name written to baseanatomicalcalibrationevents
+        3) processed_file_name is string
+        4) feet_success is True in baseanatomicalcalibrationevents
+        5) Successful run of sessionCalibration
+            -This implies that the file was written to
+                baseanatomicalcalibrationprocessedcontainer
+        6) hip_success is True in baseanatomicalcalibrationevents
+        7) All four transform values are present and of type list in
+            baseanatomicalcalibrationevents
+        8) success is True in sessionanatomicalcalibrationevents
+        9) base_calibration is True in sessionanatomicalcalibrationevents
+        10) All 6 transform values are present and of type list in
+            sessionanatomicalcalibrationevents
+        """
         sensor_data_base = "dipesh_baseAnatomicalCalibration.csv"
         file_name_base = "67fd2d25-3ac7-482d-a659-6c452acbe900"
         sensor_data_session = "dipesh_sessionAnatomicalCalibration.csv"
@@ -135,6 +151,8 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         self.assertIsInstance(data_from_session[7], list)    
 
         # remove all the data written to the DB at the end of test
+        S3.Object(cont_base, 'processed_'+file_name_base).delete()
+        S3.Object(cont_session, 'processed_'+file_name_session).delete()
 #        self._remove_data(file_name_base, file_name_session)
         conn.close()
         

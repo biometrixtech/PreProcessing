@@ -64,7 +64,7 @@ class TestSessionAndScoring(unittest.TestCase):
         3) Successful run of run_scoring with "Success!" returned
         4) File written to sessionprocessedcontainer by run_session
         5) File written to sessionprocessedcontainer by run_scoring
-        6) Data written to movement table is same length as data fed in
+        6) Data written to movement table is same length as data being fed in
         
         Note: Data written to movement table is deleted at the end of run
               Files written to scoringcontainer and sessionprocessedcontainer
@@ -76,6 +76,7 @@ class TestSessionAndScoring(unittest.TestCase):
         data = pd.read_csv(sensor_data)
         file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
         response = run_session(sensor_data, file_name)
+
         #Assert the process ran successfully!
         self.assertEqual(response, "Success!")
 
@@ -85,7 +86,7 @@ class TestSessionAndScoring(unittest.TestCase):
             files_scoring.append(obj.key)
         self.assertIn(file_name, files_scoring)
 
-
+        # Run scoring and assert process ran successfully!
         obj = S3.Bucket(cont_scoring).Object(file_name)
         fileobj = obj.get()
         body = fileobj["Body"].read()
@@ -99,7 +100,6 @@ class TestSessionAndScoring(unittest.TestCase):
             files_session_processed.append(obj.key)
         self.assertIn('processed_'+file_name, files_session_processed)
         self.assertIn('movement_'+file_name, files_session_processed)
-
 
         # Assert there's no missing data in movement table
         quer_read_id = """select id from session_events where
