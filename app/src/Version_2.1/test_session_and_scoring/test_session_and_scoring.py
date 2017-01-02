@@ -11,20 +11,17 @@ from pyramid import testing
 import psycopg2
 
 sys.path.insert(0, '..\\sessionProcess')
-#import file
 from runAnalytics import run_session
-import sessionProcessQueries as queries
+#import sessionProcessQueries as sessionqueries
 sys.path.insert(0, '..\\scoringProcess')
 from runScoring import run_scoring
+#import scoringProcessQueries as scoringqueries
 
 
 conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
 host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
 password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
 cur = conn.cursor()
-
-#cur.execute(queries.quer_read_ids, ('',) )
-#ids = cur.fetchall()[0]
 
 
 class TestSessionAndScoring(unittest.TestCase):
@@ -52,14 +49,14 @@ class TestSessionAndScoring(unittest.TestCase):
         file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
         self.assertRaises(IOError, run_session, "test", file_name)
 #
-#    # Testing with no file_name in db
-#    def test_run_scoring_no_file_db(self):
-#        self.assertRaises(IOError, run_scoring, "test", "test", aws=False)
+    # Testing with no file_name in db
+    def test_run_scoring_no_file_db(self):
+        self.assertRaises(IOError, run_scoring, "test", "test", aws=False)
 #
 #    # Testing with no data but filename exists in DB
-#    def test_run_scoring_no_data(self):
-#        file_name = "team1_session1_trainingset_anatomicalCalibration.csv"
-#        self.assertRaises(IOError, run_scoring, "test", file_name, aws=False)
+    def test_run_scoring_no_data(self):
+        file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
+        self.assertRaises(IOError, run_scoring, "test", file_name, aws=False)
 #
 #
     # Testing for expected test case

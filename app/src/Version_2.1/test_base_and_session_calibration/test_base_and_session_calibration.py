@@ -23,7 +23,7 @@ host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com'
 password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
 cur = conn.cursor()
 
-class TestBaseAndSessionCalibration(unittest.TestCase):
+class TestBaseAndSessionCalib(unittest.TestCase):
     """Tests for Base and Session process
     -IO error for missing file
     -IndexError for file_name missing in DB
@@ -62,9 +62,14 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
     def test_base_and_session_happy_path(self):
         sensor_data_base = "dipesh_baseAnatomicalCalibration.csv"
         file_name_base = "67fd2d25-3ac7-482d-a659-6c452acbe900"
-        response = record_base_feet(sensor_data_base, file_name_base, aws=False)
+        sensor_data_session = "dipesh_sessionAnatomicalCalibration.csv"
+        file_name_session = "8051538e-9046-4aac-acef-c37418d392e7"
+
+        # Make sure no unnecessary data is present in DB
+        self._remove_data(file_name_base, file_name_session)
 
         #Assert the process ran successfully!
+        response = record_base_feet(sensor_data_base, file_name_base, aws=False)
         self.assertEqual(response, "Success!")
 
         #Read from base_calibration_events and make sure values are as expected
@@ -78,8 +83,6 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
         self.assertTrue(data_from_base[1])
 
         #Run session calibration and assert everything ran successfully
-        sensor_data_session = "dipesh_sessionAnatomicalCalibration.csv"
-        file_name_session = "8051538e-9046-4aac-acef-c37418d392e7"
         response2 = run_calibration(sensor_data_session, file_name_session)
         self.assertEqual(response2, "Success!")
 
@@ -132,6 +135,10 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
         self.assertIsInstance(data_from_session[7], list)    
 
         # remove all the data written to the DB at the end of test
+#        self._remove_data(file_name_base, file_name_session)
+        conn.close()
+        
+    def _remove_data(self, file_name_base, file_name_session):
         remove_data_base= """update base_anatomical_calibration_events set 
                                 hip_roll_transform = %s,
                                 lf_roll_transform = %s,
@@ -158,7 +165,6 @@ class TestBaseAndSessionCalibration(unittest.TestCase):
                                 where sensor_data_filename = %s"""
         cur.execute(remove_data_session, ([],[],[],[],[],[], file_name_session))
         conn.commit()
-        conn.close()
         
 if __name__ == "__main__":      
     unittest.main()
