@@ -46,9 +46,9 @@ class TestSessionAndScoring(unittest.TestCase):
         file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
         self.assertRaises(IOError, run_session, "test", file_name)
 #
-    # Testing with no file_name in db
-    def test_run_scoring_no_file_db(self):
-        self.assertRaises(IOError, run_scoring, "test", "test", aws=False)
+#    # Testing with no file_name in db
+#    def test_run_scoring_no_file_db(self):
+#        self.assertRaises(IOError, run_scoring, "test", "test", aws=False)
 #
 #    # Testing with no data but filename exists in DB
     def test_run_scoring_no_data(self):
