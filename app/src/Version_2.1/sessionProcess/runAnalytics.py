@@ -365,7 +365,7 @@ def run_session(sensor_data, file_name, aws=True):
                                    user_mass=mass, hz=sampl_freq) 
     data.rate_force_absorption_lf = rofa_lf
     data.rate_force_absorption_rf = rofa_rf
-    _logger('DONE WITH RATE OF FORCE ABSORPTION', aws)
+    _logger('DONE WITH RATE OF FORCE ABSORPTION!', aws)
 #%%
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)

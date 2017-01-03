@@ -91,7 +91,7 @@ class TestSessionAndScoring(unittest.TestCase):
         fileobj = obj.get()
         body = fileobj["Body"].read()
         scoring_data = cStringIO.StringIO(body)
-        response_scoring = run_scoring(scoring_data, file_name)
+        response_scoring = run_scoring(scoring_data, file_name, aws=False)
         self.assertEqual(response_scoring, "Success!")
 
         # Assert processed file and movement table written to processed cont

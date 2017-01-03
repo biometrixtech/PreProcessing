@@ -30,9 +30,8 @@ def control_score(LeX, HeX, ReX, ms_elapsed, phase_lf, phase_rf):
     rather than number of points which will make calculations more efficient.
     """
     N = int(120/ms_elapsed[1]) + 1
-    
-    LeX[[i not in [0, 1, 4] for i in phase_lf]] = np.nan
-    ReX[[i not in [0, 2, 5] for i in phase_rf]] = np.nan
+    LeX[np.array([i not in [0, 1, 4] for i in phase_lf])] = np.nan
+    ReX[np.array([i not in [0, 2, 5] for i in phase_rf])] = np.nan
     HeX[phase_lf == 3] = np.nan
     
     LeX = pd.Series(LeX.reshape(-1,))
