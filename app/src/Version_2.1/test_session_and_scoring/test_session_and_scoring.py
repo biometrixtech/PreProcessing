@@ -128,4 +128,5 @@ class TestSessionAndScoring(unittest.TestCase):
 
 #%%
 if __name__ == "__main__":      
-    unittest.main(TestSessionAndScoring.test_run_session_no_file_db, verbosity=2)
+    unittest.main(TestSessionAndScoring.test_run_session_no_file_db,
+                  verbosity=2)
