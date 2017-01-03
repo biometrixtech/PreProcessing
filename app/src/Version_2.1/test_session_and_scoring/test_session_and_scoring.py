@@ -75,9 +75,17 @@ class TestSessionAndScoring(unittest.TestCase):
         sensor_data = "dipesh_merged_II.csv"
         data = pd.read_csv(sensor_data)
         file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
-        response = run_session(sensor_data, file_name, aws=False) 
+        quer_read_id = """select id from session_events where
+                            sensor_data_filename = %s"""
+        quer_delete = """delete from movement where session_event_id = %s"""
+        cur.execute(quer_read_id, (file_name,))
+        session_event_id = cur.fetchall()[0][0]
+        # Delete all rows for the given session from previous failed runs
+        cur.execute(quer_delete, (session_event_id,))
+        conn.commit()
 
-        #Assert the process ran successfully!
+        #Assert session process ran successfully!
+        response = run_session(sensor_data, file_name, aws=False)
         self.assertEqual(response, "Success!")
 
         #Assert file was written to scoring container
@@ -102,10 +110,6 @@ class TestSessionAndScoring(unittest.TestCase):
         self.assertIn('movement_'+file_name, files_session_processed)
 
         # Assert there's no missing data in movement table
-        quer_read_id = """select id from session_events where
-                            sensor_data_filename = %s"""
-        cur.execute(quer_read_id, (file_name,))
-        session_event_id = cur.fetchall()[0][0]
         quer_read_mov = """select count(*) from movement
                             where session_event_id = %s"""
         cur.execute(quer_read_mov, (session_event_id,))
@@ -118,11 +122,10 @@ class TestSessionAndScoring(unittest.TestCase):
         S3.Object(cont_sess, 'movement_'+file_name).delete()
         
         #Remove data from movement table
-        quer_delete = """delete from movement where session_event_id = %s"""
         cur.execute(quer_delete, (session_event_id,))
         conn.commit()
         conn.close()
 
 #%%
 if __name__ == "__main__":      
-    unittest.main(TestSessionAndScoring.test_run_session_no_file_db)
+    unittest.main(TestSessionAndScoring.test_run_session_no_file_db, verbosity=2)

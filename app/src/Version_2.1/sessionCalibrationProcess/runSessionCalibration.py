@@ -25,7 +25,7 @@ import checkProcessed as cp
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-def run_calibration(sensor_data, file_name):
+def run_calibration(sensor_data, file_name, aws=True):
     """Checks the validity of base calibration step and writes transformed
     base hip calibration data to the database.
     If valid, writes base and/or session bodyframe and neutral offset
