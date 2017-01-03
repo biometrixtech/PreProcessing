@@ -747,12 +747,9 @@ def _write_table_db(movement_data, cur, conn, aws):
         else:
             print "Cannot write movement data to DB!"
 #            raise error
-            return movement_data
-    else:
-        if aws:
             return "Success!"
-        else:
-            return movement_data
+    else:
+        return "Success!"
 
 #%%
 if __name__ == "__main__":

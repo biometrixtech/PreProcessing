@@ -66,7 +66,7 @@ class TestSessionAndScoring(unittest.TestCase):
         5) File written to sessionprocessedcontainer by run_scoring
         6) Data written to movement table is same length as data being fed in
         
-        Note: Data written to movement table is deleted at the end of run
+        Note: Data written to movement table is deleted at the end of run.
               Files written to scoringcontainer and sessionprocessedcontainer
               also deleted at the end of run.
         
@@ -75,7 +75,7 @@ class TestSessionAndScoring(unittest.TestCase):
         sensor_data = "dipesh_merged_II.csv"
         data = pd.read_csv(sensor_data)
         file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
-        response = run_session(sensor_data, file_name)
+        response = run_session(sensor_data, file_name, aws=False) 
 
         #Assert the process ran successfully!
         self.assertEqual(response, "Success!")

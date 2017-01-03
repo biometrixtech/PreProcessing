@@ -10,7 +10,6 @@ import unittest
 from pyramid import testing
 import psycopg2
 import boto3
-#import cStringIO
 
 sys.path.insert(0, '..\\baseFeetProcess')
 from runBaseFeet import record_base_feet
@@ -75,6 +74,10 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         9) base_calibration is True in sessionanatomicalcalibrationevents
         10) All 6 transform values are present and of type list in
             sessionanatomicalcalibrationevents
+        Note: Data deleted from BaseAnatomicalCalibrationEvents and
+              SessionAnatomicalCalibrationEvents at the start of the run. Left
+              at the end of the run as it might be called to test sessionProcess
+              Processed files written to s3 deleted at the end.
         """
         sensor_data_base = "dipesh_baseAnatomicalCalibration.csv"
         file_name_base = "67fd2d25-3ac7-482d-a659-6c452acbe900"
