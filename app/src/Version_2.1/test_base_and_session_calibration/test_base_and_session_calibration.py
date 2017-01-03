@@ -74,6 +74,9 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         9) base_calibration is True in sessionanatomicalcalibrationevents
         10) All 6 transform values are present and of type list in
             sessionanatomicalcalibrationevents
+        11) Assert processed file written to
+            baseanatomicalcalibrationprocessedcontainer
+            and sessionanatomicalcalibrationprocessedcontainer
         Note: Data deleted from BaseAnatomicalCalibrationEvents and
               SessionAnatomicalCalibrationEvents at the start of the run. Left
               at the end of the run as it might be called to test sessionProcess
@@ -102,7 +105,8 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         self.assertTrue(data_from_base[1])
 
         #Run session calibration and assert everything ran successfully
-        response2 = run_calibration(sensor_data_session, file_name_session)
+        response2 = run_calibration(sensor_data_session, file_name_session,
+                                    aws=False)
         self.assertEqual(response2, "Success!")
 
         # Read from session_calibration events and make sure the values are as
@@ -151,7 +155,16 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         self.assertIsNotNone(data_from_session[6])
         self.assertIsInstance(data_from_session[6], list)
         self.assertIsNotNone(data_from_session[7])
-        self.assertIsInstance(data_from_session[7], list)    
+        self.assertIsInstance(data_from_session[7], list)
+
+        files_base_calib_processed = []
+        for obj in S3.Bucket(cont_base).objects.all():
+            files_base_calib_processed.append(obj.key)
+        self.assertIn('processed_'+file_name_base, files_base_calib_processed)
+        files_session_processed = []
+        for obj in S3.Bucket(cont_session).objects.all():
+            files_session_processed.append(obj.key)
+        self.assertIn('processed_'+file_name_session, files_session_processed)
 
         # remove all the data written to the DB at the end of test
         S3.Object(cont_base, 'processed_'+file_name_base).delete()
