@@ -203,3 +203,4 @@ class TestBaseAndSessionCalib(unittest.TestCase):
 if __name__ == "__main__":      
     unittest.main(module=TestBaseAndSessionCalib.test_base_and_session_happy_path,
                   verbosity=2)
+
