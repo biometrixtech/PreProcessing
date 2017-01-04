@@ -7,6 +7,7 @@ Created on Tue Oct 11 16:30:36 2016
 
 import numpy as np
 from scipy import interpolate
+import pandas as pd
 
 from errors import ErrorId
 
@@ -29,6 +30,31 @@ def check_duplicate_epochtime(epoch_time):
         return epoch_time_duplicate
     else:
         return epoch_time_duplicate
+        
+        
+def subset_data_done(old_data):
+    '''
+    Subset data when missing type is equal to 3 (done)
+    
+    Args:
+        old_data: structured array, input data to Data wrangling
+        
+    Returns:
+        new_data: structured array, subset the input data when missing type=3 
+    '''
+    
+    # enumerated value for done in missing type column
+    done = 3
+    
+    df_old_data = pd.DataFrame(old_data)  # convert structured array to 
+    # data frame
+    df_old_data = df_old_data.drop(df_old_data[
+    df_old_data.missing_type == done].index) # subset for when missing 
+    # type is done
+    new_data = df_old_data.to_records(index=False)  # convert data frame back
+    # to structured array
+    
+    return new_data
 
 
 def calc_quaternions(quat_array, missing_type):
@@ -137,8 +163,8 @@ def handling_missing_data(epoch_time, col_data, corrup_magn, missing_type):
     # threshold for acceptable number of consecutive missing values
     MISSING_DATA_THRESH = 3
     
-    # enumerated value to indicate unitentional missing data 
-    intentional_missing_data = 1
+    # enumerated values of missing type column 
+    intentional_missing_data = 1  # indicate unitentional missing data 
 
     # where magnetometer corrupt, return 'Fail' notification to user
     if 1 in corrup_magn:
