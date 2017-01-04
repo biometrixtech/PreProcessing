@@ -203,33 +203,33 @@ def run_session(sensor_data, file_name, aws=True):
 #%%
     # INTELLIGENT ACTIVITY DETECTION (IAD)
     # load model
-    try:
-        iad_obj = s3.Bucket(cont_models).Object('iad_finalized_model.sav')
-        iad_fileobj = iad_obj.get()
-        iad_body = iad_fileobj["Body"].read()
-
-        # we're reading the first model on the list, there are multiple
-        loaded_iad_model = pickle.loads(iad_body)
-    except Exception as error:
-        if aws:
-            _logger("Cannot load iad_model from s3", aws, info=False)
-            raise error
-        else:
-            try:
-                with open('iad_finalized_model.sav') as model_file:
-                    loaded_iad_model = pickle.load(model_file)
-            except:
-                raise IOError("Model file not found in S3 or local directory")
-
-    # predict activity state
-    iad_features = IAD.preprocess_iad(data, training=False)
-    iad_labels = loaded_iad_model.predict(iad_features)
-    iad_predicted_labels = IAD.label_aggregation(iad_labels)
-    data.activity_id =\
-            IAD.mapping_labels_on_data(iad_predicted_labels,
-                                       len(data.LaX)).reshape(-1, 1)
-
-    _logger('DONE WITH IAD!', aws)
+#    try:
+#        iad_obj = s3.Bucket(cont_models).Object('iad_finalized_model.sav')
+#        iad_fileobj = iad_obj.get()
+#        iad_body = iad_fileobj["Body"].read()
+#
+#        # we're reading the first model on the list, there are multiple
+#        loaded_iad_model = pickle.loads(iad_body)
+#    except Exception as error:
+#        if aws:
+#            _logger("Cannot load iad_model from s3", aws, info=False)
+#            raise error
+#        else:
+#            try:
+#                with open('iad_finalized_model.sav') as model_file:
+#                    loaded_iad_model = pickle.load(model_file)
+#            except:
+#                raise IOError("Model file not found in S3 or local directory")
+#
+#    # predict activity state
+#    iad_features = IAD.preprocess_iad(data, training=False)
+#    iad_labels = loaded_iad_model.predict(iad_features)
+#    iad_predicted_labels = IAD.label_aggregation(iad_labels)
+#    data.activity_id =\
+#            IAD.mapping_labels_on_data(iad_predicted_labels,
+#                                       len(data.LaX)).reshape(-1, 1)
+#
+#    _logger('DONE WITH IAD!', aws)
 #%%
     # save sensor data before subsetting
     sensor_data = ct.create_sensor_data(len(data.LaX), data)
