@@ -297,10 +297,10 @@ def run_session(sensor_data, file_name, aws=True):
     data.ankle_rot_rf = nr_prosup[:, 1].reshape(-1, 1)
 
     # lateral hip rotation attributes
-    cont_hiprot = cmed.cont_rot_CME(data.HeZ, data.phase_lf, [0, 1, 2, 3, 4, 5],
-                                    hip_euler[:, 2])
-    data.hip_rot = cont_hiprot[:, 1].reshape(-1, 1)
-    data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
+#    cont_hiprot = cmed.cont_rot_CME(data.HeZ, data.phase_lf, [0, 1, 2, 3, 4, 5],
+#                                    hip_euler[:, 2])
+#    data.hip_rot = cont_hiprot[:, 1].reshape(-1, 1)
+#    data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
 
     _logger('DONE WITH BALANCE CME!', aws)
 #%%
@@ -365,7 +365,7 @@ def run_session(sensor_data, file_name, aws=True):
                                    user_mass=mass, hz=sampl_freq) 
     data.rate_force_absorption_lf = rofa_lf
     data.rate_force_absorption_rf = rofa_rf
-    _logger('DONE WITH RATE OF FORCE ABSORPTION', aws)
+    _logger('DONE WITH RATE OF FORCE ABSORPTION!', aws)
 #%%
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
@@ -747,12 +747,9 @@ def _write_table_db(movement_data, cur, conn, aws):
         else:
             print "Cannot write movement data to DB!"
 #            raise error
-            return movement_data
-    else:
-        if aws:
             return "Success!"
-        else:
-            return movement_data
+    else:
+        return "Success!"
 
 #%%
 if __name__ == "__main__":

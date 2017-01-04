@@ -25,7 +25,7 @@ import checkProcessed as cp
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-def run_calibration(sensor_data, file_name):
+def run_calibration(sensor_data, file_name, aws=True):
     """Checks the validity of base calibration step and writes transformed
     base hip calibration data to the database.
     If valid, writes base and/or session bodyframe and neutral offset
@@ -46,9 +46,15 @@ def run_calibration(sensor_data, file_name):
     # Read relevant information from base_anatomical_calibration_events
     # based on provided sensor_data_filename and
     # base_anatomical_calibration_event_id tied to the filename
-    quer_read = """select user_id, expired, feet_success, hip_success,
-                feet_processed_sensor_data_filename, hip_pitch_transform,
-                hip_roll_transform, lf_roll_transform, rf_roll_transform
+    quer_read = """select user_id,
+                          expired,
+                          feet_success,
+                          hip_success,
+                          feet_processed_sensor_data_filename,
+                          hip_pitch_transform,
+                          hip_roll_transform,
+                          lf_roll_transform,
+                          rf_roll_transform
                 from base_anatomical_calibration_events where
                 id = (select base_anatomical_calibration_event_id from
                         session_anatomical_calibration_events where 
@@ -112,15 +118,15 @@ def run_calibration(sensor_data, file_name):
         user_id = data_read[0]
         if user_id is None:
             user_id = '00000000-0000-0000-0000-000000000000'
-            logger.warning("user_id associated with file not found")
+            _logger("user_id associated with file not found", aws, info=False)
     except psycopg2.Error as error:
-        logger.warning("Cannot connect to DB")
+        _logger("Cannot connect to DB", aws, info=False)
         raise error
     except boto3.exceptions as error:
-        logger.warning("Cannot connect to s3")
+        _logger("Cannot connect to s3", aws, info=False)
         raise error
     except IndexError as error:
-        logger.warning("sensor_data_filename not found in table")
+        _logger("sensor_data_filename not found in table", aws, info=False)
         raise error
 
     expired = data_read[1]
@@ -160,10 +166,10 @@ def run_calibration(sensor_data, file_name):
         data = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
                              names=True)
     except IndexError:
-        logger.warning("Sensor data doesn't have column names!")
+        _logger("Sensor data doesn't have column names!", aws, info=False)
         return "Fail!"
     if len(data) == 0:
-        logger.warning("Sensor data is empty!")
+        _logger("Sensor data is empty!", aws, info=False)
         return "Fail!"
     
     # check if the raw quaternions have been converted already
@@ -184,7 +190,7 @@ def run_calibration(sensor_data, file_name):
     # Check for duplicate epoch time
     duplicate_epoch_time = ppp.check_duplicate_epochtime(epoch_time)
     if duplicate_epoch_time:
-        logger.warning('Duplicate epoch time.')
+        _logger('Duplicate epoch time.', aws, info=False)
 
     # PRE-PRE-PROCESSING
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
@@ -204,8 +210,8 @@ def run_calibration(sensor_data, file_name):
         # check if nan's exist even after imputing
         if np.any(np.isnan(out[missing_type != 1])):  # subsetting for when
         # a missing value is an intentional blank
-            logger.warning('Bad data! NaNs exist even after imputing. \
-            Column: ' + var)
+            _logger('Bad data! NaNs exist even after imputing. \
+            Column: ' + var, aws, info=False)
             return "Fail"
 
     if ind != 0:
@@ -217,7 +223,7 @@ def run_calibration(sensor_data, file_name):
             cur.execute(quer_fail, (ind, out_file, False, file_name))
             conn.commit()
         except psycopg2.Error as error:
-            logger.warning("Cannot write to DB after failure!")
+            _logger("Cannot write to DB after failure!", aws, info=False)
             raise error
 
         ### Write to S3
@@ -232,10 +238,10 @@ def run_calibration(sensor_data, file_name):
             conn.commit()
             conn.close()
         except boto3.exceptions as error:
-            logger.warning("Can't write to s3 after failure!")
+            _logger("Can't write to s3 after failure!", aws, info=False)
             raise error
         except psycopg2.Error as error:
-            logger.warning("Cannot write to rpush after failure!")
+            _logger("Cannot write to rpush after failure!", aws, info=False)
             raise error
         else:
             return "Fail!"
@@ -248,12 +254,12 @@ def run_calibration(sensor_data, file_name):
         left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz,
                                                        missing_type)
         len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])                                              
-        logger.warning('Bad data! Percentage of NaNs in LqW: ' +
-        str(len_nan_real_quat))
+        _logger('Bad data! Percentage of NaNs in LqW: ' +
+        str(len_nan_real_quat), aws, info=False)
 
         # Check for type conversion error in left foot quaternion data
         if conv_error:
-            logger.warning('Error! Type conversion error: LF quat')
+            _logger('Error! Type conversion error: LF quat', aws, info=False)
             return "Fail!"
 
         # Hip
@@ -262,12 +268,12 @@ def run_calibration(sensor_data, file_name):
         hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz,
                                                       missing_type)
         len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])                                              
-        logger.warning('Bad data! Percentage of NaNs in HqW: ' +
-        str(len_nan_real_quat))
+        _logger('Bad data! Percentage of NaNs in HqW: ' +
+        str(len_nan_real_quat), aws, info=False)
 
         # Check for type conversion error in hip quaternion data
         if conv_error:
-            logger.warning('Error! Type conversion error: Hip quat')
+            _logger('Error! Type conversion error: Hip quat', aws, info=False)
             return "Fail!"
 
         # Right foot
@@ -276,12 +282,12 @@ def run_calibration(sensor_data, file_name):
         right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz,
                                                         missing_type)
         len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])                                              
-        logger.warning('Bad data! Percentage of NaNs in RqW: ' +
-        str(len_nan_real_quat))
+        _logger('Bad data! Percentage of NaNs in RqW: ' +
+        str(len_nan_real_quat), aws, info=False)
 
         #check for type conversion error in right foot quaternion data
         if conv_error:
-            logger.warning('Error! Type conversion error: RF quat')
+            _logger('Error! Type conversion error: RF quat', aws, info=False)
             return "Fail!"
 
         #Acceleration
@@ -329,7 +335,7 @@ def run_calibration(sensor_data, file_name):
                 cur.execute(quer_fail, (False, ind, is_base, file_name))
                 conn.commit()
             except psycopg2.Error as error:
-                logger.warning("Cannot write to DB after failure!")
+                _logger("Cannot write to DB after failure!", aws, info=False)
                 raise error
 
 
@@ -345,10 +351,11 @@ def run_calibration(sensor_data, file_name):
                 conn.commit()
                 conn.close()
             except boto3.exceptions as error:
-                logger.warning("Cannot write to s3 container after failure!")
+                _logger("Cannot write to s3 container after failure!",
+                        aws, info=False)
                 raise error
             except psycopg2.Error as error:
-                logger.warning("Cannot write to rpush after failure!")
+                _logger("Cannot write to rpush after failure!", aws, info=False)
                 raise error
             else:
                 return "Fail!"
@@ -368,7 +375,7 @@ def run_calibration(sensor_data, file_name):
             try:
                 S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
             except boto3.exceptions as error:
-                logger.warning("Cannot write to s3!")
+                _logger("Cannot write to s3!", aws, info=False)
                 raise error
 
             if is_base:
@@ -379,7 +386,8 @@ def run_calibration(sensor_data, file_name):
                     body = fileobj["Body"].read()
                     feet = cStringIO.StringIO(body)
                 except boto3.exceptions as error:
-                    logger.warning("Cannot read feet_sensor_data from s3!")
+                    _logger("Cannot read feet_sensor_data from s3!",
+                            aws, info=False)
                     raise error
 
                 # Read  base feet calibration data from s3
@@ -388,10 +396,11 @@ def run_calibration(sensor_data, file_name):
                                               names=True)
 
                 except IndexError:
-                    logger.warning("Feet data doesn't have column names!")
+                    _logger("Feet data doesn't have column names!",
+                            aws, info=False)
                     raise error
                 if len(feet_data) == 0:
-                    logger.warning("Feet sensor data is empty!")
+                    _logger("Feet sensor data is empty!", aws, info=False)
 
                 # cut out first of recording where quats are settling
                 freq = 100
@@ -405,13 +414,21 @@ def run_calibration(sensor_data, file_name):
 
                 # check if the transform values are nan's
                 if np.any(np.isnan(hip_pitch_transform)):
-                    logger.info('Hip pitch transform has missing values.')
+                    _logger('Hip pitch transform has missing values.',
+                            aws, info=False)
+                    raise ValueError('NaN in hip_pitch_transform')
                 elif np.any(np.isnan(hip_roll_transform)):
-                    logger.info('Hip roll transform has missing values.')
+                    _logger('Hip roll transform has missing values.',
+                                 aws, info=False)
+                    raise ValueError('NaN in hip_roll_transform')
                 elif np.any(np.isnan(lf_roll_transform)):
-                    logger.info('LF roll transform has missing values.')
+                    _logger('LF roll transform has missing values.',
+                                 aws, info=False)
+                    raise ValueError('NaN in lf_roll_transform')
                 elif np.any(np.isnan(rf_roll_transform)):
-                    logger.info('RF roll transform has missing values.')
+                    _logger('RF roll transform has missing values.',
+                                 aws, info=False)
+                    raise ValueError('NaN in rf_roll_transform')
 
                 hip_p_transform = hip_pitch_transform.reshape(-1, ).tolist()
                 hip_r_transform = hip_roll_transform.reshape(-1, ).tolist()
@@ -428,7 +445,8 @@ def run_calibration(sensor_data, file_name):
                                                  file_name))
                     conn.commit()
                 except psycopg2.Error as error:
-                    logger.warning("Cannot write base transform values to DB")
+                    _logger("Cannot write base transform values to DB",
+                            aws, info=False)
                     raise error
 
                 # Run session calibration
@@ -440,17 +458,29 @@ def run_calibration(sensor_data, file_name):
 
                 # Check if bodyframe and neutral transform values are nan's
                 if np.any(np.isnan(hip_bf_transform)):
-                    logger.info('Hip bodyframe transform has missing values.')
+                    _logger('Hip bodyframe transform has missing values.',
+                            aws, info=False)
+                    raise ValueError('NaN in hip_bf_transform')
                 elif np.any(np.isnan(lf_bf_transform)):
-                    logger.info('LF bodyframe transform has missing values.')
+                    _logger('LF bodyframe transform has missing values.',
+                            aws, info=False)
+                    raise ValueError('NaN in lf_bf_transform')
                 elif np.any(np.isnan(rf_bf_transform)):
-                    logger.info('RF bodyframe transform has missing values.')
+                    _logger('RF bodyframe transform has missing values.',
+                            aws, info=False)
+                    raise ValueError('NaN in rf_bf_transform')
                 elif np.any(np.isnan(lf_n_transform)):
-                    logger.info('LF neutral transform has missing values.')
+                    _logger('LF neutral transform has missing values.',
+                            aws, info=False)
+                    raise ValueError('NaN in lf_n_transform')
                 elif np.any(np.isnan(rf_n_transform)):
-                    logger.info('RF neutral transform has missing values.')
+                    _logger('RF neutral transform has missing values.',
+                            aws, info=False)
+                    raise ValueError('NaN in rf_n_transform')
                 elif np.any(np.isnan(hip_n_transform)):
-                    logger.info('Hip neutral transform has missing values.')
+                    _logger('Hip neutral transform has missing values.',
+                            aws, info=False)
+                    raise ValueError('NaN in hip_n_transform')
 
                 # Save session calibration offsets to
                 # SessionAnatomicalCalibrationEvent
@@ -473,7 +503,8 @@ def run_calibration(sensor_data, file_name):
                                                 file_name))
                     conn.commit()
                 except psycopg2.Error as error:
-                    logger.warning("Cannot write to DB after success!")
+                    _logger("Cannot write to DB after success!",
+                            aws, info=False)
                     raise error
                 try:
                     cur.execute(quer_rpush, (user_id, msg, r_push_data))
@@ -482,7 +513,8 @@ def run_calibration(sensor_data, file_name):
 
                 # rPush
                 except:
-                    logger.warning("Cannot write to rpush after succcess!")
+                    _logger("Cannot write to rpush after succcess!",
+                            aws, info=False)
                     raise error
                 else:
                     return "Success!"
@@ -515,7 +547,8 @@ def run_calibration(sensor_data, file_name):
                                                 file_name))
                     conn.commit()
                 except psycopg2.Error as error:
-                    logger.warning("Cannot write to DB after success!")
+                    _logger("Cannot write to DB after success!",
+                            aws, info=False)
 
                 # rPush
                 try:
@@ -523,11 +556,21 @@ def run_calibration(sensor_data, file_name):
                     conn.commit()
                     conn.close()
                 except:
-                    logger.warning("Cannot write to rpush after succcess!")
+                    _logger("Cannot write to rpush after succcess!",
+                            aws, info=False)
                     raise error
                 else:
                     return "Success!"
 
+
+def _logger(message, aws, info=True):
+    if aws:
+        if info:
+            logger.info(message)
+        else:
+            logger.warning(message)
+    else:
+        print message
 
 if __name__ == '__main__':
     path = 'team1_session1_trainingset_anatomicalCalibration.csv'

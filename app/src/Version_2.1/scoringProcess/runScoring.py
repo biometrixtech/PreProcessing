@@ -174,12 +174,9 @@ def _write_table_db(movement_data, cur, conn, aws):
             raise error
         else:
             print "Cannot write movement data to DB!"
-            return movement_data
-    else:
-        if aws:
             return "Success!"
-        else:
-            return movement_data
+    else:
+        return "Success!"
 
 
 def _write_table_s3(movement_data, file_name, s3, cont, aws):

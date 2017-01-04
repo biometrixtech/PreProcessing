@@ -299,7 +299,7 @@ def _zero_runs(col_dat, miss_type, intentional_missing_data):
     """
 
     # determine where column data is NaN
-    isnan = np.isnan(col_dat).astype(int)
+    isnan = np.array(np.isnan(col_dat).astype(int)).reshape(-1, 1)
     isnan = isnan[miss_type != intentional_missing_data]  # subsetting for when
     # missing value is an intentional blank
     if isnan[0] == 1:

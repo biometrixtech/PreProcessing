@@ -57,7 +57,7 @@ def score(data, user_hist):
     # TODO (Dipesh) need to find better control
     hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(mS*tA)
     hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(mS*tA)
-    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
+#    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
     aRL = np.array(data.ankle_rot_lf).reshape(-1, )/(mS*tA)
     aRR = np.array(data.ankle_rot_rf).reshape(-1, )/(mS*tA)
     lPL = np.array(data.land_pattern_lf).reshape(-1, )/(mS*tA)
@@ -66,13 +66,13 @@ def score(data, user_hist):
 
     control = np.array(data.control).reshape(-1, )
     #Create mapping functions for consistency using historical user data
-    fn_hDL, fn_hDR, fn_hR, fn_aRL, fn_aRR, fn_lPL, fn_lPR,\
+    fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR,\
                                     fn_lT = _create_distribution(user_hist)
     consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry =\
                                                    _ankle(aRL, aRR, lPL, lPR,
                                                           lT, fn_aRL, fn_aRR,
                                                           fn_lPL, fn_lPR, fn_lT)
-    hip_consistency, hip_symmetry = _hip(hDL, hDR, hR, fn_hDL, fn_hDR, fn_hR)
+    hip_consistency, hip_symmetry = _hip(hDL, hDR, fn_hDL, fn_hDR)
     #Aggregate consistency scores
     overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
     consistency = np.nanmean(overall_consistency_scores, 0)
@@ -147,7 +147,7 @@ def _create_distribution(data):
     tA = np.array(np.abs(data.total_accel))
     fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(tA*mS)))
     fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(tA*mS)))
-    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
+#    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
     fn_aRL = _con_fun(np.array(data.ankle_rot_lf/(tA*mS)), True)
     fn_aRR = _con_fun(np.array(data.ankle_rot_rf/(tA*mS)), True)
     fn_lPL = _con_fun(np.array(data.land_pattern_lf/(tA*mS)))
@@ -155,7 +155,7 @@ def _create_distribution(data):
     fn_lT = _con_fun(np.array(data.land_time/(tA*mS)))
 #    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
 
-    return fn_hDL, fn_hDR, fn_hR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT
+    return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT
 
 
 def _con_fun(dist, double=False):
@@ -297,7 +297,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT):
 
     return consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry
 
-def _hip(hDL, hDR, hR, fn_hDL, fn_hDR, fn_hR):
+def _hip(hDL, hDR, fn_hDL, fn_hDR):
     """Calculates consistency and symmetry score for each hip features and
     averages the score
     Args:
@@ -312,9 +312,9 @@ def _hip(hDL, hDR, hR, fn_hDL, fn_hDR, fn_hR):
     #Call individual interpolation function for each feature
     con_score_hDL = fn_hDL(hDL)
     con_score_hDR = fn_hDR(hDR)
-    con_score_hR = fn_hR(hR)
+#    con_score_hR = fn_hR(hR)
 
-    con_scores = np.vstack([con_score_hDL, con_score_hDR, con_score_hR])
+    con_scores = np.vstack([con_score_hDL, con_score_hDR])
     #interpolation function is set to extrapolate which might result in
     #negative scores.
     con_scores[con_scores > 100] = 100 #set scores higher than 100 to 100
@@ -338,21 +338,21 @@ def _hip(hDL, hDR, hR, fn_hDL, fn_hDR, fn_hR):
 
     #subset hip rotation data to create two distributions to compare
     #change negative values to positive so both dist are in same range
-    hRL = np.abs(hR[hR <= 0])
-    hRR = hR[hR >= 0]
-    if all(np.isnan(hR)):
-        hip_rot_score = np.zeros(len(hR))*np.nan
-    elif len(hRL) == 0 or len(hRR) == 0:
-        hip_rot_score = np.zeros(len(hR))*np.nan
-    else:
-        l_dict_rot, r_dict_rot = _symmetry_score(hRL, hRR)
-        score_rot_l = [l_dict_rot.get(k, np.nan) for k in -hR]
-        score_rot_r = [r_dict_rot.get(k, np.nan) for k in hR]
-        scores_rot = np.vstack([score_rot_l, score_rot_r])
-        hip_rot_score = np.nanmean(scores_rot, 0)
+#    hRL = np.abs(hR[hR <= 0])
+#    hRR = hR[hR >= 0]
+#    if all(np.isnan(hR)):
+#        hip_rot_score = np.zeros(len(hR))*np.nan
+#    elif len(hRL) == 0 or len(hRR) == 0:
+#        hip_rot_score = np.zeros(len(hR))*np.nan
+#    else:
+#        l_dict_rot, r_dict_rot = _symmetry_score(hRL, hRR)
+#        score_rot_l = [l_dict_rot.get(k, np.nan) for k in -hR]
+#        score_rot_r = [r_dict_rot.get(k, np.nan) for k in hR]
+#        scores_rot = np.vstack([score_rot_l, score_rot_r])
+#        hip_rot_score = np.nanmean(scores_rot, 0)
 
-    hip_scores = np.vstack([hip_drop_score, hip_rot_score])
-    hip_symmetry = np.nanmean(hip_scores, 0)
+#    hip_scores = np.vstack([hip_drop_score, hip_rot_score])
+    hip_symmetry = hip_drop_score
 
     return hip_consistency, hip_symmetry
 

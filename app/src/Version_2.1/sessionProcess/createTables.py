@@ -275,7 +275,8 @@ def create_movement_data(N, data):
 
     movement_data.contra_hip_drop_lf = data.contra_hip_drop_lf.reshape(-1,) 
     movement_data.contra_hip_drop_rf = data.contra_hip_drop_rf.reshape(-1,)
-    movement_data.hip_rot = data.hip_rot.reshape(-1,)
+#    movement_data.hip_rot = data.hip_rot.reshape(-1,)
+    movement_data.hip_rot = np.zeros(N)*np.nan
     
 #    movement_data.pelvic_tilt = data.pelvic_tilt.reshape(-1,)
     movement_data.pelvic_tilt = np.zeros(N)*np.nan
