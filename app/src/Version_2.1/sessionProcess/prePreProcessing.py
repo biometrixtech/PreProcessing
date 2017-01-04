@@ -161,6 +161,14 @@ def handling_missing_data(obj_data):
         data indicator column.
 
     """
+    
+    # SUBSET DATA
+    # enumerated value for done in missing type column
+    done = 3
+    
+    obj_data = obj_data[obj_data.missing_type_lf == done]
+    obj_data = obj_data[obj_data.missing_type_h == done]
+    obj_data = obj_data[obj_data.missing_type_rf == done]
 
     # INITIALIZING VALUES
     # threshold for acceptable number of consecutive missing values
@@ -176,7 +184,7 @@ def handling_missing_data(obj_data):
     # ADD INDICATORS FOR MISSING VALUES
     # Checking if the number of consecutive missing values for the left foot
     # sensor data is greater than the threshold
-    r_l = _zero_runs(obj_data.LaX, obj_data.missing_type, 
+    r_l = _zero_runs(obj_data.LaX, obj_data.missing_type_lf, 
                      intentional_missing_data)
     if r_l.shape[0] != 0:
         for i in range(len(r_l[np.where(r_l[:, 1]-r_l[:, 0] \
@@ -188,7 +196,7 @@ def handling_missing_data(obj_data):
 
     # Checking if the number of consecutive missing values for the hip sensor
     # data is greater than the threshold
-    r_h = _zero_runs(obj_data.HaX, obj_data.missing_type, 
+    r_h = _zero_runs(obj_data.HaX, obj_data.missing_type_h, 
                      intentional_missing_data)
     if r_h.shape[0] != 0:
         for i in range(len(r_h[np.where(r_h[:, 1]-r_h[:, 0] \
@@ -200,7 +208,7 @@ def handling_missing_data(obj_data):
 
     # Checking if the number of consecutive missing values for the right foot
     # sensor data is greater than the threshold
-    r_r = _zero_runs(obj_data.RaX, obj_data.missing_type, 
+    r_r = _zero_runs(obj_data.RaX, obj_data.missing_type_rf, 
                      intentional_missing_data)
     if r_r.shape[0] != 0:
         for i in range(len(r_r[np.where(r_r[:, 1]-r_r[:, 0] \
