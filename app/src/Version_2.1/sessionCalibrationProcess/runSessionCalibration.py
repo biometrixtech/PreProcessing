@@ -193,6 +193,10 @@ def run_calibration(sensor_data, file_name, aws=True):
         _logger('Duplicate epoch time.', aws, info=False)
 
     # PRE-PRE-PROCESSING
+    
+    # subset for 'done'
+    subset_data = ppp.subset_data_done(old_data=data)
+
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
                'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY', 'RaZ',
                'RqX', 'RqY', 'RqZ']
@@ -200,10 +204,10 @@ def run_calibration(sensor_data, file_name, aws=True):
     # check for missing values for each of acceleration and quaternion values
     for var in columns:
         out, ind = ppp.handling_missing_data(epoch_time,
-                                             data[var].reshape(-1, 1),
+                                             subset_data[var].reshape(-1, 1),
                                              corrupt_magn.reshape(-1, 1),
                                              missing_type.reshape(-1, 1))
-        data[var] = out.reshape(-1, )
+        subset_data[var] = out.reshape(-1, )
         if ind in [1, 10]:
             break
 
@@ -227,7 +231,7 @@ def run_calibration(sensor_data, file_name, aws=True):
             raise error
 
         ### Write to S3
-        data_calib = pd.DataFrame(data)
+        data_calib = pd.DataFrame(subset_data)
         data_calib['failure_type'] = ind
         f = cStringIO.StringIO()
         data_calib.to_csv(f, index=False)
@@ -249,8 +253,8 @@ def run_calibration(sensor_data, file_name, aws=True):
     else:
         # determine the real quartenion
         # Left foot
-        left_q_xyz = np.array([data['LqX'], data['LqY'],
-                               data['LqZ']]).transpose()
+        left_q_xyz = np.array([subset_data['LqX'], subset_data['LqY'],
+                               subset_data['LqZ']]).transpose()
         left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz,
                                                        missing_type)
         len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])                                              
@@ -263,8 +267,8 @@ def run_calibration(sensor_data, file_name, aws=True):
             return "Fail!"
 
         # Hip
-        hip_q_xyz = np.array([data['HqX'], data['HqY'],
-                              data['HqZ']]).transpose()
+        hip_q_xyz = np.array([subset_data['HqX'], subset_data['HqY'],
+                              subset_data['HqZ']]).transpose()
         hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz,
                                                       missing_type)
         len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])                                              
@@ -277,8 +281,8 @@ def run_calibration(sensor_data, file_name, aws=True):
             return "Fail!"
 
         # Right foot
-        right_q_xyz = np.array([data['RqX'], data['RqY'],
-                                data['RqZ']]).transpose()
+        right_q_xyz = np.array([subset_data['RqX'], subset_data['RqY'],
+                                subset_data['RqZ']]).transpose()
         right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz,
                                                         missing_type)
         len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])                                              
@@ -291,12 +295,12 @@ def run_calibration(sensor_data, file_name, aws=True):
             return "Fail!"
 
         #Acceleration
-        left_acc = np.array([data['LaX'], data['LaY'],
-                             data['LaZ']]).transpose()
-        hip_acc = np.array([data['HaX'], data['HaY'],
-                            data['HaZ']]).transpose()
-        right_acc = np.array([data['RaX'], data['RaY'],
-                              data['RaZ']]).transpose()
+        left_acc = np.array([subset_data['LaX'], subset_data['LaY'],
+                             subset_data['LaZ']]).transpose()
+        hip_acc = np.array([subset_data['HaX'], subset_data['HaY'],
+                            subset_data['HaZ']]).transpose()
+        right_acc = np.array([subset_data['RaX'], subset_data['RaY'],
+                              subset_data['RaZ']]).transpose()
 
         #create output table as a structured numpy array
         data_o = np.hstack((identifiers, indicators))
