@@ -267,40 +267,22 @@ def run_session(sensor_data, file_name, aws=True):
 #%%
     # MOVEMENT QUALITY FEATURES
 
+    # isolate bf quaternions
+    lf_quat = np.hstack([data.LqW, data.LqX, data.LqY, data.LqZ])
+    hip_quat = np.hstack([data.HqW, data.HqX, data.HqY, data.HqZ])
+    rf_quat = np.hstack([data.RqW, data.RqX, data.RqY, data.RqZ])
+
     # isolate neutral quaternions
     lf_neutral = neutral_data[:, :4]
     hip_neutral = neutral_data[:, 4:8]
     rf_neutral = neutral_data[:, 8:]
 
-    # isolate actual euler angles
-    hip_euler = qc.quat_to_euler(hip_neutral)
-    lf_euler = qc.quat_to_euler(lf_neutral)
-    rf_euler = qc.quat_to_euler(rf_neutral)
-
-    # define balance CME dictionary
-
-    # contralateral hip drop attributes
-    nl_contra = cmed.cont_rot_CME(data.HeX, data.phase_lf, [1], hip_euler[:, 0])
-    nr_contra = cmed.cont_rot_CME(data.HeX, data.phase_rf, [2], hip_euler[:, 0])
-    data.contra_hip_drop_lf = nl_contra[:, 1].reshape(-1, 1)
-    # fix so superior > 0
-    data.contra_hip_drop_lf = data.contra_hip_drop_lf* - 1
-    data.contra_hip_drop_rf = nr_contra[:, 1].reshape(-1, 1)
-
-    # pronation/supination attributes
-    nl_prosup = cmed.cont_rot_CME(data.LeX, data.phase_lf, [0, 1],
-                                  lf_euler[:, 0])
-    nr_prosup = cmed.cont_rot_CME(data.ReX, data.phase_rf, [0, 2],
-                                  rf_euler[:, 0])
-    data.ankle_rot_lf = nl_prosup[:, 1].reshape(-1, 1)
-    data.ankle_rot_lf = data.ankle_rot_lf*-1 # fix so superior > 0
-    data.ankle_rot_rf = nr_prosup[:, 1].reshape(-1, 1)
-
-    # lateral hip rotation attributes
-#    cont_hiprot = cmed.cont_rot_CME(data.HeZ, data.phase_lf, [0, 1, 2, 3, 4, 5],
-#                                    hip_euler[:, 2])
-#    data.hip_rot = cont_hiprot[:, 1].reshape(-1, 1)
-#    data.hip_rot = data.hip_rot*-1 # fix so clockwise > 0
+    # calculate movement attributes
+    data.contra_hip_drop_lf, data.contra_hip_drop_rf, data.ankle_rot_lf,\
+        data.ankle_rot_rf, data.foot_position_lf, data.foot_position_rf,\
+        = cmed.calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral,
+                                      hip_neutral, rf_neutral, data.phase_lf,\
+                                      data.phase_rf)
 
     _logger('DONE WITH BALANCE CME!', aws)
 #%%
