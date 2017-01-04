@@ -179,7 +179,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
                                data['LqZ']]).transpose()
         left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz,
                                                        missing_type)
-        len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])                                              
+        len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in LqW: ' +
         str(len_nan_real_quat), aws, False)
         
@@ -193,7 +193,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
                               data['HqZ']]).transpose()
         hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz,
                                                       missing_type)
-        len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])                                              
+        len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in HqW: ' +
         str(len_nan_real_quat), aws, False)
         
@@ -207,7 +207,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
                                 data['RqZ']]).transpose()
         right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz,
                                                         missing_type)
-        len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])                                              
+        len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in RqW: ' +
         str(len_nan_real_quat), aws, False)
         

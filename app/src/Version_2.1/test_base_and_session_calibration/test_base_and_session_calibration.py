@@ -68,11 +68,11 @@ class TestBaseAndSessionCalib(unittest.TestCase):
             -This implies that the file was written to
                 baseanatomicalcalibrationprocessedcontainer
         6) hip_success is True in baseanatomicalcalibrationevents
-        7) All four transform values are present and of type list in
-            baseanatomicalcalibrationevents
+        7) All four transform values are present and of type list and length 4
+            in baseanatomicalcalibrationevents
         8) success is True in sessionanatomicalcalibrationevents
         9) base_calibration is True in sessionanatomicalcalibrationevents
-        10) All 6 transform values are present and of type list in
+        10) All 6 transform values are present and of type list and length 4 in
             sessionanatomicalcalibrationevents
         11) Assert processed file written to
             baseanatomicalcalibrationprocessedcontainer
@@ -123,12 +123,16 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         self.assertTrue(data_from_base_2[0])
         self.assertIsNotNone(data_from_base_2[1])
         self.assertIsInstance(data_from_base_2[1], list)
+        self.assertEqual(len(data_from_base_2[1]), 4)
         self.assertIsNotNone(data_from_base_2[2])
         self.assertIsInstance(data_from_base_2[2], list)
+        self.assertEqual(len(data_from_base_2[2]), 4)
         self.assertIsNotNone(data_from_base_2[3])
         self.assertIsInstance(data_from_base_2[3], list)
+        self.assertEqual(len(data_from_base_2[3]), 4)
         self.assertIsNotNone(data_from_base_2[4])
         self.assertIsInstance(data_from_base_2[4], list)
+        self.assertEqual(len(data_from_base_2[4]), 4)
 
         read_from_session = """select success,
                             base_calibration,
@@ -146,16 +150,22 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         self.assertTrue(data_from_session[1])
         self.assertIsNotNone(data_from_session[2])
         self.assertIsInstance(data_from_session[2], list)
+        self.assertEqual(len(data_from_session[2]), 4)
         self.assertIsNotNone(data_from_session[3])
         self.assertIsInstance(data_from_session[3], list)
+        self.assertEqual(len(data_from_session[3]), 4)
         self.assertIsNotNone(data_from_session[4])
         self.assertIsInstance(data_from_session[4], list)
+        self.assertEqual(len(data_from_session[4]), 4)
         self.assertIsNotNone(data_from_session[5])
         self.assertIsInstance(data_from_session[5], list)
+        self.assertEqual(len(data_from_session[5]), 4)
         self.assertIsNotNone(data_from_session[6])
         self.assertIsInstance(data_from_session[6], list)
+        self.assertEqual(len(data_from_session[6]), 4)
         self.assertIsNotNone(data_from_session[7])
         self.assertIsInstance(data_from_session[7], list)
+        self.assertEqual(len(data_from_session[7]), 4)
 
         files_base_calib_processed = []
         for obj in S3.Bucket(cont_base).objects.all():
