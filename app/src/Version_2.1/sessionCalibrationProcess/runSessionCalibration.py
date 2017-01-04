@@ -46,9 +46,15 @@ def run_calibration(sensor_data, file_name, aws=True):
     # Read relevant information from base_anatomical_calibration_events
     # based on provided sensor_data_filename and
     # base_anatomical_calibration_event_id tied to the filename
-    quer_read = """select user_id, expired, feet_success, hip_success,
-                feet_processed_sensor_data_filename, hip_pitch_transform,
-                hip_roll_transform, lf_roll_transform, rf_roll_transform
+    quer_read = """select user_id,
+                          expired,
+                          feet_success,
+                          hip_success,
+                          feet_processed_sensor_data_filename,
+                          hip_pitch_transform,
+                          hip_roll_transform,
+                          lf_roll_transform,
+                          rf_roll_transform
                 from base_anatomical_calibration_events where
                 id = (select base_anatomical_calibration_event_id from
                         session_anatomical_calibration_events where 
