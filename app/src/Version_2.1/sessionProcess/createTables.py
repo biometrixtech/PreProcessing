@@ -30,10 +30,10 @@ def create_movement_data(N, data):
                                        ('session_type', 'int'),
                                        ('exercise_id', 'S64'),
                                        ('corrupt_type', 'int'),
-                                       ('missing_type', 'int'),
+                                       ('missing_type_lf', 'int'),
+                                       ('missing_type_h', 'int'),
+                                       ('missing_type_rf', 'int'),
                                        ('exercise_weight', 'float'),
-                                       ('unknown1', 'float'),
-                                       ('unknown2', 'float'),
                                        ('obs_index', 'int'),
                                        ('obs_master_index', 'int'),
                                        ('time_stamp', 'S64'),
@@ -165,15 +165,16 @@ def create_movement_data(N, data):
     movement_data.session_type = data.session_type.reshape(-1,)
     movement_data.exercise_id = data.exercise_id.reshape(-1,)
     movement_data.corrupt_type = data.corrupt_type.reshape(-1,)
-#    movement_data.missing_type = data.missing_type.reshape(-1,)
-    movement_data.missing_type = np.zeros(N)*np.nan
+    movement_data.missing_type_lf = data.missing_type_lf.reshape(-1,)
+#    movement_data.missing_type = np.zeros(N)*np.nan
     
+
+    movement_data.missing_type_h = data.missing_type_h.reshape(-1,)
+    movement_data.missing_type_rf = data.missing_type_rf.reshape(-1,)
 #    movement_data.exercise_weight = data.exercise_weight.reshape(-1,)
-#    movement_data.unknown1 = data.unknown1.reshape(-1,)
-#    movement_data.unknown2 = data.unknown2.reshape(-1,)
     movement_data.exercise_weight = np.zeros(N)*np.nan
-    movement_data.unknown1 = np.zeros(N)*np.nan
-    movement_data.unknown2 = np.zeros(N)*np.nan
+#    movement_data.unknown1 = np.zeros(N)*np.nan
+#    movement_data.unknown2 = np.zeros(N)*np.nan
     movement_data.unknown0 = np.zeros(N)*np.nan
        
     movement_data.obs_index = data.obs_index.reshape(-1,)
