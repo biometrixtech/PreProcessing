@@ -10,7 +10,6 @@ import logging
 import numpy as np
 
 from phaseID import phase_id
-from dynamicSamplingRate import avg_sampl_rate_win
 
 
 logger = logging.getLogger()
@@ -46,16 +45,16 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
         for j in enumerate(lf_start):
             if abs(lf_start[j[0]] - rf_start[i[0]]) <= 0.3*sampl_rate:
             # checking for false impact phases
-                if lf_start[j[0]] > rf_start[i[0]]:  # check if left foot
+                if lf_start[j[0]] < rf_start[i[0]]:  # check if left foot
                 # impacts first
                     diff.append(-(lf_start[j[0]] - rf_start[i[0]])\
                     /float(sampl_rate)*1000)
                     # appending the difference of time of impact between
                     # left and right feet, dividing by the sampling rate to
                     # convert the time difference to milli seconds
-                    ltime_index.append(int(i[1]))
+                    ltime_index.append(int(j[1]))
                     lf_rf_imp_indicator.append('l')
-                elif lf_start[j[0]] < rf_start[j[0]]:  # check if right foot
+                elif lf_start[j[0]] > rf_start[j[0]]:  # check if right foot
                 # impacts first
                     diff.append((rf_start[j[0]] - lf_start[i[0]])\
                     /float(sampl_rate)*1000)
@@ -203,124 +202,27 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
     
 
 if __name__ == '__main__':
-    pass
-#    import pandas as pd
-#    import matplotlib.pyplot as plt
-#    import sys
-#    #from impact_phase import impact_phase
-#    from phaseDetection import combine_phase
-#
-#    rpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_rfdatabody_LESS.csv'
-#    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Rheel_Gabby_changedirection_set1.csv'
-#    #rpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Rheel_Gabby_walking_heeltoe_set1.csv'
-#    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
-#    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_lfdatabody_set1.csv'
-#    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Stomp\Lheel_Gabby_stomp_set1.csv'
-#    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\ChangeDirection\Lheel_Gabby_changedirection_set1.csv'
-#    lpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\Subject5_lfdatabody_LESS.csv'
-#    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Jump\Lheel_Gabby_jumping_explosive_set2.csv'
-#    #lpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Walking\Lheel_Gabby_walking_heeltoe_set1.csv'
-#    #hpath = 'C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\data files\Subject5\Subject5_hipdatabody_set1.csv'
-#    hpath = 'C:\\Users\\Ankur\\python\\Biometrix\\Data analysis\\data exploration\\data files\\Subject5\\Subject5_hipdatabody_LESS.csv'
-#
-##    rdata1 = np.genfromtxt(rpath, delimiter=",", dtype=float, names=True)
-##    ldata1 = np.genfromtxt(lpath, delimiter=",", dtype=float, names=True)
-##    hdata1 = np.genfromtxt(hpath, delimiter=",", dtype=float, names=True)
-#    
-#    datapath = '/home/ankur/Documents/BioMetrix/Data analysis/data exploration/data files/Paul dataset/Subject5_LESS_Transformed_Data.csv'
-#    data = np.genfromtxt(datapath, delimiter=",", dtype=float, names=True)
-#    
-#    #rdata1 = pd.read_csv(rpath)
-#    #ldata1 = pd.read_csv(lpath)
-#    #hdata1 = pd.read_csv(hpath)
-#    
-#    #reading the test datasets
-#    #rdata1 = pd.read_csv('C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\impact cme\sym_impact_input_rfoot.csv')
-#    #ldata1 = pd.read_csv('C:\Users\Ankur\python\Biometrix\Data analysis\data exploration\impact cme\sym_impact_input_lfoot.csv')
-#
-#    sampl_rate = 250
-#    #comp = 'AccZ'
-##    ptch = 'EulerY'
-#    #racc = rdata[comp].values
-#    #lacc = ldata[comp].values #input AccZ values!
-##    rpitch = rdata1[ptch]
-##    lpitch = ldata1[ptch]
-#    #ph = Body_Phase(racc, lacc, rpitch, lpitch, sampl_rate)
-#    
-#    lf_phase, rf_phase = combine_phase(data['LaZ'], data['RaZ'], sampl_rate)
-#    
-##    rdata1['Phase'] = rf_phase
-##    ldata1['Phase'] = lf_phase
-#
-#    #comp = 'AccZ'
-#    #rdata = rdata1[comp].values
-#    #ldata = ldata1[comp].values
-#    #hdata = hdata1[comp].values
-#    #comp2 = 'EulerY'
-#    #erf = rdata1[comp2].values
-#    #elf = ldata1[comp2].values
-#    #sampl_rate = 250 #sampling rate, remember to change it when using data sets of different sampling rate
-#    
-#    #output_lf = impact_phase(ldata, sampl_rate)
-#    #output_rf = impact_phase(rdata, sampl_rate)
-#    
-##    cme_dict_imp = {'landtime':[0.2, 0.25], 'landpattern':[12, 50]}
-#    
-#    output, ltime_index = sync_time(rf_phase, lf_phase, sampl_rate)
-#    if len(output) != 0:
-#        pdiff = landing_pattern(data['ReY'], data['LeY'], output)
-#    else:
-#        print 'No impacts detected. Cannot determine land time and land pattern'
-#        sys.exit()
-#    
-#    print output, 'sync_time'
-#    print pdiff, 'landing_pattern'
-#    
-#    ltime, lpattern = continuous_values(pdiff, output, len(data), ltime_index)
     
-#    rf_quick_pattern = []
-#    rf_quick_time = []
-#    lf_quick_pattern = []
-#    lf_quick_time = []
-#
-#    count = 0
-#    for i in range(len(data)):
-#        if i in output[:,0]:
-#            rf_quick_pattern.append(pdiff[count,2])
-#            rf_quick_time.append(output[count,2])
-#            count = count + 1
-#            print count
-#        else:
-#            rf_quick_pattern.append(np.nan)
-#            rf_quick_time.append(np.nan)
-#
-#    count = 0
-#    for i in range(len(data)):
-#        if i in output[:,0]:
-#            lf_quick_pattern.append(pdiff[count,3])
-#            lf_quick_time.append(output[count,3])
-#            count = count + 1
-#        else:
-#            lf_quick_pattern.append(np.nan)
-#            lf_quick_time.append(np.nan)
-#
-#    df = pd.DataFrame(data)
-#    df['landPatternL'] = pd.Series(lf_quick_pattern)
-#    df['landPatternR'] = pd.Series(rf_quick_pattern)
-#    df['landTimeL'] = pd.Series(lf_quick_time)
-#    df['landTimeR'] = pd.Series(rf_quick_time)
-#    df.to_csv('/home/ankur/Documents/BioMetrix/Data analysis/data exploration/data files/Paul dataset/impactCME_Subject5_LESS_Transformed_Data.csv')
+    import matplotlib.pyplot as plt
+    from phaseDetection import combine_phase
     
-#    landPatternL	landPatternR	landTimeL	landTimeR
-
-    #plt.figure(1)
-    #plt.plot(output_lf)
-    #plt.hist(ldata, bins = 20)
-    #plt.figure(2)
-    #plt.plot(elf)
-    #plt.show()
+    datafile = '250to125_Ivonna_Combined_Sensor_Transformed_Data.csv'
+    data = np.genfromtxt(datafile, names=True, dtype=float, delimiter=',')
     
-    #plt.figure(2)
-    #plt.plot(output_rf)
-    #plt.plot(rdata)
-    #plt.show()
+    hz = 125
+    
+    lf_ph, rf_ph = combine_phase(data['LaZ'], data['RaZ'], hz)
+    
+    diff, ltime_index, lf_rf_imp_indicator = sync_time(rf_ph, lf_ph, hz)
+    
+    plt.figure(1)
+    plt.title('left foot')
+    plt.plot(data['LaZ'])
+    plt.plot(lf_ph)
+    plt.show()
+    
+    plt.figure(2)
+    plt.title('right foot')
+    plt.plot(data['RaZ'])
+    plt.plot(rf_ph)
+    plt.show()

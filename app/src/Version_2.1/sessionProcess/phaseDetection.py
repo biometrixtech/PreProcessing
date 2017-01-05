@@ -171,6 +171,10 @@ def _bound_det_lf(p):
     end_move = []
     
     for i in range(len(p)-1):
+        if i == 0:
+            if p[i] == phase_id.rflf_offground.value or \
+            p[i] == phase_id.rf_ground.value:
+                start_move.append(i)
         if p[i] == phase_id.rflf_ground.value and \
         p[i+1] == phase_id.rf_ground.value:
             start_move.append(i+1)
@@ -195,6 +199,12 @@ def _bound_det_lf(p):
         elif p[i] == phase_id.rflf_offground.value and \
         p[i+1] == phase_id.lf_ground.value:
             end_move.append(i)
+            
+    if len(start_move) != len(end_move):
+        end_move.append(start_move[-1])
+        
+    if len(start_move) == len(end_move):
+        logger.info('Lengths of start move and end move are not equal! LF-phase')
                         
     return start_move, end_move
  
@@ -217,7 +227,11 @@ def _bound_det_rf(p):
     end_move = []
     
     for i in range(len(p)-1):
-        if p[i] == phase_id.rflf_ground.value and \
+        if i == 0:
+            if p[i] == phase_id.rflf_offground.value or \
+            p[i] == phase_id.lf_ground.value:
+                start_move.append(i)
+        elif p[i] == phase_id.rflf_ground.value and \
         p[i+1] == phase_id.lf_ground.value:
             start_move.append(i+1)
         elif p[i] == phase_id.rf_ground.value and \
@@ -241,6 +255,12 @@ def _bound_det_rf(p):
         elif p[i] == phase_id.rflf_offground.value and \
         p[i+1] == phase_id.rf_ground.value:
             end_move.append(i)
+            
+    if len(start_move) != len(end_move):
+        end_move.append(start_move[-1])
+        
+    if len(start_move) == len(end_move):
+        logger.info('Lengths of start move and end move are not equal! RF-phase')
             
     return start_move, end_move
  
