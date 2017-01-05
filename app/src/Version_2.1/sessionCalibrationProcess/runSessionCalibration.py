@@ -134,6 +134,18 @@ def run_calibration(sensor_data, file_name, aws=True):
     feet_success = data_read[2]
     hip_success = data_read[3]
 
+    # Read data into structured numpy array
+    try:
+        data = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
+                             names=True)
+
+    except IndexError:
+        _logger("Sensor data doesn't have column names!", aws, info=False)
+        return "Fail!"
+    if len(data) == 0:
+        _logger("Sensor data is empty!", aws, info=False)
+        return "Fail!"
+
     #read from S3
     feet_file = data_read[4]
     try:
@@ -183,18 +195,6 @@ def run_calibration(sensor_data, file_name, aws=True):
         rf_roll_transform = np.array(data_read[8]).reshape(-1, 1)
         if len(rf_roll_transform) == 0:
             is_base = True
-
-    # Read data into structured numpy array
-    try:
-        data = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
-                             names=True)
-
-    except IndexError:
-        _logger("Sensor data doesn't have column names!", aws, info=False)
-        return "Fail!"
-    if len(data) == 0:
-        _logger("Sensor data is empty!", aws, info=False)
-        return "Fail!"
     
     # check if the raw quaternions have been converted already
     data = cp.handle_processed(data)
