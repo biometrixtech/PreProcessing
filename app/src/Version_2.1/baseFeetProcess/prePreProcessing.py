@@ -34,7 +34,7 @@ def check_duplicate_index(index):
         
 def subset_data_done(old_data):
     '''
-    Subset data when missing type is equal to 3 (done)
+    Subset data when missing type is equal to 2 (done)
     
     Args:
         old_data: structured array, input data to Data wrangling
