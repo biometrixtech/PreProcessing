@@ -65,18 +65,27 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     hip_quat = qo.quat_norm(hip_quat_db)
     lf_quat = qo.quat_norm(lf_quat_db)
     rf_quat = qo.quat_norm(rf_quat_db)
-    
+
+    length = len(hip_quat)
+
     # take hip sensor frame and add hip_bf_coordtrans to get hip bf
 
     hip_bf_quat = qo.quat_prod(hip_quat, hip_bf_transform)
     hip_bf_eul = qc.quat_to_euler(hip_bf_quat)
-    
-    # take feet_sf and add feet_bf_transform to get feet_bf
+
+    # take feet_sf and add feet_bf_transform to get feet_bf, divide into
+        # axial components
     lf_bf_quat = qo.quat_prod(lf_quat, lf_bf_transform)
     lf_bf_eul = qc.quat_to_euler(lf_bf_quat)
+    lf_bf_yaw = np.hstack((np.zeros((length, 2)),
+                           lf_bf_eul[:, 2].reshape(-1, 1)))
+    lf_bf_yaw = qc.euler_to_quat(lf_bf_yaw)
     rf_bf_quat = qo.quat_prod(rf_quat, rf_bf_transform)
     rf_bf_eul = qc.quat_to_euler(rf_bf_quat)
-        
+    rf_bf_yaw = np.hstack((np.zeros((length, 2)),
+                           rf_bf_eul[:, 2].reshape(-1, 1)))
+    rf_bf_yaw = qc.euler_to_quat(rf_bf_yaw)
+
     # call accelerationTransformation
     hip_aif_acc, lf_aif_acc, rf_aif_acc =\
             at.acceleration_transform(hip_quat, lf_quat, rf_quat, hip_acc,
@@ -85,15 +94,37 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     
     # convert body frame quaternions to respective "neutral" orientations
     #for comparison in balanceCME, operated through runAnalytics
-    lf_neutral = qo.quat_prod(lf_bf_quat, lf_n_transform)
-    rf_neutral = qo.quat_prod(rf_bf_quat, rf_n_transform)
+    lf_n_transform = qc.quat_to_euler(lf_n_transform)
+    rf_n_transform = qc.quat_to_euler(rf_n_transform)
+    hip_n_transform_eul = qc.quat_to_euler(hip_n_transform)
+    lf_n_roll = np.full((length, 1), lf_n_transform[0, 0], float)
+    rf_n_roll = np.full((length, 1), rf_n_transform[0, 0], float)
+    lf_n_pitch = np.full((length, 1), lf_n_transform[0, 1], float)
+    rf_n_pitch = np.full((length, 1), rf_n_transform[0, 1], float)
+    lf_n_yaw = np.full((length, 1), lf_n_transform[0, 2], float)
+    rf_n_yaw = np.full((length, 1), rf_n_transform[0, 2], float)
+    hip_n_roll =  np.full((length, 1), hip_n_transform_eul[0, 0], float)
+    hip_n_pitch = np.full((length, 1), hip_n_transform_eul[0, 1], float)
+
+    rot_y = np.array([[np.sqrt(.5), 0, np.sqrt(.5), 0]])
+    rot_x = np.array([[np.sqrt(.5), np.sqrt(.5), 0, 0]])
+    # FOR NEW SENSORS: 90 deg about y axis, -90 deg about x axis
+    hip_asf_transform = qo.quat_prod(rot_y, rot_x)
+
+    # calculate adjusted sensor frame
+    hip_asf = qo.quat_prod(hip_quat, hip_asf_transform)
+
+    hip_aif_comp = qc.quat_to_euler(hip_asf)[:, 2].reshape(-1, 1)
+
+    # construct neutral hip data
+    hip_neutral = np.hstack((hip_n_roll, hip_n_pitch, hip_aif_comp))
     
-    length = len(data.HqW)
-    hip_bf_euler = qc.quat_to_euler(hip_bf_quat)
-    hip_bf_yaw_offset = np.hstack((np.zeros((length, 2)),
-                                   hip_bf_euler[:, 2].reshape(-1, 1)))
-    hip_yaw_quat = qc.euler_to_quat(hip_bf_yaw_offset)
-    hip_neutral = qo.quat_prod(hip_yaw_quat, hip_n_transform)
+    lf_neutral = np.hstack((lf_n_roll, lf_n_pitch, lf_n_yaw))
+    rf_neutral = np.hstack((rf_n_roll, rf_n_pitch, rf_n_yaw))
+
+    hip_neutral = qc.euler_to_quat(hip_neutral)
+    lf_neutral = qc.euler_to_quat(lf_neutral)
+    rf_neutral = qc.euler_to_quat(rf_neutral)
     
     # consolidate transformed data
     epoch_time_pd = pd.DataFrame(epoch_time)
