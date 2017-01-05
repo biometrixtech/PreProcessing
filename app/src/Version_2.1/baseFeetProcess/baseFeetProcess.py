@@ -5,7 +5,7 @@ import urllib
 import boto3
 import logging
 import cStringIO
-import zipfile as zf
+#import zipfile as zf
 
 import runBaseFeet as rb
 
@@ -34,19 +34,22 @@ def lambda_handler(event, context):
         logger.info('Read Content')        
         content = cStringIO.StringIO(body)
         logger.info('Converted Content')
-        zipped = zf.ZipFile(content)
-        try:
-            name = zipped.namelist()[0]
-        except IndexError:
-            logger.warning('Fail!, no data inside zipped file')
-            return 'success'
-        else:
-            unzipped_content = cStringIO.StringIO()
-            unzipped_content = zipped.open(name)
-            logger.info('Unzipped File')
-            result = rb.record_base_feet(unzipped_content, key)
-            logger.info('outcome:' + result)
-            return 'success'
+        result = rb.record_base_feet(content, key)
+        logger.info('outcome:'+result)
+        return 'success'
+#        zipped = zf.ZipFile(content)
+#        try:
+#            name = zipped.namelist()[0]
+#        except IndexError:
+#            logger.warning('Fail!, no data inside zipped file')
+#            return 'success'
+#        else:
+#            unzipped_content = cStringIO.StringIO()
+#            unzipped_content = zipped.open(name)
+#            logger.info('Unzipped File')
+#            result = rb.record_base_feet(unzipped_content, key)
+#            logger.info('outcome:' + result)
+#            return 'success'
             
     except Exception as e:
         logger.info(e)

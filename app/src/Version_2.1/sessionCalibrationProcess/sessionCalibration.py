@@ -33,19 +33,23 @@ def lambda_handler(event, context):
         logger.info('Read Content')        
         content = cStringIO.StringIO(body)
         logger.warning('Converted Content')
-        zipped = zf.ZipFile(content)
-        try:
-            name = zipped.namelist()[0]
-        except IndexError:
-            logger.info('Fail!, no data inside zipped file')
-            return 'success'
-        else:
-            unzipped_content = cStringIO.StringIO()
-            unzipped_content = zipped.open(name)
-            logger.info('Unzipped File')
-            result = rs.record_special_feet(unzipped_content, key)
-            logger.info('outcome:' + result)
-            return 'success'
+        result = rs.record_special_feet(content, key)
+        logger.info('outcome:' + result)
+        return 'success'
+
+#        zipped = zf.ZipFile(content)
+#        try:
+#            name = zipped.namelist()[0]
+#        except IndexError:
+#            logger.info('Fail!, no data inside zipped file')
+#            return 'success'
+#        else:
+#            unzipped_content = cStringIO.StringIO()
+#            unzipped_content = zipped.open(name)
+#            logger.info('Unzipped File')
+#            result = rs.record_special_feet(unzipped_content, key)
+#            logger.info('outcome:' + result)
+#            return 'success'
 
     except Exception as e:
         logger.info(e)
