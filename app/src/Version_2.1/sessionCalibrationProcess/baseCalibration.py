@@ -64,6 +64,7 @@ def _special_hip_calib(data):
     
     hip_asf_eul = qc.quat_to_euler(hip_asf)
     length = len(data)
+
     # create offset using pitch
     hip_asf_pitch_offset = np.hstack((np.zeros((length, 1)),
                                       hip_asf_eul[:, 1].reshape(-1, 1),
@@ -78,7 +79,7 @@ def _special_hip_calib(data):
     # get average of transform values over time
     hip_pitch_transform = qo.quat_norm(qo.quat_avg(hip_pitch_transform_inst))
     hip_roll_transform = qo.quat_norm(qo.quat_avg(hip_roll_transform_inst))
-    
+
     return hip_pitch_transform.reshape(-1, 1), hip_roll_transform.reshape(-1, 1)
     
     
@@ -116,9 +117,11 @@ def _special_foot_calib(foot_data, hip_data, hip_pitch_transform):
     # calculate adjusted sensor frame
     hip_asf = qo.quat_prod(hip_data, hip_asf_transform)
     
-    # use hip_pitch_transform to get from hip_asf to hip_aif
-    hip_pitch_transform_conj = qo.quat_conj(hip_pitch_transform)
-    hip_aif = qo.quat_prod(hip_asf, hip_pitch_transform_conj)
+    # calculate adjusted inertial frame
+    hip_asf_eul = qc.quat_to_euler(hip_asf)
+    hip_asf_yaw = np.hstack((np.zeros((len(hip_data), 2)),
+                                 hip_asf_eul[:, 2].reshape(-1, 1)))
+    hip_aif = qc.euler_to_quat(hip_asf_yaw)
     
     # find yaw offset of foot from body adjusted inertial frame
     foot_asf = qo.find_rot(hip_aif, foot_data)
