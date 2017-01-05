@@ -14,6 +14,28 @@ from scipy import interpolate
 logger = logging.getLogger()
 
 
+def subset_data(old_data):
+    '''
+    Subset data when missing type is equal to 3 (done)
+    
+    Args:
+        old_data: structured array, input data to Data wrangling
+        
+    Returns:
+        new_data: structured array, subset the input data when missing type=3 
+    '''
+    
+    # SUBSET DATA
+    # enumerated value for done in missing type column
+    done = 3
+        
+    old_data = old_data[old_data['missing_type_lf'] != done]
+    old_data = old_data[old_data['missing_type_h'] != done]
+    new_data = old_data[old_data['missing_type_rf'] != done]
+        
+    return new_data
+    
+
 def check_duplicate_epochtime(epoch_time):
     """
     Check if there are duplicate epoch times in the sensor data file.
@@ -162,14 +184,6 @@ def handling_missing_data(obj_data):
 
     """
     
-    # SUBSET DATA
-    # enumerated value for done in missing type column
-    done = 3
-    
-    obj_data = obj_data[obj_data.missing_type_lf != done]
-    obj_data = obj_data[obj_data.missing_type_h != done]
-    obj_data = obj_data[obj_data.missing_type_rf != done]
-
     # INITIALIZING VALUES
     # threshold for acceptable number of consecutive missing values
     MISSING_DATA_THRESH = 3
@@ -226,8 +240,14 @@ def handling_missing_data(obj_data):
     # Impute if number of consecutive missing vals is less than threshold
     epoch_time = obj_data.epoch_time
     for i in var:
+        if 'L' in i:
+            missing_indicator_col = obj_data.missing_type_lf
+        elif 'H' in i:
+            missing_indicator_col = obj_data.missing_type_h
+        elif 'R' in i:
+            missing_indicator_col = obj_data.missing_type_rf
         col_data = getattr(obj_data, i)
-        ran = _zero_runs(col_data.reshape(-1, ), obj_data.missing_type, 
+        ran = _zero_runs(col_data.reshape(-1, ), missing_indicator_col, 
                      intentional_missing_data)
         dummy_data = col_data[np.isfinite(col_data).reshape((-1, ))]
         dummy_epochtime = epoch_time[np.isfinite(col_data).reshape((-1, ))]
