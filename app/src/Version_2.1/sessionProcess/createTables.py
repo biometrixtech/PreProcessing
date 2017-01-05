@@ -165,7 +165,8 @@ def create_movement_data(N, data):
     movement_data.session_type = data.session_type.reshape(-1,)
     movement_data.exercise_id = data.exercise_id.reshape(-1,)
     movement_data.corrupt_type = data.corrupt_type.reshape(-1,)
-    movement_data.missing_type = data.missing_type.reshape(-1,)
+#    movement_data.missing_type = data.missing_type.reshape(-1,)
+    movement_data.missing_type = np.zeros(N)*np.nan
     
 #    movement_data.exercise_weight = data.exercise_weight.reshape(-1,)
 #    movement_data.unknown1 = data.unknown1.reshape(-1,)
@@ -462,7 +463,8 @@ def create_sensor_data(N, data):
     sensor_data.ms_elapsed = data.ms_elapsed.reshape(-1,)
     sensor_data.phase_lf = data.phase_lf.reshape(-1,)
     sensor_data.phase_rf = data.phase_rf.reshape(-1,)
-    sensor_data.activity_id = data.activity_id.reshape(-1,)
+#    sensor_data.activity_id = data.activity_id.reshape(-1,)
+    sensor_data.activity_id = np.zeros(N)*np.nan
     sensor_data.ms_elapsed = data.ms_elapsed.reshape(-1,)
 
     sensor_data.LaX = data.LaX.reshape(-1,)

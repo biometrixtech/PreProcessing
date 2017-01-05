@@ -54,13 +54,13 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
                     # convert the time difference to milli seconds
                     ltime_index.append(int(j[1]))
                     lf_rf_imp_indicator.append('l')
-                elif lf_start[j[0]] > rf_start[j[0]]:  # check if right foot
+                elif lf_start[j[0]] > rf_start[i[0]]:  # check if right foot
                 # impacts first
-                    diff.append((rf_start[j[0]] - lf_start[i[0]])\
+                    diff.append((rf_start[i[0]] - lf_start[j[0]])\
                     /float(sampl_rate)*1000)
                     ltime_index.append(int(i[1]))
                     lf_rf_imp_indicator.append('r')
-                elif lf_start[j[0]] == rf_start[j[0]]:  # check impact time of
+                elif lf_start[j[0]] == rf_start[i[0]]:  # check impact time of
                 # right foot equals left foot
                     diff.append(0.0)
                     ltime_index.append(int(i[1]))
@@ -128,7 +128,6 @@ def landing_pattern(rf_euly, lf_euly, land_time_index, l_r_imp_ind, sampl_rate,
                                 np.rad2deg(lf_euly[i+\
                                 int(abs(k)/1000*sampl_rate)])])
         elif j == 'r':
-            print i
             out_pattern.append([np.rad2deg(rf_euly[int(i)]),
                                 np.rad2deg(lf_euly[i-\
                                 int(abs(k)/1000*sampl_rate)])])
