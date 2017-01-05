@@ -25,8 +25,10 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
         epoch_time: an array, epoch time from sensor
 
     Returns:
-        diff: time difference between right and left feet impacts
-        ltime_index: index when land time is determined
+        diff: array, time difference between right and left feet impacts
+        ltime_index: array, index when land time is determined
+        lf_rf_imp_indicator: array, indicate whether right/left foot impacted
+        the ground first
     """
         
     rf_start = _imp_start_time(imp_time=imp_rf)  # obtaining the first instant 
