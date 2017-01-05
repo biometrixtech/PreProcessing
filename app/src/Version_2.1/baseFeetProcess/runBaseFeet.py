@@ -103,23 +103,22 @@ def record_base_feet(sensor_data, file_name, aws=True):
     data = cp.handle_processed(data)
     
     out_file = "processed_" + file_name
-    epoch_time = data['epoch_time']
+    index = data['index']
     corrupt_magn = data['corrupt_magn']
     missing_type = data['missing_type']
 
-    identifiers = np.array([epoch_time, corrupt_magn, missing_type]).transpose()
+    identifiers = np.array([index, corrupt_magn, missing_type]).transpose()
 
     # Create indicator values
     failure_type = np.array([-999]*len(data))
     indicators = np.array([failure_type]).transpose()
 
     # Check for duplicate epoch time
-    duplicate_epoch_time = ppp.check_duplicate_epochtime(epoch_time)
-    if duplicate_epoch_time:
-        _logger('Duplicate epoch time.'. aws, False)
+    duplicate_index = ppp.check_duplicate_index(index)
+    if duplicate_index:
+        _logger('Duplicate index.'. aws, False)
     
     # PRE-PRE-PROCESSING
-    
     # subset for done
     subset_data = ppp.subset_data_done(old_data=data)
     
@@ -129,7 +128,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
 
     # check for missing values for each of acceleration and quaternion values
     for var in columns:
-        out, ind = ppp.handling_missing_data(epoch_time,
+        out, ind = ppp.handling_missing_data(index,
                                              subset_data[var].reshape(-1, 1),
                                              corrupt_magn.reshape(-1, 1),
                                              missing_type.reshape(-1, 1))
@@ -238,7 +237,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
         data_o = np.hstack((data_o, right_q_wxyz))
 
         #Columns of the output table
-        columns = ['epoch_time', 'corrupt_magn', 'missing_type', 'failure_type',
+        columns = ['index', 'corrupt_magn', 'missing_type', 'failure_type',
                    'LaX', 'LaY', 'LaZ', 'LqW', 'LqX', 'LqY', 'LqZ', 'HaX',
                    'HaY', 'HaZ', 'HqW', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY',
                    'RaZ', 'RqW', 'RqX', 'RqY', 'RqZ']
