@@ -12,24 +12,24 @@ import pandas as pd
 from errors import ErrorId
 
 
-def check_duplicate_epochtime(epoch_time):
+def check_duplicate_index(index):
     """
-    Check if there are duplicate epoch times in the sensor data file.
+    Check if there are duplicate indexes in the sensor data file.
     
     Args:
-        epoch_time: an array, epoch time from the sensor.
+        index: array, index.
         
     Returns:
-        epoch_time_duplicate: Boolean, if duplicate epoch time exists or not
+        index_duplicate: Boolean, if duplicate index exists or not
     """
     # check if there are any duplicate epoch times in the sensor data file
-    epoch_time_duplicate = False
-    epoch_time_unique_ind = np.unique(epoch_time, return_counts=True)[1]
-    if 2 in epoch_time_unique_ind:
-        epoch_time_duplicate = True
-        return epoch_time_duplicate
+    index_duplicate = False
+    index_unique_ind = np.unique(index, return_counts=True)[1]
+    if 2 in index_unique_ind:
+        index_duplicate = True
+        return index_duplicate
     else:
-        return epoch_time_duplicate
+        return index_duplicate
         
         
 def subset_data_done(old_data):
@@ -44,7 +44,7 @@ def subset_data_done(old_data):
     '''
     
     # enumerated value for done in missing type column
-    done = 3
+    done = 2
     
     df_old_data = pd.DataFrame(old_data)  # convert structured array to 
     # data frame
@@ -134,7 +134,7 @@ def _computation_imaginary_quat(i_quat, check_qw=True):
         return comp_i_quat.reshape(-1, 1)
 
 
-def handling_missing_data(epoch_time, col_data, corrup_magn, missing_type):
+def handling_missing_data(index, col_data, corrup_magn, missing_type):
 
     """
     Checking for missing data. Imputing the values if the number of
@@ -142,7 +142,7 @@ def handling_missing_data(epoch_time, col_data, corrup_magn, missing_type):
     missing values is less than the threshold.
 
     Args:
-        epoch_time: an array, epoch time from the sensor
+        index: array, index
         col_data: an array, each column data from the data file
         corrup_magn: an array, binary values indicating if the
         magnetometer is corrupted or not
@@ -188,10 +188,10 @@ def handling_missing_data(epoch_time, col_data, corrup_magn, missing_type):
             elif np.any(ran[:, 1].reshape(-1, 1) - ran[:, 0].reshape(-1, 1) \
                 <= MISSING_DATA_THRESH):
 
-                epoch_time = epoch_time.reshape((-1, 1))
+                index = index.reshape((-1, 1))
                 col_data = col_data.reshape((-1, 1))
                 dummy_data = col_data[np.isfinite(col_data).reshape((-1,))]
-                dummy_epochtime = epoch_time[
+                dummy_epochtime = index[
                     np.isfinite(col_data).reshape((-1,))]
                 dummy_epochtime = dummy_epochtime.reshape((-1, 1))
                 interp = interpolate.splrep(dummy_epochtime,
@@ -200,7 +200,7 @@ def handling_missing_data(epoch_time, col_data, corrup_magn, missing_type):
                                             s=0)  # spline interpolation function
 
                 for i in range(len(ran)):
-                    y_new = interpolate.splev(epoch_time[ran[i, 0]:ran[i, 1],
+                    y_new = interpolate.splev(index[ran[i, 0]:ran[i, 1],
                                                          0], interp, der=0)
                     col_data[ran[i, 0]:ran[i, 1], 0] = y_new
                 return col_data.reshape((-1, )), ErrorId.no_error.value
