@@ -130,6 +130,10 @@ def run_calibration(sensor_data, file_name, aws=True):
         _logger("sensor_data_filename not found in table", aws, info=False)
         raise error
 
+    expired = data_read[1]
+    feet_success = data_read[2]
+    hip_success = data_read[3]
+
     #read from S3
     feet_file = data_read[4]
     try:
@@ -151,10 +155,6 @@ def run_calibration(sensor_data, file_name, aws=True):
         raise error
     if len(feet_data) == 0:
         _logger("Feet sensor data is empty!", aws, info=False)
-
-    expired = data_read[1]
-    feet_success = data_read[2]
-    hip_success = data_read[3]
 
     # if not expired and feet_success is true and hip_success is true, it's
     # treated as session calibration
