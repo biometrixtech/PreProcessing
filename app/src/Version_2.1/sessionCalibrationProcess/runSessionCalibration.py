@@ -130,6 +130,28 @@ def run_calibration(sensor_data, file_name, aws=True):
         _logger("sensor_data_filename not found in table", aws, info=False)
         raise error
 
+    #read from S3
+    feet_file = data_read[4]
+    try:
+        obj = S3.Bucket(cont_read).Object(feet_file)
+        fileobj = obj.get()
+        body = fileobj["Body"].read()
+        feet = cStringIO.StringIO(body)
+    except boto3.exceptions as error:
+        _logger("Cannot read feet_sensor_data from s3!", aws, info=False)
+        raise error
+
+    # Read  base feet calibration data from s3
+    try:
+        feet_data = np.genfromtxt(feet, dtype=float, delimiter=',', names=True)
+
+    except IndexError:
+        _logger("Feet data doesn't have column names!",
+                aws, info=False)
+        raise error
+    if len(feet_data) == 0:
+        _logger("Feet sensor data is empty!", aws, info=False)
+
     expired = data_read[1]
     feet_success = data_read[2]
     hip_success = data_read[3]
@@ -306,25 +328,17 @@ def run_calibration(sensor_data, file_name, aws=True):
 
         #create output table as a structured numpy array
         data_o = np.hstack((identifiers, indicators))
-        data_o = np.hstack([data_o, subset_data['epoch_time_lf'].reshape(-1, 1)])
-        data_o = np.hstack([data_o, subset_data['corrupt_magn_lf'].reshape(-1, 1)])
         data_o = np.hstack((data_o, left_acc))
         data_o = np.hstack((data_o, left_q_wxyz))
-        data_o = np.hstack([data_o, subset_data['epoch_time_h'].reshape(-1, 1)])
-        data_o = np.hstack([data_o, subset_data['corrupt_magn_h'].reshape(-1, 1)])
         data_o = np.hstack((data_o, hip_acc))
         data_o = np.hstack((data_o, hip_q_wxyz))
-        data_o = np.hstack([data_o, subset_data['epoch_time_rf'].reshape(-1, 1)])
-        data_o = np.hstack([data_o, subset_data['corrupt_magn_rf'].reshape(-1, 1)])
         data_o = np.hstack((data_o, right_acc))
         data_o = np.hstack((data_o, right_q_wxyz))
 
         # Columns of the output table
         columns = ['index', 'corrupt_magn', 'missing_type', 'failure_type',
-                   'epoch_time_lf', 'corrupt_magn_lf', 'LaX',
-                   'LaY', 'LaZ', 'LqW', 'LqX', 'LqY', 'LqZ', 'epoch_time_h',
-                   'corrupt_magn_h', 'HaX', 'HaY', 'HaZ', 'HqW', 'HqX', 'HqY',
-                   'HqZ', 'epoch_time_rf', 'corrupt_magn_rf', 'RaX', 'RaY',
+                   'LaX', 'LaY', 'LaZ', 'LqW', 'LqX', 'LqY', 'LqZ', 'HaX',
+                   'HaY', 'HaZ', 'HqW', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY',
                    'RaZ', 'RqW', 'RqX', 'RqY', 'RqZ']
 
         data_o_pd = pd.DataFrame(data_o)
@@ -393,28 +407,6 @@ def run_calibration(sensor_data, file_name, aws=True):
                 raise error
 
             if is_base:
-                #read from S3
-                try:
-                    obj = S3.Bucket(cont_read).Object(feet_file)
-                    fileobj = obj.get()
-                    body = fileobj["Body"].read()
-                    feet = cStringIO.StringIO(body)
-                except boto3.exceptions as error:
-                    _logger("Cannot read feet_sensor_data from s3!",
-                            aws, info=False)
-                    raise error
-
-                # Read  base feet calibration data from s3
-                try:
-                    feet_data = np.genfromtxt(feet, dtype=float, delimiter=',',
-                                              names=True)
-
-                except IndexError:
-                    _logger("Feet data doesn't have column names!",
-                            aws, info=False)
-                    raise error
-                if len(feet_data) == 0:
-                    _logger("Feet sensor data is empty!", aws, info=False)
 
                 # cut out first of recording where quats are settling
                 freq = 100
