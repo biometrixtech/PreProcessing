@@ -238,8 +238,10 @@ def record_base_feet(sensor_data, file_name, aws=True):
 
         #Columns of the output table
         columns = ['index', 'corrupt_magn', 'missing_type', 'failure_type',
-                   'LaX', 'LaY', 'LaZ', 'LqW', 'LqX', 'LqY', 'LqZ', 'HaX',
-                   'HaY', 'HaZ', 'HqW', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY',
+                   'epoch_time_lf', 'corrupt_magn_lf', 'LaX', 'LaY', 'LaZ',
+                   'LqW', 'LqX', 'LqY', 'LqZ', 'epoch_time_h', 'corrupt_magn_h',
+                   'HaX', 'HaY', 'HaZ', 'HqW', 'HqX', 'HqY', 'HqZ',
+                   'epoch_time_rf', 'corrupt_magn_rf', 'RaX', 'RaY',
                    'RaZ', 'RqW', 'RqX', 'RqY', 'RqZ']
 
         data_o_pd = pd.DataFrame(data_o)
