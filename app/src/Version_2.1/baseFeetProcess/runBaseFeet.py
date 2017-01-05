@@ -229,10 +229,16 @@ def record_base_feet(sensor_data, file_name, aws=True):
                               
         #create output table as a structured numpy array
         data_o = np.hstack((identifiers, indicators))
+        data_o = np.hstack([data_o, subset_data['epoch_time_lf'].reshape(-1, 1)])
+        data_o = np.hstack([data_o, subset_data['corrupt_magn_lf'].reshape(-1, 1)])
         data_o = np.hstack((data_o, left_acc))
         data_o = np.hstack((data_o, left_q_wxyz))
+        data_o = np.hstack([data_o, subset_data['epoch_time_h'].reshape(-1, 1)])
+        data_o = np.hstack([data_o, subset_data['corrupt_magn_h'].reshape(-1, 1)])
         data_o = np.hstack((data_o, hip_acc))
         data_o = np.hstack((data_o, hip_q_wxyz))
+        data_o = np.hstack([data_o, subset_data['epoch_time_rf'].reshape(-1, 1)])
+        data_o = np.hstack([data_o, subset_data['corrupt_magn_rf'].reshape(-1, 1)])
         data_o = np.hstack((data_o, right_acc))
         data_o = np.hstack((data_o, right_q_wxyz))
 
