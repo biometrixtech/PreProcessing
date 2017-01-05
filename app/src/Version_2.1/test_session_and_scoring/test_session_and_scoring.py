@@ -108,7 +108,7 @@ class TestSessionAndScoring(unittest.TestCase):
             files_session_processed.append(obj.key)
         self.assertIn('processed_'+file_name, files_session_processed)
         self.assertIn('movement_'+file_name, files_session_processed)
-
+#        print session_event_id
         # Assert there's no missing data in movement table
         quer_read_mov = """select count(*) from movement
                             where session_event_id = %s"""
