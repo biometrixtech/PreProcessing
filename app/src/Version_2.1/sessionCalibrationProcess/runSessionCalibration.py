@@ -19,6 +19,7 @@ import anatomicalCalibration as ac
 from placementCheck import placement_check
 import baseCalibration as bc
 import prePreProcessing as ppp
+import neutralComponents as nc
 from errors import ErrorMessageSession, RPushDataSession
 import checkProcessed as cp
 
@@ -165,6 +166,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     try:
         data = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
                              names=True)
+
     except IndexError:
         _logger("Sensor data doesn't have column names!", aws, info=False)
         return "Fail!"
@@ -454,11 +456,17 @@ def run_calibration(sensor_data, file_name, aws=True):
                     raise error
 
                 # Run session calibration
-                hip_bf_transform, lf_bf_transform, rf_bf_transform,\
-                lf_n_transform, rf_n_transform, hip_n_transform = \
+                hip_bf_transform, lf_bf_transform, rf_bf_transform = \
                 ac.run_calib(data_calib, hip_pitch_transform,
                              hip_roll_transform, lf_roll_transform,
                              rf_roll_transform)
+
+                # Calculate neutral transforms
+                lf_n_transform, hip_n_transform, rf_n_transform =\
+                nc.run_neutral_computations(feet_data, data_calib,
+                                                  lf_bf_transform,
+                                                  hip_bf_transform,
+                                                  rf_bf_transform)
 
                 # Check if bodyframe and neutral transform values are nan's
                 if np.any(np.isnan(hip_bf_transform)):
