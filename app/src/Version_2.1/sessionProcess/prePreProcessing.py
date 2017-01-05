@@ -27,7 +27,7 @@ def subset_data(old_data):
     
     # SUBSET DATA
     # enumerated value for done in missing type column
-    done = 3
+    done = 2
         
     old_data = old_data[old_data['missing_type_lf'] != done]
     old_data = old_data[old_data['missing_type_h'] != done]
