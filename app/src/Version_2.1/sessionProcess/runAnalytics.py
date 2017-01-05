@@ -86,8 +86,9 @@ def run_session(sensor_data, file_name, aws=True):
         _logger("Sensor data is empty!", aws, info=False)
         return "Fail!"
 
-    columns = sdata.dtype.names
-    data = do.RawFrame(sdata, columns)
+#    columns = sdata.dtype.names
+#    data = do.RawFrame(sdata, columns)
+    data = sdata.view(np.recarray)
     data = cp.handle_processed(data)
     data = _add_ids_rawdata(data, ids_from_db)
     user_id = data.user_id[0][0]

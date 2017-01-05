@@ -166,9 +166,9 @@ def handling_missing_data(obj_data):
     # enumerated value for done in missing type column
     done = 3
     
-    obj_data = obj_data[obj_data.missing_type_lf == done]
-    obj_data = obj_data[obj_data.missing_type_h == done]
-    obj_data = obj_data[obj_data.missing_type_rf == done]
+    obj_data = obj_data[obj_data.missing_type_lf != done]
+    obj_data = obj_data[obj_data.missing_type_h != done]
+    obj_data = obj_data[obj_data.missing_type_rf != done]
 
     # INITIALIZING VALUES
     # threshold for acceptable number of consecutive missing values
