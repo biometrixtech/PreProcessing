@@ -314,8 +314,8 @@ def run_calibration(sensor_data, file_name, aws=True):
         data_o = np.hstack((data_o, right_q_wxyz))
 
         # Columns of the output table
-        columns = ['index', 'corrupt_magn', 'missing_type', 'base_calibration',
-                   'failure_type', 'epoch_time_lf', 'corrupt_magn_lf', 'LaX',
+        columns = ['index', 'corrupt_magn', 'missing_type', 'failure_type',
+                   'epoch_time_lf', 'corrupt_magn_lf', 'LaX',
                    'LaY', 'LaZ', 'LqW', 'LqX', 'LqY', 'LqZ', 'epoch_time_h',
                    'corrupt_magn_h', 'HaX', 'HaY', 'HaZ', 'HqW', 'HqX', 'HqY',
                    'HqZ', 'epoch_time_rf', 'corrupt_magn_rf', 'RaX', 'RaY',
