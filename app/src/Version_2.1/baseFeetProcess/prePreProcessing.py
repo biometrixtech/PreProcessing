@@ -40,7 +40,7 @@ def subset_data_done(old_data):
         old_data: structured array, input data to Data wrangling
         
     Returns:
-        new_data: structured array, subset the input data when missing type=3 
+        new_data: structured array, subset the input data when missing type=2 
     '''
     
     # enumerated value for done in missing type column
