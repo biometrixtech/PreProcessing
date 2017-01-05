@@ -61,15 +61,15 @@ def _sensor_to_aif(hip_data, hip_pitch_transform):
     # calculate adjusted sensor frame
     hip_asf = qo.quat_prod(hip_data, hip_asf_transform)
         
+    # calculate adjusted inertial frame
+    hip_asf_eul = qc.quat_to_euler(hip_asf)
+    hip_asf_yaw = np.hstack((np.zeros((len(hip_data), 2)),
+                                 hip_asf_eul[:, 2].reshape(-1, 1)))
+    hip_aif = qc.euler_to_quat(hip_asf_yaw)
+
     # calculate hip_bf_transform to get from sf to corrected bf
     hip_bf_transform = qo.quat_prod(hip_asf_transform,
                                     hip_pitch_transform).reshape(-1, 1)
-
-    # use hip_pitch_transform to get from hip_asf to hip_aif (rotation about y axis)
-    hip_pitch_transform_conj = qo.quat_conj(hip_pitch_transform)
-    
-    # Calculate adjusted inertial frame
-    hip_aif = qo.quat_prod(hip_asf, hip_pitch_transform_conj)
 
     return hip_aif, hip_bf_transform
 
@@ -91,11 +91,13 @@ def _feet_transform_calculations(foot_data, hip_aif, foot_roll_transform):
     foot_roll_transform = foot_roll_transform.T
     foot_asf = qo.find_rot(hip_aif, foot_data)
     foot_asf_components = qc.quat_to_euler(foot_asf)
+
     # create offset using yaw
     length = len(foot_data)
     foot_yaw_offset = np.hstack((np.zeros((length, 2)),
                                  foot_asf_components[:, 2].reshape(-1, 1)))
     foot_yaw_transform_inst = qc.euler_to_quat(foot_yaw_offset)
+
     # create offset using pitch
     foot_pitch_offset = np.hstack((np.zeros((length, 1)),
                                    foot_asf_components[:, 1].reshape(-1, 1),
@@ -149,7 +151,7 @@ def run_calib(data, hip_pitch_transform, hip_roll_transform,
     hip_data = hip_datadb[start_ind:stop_ind, :]
     lf_data = lf_datadb[start_ind:stop_ind, :]
     rf_data = rf_datadb[start_ind:stop_ind, :]
-    
+
     # normalize orientation data
     hip_data = qo.quat_norm(hip_data)
     lf_data = qo.quat_norm(lf_data)
@@ -162,31 +164,13 @@ def run_calib(data, hip_pitch_transform, hip_roll_transform,
     rf_bf_transform, rf_yaw_transform, rf_pitch_transform =\
             _feet_transform_calculations(rf_data, hip_aif, rf_roll_transform)
 
-    # calculate _neutral_transform values
-    lf_n_transform =\
-                qo.quat_prod(qo.quat_conj(hip_pitch_transform.reshape(1, -1)),
-                             lf_yaw_transform.reshape(1, -1))
-    lf_n_transform = qo.quat_prod(lf_n_transform,
-                                  lf_pitch_transform.reshape(1, -1))
-    lf_n_transform =\
-                qo.quat_prod(lf_n_transform,
-                             lf_roll_transform.reshape(1, -1)).reshape(-1, 1)
-    rf_n_transform =\
-                qo.quat_prod(qo.quat_conj(hip_pitch_transform.reshape(1, -1)),
-                             rf_yaw_transform.reshape(1, -1))
-    rf_n_transform = qo.quat_prod(rf_n_transform,
-                                  rf_pitch_transform.reshape(1, -1))
-    rf_n_transform =\
-                qo.quat_prod(rf_n_transform,
-                             rf_roll_transform.reshape(1, -1)).reshape(-1, 1)
-    hip_n_transform =\
-                qo.quat_prod(hip_pitch_transform.reshape(1, -1),
-                             hip_roll_transform.reshape(1, -1)).reshape(-1, 1)
-    
-    return hip_bf_transform, lf_bf_transform, rf_bf_transform, lf_n_transform,\
-                rf_n_transform, hip_n_transform
-    
-        
+    lf_bf_transform = lf_bf_transform.reshape(1, -1)
+    rf_bf_transform = rf_bf_transform.reshape(1, -1)
+    hip_bf_transform = hip_bf_transform.reshape(1, -1)
+
+    return hip_bf_transform, lf_bf_transform, rf_bf_transform
+
+
 if __name__ == '__main__':
     pass
 #    import time
