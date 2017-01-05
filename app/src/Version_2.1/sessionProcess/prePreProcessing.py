@@ -16,13 +16,13 @@ logger = logging.getLogger()
 
 def subset_data(old_data):
     '''
-    Subset data when missing type is equal to 3 (done)
+    Subset data when missing type is equal to 2 (done)
     
     Args:
         old_data: structured array, input data to Data wrangling
         
     Returns:
-        new_data: structured array, subset the input data when missing type=3 
+        new_data: structured array, subset the input data when missing type=2 
     '''
     
     # SUBSET DATA
