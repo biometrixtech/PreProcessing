@@ -171,6 +171,10 @@ def _bound_det_lf(p):
     end_move = []
     
     for i in range(len(p)-1):
+        if i == 0:
+            if p[i] == phase_id.rflf_offground.value or \
+            p[i] == phase_id.rf_ground.value:
+                start_move.append(i)
         if p[i] == phase_id.rflf_ground.value and \
         p[i+1] == phase_id.rf_ground.value:
             start_move.append(i+1)
@@ -195,6 +199,12 @@ def _bound_det_lf(p):
         elif p[i] == phase_id.rflf_offground.value and \
         p[i+1] == phase_id.lf_ground.value:
             end_move.append(i)
+            
+    if len(start_move) != len(end_move):
+        end_move.append(start_move[-1])
+        
+    if len(start_move) == len(end_move):
+        logger.info('Lengths of start move and end move are not equal! LF-phase')
                         
     return start_move, end_move
  
@@ -217,7 +227,11 @@ def _bound_det_rf(p):
     end_move = []
     
     for i in range(len(p)-1):
-        if p[i] == phase_id.rflf_ground.value and \
+        if i == 0:
+            if p[i] == phase_id.rflf_offground.value or \
+            p[i] == phase_id.lf_ground.value:
+                start_move.append(i)
+        elif p[i] == phase_id.rflf_ground.value and \
         p[i+1] == phase_id.lf_ground.value:
             start_move.append(i+1)
         elif p[i] == phase_id.rf_ground.value and \
@@ -241,6 +255,12 @@ def _bound_det_rf(p):
         elif p[i] == phase_id.rflf_offground.value and \
         p[i+1] == phase_id.rf_ground.value:
             end_move.append(i)
+            
+    if len(start_move) != len(end_move):
+        end_move.append(start_move[-1])
+        
+    if len(start_move) == len(end_move):
+        logger.info('Lengths of start move and end move are not equal! RF-phase')
             
     return start_move, end_move
  
@@ -329,21 +349,20 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import time
     
-#    file_name = 'bodyframe_Subject3_LESS.csv'
+    file_name = '250to125_bodyframe_Subject5_LESS.csv'
     
 #    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/' + file_name
-#    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/250to125/' + file_name
-    file_name = 'movement_data_ankur_IV_combined.csv'
-    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/12132016/Calibration/' + file_name
-#    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/' + file_name    
-    
+    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/250to125/' + file_name
+#    file_name = 'movement_data_ankur_IV_combined.csv'
+#    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/12132016/Calibration/' + file_name
+
     data = np.genfromtxt(datapath, names=True, delimiter=',', dtype=float)
             
-    sampl_rate = 250
+    sampl_rate = 125
     
     start_time = time.time()
-    lf_phase, rf_phase = combine_phase(laccz = data['LaZ'], 
-                                       raccz = data['RaZ'], 
+    lf_phase, rf_phase = combine_phase(laccz = data['LAccZ'], 
+                                       raccz = data['RAccZ'], 
                                        hz = sampl_rate)
 #    lf_phase = _phase_detect(data['LaZ'], sampl_rate)
     print time.time() - start_time
@@ -353,16 +372,11 @@ if __name__ == "__main__":
     plt.figure(1)
     plt.title('with Phases: Left foot')
     plt.plot(lf_phase)
-    plt.plot(data['LaZ'])
+    plt.plot(data['LAccZ'])
     plt.show()
     
     plt.figure(2)
     plt.title('with Phases: Right foot')
     plt.plot(rf_phase)
-    plt.plot(data['RaZ'])
-    plt.show()
-    
-    plt.figure(3)
-    plt.title('Hip')
-    plt.plot(data['HaZ'])
+    plt.plot(data['RAccZ'])
     plt.show()
