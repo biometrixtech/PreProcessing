@@ -89,6 +89,9 @@ def run_session(sensor_data, file_name, aws=True):
     sdata.dtype.names = columns_session
     # SUBSET DATA
     subset_data = ppp.subset_data(old_data=sdata)
+    if len(subset_data) == 0:
+        _logger("No samples left after subsetting!", aws, info=False)
+        return "Fail!"
 
     columns = subset_data.dtype.names
     data = do.RawFrame(subset_data, columns)
