@@ -55,8 +55,6 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         file_name = "8051538e-9046-4aac-acef-c37418d392e7"
         self.assertRaises(IOError, run_calibration, "test", file_name)
 
-
-
     # Testing for expected test case
     def test_base_and_session_happy_path(self):
         """Tests Included:
