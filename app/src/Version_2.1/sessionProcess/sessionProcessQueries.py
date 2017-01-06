@@ -12,7 +12,7 @@ quer_read_ids = """select * from fn_get_all_ids_from_sensor_data_filename((%s))"
 
 quer_read_offsets = """select hip_n_transform, hip_bf_transform,
     lf_n_transform, lf_bf_transform,
-    rf_n_transform, lf_bf_transform from
+    rf_n_transform, rf_bf_transform from
     session_anatomical_calibration_events where
     id = (select session_anatomical_calibration_event_id 
     from session_events where id = (%s));"""
