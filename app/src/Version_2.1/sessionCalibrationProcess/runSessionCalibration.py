@@ -273,6 +273,7 @@ def run_calibration(sensor_data, file_name, aws=True):
             _logger("Cannot write to rpush after failure!", aws, info=False)
             raise error
         else:
+            _logger("Failed due to:" + msg, aws, False)
             return "Fail!"
 
     else:
@@ -387,6 +388,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                 _logger("Cannot write to rpush after failure!", aws, info=False)
                 raise error
             else:
+                _logger("Failed due to:" + msg, aws, False)
                 return "Fail!"
 
         else:
