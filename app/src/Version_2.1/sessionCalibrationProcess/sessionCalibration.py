@@ -32,8 +32,8 @@ def lambda_handler(event, context):
         body = fileobj["Body"].read()
         logger.info('Read Content')        
         content = cStringIO.StringIO(body)
-        logger.warning('Converted Content')
-        result = rs.record_special_feet(content, key)
+        logger.info('Converted Content')
+        result = rs.run_calibration(content, key)
         logger.info('outcome:' + result)
         return 'success'
 

@@ -22,6 +22,7 @@ import prePreProcessing as ppp
 import neutralComponents as nc
 from errors import ErrorMessageSession, RPushDataSession
 import checkProcessed as cp
+from columnNames import columns_calib
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -145,7 +146,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     if len(data) == 0:
         _logger("Sensor data is empty!", aws, info=False)
         return "Fail!"
-
+    data.dtype.names = columns_calib
     #read from S3
     feet_file = data_read[4]
     try:
@@ -248,7 +249,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 
         # Update special_anatomical_calibration_events
         try:
-            cur.execute(quer_fail, (ind, out_file, False, file_name))
+            cur.execute(quer_fail, (False, ind, is_base, file_name))
             conn.commit()
         except psycopg2.Error as error:
             _logger("Cannot write to DB after failure!", aws, info=False)
