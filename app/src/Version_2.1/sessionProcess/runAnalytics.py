@@ -36,6 +36,7 @@ import createTables as ct
 import sessionProcessQueries as queries
 import checkProcessed as cp
 import rateofForceAbsorption as fa
+from columnNames import columns_session
 
 
 logger = logging.getLogger()
@@ -85,7 +86,7 @@ def run_session(sensor_data, file_name, aws=True):
     if len(sdata) == 0:
         _logger("Sensor data is empty!", aws, info=False)
         return "Fail!"
-        
+    sdata.dtype.names = columns_session
     # SUBSET DATA
     subset_data = ppp.subset_data(old_data=sdata)
 

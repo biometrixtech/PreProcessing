@@ -54,6 +54,39 @@ class TestBaseAndSessionCalib(unittest.TestCase):
     def test_session_calibration_no_data(self):
         file_name = "8051538e-9046-4aac-acef-c37418d392e7"
         self.assertRaises(IOError, run_calibration, "test", file_name)
+    # Testing with no data but filename exists in DB
+    def test_base_calibration_bad_magn(self):
+        file_name = "1d2b14d4-1da7-4833-9afe-6c21cc6fbb95"
+        sensor_data_base = '1d2b14d4-1da7-4833-9afe-6c21cc6fbb95.csv'
+        response = record_base_feet(sensor_data_base, file_name)
+        self.assertEqual(response, "Fail!")
+        quer_read = """select
+                        feet_success,
+                        failure_type,
+                        feet_processed_sensor_data_filename
+                        from base_anatomical_calibration_events where
+                        feet_sensor_data_filename = %s"""
+        cur.execute(quer_read, (file_name,))
+        data_read = cur.fetchall()[0]
+        self.assertFalse(data_read[0])
+        self.assertEqual(data_read[1], 1)
+        self._remove_data(file_name, "none", table="base")
+
+    def test_session_calibration_bad_magn(self):
+        file_name = "d3ef003e-68e9-47fa-a459-ce118bf917e5"
+        sensor_data_base = 'd3ef003e-68e9-47fa-a459-ce118bf917e5.csv'
+        response = run_calibration(sensor_data_base, file_name)
+        self.assertEqual(response, "Fail!")
+        quer_read = """select
+                        success,
+                        failure_type
+                        from session_anatomical_calibration_events where
+                        sensor_data_filename = %s"""
+        cur.execute(quer_read, (file_name,))
+        data_read = cur.fetchall()[0]
+        self.assertFalse(data_read[0])
+        self.assertEqual(data_read[1], 1)
+        self._remove_data("none", file_name, table="session")
 
     # Testing for expected test case
     def test_base_and_session_happy_path(self):
@@ -178,9 +211,9 @@ class TestBaseAndSessionCalib(unittest.TestCase):
 #        S3.Object(cont_base, 'processed_'+file_name_base).delete()
         S3.Object(cont_session, 'processed_'+file_name_session).delete()
 #        self._remove_data(file_name_base, file_name_session)
-        conn.close()
+#        conn.close()
         
-    def _remove_data(self, file_name_base, file_name_session):
+    def _remove_data(self, file_name_base, file_name_session, table="both"):
         remove_data_base= """update base_anatomical_calibration_events set 
                                 hip_roll_transform = %s,
                                 lf_roll_transform = %s,
@@ -191,9 +224,10 @@ class TestBaseAndSessionCalib(unittest.TestCase):
                                 failure_type = Null,
                                 feet_processed_sensor_data_filename = Null
                                 where feet_sensor_data_filename = %s"""
-        cur.execute(remove_data_base, ([],[],[],[], file_name_base))
-        conn.commit()
-        
+        if table == "base" or table == "both":
+            cur.execute(remove_data_base, ([],[],[],[], file_name_base))
+            conn.commit()
+
         remove_data_session = """update session_anatomical_calibration_events
                                 set
                                 success = Null,
@@ -205,8 +239,9 @@ class TestBaseAndSessionCalib(unittest.TestCase):
                                 lf_n_transform = %s,
                                 rf_n_transform = %s
                                 where sensor_data_filename = %s"""
-        cur.execute(remove_data_session, ([],[],[],[],[],[], file_name_session))
-        conn.commit()
+        if table == "session" or table == "both":
+            cur.execute(remove_data_session, ([],[],[],[],[],[], file_name_session))
+            conn.commit()
         
 if __name__ == "__main__":      
     unittest.main(module=TestBaseAndSessionCalib.test_base_and_session_happy_path,
