@@ -46,7 +46,7 @@ def run_scoring(sensor_data, file_name, aws=True):
         Note: In case of completion for local run, returns movement table.
     """
     cont_write = 'biometrix-sessionprocessedcontainer'
-    cont_read = 'biometrix-blockprocessedcontainer'
+    cont_read = 'biometrix-scoringcontainer'
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()

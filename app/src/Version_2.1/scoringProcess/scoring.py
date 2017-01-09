@@ -63,15 +63,19 @@ def score(data, user_hist):
     lPL = np.array(data.land_pattern_lf).reshape(-1, )/(mS*tA)
     lPR = np.array(data.land_pattern_rf).reshape(-1, )/(mS*tA)
     lT = np.array(data.land_time).reshape(-1, )/(mS*tA)
+    fPL = np.array(data.foot_position_lf).reshape(-1,)/(mS*tA)
+    fPR = np.array(data.foot_position_rf).reshape(-1,)/(mS*tA)
 
     control = np.array(data.control).reshape(-1, )
     #Create mapping functions for consistency using historical user data
-    fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR,\
-                                    fn_lT = _create_distribution(user_hist)
+    fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT,\
+                                fn_fPL, fn_fPR = _create_distribution(user_hist)
     consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry =\
                                                    _ankle(aRL, aRR, lPL, lPR,
-                                                          lT, fn_aRL, fn_aRR,
-                                                          fn_lPL, fn_lPR, fn_lT)
+                                                          lT, fPL, fPR,
+                                                          fn_aRL, fn_aRR,
+                                                          fn_lPL, fn_lPR, fn_lT,
+                                                          fn_fPL, fn_fPR)
     hip_consistency, hip_symmetry = _hip(hDL, hDR, fn_hDL, fn_hDR)
     #Aggregate consistency scores
     overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
@@ -153,9 +157,11 @@ def _create_distribution(data):
     fn_lPL = _con_fun(np.array(data.land_pattern_lf/(tA*mS)))
     fn_lPR = _con_fun(np.array(data.land_pattern_rf/(tA*mS)))
     fn_lT = _con_fun(np.array(data.land_time/(tA*mS)))
+    fn_fPL = _con_fun(np.array(data.foot_position_lf/(tA*mS)))
+    fn_fPR = _con_fun(np.array(data.foot_position_rf/(tA*mS)))
 #    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
 
-    return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT
+    return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT, fn_fPL, fn_fPR
 
 
 def _con_fun(dist, double=False):
