@@ -191,10 +191,10 @@ def handling_missing_data(index, col_data, corrup_magn, missing_type):
                 index = index.reshape((-1, 1))
                 col_data = col_data.reshape((-1, 1))
                 dummy_data = col_data[np.isfinite(col_data).reshape((-1,))]
-                dummy_epochtime = index[
+                dummy_index = index[
                     np.isfinite(col_data).reshape((-1,))]
-                dummy_epochtime = dummy_epochtime.reshape((-1, 1))
-                interp = interpolate.splrep(dummy_epochtime,
+                dummy_index = dummy_index.reshape((-1, 1))
+                interp = interpolate.splrep(dummy_index,
                                             dummy_data,
                                             k=3,
                                             s=0)  # spline interpolation function
@@ -232,7 +232,7 @@ def _zero_runs(col_dat, miss_type, intentional_missing_data):
     # determine where column data is NaN
     isnan = np.array(np.isnan(col_dat).astype(int)).reshape(-1, 1)
     isnan = isnan[miss_type != intentional_missing_data]  # subsetting for when
-    # missing value is an intentional blank
+    # missing value is not an intentional blank
     if isnan[0] == 1:
         t_b = 1
     else:
