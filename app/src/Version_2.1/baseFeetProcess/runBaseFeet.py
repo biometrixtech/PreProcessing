@@ -18,6 +18,7 @@ import prePreProcessing as ppp
 from errors import ErrorMessageBase, RPushDataBase
 from placementCheck import placement_check
 import checkProcessed as cp
+from columnNames import columns_calib
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -98,7 +99,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
     if len(data) == 0:
         _logger("Sensor data is empty!", aws, False)
         return "Fail!"
-
+    data.dtype.names = columns_calib
     # check if the raw quaternions have been converted already
     data = cp.handle_processed(data)
     
@@ -173,6 +174,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
             _logger("Cannot write to rpush after failure!", aws, False)
             raise error
         else:
+            _logger("Failed because of:"+ msg, aws, False)
             return "Fail!"
 
     else:
