@@ -341,10 +341,13 @@ def run_session(sensor_data, file_name, aws=True):
                     mstress_fit = pickle.load(model_file)
             except:
                 raise IOError("MS model file not found in s3/local directory")
-    ms_data = prepare_data(data, False)
+    ms_data, nan_row = prepare_data(data, False)
    
     # calculate mechanical stress
     data.mech_stress = mstress_fit.predict(ms_data).reshape(-1, 1)
+    #Insert nan for mech_stress where data needed to predict was missing
+    if len(nan_row) != 0:
+        data.mech_stress = np.insert(data.mech_stress, nan_row, np.nan, axis=0)
 
     _logger('DONE WITH MECH STRESS!', aws)
 #%%

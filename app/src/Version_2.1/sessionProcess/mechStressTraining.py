@@ -52,12 +52,20 @@ def prepare_data(data, train=True):
                     'ReX', 'ReY', 'ReZ', 'HeX', 'HeY', 'HeZ']
     
     X = data_pd[total_column].values
+    missing_data = False
+    if np.isnan(X).any():
+        missing_data = True
+    if missing_data:
+        nan_row = np.unique(np.where(np.isnan(X))[0])
+        X = np.delete(X, (nan_row), axis=0)
     if train:
         data_pd['total_load'] = np.array(data.LFz) + np.array(data.RFz)
         Y = data_pd['total_load'].values
+        if missing_data:
+            Y = np.delete(Y, (nan_row), axis=0)
         return X, Y
     else:
-        return X
+        return X, nan_row
     
 def _model_fit(X, Y):
     """Fits Gradient boosting regressor on the training data and returns the
