@@ -190,9 +190,9 @@ def handling_missing_data(index, col_data, corrup_magn, missing_type):
 
                 index = index.reshape((-1, 1))
                 col_data = col_data.reshape((-1, 1))
-                dummy_data = col_data[np.isfinite(col_data).reshape((-1,))]
-                dummy_index = index[
-                    np.isfinite(col_data).reshape((-1,))]
+                non_nan_index = np.isfinite(col_data).reshape(-1,)
+                dummy_data = col_data[non_nan_index]
+                dummy_index = index[non_nan_index]
                 dummy_index = dummy_index.reshape((-1, 1))
                 interp = interpolate.splrep(dummy_index,
                                             dummy_data,
