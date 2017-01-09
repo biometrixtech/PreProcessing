@@ -32,10 +32,17 @@ def det_rofa(l_ph, r_ph, laccz, raccz, user_mass, hz):
     rf_start_imp, rf_end_imp = _bound_det(ph=r_ph, lf_or_rf='rf')
     
     # determine rate of force absorption for left & right feet
-    lf_rofa = _det_lf_rf_rofa(accz=abs(laccz), s_imp=lf_start_imp, 
-                              e_imp=lf_end_imp, mass=user_mass, hz=hz)
-    rf_rofa = _det_lf_rf_rofa(accz=abs(raccz), s_imp=rf_start_imp, 
-                              e_imp=rf_end_imp, mass=user_mass, hz=hz)        
+    if len(lf_start_imp) != 0:
+        lf_rofa = _det_lf_rf_rofa(accz=abs(laccz), s_imp=lf_start_imp, 
+                                  e_imp=lf_end_imp, mass=user_mass, hz=hz)
+    else:
+        lf_rofa = np.zeros((len(laccz), 1))*np.nan
+
+    if len(rf_start_imp) != 0:
+        rf_rofa = _det_lf_rf_rofa(accz=abs(raccz), s_imp=rf_start_imp, 
+                                  e_imp=rf_end_imp, mass=user_mass, hz=hz) 
+    else:
+        rf_rofa = np.zeros((len(raccz), 1))*np.nan
     
     return lf_rofa, rf_rofa
     
@@ -86,8 +93,7 @@ def _det_lf_rf_rofa(accz, s_imp, e_imp, mass, hz):
         rofa: array, rate of force absorption
     '''
     
-    rofa = np.zeros((len(accz), 1))
-    rofa[:] = np.nan
+    rofa = np.zeros((len(accz), 1))*np.nan
     
     for i, j in zip(s_imp, e_imp):
         num = np.max(accz[i:j])  # maximum force during impact
