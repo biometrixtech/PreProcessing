@@ -211,7 +211,8 @@ def _con_fun(dist, double=False):
     return fn
 
 
-def _ankle(aRL, aRR, lPL, lPR, lT, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT):
+def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
+           fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT, fn_fPL, fn_fPR):
     """Calculates consistency and symmetry score for each ankle features and
     averages the score for each ankle.
     Args:
