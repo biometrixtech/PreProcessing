@@ -53,6 +53,7 @@ def prepare_data(data, train=True):
     
     X = data_pd[total_column].values
     missing_data = False
+    nan_row = []
     if np.isnan(X).any():
         missing_data = True
     if missing_data:
