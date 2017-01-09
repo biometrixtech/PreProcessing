@@ -249,8 +249,9 @@ def handling_missing_data(obj_data):
         col_data = getattr(obj_data, i)
         ran = _zero_runs(col_data.reshape(-1, ), missing_indicator_col, 
                      intentional_missing_data)
-        dummy_data = col_data[np.isfinite(col_data).reshape((-1, ))]
-        dummy_epochtime = epoch_time[np.isfinite(col_data).reshape((-1, ))]
+        no_nan_index = np.isfinite(col_data).reshape(-1, )
+        dummy_data = col_data[no_nan_index]
+        dummy_epochtime = epoch_time[no_nan_index]
         interp = interpolate.splrep(dummy_epochtime, dummy_data, k=3, s=0)
 
         # spline interpolation function
