@@ -72,7 +72,7 @@ class TestSessionAndScoring(unittest.TestCase):
         
         
         """
-        sensor_data = "7f550f7e-68ca-434c-8fae-b09bf75175fc.csv"
+        sensor_data = "dipesh_merged_II.csv"
 #        data = pd.read_csv(sensor_data)
         file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
         quer_read_id = """select id from session_events where

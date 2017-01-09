@@ -287,12 +287,12 @@ def create_movement_data(N, data):
     movement_data.ankle_rot_lf = data.ankle_rot_lf.reshape(-1,)
     movement_data.ankle_rot_rf = data.ankle_rot_rf.reshape(-1,)
 
-#    movement_data.foot_position_lf = data.foot_position_lf.reshpae(-1,)
-#    movement_data.foot_position_rf = data.foot_position_rf.reshape(-1,)
+    movement_data.foot_position_lf = data.foot_position_lf.reshpae(-1,)
+    movement_data.foot_position_rf = data.foot_position_rf.reshape(-1,)
 #    movement_data.dorsi_flexion_lf = data.dorsi_flexion_lf.reshape(-1,)
 #    movement_data.dorsi_flexion_rf = data.dorsi_flexion_rf.reshape(-1,)
-    movement_data.foot_position_lf = np.zeros(N)*np.nan
-    movement_data.foot_position_rf = np.zeros(N)*np.nan
+#    movement_data.foot_position_lf = np.zeros(N)*np.nan
+#    movement_data.foot_position_rf = np.zeros(N)*np.nan
     movement_data.dorsi_flexion_lf = np.zeros(N)*np.nan
     movement_data.dorsi_flexion_rf = np.zeros(N)*np.nan
 

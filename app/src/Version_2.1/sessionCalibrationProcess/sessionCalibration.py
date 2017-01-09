@@ -33,6 +33,7 @@ def lambda_handler(event, context):
         logger.info('Read Content')        
         content = cStringIO.StringIO(body)
         logger.info('Converted Content')
+        logger.info("key is:" + key)
         result = rs.run_calibration(content, key)
         logger.info('outcome:' + result)
         return 'success'
