@@ -6,7 +6,7 @@ Created on Wed Dec 21 08:01:53 2016
 """
 
 import numpy as np
-from phaseDetection import combine_phase
+
 from phaseID import phase_id
 
 
@@ -106,6 +106,7 @@ if __name__ == '__main__':
     
     import pickle
     import time
+    from phaseDetection import combine_phase
     
     file_name = 'Ivonna_Combined_Sensor_Transformed_Data.csv'
     data = np.genfromtxt(file_name, names=True, dtype=float, delimiter=',')
