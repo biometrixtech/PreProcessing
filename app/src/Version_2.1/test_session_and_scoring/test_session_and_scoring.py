@@ -118,7 +118,6 @@ class TestSessionAndScoring(unittest.TestCase):
 
         #Remove file from scoringcontainer and sessionprocessedcontainer
         S3.Object(cont_scoring, file_name).delete()
-        print "file deleted from scoring"
         S3.Object(cont_sess, 'processed_'+file_name).delete()
         S3.Object(cont_sess, 'movement_'+file_name).delete()
         
