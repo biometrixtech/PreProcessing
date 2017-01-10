@@ -58,7 +58,7 @@ class TestBaseAndSessionCalib(unittest.TestCase):
     def test_base_calibration_bad_magn(self):
         file_name = "1d2b14d4-1da7-4833-9afe-6c21cc6fbb95"
         sensor_data_base = '1d2b14d4-1da7-4833-9afe-6c21cc6fbb95.csv'
-        response = record_base_feet(sensor_data_base, file_name)
+        response = record_base_feet(sensor_data_base, file_name, aws=True)
         self.assertEqual(response, "Fail!")
         quer_read = """select
                         feet_success,
@@ -75,7 +75,7 @@ class TestBaseAndSessionCalib(unittest.TestCase):
     def test_session_calibration_bad_magn(self):
         file_name = "d3ef003e-68e9-47fa-a459-ce118bf917e5"
         sensor_data_base = 'd3ef003e-68e9-47fa-a459-ce118bf917e5.csv'
-        response = run_calibration(sensor_data_base, file_name)
+        response = run_calibration(sensor_data_base, file_name, aws=True)
         self.assertEqual(response, "Fail!")
         quer_read = """select
                         success,
@@ -122,7 +122,7 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         self._remove_data(file_name_base, file_name_session)
 
         #Assert the process ran successfully!
-        response = record_base_feet(sensor_data_base, file_name_base, aws=False)
+        response = record_base_feet(sensor_data_base, file_name_base, aws=True)
         self.assertEqual(response, "Success!")
 
         #Read from base_calibration_events and make sure values are as expected
@@ -137,7 +137,7 @@ class TestBaseAndSessionCalib(unittest.TestCase):
 
         #Run session calibration and assert everything ran successfully
         response2 = run_calibration(sensor_data_session, file_name_session,
-                                    aws=False)
+                                    aws=True)
         self.assertEqual(response2, "Success!")
 
         # Read from session_calibration events and make sure the values are as
