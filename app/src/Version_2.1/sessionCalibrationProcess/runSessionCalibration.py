@@ -621,12 +621,6 @@ def _record_magn(data, file_name, aws, S3):
                 feet = cStringIO.StringIO()
                 feet_data.to_csv(feet, index=False)
                 feet.seek(0)
-#                with open(body, 'ab') as feet:
-#                    w = csv.writer(feet, delimiter=',',
-#                                   quoting=csv.QUOTE_NONNUMERIC)
-#                    w.writerow((file_name, percent_corrupt, minimum_lf,
-#                                maximum_lf, minimum_h, maximum_h,
-#                                minimum_rf, maximum_rf))
             else:
                 feet = cStringIO.StringIO()
                 feet.seek(0)
@@ -642,25 +636,25 @@ def _record_magn(data, file_name, aws, S3):
                 feet.seek(0)
             S3.Bucket('biometrix-magntest').put_object(Key='magntest_session_calib',
                                                        Body=feet)
-        except boto3.exceptions as error:
-            _logger("Cannot read feet_sensor_data from s3!", aws, info=False)
-            raise error
+        except:
+            _logger("Cannot updage magn logs!", aws)
         
     else:
+        path = '..\\test_base_and_session_calibration\\magntest_session_calib.csv'
         try:
-            with open('..\\test_base_and_session_calibration\\session.csv', 'r') as f:
+            with open(path, 'r') as f:
                 f.close()
-            with open('..\\test_base_and_session_calibration\\session.csv', 'ab') as f:
+            with open(path, 'ab') as f:
                 w = csv.writer(f,delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
                 w.writerow((file_name, percent_corrupt, minimum_lf,maximum_lf,
                             minimum_h, maximum_h, minimum_rf, maximum_rf))
         except IOError:
-            with open('..\\test_base_and_session_calibration\\session.csv', 'ab') as f:
+            with open(path, 'ab') as f:
                 w = csv.writer(f,delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
                 w.writerow(('file_name', 'percent_corrupt', 'min_magn_lf',
                             'max_magn_lf', 'min_magn_h', 'max_magn_h',
                             'min_magn_rf', 'max_magn_rf'))
-                w.writerow((file_name, percent_corrupt, minimum_lf,maximum_lf,
+                w.writerow((file_name, percent_corrupt, minimum_lf, maximum_lf,
                             minimum_h, maximum_h, minimum_rf, maximum_rf))
 
 
