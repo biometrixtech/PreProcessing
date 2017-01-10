@@ -89,7 +89,7 @@ def _feet_transform_calculations(foot_data, hip_aif, foot_roll_transform):
     """
     # Extract feet_yaw_t for ft trans and feet_pitch_t for balanceCME
     foot_roll_transform = foot_roll_transform.T
-    foot_asf = qo.find_rot(hip_aif, foot_data)
+    foot_asf = qo.find_rot(foot_data, hip_aif)
     foot_asf_components = qc.quat_to_euler(foot_asf)
 
     # create offset using yaw
