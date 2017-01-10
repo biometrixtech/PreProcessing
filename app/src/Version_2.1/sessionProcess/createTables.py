@@ -185,7 +185,7 @@ def create_movement_data(N, data):
     movement_data.phase_lf = data.phase_lf.reshape(-1,)
     movement_data.phase_rf = data.phase_rf.reshape(-1,)
 #    movement_data.activity_id = data.activity_id.reshape(-1,)
-    movement_data.activity_id = np.zeros(N)*np.nan
+    movement_data.activity_id = np.zeros(N)
     movement_data.mech_stress = data.mech_stress.reshape(-1,)
     
 #    movement_data.mech_stress_lf = data.mech_stress_lf.reshape(-1,)
