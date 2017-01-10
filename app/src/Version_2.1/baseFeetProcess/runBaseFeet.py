@@ -124,10 +124,12 @@ def record_base_feet(sensor_data, file_name, aws=True):
     # subset for done
     subset_data = ppp.subset_data_done(old_data=data)
 
+    if len(subset_data) == 0:
+        _logger("No overlapping samples after time sync", aws, info=False)
+        return "Fail!"
     # Record percentage and ranges of magn_values for diagonostic purposes
     _record_magn(subset_data, file_name, aws, S3)
 
-    
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
                'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY', 'RaZ',
                'RqX', 'RqY', 'RqZ']

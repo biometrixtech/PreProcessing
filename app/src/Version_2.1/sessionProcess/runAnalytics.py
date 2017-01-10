@@ -86,7 +86,9 @@ def run_session(sensor_data, file_name, aws=True):
     sdata.dtype.names = columns_session
     # SUBSET DATA
     subset_data = ppp.subset_data(old_data=sdata)
-
+    if len(subset_data) == 0:
+        _logger("No overlapping samples after time sync", aws, info=False)
+        return "Fail!"
     # Record percentage and ranges of magn_values for diagonostic purposes
     _record_magn(subset_data, file_name, aws, s3)
 
