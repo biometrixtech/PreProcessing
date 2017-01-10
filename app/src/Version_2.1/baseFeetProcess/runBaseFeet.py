@@ -304,7 +304,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 _logger("Cannot write to rpush after failure!", aws, False)
                 raise error
             else:
-                _logger("Failed placement check!", aws, False)
+                _logger("Failure Message:" + msg, aws, False)
                 return "Fail!"
 
         else:

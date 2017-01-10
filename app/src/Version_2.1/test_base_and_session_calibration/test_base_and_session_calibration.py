@@ -55,10 +55,42 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         file_name = "8051538e-9046-4aac-acef-c37418d392e7"
         self.assertRaises(IOError, run_calibration, "test", file_name)
     # Testing with no data but filename exists in DB
+    def test_base_calibration_fail_placement(self):
+        file_name = "1d2b14d4-1da7-4833-9afe-6c21cc6fbb95"
+        sensor_data_base = 'dipesh_base_fail_placement.csv'
+        response = record_base_feet(sensor_data_base, file_name, aws=False)
+        self.assertEqual(response, "Fail!")
+        quer_read = """select
+                        feet_success,
+                        failure_type,
+                        feet_processed_sensor_data_filename
+                        from base_anatomical_calibration_events where
+                        feet_sensor_data_filename = %s"""
+        cur.execute(quer_read, (file_name,))
+        data_read = cur.fetchall()[0]
+        self.assertFalse(data_read[0])
+        self.assertEqual(data_read[1], 9)
+        self._remove_data(file_name, "none", table="base")
+
+    def test_session_calibration_fail_placement(self):
+        file_name = "d3ef003e-68e9-47fa-a459-ce118bf917e5"
+        sensor_data_session = 'dipesh_session_fail_placement.csv'
+        response = run_calibration(sensor_data_session, file_name, aws=False)
+        self.assertEqual(response, "Fail!")
+        quer_read = """select
+                        success,
+                        failure_type
+                        from session_anatomical_calibration_events where
+                        sensor_data_filename = %s"""
+        cur.execute(quer_read, (file_name,))
+        data_read = cur.fetchall()[0]
+        self.assertFalse(data_read[0])
+        self.assertEqual(data_read[1], 9)
+        self._remove_data("none", file_name, table="session")        
     def test_base_calibration_bad_magn(self):
         file_name = "1d2b14d4-1da7-4833-9afe-6c21cc6fbb95"
         sensor_data_base = '1d2b14d4-1da7-4833-9afe-6c21cc6fbb95.csv'
-        response = record_base_feet(sensor_data_base, file_name, aws=True)
+        response = record_base_feet(sensor_data_base, file_name, aws=False)
         self.assertEqual(response, "Fail!")
         quer_read = """select
                         feet_success,
@@ -74,8 +106,8 @@ class TestBaseAndSessionCalib(unittest.TestCase):
 
     def test_session_calibration_bad_magn(self):
         file_name = "d3ef003e-68e9-47fa-a459-ce118bf917e5"
-        sensor_data_base = 'd3ef003e-68e9-47fa-a459-ce118bf917e5.csv'
-        response = run_calibration(sensor_data_base, file_name, aws=True)
+        sensor_data_session = 'd3ef003e-68e9-47fa-a459-ce118bf917e5.csv'
+        response = run_calibration(sensor_data_session, file_name, aws=False)
         self.assertEqual(response, "Fail!")
         quer_read = """select
                         success,
@@ -113,6 +145,7 @@ class TestBaseAndSessionCalib(unittest.TestCase):
               at the end of the run as it might be called to test sessionProcess
               Processed files written to s3 deleted at the end.
         """
+        aws = False
         sensor_data_base = "dipesh_baseAnatomicalCalibration.csv"
         file_name_base = "67fd2d25-3ac7-482d-a659-6c452acbe900"
         sensor_data_session = "dipesh_sessionAnatomicalCalibration.csv"
@@ -122,7 +155,7 @@ class TestBaseAndSessionCalib(unittest.TestCase):
         self._remove_data(file_name_base, file_name_session)
 
         #Assert the process ran successfully!
-        response = record_base_feet(sensor_data_base, file_name_base, aws=True)
+        response = record_base_feet(sensor_data_base, file_name_base, aws)
         self.assertEqual(response, "Success!")
 
         #Read from base_calibration_events and make sure values are as expected
@@ -137,7 +170,7 @@ class TestBaseAndSessionCalib(unittest.TestCase):
 
         #Run session calibration and assert everything ran successfully
         response2 = run_calibration(sensor_data_session, file_name_session,
-                                    aws=True)
+                                    aws)
         self.assertEqual(response2, "Success!")
 
         # Read from session_calibration events and make sure the values are as
