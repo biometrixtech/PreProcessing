@@ -38,8 +38,9 @@ def quat_to_euler(q):
         phi: euler angle measuring rotaion about z axis (yaw)
 
     """
-    if np.isnan(q).any():
-        return np.array([[np.nan, np.nan, np.nan]])
+#    if np.isnan(q).any():
+##        return np.array([[np.nan, np.nan, np.nan]])
+#        print np.where(np.isnan(q))
 
     q = qo.quat_norm(q)
 
@@ -90,6 +91,13 @@ def euler_to_quat(euler_data):
         single (WXYZ) quaternion transformation of given euler angles
 
     """
+    missing_data = False
+    if np.isnan(euler_data).any():
+        missing_data = True
+    if missing_data:
+        nan_row = np.unique(np.where(np.isnan(euler_data))[0])
+        euler_data = np.delete(euler_data, (nan_row), axis=0)
+
     psi = euler_data[:, 0]
     theta = euler_data[:, 1]
     phi = euler_data[:, 2]
@@ -144,5 +152,7 @@ def euler_to_quat(euler_data):
             warnings.filterwarnings("ignore")
             q[row, :] = V[row, :, max_eig[row]]
     q = np.vstack([q[:, 3], q[:, 0], q[:, 1], q[:, 2]]).T
-
+    if missing_data:
+        q = np.insert(q, nan_row, [np.nan]*4, axis=0)
+    
     return q

@@ -39,19 +39,19 @@ def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
     """
 
     # divide data into relevant quaternions
-    sitting_lf_datadb = np.array([sitting_data['LqW'], sitting_data['LqX'],
+    sitting_lf_data = np.array([sitting_data['LqW'], sitting_data['LqX'],
                                   sitting_data['LqY'],
                                   sitting_data['LqZ']]).transpose()
-    sitting_rf_datadb = np.array([sitting_data['RqW'], sitting_data['RqX'],
+    sitting_rf_data = np.array([sitting_data['RqW'], sitting_data['RqX'],
                                   sitting_data['RqY'],
                                   sitting_data['RqZ']]).transpose()
-    standing_hip_datadb = np.array([standing_data['HqW'], standing_data['HqX'],
+    standing_hip_data = np.array([standing_data['HqW'], standing_data['HqX'],
                                    standing_data['HqY'],
                                    standing_data['HqZ']]).transpose()
-    standing_lf_datadb = np.array([standing_data['LqW'], standing_data['LqX'],
+    standing_lf_data = np.array([standing_data['LqW'], standing_data['LqX'],
                                    standing_data['LqY'],
                                    standing_data['LqZ']]).transpose()
-    standing_rf_datadb = np.array([standing_data['RqW'], standing_data['RqX'],
+    standing_rf_data = np.array([standing_data['RqW'], standing_data['RqX'],
                                    standing_data['RqY'],
                                    standing_data['RqZ']]).transpose()
 
@@ -60,16 +60,16 @@ def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
     rf_bf_transform = rf_bf_transform.reshape(1, -1)
     hip_bf_transform = hip_bf_transform.reshape(1, -1)
 
-    # isolate portion of recording from which to calculate values
-    freq = 100
-    start_ind = 2 * freq
-    stop_ind = 4 * freq
-
-    sitting_lf_data = sitting_lf_datadb[start_ind:, :]
-    sitting_rf_data = sitting_rf_datadb[start_ind:, :]
-    standing_hip_data = standing_hip_datadb[start_ind:stop_ind, :]
-    standing_lf_data = standing_lf_datadb[start_ind:stop_ind, :]
-    standing_rf_data = standing_rf_datadb[start_ind:stop_ind, :]
+#    # isolate portion of recording from which to calculate values
+#    freq = 100
+#    start_ind = 2 * freq
+#    stop_ind = 4 * freq
+#
+#    sitting_lf_data = sitting_lf_datadb[start_ind:, :]
+#    sitting_rf_data = sitting_rf_datadb[start_ind:, :]
+#    standing_hip_data = standing_hip_datadb[start_ind:stop_ind, :]
+#    standing_lf_data = standing_lf_datadb[start_ind:stop_ind, :]
+#    standing_rf_data = standing_rf_datadb[start_ind:stop_ind, :]
 
     # normalize orientation data
     sitting_lf_data = qo.quat_norm(sitting_lf_data)
