@@ -222,6 +222,9 @@ def run_calibration(sensor_data, file_name, aws=True):
     # subset for 'done'
     subset_data = ppp.subset_data_done(old_data=data)
 
+    # select part of recording to be used in calculations
+    subset_data = _select_recording(subset_data)
+
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
                'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY', 'RaZ',
                'RqX', 'RqY', 'RqZ']
@@ -411,11 +414,6 @@ def run_calibration(sensor_data, file_name, aws=True):
 
             if is_base:
 
-                # cut out first of recording where quats are settling
-                freq = 100
-                beg = 1 + np.asarray(range(int(1.5 * freq)))
-                feet_data = np.delete(feet_data, beg.tolist(), 0)
-
                 #Run base calibration
                 hip_pitch_transform, hip_roll_transform,\
                 lf_roll_transform, rf_roll_transform = \
@@ -576,6 +574,14 @@ def run_calibration(sensor_data, file_name, aws=True):
                     raise error
                 else:
                     return "Success!"
+
+def _select_recording(data):
+    freq = 100
+    beg = range(int(2 * freq))
+    end = range(int(4 * freq), len(data))
+    ind = beg + end
+    subset_data = np.delete(data, ind, 0)
+    return subset_data
 
 
 def _logger(message, aws, info=True):

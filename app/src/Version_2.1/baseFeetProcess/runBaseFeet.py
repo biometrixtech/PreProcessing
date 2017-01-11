@@ -122,7 +122,10 @@ def record_base_feet(sensor_data, file_name, aws=True):
     # PRE-PRE-PROCESSING
     # subset for done
     subset_data = ppp.subset_data_done(old_data=data)
-    
+
+    # cut out first of recording where quats are settling
+    subset_data = _select_recording(subset_data)
+
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
                'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY', 'RaZ',
                'RqX', 'RqY', 'RqZ']
@@ -331,6 +334,12 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 raise error
             else:
                 return "Success!"
+
+def _select_recording(data):
+    freq = 100
+    beg = range(int(1.5 * freq))
+    subset_data = np.delete(data, beg, 0)
+    return subset_data
 
 def _logger(message, aws, info=True):
     if aws:

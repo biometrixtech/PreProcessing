@@ -143,15 +143,6 @@ def run_calib(data, hip_pitch_transform, hip_roll_transform,
     rf_datadb = np.array([data['RqW'], data['RqX'], data['RqY'],
                           data['RqZ']]).transpose()
 
-    # isolate portion of recording from which to calculate values
-    freq = 100
-    start_ind = 2 * freq
-    stop_ind = 4 * freq
-
-    hip_data = hip_datadb[start_ind:stop_ind, :]
-    lf_data = lf_datadb[start_ind:stop_ind, :]
-    rf_data = rf_datadb[start_ind:stop_ind, :]
-
     # normalize orientation data
     hip_data = qo.quat_norm(hip_data)
     lf_data = qo.quat_norm(lf_data)
