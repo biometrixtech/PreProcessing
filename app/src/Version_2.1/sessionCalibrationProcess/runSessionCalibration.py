@@ -199,17 +199,28 @@ def run_calibration(sensor_data, file_name, aws=True):
     
     # check if the raw quaternions have been converted already
     data = cp.handle_processed(data)
-    
+    # subset for 'done'
+    subset_data = ppp.subset_data_done(old_data=data)
+    if len(subset_data) == 0:
+        _logger("No overlapping samples after time sync", aws, info=False)
+        return "Fail!"
+
+    # select part of recording to be used in calculations
+    subset_data = _select_recording(subset_data)
+
+    # Record percentage and ranges of magn_values for diagonostic purposes
+    _record_magn(subset_data, file_name, aws, S3)
+
     out_file = "processed_" + file_name
-    index = data['index']
-    corrupt_magn = data['corrupt_magn']
-    missing_type = data['missing_type']
+    index = subset_data['index']
+    corrupt_magn = subset_data['corrupt_magn']
+    missing_type = subset_data['missing_type']
 
     identifiers = np.array([index, corrupt_magn,
                             missing_type]).transpose()
 
     # Create indicator values
-    failure_type = np.array([-999]*len(data))
+    failure_type = np.array([-999]*len(subset_data))
     indicators = np.array([failure_type]).transpose()
 
     # Check for duplicate epoch time
@@ -218,17 +229,6 @@ def run_calibration(sensor_data, file_name, aws=True):
         _logger('Duplicate index.'. aws, info=False)
 
     # PRE-PRE-PROCESSING
-    
-    # subset for 'done'
-    subset_data = ppp.subset_data_done(old_data=data)
-    if len(subset_data) == 0:
-        _logger("No overlapping samples after time sync", aws, info=False)
-        return "Fail!"
-    # Record percentage and ranges of magn_values for diagonostic purposes
-    _record_magn(subset_data, file_name, aws, S3)
-
-    # select part of recording to be used in calculations
-    subset_data = _select_recording(subset_data)
 
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
                'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY', 'RaZ',
@@ -539,8 +539,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 
             else:
                 # Run session calibration
-                hip_bf_transform, lf_bf_transform, rf_bf_transform,\
-                lf_n_transform, rf_n_transform, hip_n_transform = \
+                hip_bf_transform, lf_bf_transform, rf_bf_transform = \
                 ac.run_calib(data_calib, hip_pitch_transform,
                              hip_roll_transform, lf_roll_transform,
                              rf_roll_transform)

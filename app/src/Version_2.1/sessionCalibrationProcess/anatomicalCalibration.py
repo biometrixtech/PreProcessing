@@ -144,9 +144,9 @@ def run_calib(data, hip_pitch_transform, hip_roll_transform,
                           data['RqZ']]).transpose()
 
     # normalize orientation data
-    hip_data = qo.quat_norm(hip_data)
-    lf_data = qo.quat_norm(lf_data)
-    rf_data = qo.quat_norm(rf_data)
+    hip_data = qo.quat_norm(hip_datadb)
+    lf_data = qo.quat_norm(lf_datadb)
+    rf_data = qo.quat_norm(rf_datadb)
 
     # take hip sensor frame into aif, get all _bf_transform values to get to body frames
     hip_aif, hip_bf_transform = _sensor_to_aif(hip_data, hip_pitch_transform)
