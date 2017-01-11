@@ -181,9 +181,9 @@ def run_calibration(sensor_data, file_name, aws=True):
 
     #if it's base, we need the processed_sensor_data_filename
     #if session, we need transform values corresponding to the base calibration
-    if is_base:
-        feet_file = data_read[4]
-    else:
+
+    feet_file = data_read[4]
+    if not is_base:
         hip_pitch_transform = np.array(data_read[5]).reshape(-1, 1)
         if len(hip_pitch_transform) == 0:
             is_base = True
