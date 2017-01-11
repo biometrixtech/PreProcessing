@@ -165,7 +165,7 @@ def quat_avg(data):
     """
     
     # Average data along columns
-    avg_quat = np.mean(data, 0).reshape(1, -1)
+    avg_quat = np.nanmean(data, 0).reshape(1, -1)
     
     # Normalize the single quaternion produced
     avg_quat = quat_norm(avg_quat)

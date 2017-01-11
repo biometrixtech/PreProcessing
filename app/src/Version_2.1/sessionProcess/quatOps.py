@@ -35,14 +35,14 @@ def quat_prod(q1, q2):
     """
     # normalize rotation quaternion
     q2 = quat_norm(q2)
-    
+
     # create storage for quaternion and divide into scalar and vector parts
     prod = np.zeros(q1.shape)
     s1 = q1[:, 0]
     s2 = q2[:, 0]
     v1 = q1[:, 1:4]
     v2 = q2[:, 1:4]
-    
+
     # calculate product quaternion's elements
     s3 = s1*s2 - np.sum(v1*v2, axis=1)
     v3 = v2*s1[:, np.newaxis] + v1*s2[:, np.newaxis] + np.cross(v1, v2)
@@ -165,7 +165,7 @@ def quat_avg(data):
     """
     
     # Average data along columns
-    avg_quat = np.mean(data, 0).reshape(1, -1)
+    avg_quat = np.nanmean(data, 0).reshape(1, -1)
     
     # Normalize the single quaternion produced
     avg_quat = quat_norm(avg_quat)
