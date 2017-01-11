@@ -543,6 +543,14 @@ def run_calibration(sensor_data, file_name, aws=True):
                 ac.run_calib(data_calib, hip_pitch_transform,
                              hip_roll_transform, lf_roll_transform,
                              rf_roll_transform)
+
+                # Calculate neutral transforms
+                lf_n_transform, hip_n_transform, rf_n_transform =\
+                nc.run_neutral_computations(feet_data, data_calib,
+                                                  lf_bf_transform,
+                                                  hip_bf_transform,
+                                                  rf_bf_transform)
+
                 hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
                 lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
                 rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
