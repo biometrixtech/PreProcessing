@@ -108,6 +108,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
     corrupt_magn = data['corrupt_magn']
     missing_type = data['missing_type']
 
+
     identifiers = np.array([index, corrupt_magn, missing_type]).transpose()
 
     # Create indicator values
@@ -125,6 +126,13 @@ def record_base_feet(sensor_data, file_name, aws=True):
 
     # cut out first of recording where quats are settling
     subset_data = _select_recording(subset_data)
+
+    if len(subset_data) == 0:
+        _logger("No overlapping samples after time sync", aws, info=False)
+        return "Fail!"
+
+    # Record percentage and ranges of magn_values for diagonostic purposes
+    _record_magn(subset_data, file_name, aws, S3)
 
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
                'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'RaX', 'RaY', 'RaZ',
@@ -177,7 +185,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
             _logger("Cannot write to rpush after failure!", aws, False)
             raise error
         else:
-            _logger("Failed because of:"+ msg, aws, False)
+            _logger("Failure Message: " + msg, aws, False)
             return "Fail!"
 
     else:
@@ -300,7 +308,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 _logger("Cannot write to rpush after failure!", aws, False)
                 raise error
             else:
-                _logger("Failed placement check!", aws, False)
+                _logger("Failure Message: " + msg, aws, False)
                 return "Fail!"
 
         else:
@@ -349,6 +357,73 @@ def _logger(message, aws, info=True):
             logger.warning(message)
     else:
         print message
+
+def _record_magn(data, file_name, aws, S3):
+    import csv
+    corrupt_magn = data['corrupt_magn']
+    percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
+    minimum_lf = np.min(data['corrupt_magn_lf'])
+    maximum_lf = np.max(data['corrupt_magn_lf'])
+    minimum_h = np.min(data['corrupt_magn_h'])
+    maximum_h = np.max(data['corrupt_magn_h'])
+    minimum_rf = np.min(data['corrupt_magn_rf'])
+    maximum_rf = np.max(data['corrupt_magn_rf'])
+    files_magntest = []
+    for obj in S3.Bucket('biometrix-magntest').objects.all():
+        files_magntest.append(obj.key)
+    file_present = 'magntest_base' in  files_magntest
+    if aws:
+        try:
+            if file_present:
+                obj = S3.Bucket('biometrix-magntest').Object('magntest_base')
+                fileobj = obj.get()
+                body = fileobj["Body"].read()
+                feet = cStringIO.StringIO(body)
+#                feet.seek(0)
+                feet_data = pd.read_csv(feet)
+                new_row = pd.Series([file_name, percent_corrupt, minimum_lf,
+                                     maximum_lf, minimum_h, maximum_h,
+                                     minimum_rf, maximum_rf], feet_data.columns)
+                feet_data = feet_data.append(new_row, ignore_index=True)
+                feet = cStringIO.StringIO()
+                feet_data.to_csv(feet, index=False)
+                feet.seek(0)
+            else:
+                feet = cStringIO.StringIO()
+                feet.seek(0)
+                w = csv.writer(feet, delimiter=',',
+                               quoting=csv.QUOTE_NONNUMERIC)
+                w.writerow(('file_name', 'percent_corrupt', 'min_magn_lf',
+                            'max_magn_lf', 'min_magn_h', 'max_magn_h',
+                            'min_magn_rf', 'max_magn_rf'))
+                w.writerow((file_name, percent_corrupt,
+                            minimum_lf, maximum_lf,
+                            minimum_h, maximum_h,
+                            minimum_rf, maximum_rf))
+                feet.seek(0)
+            S3.Bucket('biometrix-magntest').put_object(Key='magntest_base',
+                                                       Body=feet)
+        except:
+            _logger("Cannot updage magn logs!", aws)
+        
+    else:
+        path = '..\\test_base_and_session_calibration\\magntest_base.csv'
+        try:
+            with open(path, 'r') as f:
+                f.close()
+            with open(path, 'ab') as f:
+                w = csv.writer(f,delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
+                w.writerow((file_name, percent_corrupt, minimum_lf,maximum_lf,
+                            minimum_h, maximum_h, minimum_rf, maximum_rf))
+        except IOError:
+            with open(path, 'ab') as f:
+                w = csv.writer(f,delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
+                w.writerow(('file_name', 'percent_corrupt', 'min_magn_lf',
+                            'max_magn_lf', 'min_magn_h', 'max_magn_h',
+                            'min_magn_rf', 'max_magn_rf'))
+                w.writerow((file_name, percent_corrupt, minimum_lf, maximum_lf,
+                            minimum_h, maximum_h, minimum_rf, maximum_rf))
+
 
 if __name__ == '__main__':
     path = 'team1_session1_trainingset_anatomicalCalibration.csv'
