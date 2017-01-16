@@ -47,14 +47,16 @@ def record_base_feet(sensor_data, file_name, aws=True):
     quer_fail = """update base_anatomical_calibration_events set
         failure_type = (%s),
         feet_processed_sensor_data_filename = (%s),
-        feet_success = (%s),
-        updated_at = now()
+        user_success = (%s),
+        updated_at = now(),
+        processed_at = now()
         where feet_sensor_data_filename=(%s);"""
 
     quer_success = """update base_anatomical_calibration_events set
         feet_processed_sensor_data_filename = (%s),
-        feet_success = (%s),
-        updated_at = now()
+        user_success = (%s),
+        updated_at = now(),
+        processed_at = now()
         where feet_sensor_data_filename=(%s);"""
 
     quer_rpush = "select fn_send_push_notification(%s, %s, %s)"

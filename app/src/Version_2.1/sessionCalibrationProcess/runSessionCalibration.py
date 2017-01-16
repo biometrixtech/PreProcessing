@@ -50,8 +50,8 @@ def run_calibration(sensor_data, file_name, aws=True):
     # base_anatomical_calibration_event_id tied to the filename
     quer_read = """select user_id,
                           expired,
-                          feet_success,
-                          hip_success,
+                          user_success,
+                          base_ac_success,
                           feet_processed_sensor_data_filename,
                           hip_pitch_transform,
                           hip_roll_transform,
@@ -64,15 +64,17 @@ def run_calibration(sensor_data, file_name, aws=True):
 
     # Update anatomical_calibration_events in case the tests fail
     quer_fail = """update session_anatomical_calibration_events set
-                success = (%s),
+                user_success = (%s),
+                session_ac_success = (%s),
                 failure_type = (%s),
                 base_calibration = (%s),
-                updated_at = now()
+                updated_at = now(),
+                processed_at = now()
                 where sensor_data_filename=(%s);"""
 
     # For base calibration, update base_anatomical_calibration_events
     quer_base_succ = """update  base_anatomical_calibration_events set
-                hip_success = (%s),
+                base_ac_success = (%s),
                 hip_pitch_transform = (%s),
                 hip_roll_transform = (%s),
                 lf_roll_transform = (%s),
@@ -87,7 +89,8 @@ def run_calibration(sensor_data, file_name, aws=True):
     # for base calibration, session calibration follows base calibration
     # for session calibration, it's independent and uses values read earlier
     quer_session_succ = """update session_anatomical_calibration_events set
-                    success = (%s),
+                    user_success = (%s),
+                    session_ac_success = (%s),
                     base_calibration = (%s),
                     hip_n_transform = (%s),
                     hip_bf_transform = (%s),
@@ -95,7 +98,8 @@ def run_calibration(sensor_data, file_name, aws=True):
                     lf_bf_transform = (%s),
                     rf_n_transform = (%s),
                     rf_bf_transform = (%s),
-                    updated_at = now()
+                    updated_at = now(),
+                    processed_at = now()
                     where sensor_data_filename  = (%s);"""
 
     quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
@@ -200,7 +204,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     # check if the raw quaternions have been converted already
     data = cp.handle_processed(data)
     # subset for 'done'
-    subset_data = ppp.subset_data_done(old_data=data)
+    subset_data = ppp.subset_data(old_data=data, subset_value=2)
     if len(subset_data) == 0:
         _logger("No overlapping samples after time sync", aws, info=False)
         return "Fail!"
@@ -275,7 +279,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 
         # Update special_anatomical_calibration_events
         try:
-            cur.execute(quer_fail, (False, ind, is_base, file_name))
+            cur.execute(quer_fail, (False, False, ind, is_base, file_name))
             conn.commit()
         except psycopg2.Error as error:
             _logger("Cannot write to DB after failure!", aws, info=False)
@@ -388,7 +392,7 @@ def run_calibration(sensor_data, file_name, aws=True):
             r_push_data = RPushDataSession(ind).value
             # Write to SessionAnatomicalCalibrationEvents
             try:
-                cur.execute(quer_fail, (False, ind, is_base, file_name))
+                cur.execute(quer_fail, (False, False, ind, is_base, file_name))
                 conn.commit()
             except psycopg2.Error as error:
                 _logger("Cannot write to DB after failure!", aws, info=False)
@@ -529,7 +533,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                 hip_n_transform = hip_n_transform.reshape(-1,).tolist()
 
                 try:
-                    cur.execute(quer_session_succ, (True, is_base,
+                    cur.execute(quer_session_succ, (True, True, is_base,
                                                 hip_n_transform,
                                                 hip_bf_transform,
                                                 lf_n_transform,
@@ -580,7 +584,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                 # SessionAnatomicalCalibrationEvent
                 # along with base_calibration=False and success=True
                 try:
-                    cur.execute(quer_session_succ, (True, is_base,
+                    cur.execute(quer_session_succ, (True, True, is_base,
                                                 hip_n_transform,
                                                 hip_bf_transform,
                                                 lf_n_transform,
