@@ -32,12 +32,15 @@ def check_duplicate_index(index):
         return index_duplicate
         
         
-def subset_data(old_data, subset_value):
+def subset_data(old_data, subset_value, missing_or_corrupt='missing'):
     '''
     Subset data
     
     Args:
         old_data: structured array, input data to Data wrangling
+        subset_value: an int, enumerated value for corrupt/missing type
+        missing_or_corrupt: string, indicates whether subsetting by
+        missing/corrupt type
         
     Returns:
         new_data: structured array, subset the input data when missing type=2 
@@ -45,10 +48,16 @@ def subset_data(old_data, subset_value):
         
     df_old_data = pd.DataFrame(old_data)  # convert structured array to 
     # data frame
-    df_old_data = df_old_data.drop(df_old_data[
-    df_old_data.missing_type == subset_value].index) # subset data
-    new_data = df_old_data.to_records(index=False)  # convert data frame back
-    # to structured array
+    if 'm' in missing_or_corrupt:
+        df_old_data = df_old_data.drop(df_old_data[
+        df_old_data.missing_type == subset_value].index) # subset data
+        new_data = df_old_data.to_records(index=False)  # convert data frame back
+        # to structured array
+    else:
+        df_old_data = df_old_data.drop(df_old_data[
+        df_old_data.corrupt_magn == subset_value].index) # subset data
+        new_data = df_old_data.to_records(index=False)  # convert data frame back
+        # to structured array
     
     return new_data
 
