@@ -6,14 +6,14 @@ Created on Wed Oct 12 11:16:55 2016
 """
 
 from __future__ import division
-import logging
+#import logging
 
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 from sklearn.neighbors.kde import KernelDensity as kde
 from sklearn import mixture
 
-logger = logging.getLogger()
+#logger = logging.getLogger()
 
 """
 #############################################INPUT/OUTPUT###################
@@ -50,21 +50,22 @@ def score(data, user_hist):
         will be nan's.
     """
     mS = np.abs(np.array(data.mech_stress)).reshape(-1, )
+    mS_scaled = np.array(mS/np.mean(mS))
     tA = np.abs(np.array(data.total_accel)).reshape(-1, )
 
     #divide each feature value by (totalAccel*mechStress) to control
     #for these performance variables
     # TODO (Dipesh) need to find better control
-    hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(mS*tA)
-    hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(mS*tA)
+    hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(mS_scaled*tA)
+    hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(mS_scaled*tA)
 #    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
-    aRL = np.array(data.ankle_rot_lf).reshape(-1, )/(mS*tA)
-    aRR = np.array(data.ankle_rot_rf).reshape(-1, )/(mS*tA)
-    lPL = np.array(data.land_pattern_lf).reshape(-1, )/(mS*tA)
-    lPR = np.array(data.land_pattern_rf).reshape(-1, )/(mS*tA)
-    lT = np.array(data.land_time).reshape(-1, )/(mS*tA)
-    fPL = np.array(data.foot_position_lf).reshape(-1,)/(mS*tA)
-    fPR = np.array(data.foot_position_rf).reshape(-1,)/(mS*tA)
+    aRL = np.array(data.ankle_rot_lf).reshape(-1, )/(mS_scaled*tA)
+    aRR = np.array(data.ankle_rot_rf).reshape(-1, )/(mS_scaled*tA)
+    lPL = np.array(data.land_pattern_lf).reshape(-1, )/(mS_scaled*tA)
+    lPR = np.array(data.land_pattern_rf).reshape(-1, )/(mS_scaled*tA)
+    lT = np.array(data.land_time).reshape(-1, )/(mS_scaled*tA)
+    fPL = np.array(data.foot_position_lf).reshape(-1,)/(mS_scaled*tA)
+    fPR = np.array(data.foot_position_rf).reshape(-1,)/(mS_scaled*tA)
 
     control = np.array(data.control).reshape(-1, )
     #Create mapping functions for consistency using historical user data
@@ -255,7 +256,6 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     consistency_rf = np.nanmean(cons_scores_r, 0)
     ankle_cons_scores = np.vstack([cons_scores_l, cons_scores_r, score_lT])
     ankle_consistency = np.nanmean(ankle_cons_scores, 0)
-
     #Calculate symmetry scores for ankle features
     #If all the rows for either left or right features are blank or we have at
     #most 2 non-empty rows, we cannot score so, nan's are returned as score for
@@ -265,39 +265,40 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     elif len(aRL[np.isfinite(aRL)]) < 3 or len(aRL[np.isfinite(aRL)]) < 3:
         ankle_rot_score = np.zeros(len(aRL))*np.nan
     else:
-        l_dict_rot, r_dict_rot = _symmetry_score(aRL, aRR)
-        score_rot_l = [l_dict_rot.get(k, np.nan) for k in aRL]
-        score_rot_r = [r_dict_rot.get(k, np.nan) for k in aRR]
+        l_fn_rot, r_fn_rot = _symmetry_score(aRL, aRR)
+        score_rot_l = l_fn_rot(aRL)
+        score_rot_r = r_fn_rot(aRR)
         scores_rot = np.vstack([score_rot_l, score_rot_r])
         ankle_rot_score = np.nanmean(scores_rot, 0)
-
     if all(np.isnan(lPL)) or all(np.isnan(lPR)):
         ankle_pat_score = np.zeros(len(lPL))*np.nan
     elif len(lPL[np.isfinite(lPL)]) < 3 or len(lPR[np.isfinite(lPR)]) < 3:
         ankle_pat_score = np.zeros(len(lPL))*np.nan
     else:
-        l_dict_pat, r_dict_pat = _symmetry_score(lPL, lPR)
-        score_pat_l = [l_dict_pat.get(k, np.nan) for k in lPL]
-        score_pat_r = [r_dict_pat.get(k, np.nan) for k in lPR]
+        l_fn_pat, r_fn_pat = _symmetry_score(lPL, lPR)
+        score_pat_l = l_fn_pat(lPL)
+        score_pat_r = r_fn_pat(lPR)
         scores_pat = np.vstack([score_pat_l, score_pat_r])
         ankle_pat_score = np.nanmean(scores_pat, 0)
-
     #subset landing time data to create two distributions to compare
     #change negative values to positive so both dist are in same range
-    lTL = np.abs(lT[lT <= 0])
-    lTR = lT[lT >= 0]
+    lTL = np.array(np.abs(lT[lT <= 0]))
+    lTR = np.array(lT[lT >= 0])
 
     if all(np.isnan(lT)):
         ankle_tim_score = np.zeros(len(lT))*np.nan
     elif len(lTL[np.isfinite(lTL)]) < 3 or len(lTR[np.isfinite(lTR)]) < 3:
         ankle_tim_score = np.zeros(len(lT))*np.nan
     else:
-        l_dict_tim, r_dict_tim = _symmetry_score(lTL, lTR)
-        score_tim_l = [l_dict_tim.get(k, np.nan) for k in -lT]
-        score_tim_r = [r_dict_tim.get(k, np.nan) for k in lT]
+        l_fn_tim, r_fn_tim = _symmetry_score(lTL, lTR)
+        left = np.array(lT)
+        left[left > 0] = np.nan
+        score_tim_l = l_fn_tim(left)
+        right = np.array(lT)
+        right[right < 0] = np.nan
+        score_tim_r = r_fn_tim(right)
         scores_tim = np.vstack([score_tim_l, score_tim_r])
         ankle_tim_score = np.nanmean(scores_tim, 0)
-
     ankle_scores = np.vstack([ankle_rot_score, ankle_pat_score,
                               ankle_tim_score])
     ankle_symmetry = np.nanmean(ankle_scores, 0)
@@ -329,7 +330,6 @@ def _hip(hDL, hDR, fn_hDL, fn_hDR):
     #MQ features with missing values will return 'nan' scores.
     #ignore those features when averaging
     hip_consistency = np.nanmean(con_scores, 0)
-
     #Calculate symmetry scores for hip features
     #If all the rows for either left or right features are blank or we have at
     #most 2 non-empty rows, we cannot score so, nan's are returned as score for
@@ -337,28 +337,12 @@ def _hip(hDL, hDR, fn_hDL, fn_hDR):
     if all(np.isnan(hDL)) or all(np.isnan(hDR)):
         hip_drop_score = np.zeros(len(hDR))*np.nan
     else:
-        l_dict_drop, r_dict_drop = _symmetry_score(hDL, hDR)
-        score_drop_l = [l_dict_drop.get(k, np.nan) for k in hDL]
-        score_drop_r = [r_dict_drop.get(k, np.nan) for k in hDR]
+        l_fn_drop, r_fn_drop = _symmetry_score(hDL, hDR)
+        score_drop_l = l_fn_drop(hDL)
+        score_drop_r = r_fn_drop(hDR)
         scores_drop = np.vstack([score_drop_l, score_drop_r])
         hip_drop_score = np.nanmean(scores_drop, 0)
 
-    #subset hip rotation data to create two distributions to compare
-    #change negative values to positive so both dist are in same range
-#    hRL = np.abs(hR[hR <= 0])
-#    hRR = hR[hR >= 0]
-#    if all(np.isnan(hR)):
-#        hip_rot_score = np.zeros(len(hR))*np.nan
-#    elif len(hRL) == 0 or len(hRR) == 0:
-#        hip_rot_score = np.zeros(len(hR))*np.nan
-#    else:
-#        l_dict_rot, r_dict_rot = _symmetry_score(hRL, hRR)
-#        score_rot_l = [l_dict_rot.get(k, np.nan) for k in -hR]
-#        score_rot_r = [r_dict_rot.get(k, np.nan) for k in hR]
-#        scores_rot = np.vstack([score_rot_l, score_rot_r])
-#        hip_rot_score = np.nanmean(scores_rot, 0)
-
-#    hip_scores = np.vstack([hip_drop_score, hip_rot_score])
     hip_symmetry = hip_drop_score
 
     return hip_consistency, hip_symmetry
@@ -374,40 +358,41 @@ def _symmetry_score(dist_l, dist_r):
     """
     dist_left = np.sort(dist_l[np.isfinite(dist_l)])
     dist_right = np.sort(dist_r[np.isfinite(dist_r)])
-    dist_l1 = dist_left[:, np.newaxis]
-    dist_r1 = dist_right[:, np.newaxis]
+    dist_l1 = dist_left.reshape(-1,1)
+    dist_r1 = dist_right.reshape(-1,1)
     #Bandwith needs to be adjusted with the data length and sd of data
     #using constant for now
-#    band_left = 1.06*np.std(dist_l)*(len(dist_l))**(-.2)
-#    band_right = 1.06*np.std(dist_r)*(len(dist_r))**(-.2)
-    band_left = .05
-    band_right = .05
+    band_left = 1.06*np.std(dist_l1)*(len(dist_l1))**(-.2)
+    band_right = 1.06*np.std(dist_r1)*(len(dist_r1))**(-.2)
+#    band_left = .05
+#    band_right = .05
     kernel_density_l = kde(kernel='gaussian', bandwidth=band_left, rtol=1E-3,
-                           atol=1E-3).fit(dist_l1)
+                           atol=1E-4).fit(dist_l1)
     kernel_density_r = kde(kernel='gaussian', bandwidth=band_right, rtol=1E-3,
-                           atol=1E-3).fit(dist_r1)
-
+                           atol=1E-4).fit(dist_r1)
     #Calculate density estimate for left data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    den_distL_kdeL = np.exp(kernel_density_l.score_samples(dist_l1))
-    den_distL_kdeR = np.exp(kernel_density_r.score_samples(dist_l1))
+    sample_left = np.linspace(min(dist_l1), max(dist_l1), 2000).reshape(-1, 1)
+    den_distL_kdeL = np.exp(kernel_density_l.score_samples(sample_left))
+    den_distL_kdeR = np.exp(kernel_density_r.score_samples(sample_left))
     dens_left = np.vstack([den_distL_kdeL, den_distL_kdeR])
     max_den_left = np.max(dens_left, 0)
     score_left = (1 - np.abs(den_distL_kdeL - den_distL_kdeR)/max_den_left)*100
-    left_score_dict = dict(zip(dist_left, score_left))
+    left_score_fn = UnivariateSpline(sample_left, score_left)
 
     #Calculate density estimate for right data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    den_distR_kdeL = np.exp(kernel_density_l.score_samples(dist_r1))
-    den_distR_kdeR = np.exp(kernel_density_r.score_samples(dist_r1))
+    sample_right = np.linspace(min(dist_r1), max(dist_r1), 2000).reshape(-1, 1)
+    den_distR_kdeL = np.exp(kernel_density_l.score_samples(sample_right))
+    den_distR_kdeR = np.exp(kernel_density_r.score_samples(sample_right))
     dens_right = np.vstack([den_distR_kdeL, den_distR_kdeR])
     max_den_right = np.max(dens_right, 0)
     score_right = (1 - np.abs(den_distR_kdeL-den_distR_kdeR)/max_den_right)*100
-    right_score_dict = dict(zip(dist_right, score_right))
+    right_score_fn = UnivariateSpline(sample_right, score_right)
 
-    return left_score_dict, right_score_dict
+    return left_score_fn, right_score_fn
 
 
 if __name__ == '__main__':
