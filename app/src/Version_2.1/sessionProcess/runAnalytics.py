@@ -203,7 +203,7 @@ def run_session(sensor_data, file_name, aws=True):
     data.RqX = _transformed_data[:, 28].reshape(-1, 1)
     data.RqY = _transformed_data[:, 29].reshape(-1, 1)
     data.RqZ = _transformed_data[:, 30].reshape(-1, 1)
-
+    del _transformed_data
     _logger('DONE WITH COORDINATE FRAME TRANSFORMATION!', aws)
 #%%
     # PHASE DETECTION
@@ -275,7 +275,7 @@ def run_session(sensor_data, file_name, aws=True):
     data.single_leg_stationary, data.single_leg_dynamic \
         = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
                                        data.single_leg, sampl_freq)
-
+    del hip_acc, hip_eul
     _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!', aws)
 #%%
     # MOVEMENT QUALITY FEATURES
@@ -296,7 +296,8 @@ def run_session(sensor_data, file_name, aws=True):
         = cmed.calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral,
                                       hip_neutral, rf_neutral, data.phase_lf,\
                                       data.phase_rf)
-
+    del lf_quat, hip_quat, rf_quat
+    del neutral_data, lf_neutral, hip_neutral, rf_neutral
     _logger('DONE WITH BALANCE CME!', aws)
 #%%
     # IMPACT CME
@@ -325,9 +326,11 @@ def run_session(sensor_data, file_name, aws=True):
         data.land_pattern_lf = np.zeros((len(data.LaX), 1))*np.nan
         data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
 
+    del n_landtime, ltime_index, lf_rf_imp_indicator
+    del n_landpattern, land_time, land_pattern
     _logger('DONE WITH IMPACT CME!', aws)
 
-    del neutral_data
+
 #%%
     # MECHANICAL STRESS
     # load model
@@ -355,7 +358,7 @@ def run_session(sensor_data, file_name, aws=True):
     #Insert nan for mech_stress where data needed to predict was missing
     if len(nan_row) != 0:
         data.mech_stress = np.insert(data.mech_stress, nan_row, np.nan, axis=0)
-
+    del ms_data, nan_row, mstress_fit
     _logger('DONE WITH MECH STRESS!', aws)
 #%%
     # RATE OF FORCE ABSORPTION
@@ -365,6 +368,8 @@ def run_session(sensor_data, file_name, aws=True):
                                    user_mass=mass, hz=sampl_freq) 
     data.rate_force_absorption_lf = rofa_lf
     data.rate_force_absorption_rf = rofa_rf
+
+    del rofa_lf, rofa_rf
     _logger('DONE WITH RATE OF FORCE ABSORPTION!', aws)
 #%%
     # combine into movement data table
