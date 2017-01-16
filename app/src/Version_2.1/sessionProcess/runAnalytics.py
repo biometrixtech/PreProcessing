@@ -43,19 +43,23 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def run_session(sensor_data, file_name, aws=True):
+def run_session(sensor_data, file_name, AWS=True):
     """Creates object attributes according to session analysis process.
 
     Args:
-        raw data object with attributes of:
+        sensor_data: raw data object with attributes of:
             epoch_time, corrupt_magn, missing_type, LaX, LaY, LaZ, LqX, LqY,
             LqZ, HaX, HaY, HaZ, HqX, HqY, HqZ, RaX, RaY, RaZ, RqX, RqY, RqZ
+        file_name: sensor_data_filename in DB
+        AWS: Boolean indicator for whether we're running locally or on amazon
+            aws
     
     Returns:
         result: string signifying success or failure.
         Note: In case of completion for local run, returns movement table.
     """
 #%%
+    global AWS
     # Define containers to read from and write to
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_write_final = 'biometrix-scoringcontainer'
@@ -68,7 +72,7 @@ def run_session(sensor_data, file_name, aws=True):
     
     # read session_event_id and other relevant ids
     try:
-        ids_from_db = _read_ids(cur, aws, file_name)
+        ids_from_db = _read_ids(cur, file_name)
     except IndexError:
         return "Fail!"
     session_event_id = ids_from_db[0]
@@ -78,26 +82,26 @@ def run_session(sensor_data, file_name, aws=True):
         sdata = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
                               names=True)
     except IndexError as error:
-        _logger("Sensor data doesn't have column names!", aws, info=False)
+        _logger("Sensor data doesn't have column names!", info=False)
         return "Fail!"
     if len(sdata) == 0:
-        _logger("Sensor data is empty!", aws, info=False)
+        _logger("Sensor data is empty!", info=False)
         return "Fail!"
     sdata.dtype.names = columns_session
     # SUBSET DATA
     subset_data = ppp.subset_data(old_data=sdata)
     del sdata
     if len(subset_data) == 0:
-        _logger("No overlapping samples after time sync", aws, info=False)
+        _logger("No overlapping samples after time sync", info=False)
         return "Fail!"
     # Record percentage and ranges of magn_values for diagonostic purposes
-#    _record_magn(subset_data, file_name, aws, s3)
+#    _record_magn(subset_data, file_name, s3)
 
     # read transformation offset values from DB/local Memory
-    offsets_read = _read_offsets(cur, session_event_id, aws)
-    _logger("OFFSETS READ", aws)
+    offsets_read = _read_offsets(cur, session_event_id)
+    _logger("OFFSETS READ")
     if len(subset_data) == 0:
-        _logger("No samples left after subsetting!", aws, info=False)
+        _logger("No samples left after subsetting!", info=False)
         return "Fail!"
 
     columns = subset_data.dtype.names
@@ -111,7 +115,7 @@ def run_session(sensor_data, file_name, aws=True):
         cur.execute(queries.quer_read_mass, (user_id,))
         mass = cur.fetchall()[0][0]
     except psycopg2.Error as error:
-        _logger("Cannot read user's mass", aws, info=False)
+        _logger("Cannot read user's mass", info=False)
         raise error
     else:
         if mass is None:
@@ -122,43 +126,43 @@ def run_session(sensor_data, file_name, aws=True):
     # Check for duplicate epoch time
     duplicate_epoch_time = ppp.check_duplicate_epochtime(data.epoch_time)
     if duplicate_epoch_time:
-        _logger('Duplicate epoch time.', aws, info=False)
+        _logger('Duplicate epoch time.', info=False)
     # check for missing values
     data = ppp.handling_missing_data(data)
     # determine the real quartenion
-    data = _real_quaternions(data, aws)
+    data = _real_quaternions(data)
     # convert epoch time to date time and determine milliseconds elapsed
     data.time_stamp, data.ms_elapsed = \
         ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
     sampl_freq = int(1000./data.ms_elapsed[1])
-    _logger('DONE WITH PRE-PRE-PROCESSING!', aws)
+    _logger('DONE WITH PRE-PRE-PROCESSING!')
 #%%
     # COORDINATE FRAME TRANSFORMATION
 
     # pull relevant transform offset values from SessionCalibrationEvent
     hip_n_transform = np.array(offsets_read[0]).reshape(-1, 1)
     if len(hip_n_transform) == 0:
-        _logger("Calibration offset value missing", aws, info=False)
+        _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
     hip_bf_transform = np.array(offsets_read[1]).reshape(-1, 1)
     if len(hip_bf_transform) == 0:
-        _logger("Calibration offset value missing", aws, info=False)
+        _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
     lf_n_transform = np.array(offsets_read[2]).reshape(-1, 1)
     if len(lf_n_transform) == 0:
-        _logger("Calibration offset value missing", aws, info=False)
+        _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
     lf_bf_transform = np.array(offsets_read[3]).reshape(-1, 1)
     if len(lf_bf_transform) == 0:
-        _logger("Calibration offset value missing", aws, info=False)
+        _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
     rf_n_transform = np.array(offsets_read[4]).reshape(-1, 1)
     if len(rf_n_transform) == 0:
-        _logger("Calibration offset value missing", aws, info=False)
+        _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
     rf_bf_transform = np.array(offsets_read[5]).reshape(-1, 1)
     if len(rf_bf_transform) == 0:
-        _logger("Calibration offset value missing", aws, info=False)
+        _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
 
     # use transform values to adjust coordinate frame of all block data
@@ -204,13 +208,13 @@ def run_session(sensor_data, file_name, aws=True):
     data.RqY = _transformed_data[:, 29].reshape(-1, 1)
     data.RqZ = _transformed_data[:, 30].reshape(-1, 1)
     del _transformed_data
-    _logger('DONE WITH COORDINATE FRAME TRANSFORMATION!', aws)
+    _logger('DONE WITH COORDINATE FRAME TRANSFORMATION!')
 #%%
     # PHASE DETECTION
     data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ,
                                                        sampl_freq)
 
-    _logger('DONE WITH PHASE DETECTION!', aws)
+    _logger('DONE WITH PHASE DETECTION!')
 
 #%%
     # INTELLIGENT ACTIVITY DETECTION (IAD)
@@ -223,8 +227,8 @@ def run_session(sensor_data, file_name, aws=True):
 #        # we're reading the first model on the list, there are multiple
 #        loaded_iad_model = pickle.loads(iad_body)
 #    except Exception as error:
-#        if aws:
-#            _logger("Cannot load iad_model from s3", aws, info=False)
+#        if AWS:
+#            _logger("Cannot load iad_model from s3", info=False)
 #            raise error
 #        else:
 #            try:
@@ -241,15 +245,15 @@ def run_session(sensor_data, file_name, aws=True):
 #            IAD.mapping_labels_on_data(iad_predicted_labels,
 #                                       len(data.LaX)).reshape(-1, 1)
 #
-#    _logger('DONE WITH IAD!', aws)
+#    _logger('DONE WITH IAD!')
 #%%
     # save sensor data before subsetting
     sensor_data = ct.create_sensor_data(len(data.LaX), data)
-    _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write, aws)
-    _logger("Raw data written to s3", aws)
+    _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write)
+    _logger("Raw data written to s3")
     del sensor_data
 #    data = _subset_data(data, neutral_data)
-#    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
+#    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!')
 
     # set observation index
     data.obs_index = np.array(range(len(data.LaX))).reshape(-1, 1) + 1
@@ -276,7 +280,7 @@ def run_session(sensor_data, file_name, aws=True):
         = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
                                        data.single_leg, sampl_freq)
     del hip_acc, hip_eul
-    _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!', aws)
+    _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
 #%%
     # MOVEMENT QUALITY FEATURES
 
@@ -298,7 +302,7 @@ def run_session(sensor_data, file_name, aws=True):
                                       data.phase_rf)
     del lf_quat, hip_quat, rf_quat
     del neutral_data, lf_neutral, hip_neutral, rf_neutral
-    _logger('DONE WITH BALANCE CME!', aws)
+    _logger('DONE WITH BALANCE CME!')
 #%%
     # IMPACT CME
     # define dictionary for msElapsed
@@ -328,7 +332,7 @@ def run_session(sensor_data, file_name, aws=True):
 
     del n_landtime, ltime_index, lf_rf_imp_indicator
     del n_landpattern, land_time, land_pattern
-    _logger('DONE WITH IMPACT CME!', aws)
+    _logger('DONE WITH IMPACT CME!')
 
 
 #%%
@@ -342,8 +346,8 @@ def run_session(sensor_data, file_name, aws=True):
         # we're reading the first model on the list, there are multiple
         mstress_fit = pickle.loads(ms_body)
     except Exception as error:
-        if aws:
-            _logger("Cannot load MS model from s3!", aws, info=False)
+        if AWS:
+            _logger("Cannot load MS model from s3!", info=False)
             raise error
         else:
             try:
@@ -359,7 +363,7 @@ def run_session(sensor_data, file_name, aws=True):
     if len(nan_row) != 0:
         data.mech_stress = np.insert(data.mech_stress, nan_row, np.nan, axis=0)
     del ms_data, nan_row, mstress_fit
-    _logger('DONE WITH MECH STRESS!', aws)
+    _logger('DONE WITH MECH STRESS!')
 #%%
     # RATE OF FORCE ABSORPTION
     mass = 50
@@ -370,26 +374,26 @@ def run_session(sensor_data, file_name, aws=True):
     data.rate_force_absorption_rf = rofa_rf
 
     del rofa_lf, rofa_rf
-    _logger('DONE WITH RATE OF FORCE ABSORPTION!', aws)
+    _logger('DONE WITH RATE OF FORCE ABSORPTION!')
 #%%
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
     del data
-    _logger("Table Created", aws)
+    _logger("Table Created")
     # write table to s3
-    _write_table_s3(movement_data, file_name, s3, cont_write_final, aws)
+    _write_table_s3(movement_data, file_name, s3, cont_write_final)
 
-    _logger("Data in S3", aws)
+    _logger("Data in S3")
     # write table to DB
-    result = _write_table_db(movement_data, cur, conn, aws)
+    result = _write_table_db(movement_data, cur, conn)
 
-    _logger('Done with everything!', aws)
+    _logger('Done with everything!')
 
     return result
 
 #%%
-def _logger(message, aws, info=True):
-    if aws:
+def _logger(message, info=True):
+    if AWS:
         if info:
             logger.info(message)
         else:
@@ -417,12 +421,11 @@ def _connect_db_s3():
     else:
         return conn, cur, s3
 #%%
-def _read_ids(cur, aws, file_name):
+def _read_ids(cur, file_name):
     '''Read relevant ids from database and assign zeros if not found
     Args:
         cur: connection cursor
-        aws: Boolean to identify if we're running on aws
-        filen_name: sensor data filename to lookup ids by
+        file_name: sensor data filename to lookup ids by
     Returns:
         A single list with the following elements in order
         session_event_id: uuid
@@ -437,7 +440,7 @@ def _read_ids(cur, aws, file_name):
         cur.execute(queries.quer_read_ids, (file_name,))
         ids = cur.fetchall()[0]
     except psycopg2.Error as error:
-        if aws:
+        if AWS:
             logger.warning("Error reading ids!")
             raise error
         else:
@@ -449,7 +452,7 @@ def _read_ids(cur, aws, file_name):
             session_type = 1
             
     except IndexError:
-        if aws:
+        if AWS:
             logger.warning("sensor_data_filename not found in DB!")
             raise IndexError
         else:
@@ -475,20 +478,21 @@ def _read_ids(cur, aws, file_name):
         team_id = ids[4]
         if team_id is None:
             team_id = dummy_uuid
-#        session_type = ids[5]
-        session_type = 1
-        if session_type is None:
+        session_type = ids[5]
+        if session_type == 'practice':
             session_type = 1
-#        elif session_type == 'practice':
-#            session_type = 1
-#        elif session_type == 'return to play':
-#            session_type = 2
+        elif session_type == 'strength_training':
+            session_type = 2
+        elif session_type == 'return_to_play':
+            session_type = 3
+        elif session_type is None:
+            session_type = 1
 
     return (session_event_id, training_session_log_id, user_id, team_regimen_id,
             team_id, session_type)
 
 #%%
-def _read_offsets(cur, session_event_id, aws):
+def _read_offsets(cur, session_event_id):
     '''Read the offsets for coordinateframe transformation.
     
     If it's in aws lambda, try to find offsets in DB and raise
@@ -502,7 +506,7 @@ def _read_offsets(cur, session_event_id, aws):
         offsets_read = cur.fetchall()[0]
     except psycopg2.Error as error:
         
-        if aws:
+        if AWS:
             logger.warning("Cannot read transform offsets!")
             raise error
         else:
@@ -516,7 +520,7 @@ def _read_offsets(cur, session_event_id, aws):
                 raise ValueError("No associated offset values found in "+
                                  "the database or local memory")           
     except IndexError as error:
-        if aws:
+        if AWS:
             logger.warning("Transform offsets cannot be found!")
             raise error
         else:
@@ -587,12 +591,11 @@ def _add_ids_rawdata(data, ids):
     return data
 
 #%%
-def _real_quaternions(data, aws):
+def _real_quaternions(data):
     """Calculate real quaternion from the imaginary quaternions
     
     Args:
         data: either rawframe object or pandas df with quaternions
-        aws: indicator for running on aws or locally
     """
     # left
     _lq_xyz = np.hstack([data.LqX, data.LqY, data.LqZ])
@@ -601,7 +604,7 @@ def _real_quaternions(data, aws):
                                          data.corrupt_magn)
     #check for type conversion error in left foot quaternion data
     if 2 in corrupt_type_l:
-        _logger('Error! Type conversion error: LF quat', aws, info=False)
+        _logger('Error! Type conversion error: LF quat', info=False)
     setattr(data, 'LqW', _lq_wxyz[:, 0].reshape(-1, 1))
     data.LqX = _lq_wxyz[:, 1].reshape(-1, 1)
     data.LqY = _lq_wxyz[:, 2].reshape(-1, 1)
@@ -613,7 +616,7 @@ def _real_quaternions(data, aws):
                                          data.corrupt_magn)
     #check for type conversion error in hip quaternion data
     if 2 in corrupt_type_h:
-        _logger('Error! Type conversion error: Hip quat', aws, info=False)
+        _logger('Error! Type conversion error: Hip quat', info=False)
     setattr(data, 'HqW', _hq_wxyz[:, 0].reshape(-1, 1))
     data.HqX = _hq_wxyz[:, 1].reshape(-1, 1)
     data.HqY = _hq_wxyz[:, 2].reshape(-1, 1)
@@ -626,7 +629,7 @@ def _real_quaternions(data, aws):
                                          data.corrupt_magn)
     #check for type conversion error in right foot quaternion data
     if 2 in corrupt_type_r:
-        _logger('Error! Type conversion error: RF quat', aws, info=False)
+        _logger('Error! Type conversion error: RF quat', info=False)
     setattr(data, 'RqW', _rq_wxyz[:, 0].reshape(-1, 1))
     data.RqX = _rq_wxyz[:, 1].reshape(-1, 1)
     data.RqY = _rq_wxyz[:, 2].reshape(-1, 1)
@@ -716,7 +719,7 @@ def _subset_data(data, neutral_data):
     
     return data
 #%%
-def _write_table_s3(movement_data, file_name, s3, cont, aws):
+def _write_table_s3(movement_data, file_name, s3, cont):
     """write final table to s3
     """
     movement_data_pd = pd.DataFrame(movement_data)
@@ -727,8 +730,8 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
         fileobj.seek(0)
         s3.Bucket(cont).put_object(Key=file_name, Body=fileobj)
     except boto3.exceptions as error:
-        if aws:
-            _logger("Cannot write table to s3", aws, info=False)
+        if AWS:
+            _logger("Cannot write table to s3", info=False)
             raise error
         else:
             print "Cannot write file to s3 writing locally!"
@@ -738,13 +741,12 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
     else:
         del fileobj
 #%%
-def _write_table_db(movement_data, cur, conn, aws):
+def _write_table_db(movement_data, cur, conn):
     """Update the movement table with all the scores
     Args:
         movement_data: numpy recarray with complete data
         cur: cursor pointing to the current db connection
         conn: db connection
-        aws: boolean to indicate aws vs local
     Returns:
         result: string signifying success
     """
@@ -759,7 +761,7 @@ def _write_table_db(movement_data, cur, conn, aws):
         conn.commit()
         conn.close()
     except Exception as error:
-        if aws:
+        if AWS:
             logger.warning("Cannot write movement data to DB!")
             raise error
         else:
@@ -769,7 +771,7 @@ def _write_table_db(movement_data, cur, conn, aws):
     else:
         return "Success!"
 
-def _record_magn(data, file_name, aws, S3):
+def _record_magn(data, file_name, S3):
     import csv
     corrupt_magn = data['corrupt_magn']
     percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
@@ -783,7 +785,7 @@ def _record_magn(data, file_name, aws, S3):
     for obj in S3.Bucket('biometrix-magntest').objects.all():
         files_magntest.append(obj.key)
     file_present = 'magntest_session' in  files_magntest
-    if aws:
+    if AWS:
         try:
             if file_present:
                 obj = S3.Bucket('biometrix-magntest').Object('magntest_session')
@@ -815,7 +817,7 @@ def _record_magn(data, file_name, aws, S3):
             S3.Bucket('biometrix-magntest').put_object(Key='magntest_session',
                                                        Body=feet)
         except:
-            _logger("Cannot updage magn logs!", aws)
+            _logger("Cannot updage magn logs!")
     else:
         path = '..\\test_session_and_scoring\\magntest_session.csv'
         try:
@@ -839,4 +841,4 @@ def _record_magn(data, file_name, aws, S3):
 if __name__ == "__main__":
     sensor_data = 'dipesh_merged_II.csv'
     file_name = 'fakefilename'
-    result = run_session(sensor_data, file_name, aws=False)
+    result = run_session(sensor_data, file_name, AWS=False)
