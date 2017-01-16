@@ -57,7 +57,7 @@ def run_scoring(sensor_data, file_name, aws=True):
     sdata = pd.read_csv(sensor_data)
     columns = sdata.columns
     data = do.RawFrame(sdata, columns)
-
+    del sdata
     # CONTROL SCORE
     data.control, data.hip_control, data.ankle_control, data.control_lf,\
             data.control_rf = control_score(data.LeX, data.ReX, data.HeX,
@@ -98,10 +98,10 @@ def run_scoring(sensor_data, file_name, aws=True):
         data.const_mech_stress, data.block_duration, \
         data.session_duration, data.block_mech_stress_elapsed, \
         data.session_mech_stress_elapsed = score(data, user_hist)
-
+    del user_hist
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
-    
+    del data
     # write to s3 container
     _write_table_s3(movement_data, file_name, s3, cont_write, aws)
     # write table to DB
@@ -157,10 +157,12 @@ def _write_table_db(movement_data, cur, conn, aws):
         cur.execute(queries.quer_create)
         movement_data_pd.to_csv(fileobj_db, index=False, header=False,
                                 na_rep='NaN')
+        del movement_data_pd
         # copy data to the empty temp table
         fileobj_db.seek(0)
         cur.copy_from(file=fileobj_db, table='temp_mov', sep=',',
                       columns=movement_data.dtype.names)
+        del fileobj_db
         # copy relevant columns from temp table to movement table
         cur.execute(queries.quer_update)
         conn.commit()
@@ -187,14 +189,18 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
     try:
         fileobj = cStringIO.StringIO()
         movement_data_pd.to_csv(fileobj, index=False)
+        del movement_data_pd
         fileobj.seek(0)
         s3.Bucket(cont).put_object(Key="movement_" + file_name, Body=fileobj)
     except:
         if aws:
+            del fileobj
             logger.warning("Cannot write movement table to s3")
         else:
             print "Cannot write file to s3 writing locally!"
+            movement_data_pd = pd.DataFrame(movement_data)
             movement_data_pd.to_csv("movement_" + file_name, index=False)
+            del movement_data_pd
 
 
 if __name__ == "__main__":

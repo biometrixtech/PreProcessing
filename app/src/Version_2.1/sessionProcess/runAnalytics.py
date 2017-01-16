@@ -246,6 +246,7 @@ def run_session(sensor_data, file_name, aws=True):
     # save sensor data before subsetting
     sensor_data = ct.create_sensor_data(len(data.LaX), data)
     _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write, aws)
+    _logger("Raw data written to s3", aws)
     del sensor_data
 #    data = _subset_data(data, neutral_data)
 #    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
@@ -325,6 +326,8 @@ def run_session(sensor_data, file_name, aws=True):
         data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
 
     _logger('DONE WITH IMPACT CME!', aws)
+
+    del neutral_data
 #%%
     # MECHANICAL STRESS
     # load model
@@ -366,6 +369,7 @@ def run_session(sensor_data, file_name, aws=True):
 #%%
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
+    del data
     _logger("Table Created", aws)
     # write table to s3
     _write_table_s3(movement_data, file_name, s3, cont_write_final, aws)
@@ -711,13 +715,10 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
     """write final table to s3
     """
     movement_data_pd = pd.DataFrame(movement_data)
-    _logger("changed to pandas", aws)
     try:
-        _logger("started", aws)
         fileobj = cStringIO.StringIO()
-        _logger("fileobj created", aws)
         movement_data_pd.to_csv(fileobj, index=False)
-        _logger("written to fileobj", aws)
+        del movement_data_pd
         fileobj.seek(0)
         s3.Bucket(cont).put_object(Key=file_name, Body=fileobj)
     except boto3.exceptions as error:
@@ -726,9 +727,10 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
             raise error
         else:
             print "Cannot write file to s3 writing locally!"
+            movement_data_pd = pd.DataFrame(movement_data)
             movement_data_pd.to_csv("scoring_" + file_name, index=False)
+            del movement_data_pd
     else:
-        del movement_data_pd
         del fileobj
 #%%
 def _write_table_db(movement_data, cur, conn, aws):

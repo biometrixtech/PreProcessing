@@ -6,14 +6,14 @@ Created on Wed Oct 12 11:16:55 2016
 """
 
 from __future__ import division
-#import logging
+import logging
 
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 from sklearn.neighbors.kde import KernelDensity as kde
 from sklearn import mixture
 
-#logger = logging.getLogger()
+logger = logging.getLogger()
 
 """
 #############################################INPUT/OUTPUT###################
@@ -71,13 +71,16 @@ def score(data, user_hist):
     #Create mapping functions for consistency using historical user data
     fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT,\
                                 fn_fPL, fn_fPR = _create_distribution(user_hist)
+    logger.info("Distributions for consistency created")
     consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry =\
                                                    _ankle(aRL, aRR, lPL, lPR,
                                                           lT, fPL, fPR,
                                                           fn_aRL, fn_aRR,
                                                           fn_lPL, fn_lPR, fn_lT,
                                                           fn_fPL, fn_fPR)
+    logger.info("Ankle scoring completed")
     hip_consistency, hip_symmetry = _hip(hDL, hDR, fn_hDL, fn_hDR)
+    logger.info("Hip scoring completed")
     #Aggregate consistency scores
     overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
     consistency = np.nanmean(overall_consistency_scores, 0)
