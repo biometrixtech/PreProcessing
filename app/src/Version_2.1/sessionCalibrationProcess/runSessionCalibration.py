@@ -213,8 +213,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     subset_data_temp = _select_recording(subset_data)
     
     # minimum amount of data required for baseFeet calibration
-    freq = 100
-    min_data_thresh = 0.75*freq*len(subset_data_temp)
+    min_data_thresh = 0.75*len(subset_data_temp)
     
     # subset for corrupt magnetometer (corrupt_magn=1)
     subset_data = ppp.subset_data(old_data=subset_data_temp, subset_value=1,
