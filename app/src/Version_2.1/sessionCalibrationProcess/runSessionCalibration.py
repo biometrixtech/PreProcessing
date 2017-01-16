@@ -206,7 +206,18 @@ def run_calibration(sensor_data, file_name, aws=True):
         return "Fail!"
 
     # select part of recording to be used in calculations
-    subset_data = _select_recording(subset_data)
+    subset_data_temp = _select_recording(subset_data)
+    
+    # minimum amount of data required for baseFeet calibration
+    freq = 100
+    min_data_thresh = 0.75*freq*len(subset_data_temp)
+    
+    # subset for corrupt magnetometer (corrupt_magn=1)
+    subset_data = ppp.subset_data(old_data=subset_data_temp, subset_value=1,
+                                  missing_or_corrupt='corrupt')
+    # check if length of subset data is >= required amount (1.5 sec)
+    if len(subset_data) < min_data_thresh:
+        return "Fail!"
 
     # Record percentage and ranges of magn_values for diagonostic purposes
     _record_magn(subset_data, file_name, aws, S3)
@@ -244,12 +255,19 @@ def run_calibration(sensor_data, file_name, aws=True):
         if ind in [1, 10]:
             break
 
-        # check if nan's exist even after imputing
-        if np.any(np.isnan(out[missing_type != 1])):  # subsetting for when
-        # a missing value is an intentional blank
-            _logger('Bad data! NaNs exist even after imputing. \
-            Column: ' + var, aws, info=False)
-            return "Fail"
+#        # check if nan's exist even after imputing
+#        if np.any(np.isnan(out[missing_type != 1])):  # subsetting for when
+#        # a missing value is an intentional blank
+#            _logger('Bad data! NaNs exist even after imputing. \
+#            Column: ' + var, aws, info=False)
+#            return "Fail"
+
+    # subset for missing type = 3
+    subset_data = ppp.subset_data(old_data=subset_data, subset_value=3)
+    # check if length of subset data is >= required amount (1.5 sec)
+    if len(subset_data) < min_data_thresh:
+        return "Fail!"
+
 
     if ind != 0:
         msg = ErrorMessageSession(ind).error_message

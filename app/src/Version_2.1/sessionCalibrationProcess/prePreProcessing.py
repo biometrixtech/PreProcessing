@@ -32,27 +32,32 @@ def check_duplicate_index(index):
         return index_duplicate
         
         
-def subset_data_done(old_data):
+def subset_data(old_data, subset_value, missing_or_corrupt='missing'):
     '''
-    Subset data when missing type is equal to 2 (done)
+    Subset data
     
     Args:
         old_data: structured array, input data to Data wrangling
+        subset_value: an int, enumerated value for corrupt/missing type
+        missing_or_corrupt: string, indicates whether subsetting by
+        missing/corrupt type
         
     Returns:
         new_data: structured array, subset the input data when missing type=2 
     '''
-    
-    # enumerated value for done in missing type column
-    done = 2
-    
+        
     df_old_data = pd.DataFrame(old_data)  # convert structured array to 
     # data frame
-    df_old_data = df_old_data.drop(df_old_data[
-    df_old_data.missing_type == done].index) # subset for when missing 
-    # type is done
-    new_data = df_old_data.to_records(index=False)  # convert data frame back
-    # to structured array
+    if 'm' in missing_or_corrupt:
+        df_old_data = df_old_data.drop(df_old_data[
+        df_old_data.missing_type == subset_value].index) # subset data
+        new_data = df_old_data.to_records(index=False)  # convert data frame back
+        # to structured array
+    else:
+        df_old_data = df_old_data.drop(df_old_data[
+        df_old_data.corrupt_magn == subset_value].index) # subset data
+        new_data = df_old_data.to_records(index=False)  # convert data frame back
+        # to structured array
     
     return new_data
 
@@ -177,33 +182,23 @@ def handling_missing_data(index, col_data, corrup_magn, missing_type):
 
         # if missing data, check if it is enough to cross error threshold
         if ran.shape[0] != 0:
-            
-            # if missing data crosses threshold, return with error
-            if np.any(ran[:, 1].reshape(-1, 1)-ran[:, 0].reshape(-1, 1) \
-                > MISSING_DATA_THRESH):
+            index = index.reshape((-1, 1))
+            col_data = col_data.reshape((-1, 1))
+            non_nan_index = np.isfinite(col_data).reshape(-1,)
+            dummy_data = col_data[non_nan_index]
+            dummy_index = index[non_nan_index]
+            dummy_index = dummy_index.reshape((-1, 1))
+            interp = interpolate.splrep(dummy_index,
+                                        dummy_data,
+                                        k=3,
+                                        s=0)  # spline interpolation function
 
-                return col_data, ErrorId.missing.value
-
-            # if missing data below threshold, impute
-            elif np.any(ran[:, 1].reshape(-1, 1) - ran[:, 0].reshape(-1, 1) \
-                <= MISSING_DATA_THRESH):
-
-                index = index.reshape((-1, 1))
-                col_data = col_data.reshape((-1, 1))
-                non_nan_index = np.isfinite(col_data).reshape(-1,)
-                dummy_data = col_data[non_nan_index]
-                dummy_index = index[non_nan_index]
-                dummy_index = dummy_index.reshape((-1, 1))
-                interp = interpolate.splrep(dummy_index,
-                                            dummy_data,
-                                            k=3,
-                                            s=0)  # spline interpolation function
-
-                for i in range(len(ran)):
+            for i in range(len(ran)):
+                if ran[i, 1]-ran[i, 0] <= MISSING_DATA_THRESH:
                     y_new = interpolate.splev(index[ran[i, 0]:ran[i, 1],
                                                          0], interp, der=0)
                     col_data[ran[i, 0]:ran[i, 1], 0] = y_new
-                return col_data.reshape((-1, )), ErrorId.no_error.value
+            return col_data.reshape((-1, )), ErrorId.no_error.value
 
         # if no missing data, return values
         else:
