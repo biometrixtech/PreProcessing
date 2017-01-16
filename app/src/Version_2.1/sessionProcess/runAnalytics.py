@@ -43,7 +43,7 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def run_session(sensor_data, file_name, AWS=True):
+def run_session(sensor_data, file_name, aws=True):
     """Creates object attributes according to session analysis process.
 
     Args:
@@ -60,6 +60,7 @@ def run_session(sensor_data, file_name, AWS=True):
     """
 #%%
     global AWS
+    AWS = aws
     # Define containers to read from and write to
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_write_final = 'biometrix-scoringcontainer'
@@ -841,4 +842,4 @@ def _record_magn(data, file_name, S3):
 if __name__ == "__main__":
     sensor_data = 'dipesh_merged_II.csv'
     file_name = 'fakefilename'
-    result = run_session(sensor_data, file_name, AWS=False)
+    result = run_session(sensor_data, file_name, aws=False)
