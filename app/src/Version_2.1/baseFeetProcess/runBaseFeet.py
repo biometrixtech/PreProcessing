@@ -102,14 +102,30 @@ def record_base_feet(sensor_data, file_name, aws=True):
     data.dtype.names = columns_calib
     # check if the raw quaternions have been converted already
     data = cp.handle_processed(data)
-    # subset for done
-    subset_data = ppp.subset_data_done(old_data=data)
+    # subset for done (done=2)
+    subset_data = ppp.subset_data(old_data=data, subset_value=2)
     if len(subset_data) == 0:
         _logger("No overlapping samples after time sync", aws, info=False)
         return "Fail!"
 
     # cut out first of recording where quats are settling
     subset_data = _select_recording(subset_data)
+    
+    # minimum amount of data required for baseFeet calibration
+    freq = 100
+    min_data_thresh = 0.6*freq*1.5
+    
+    # subset for corrupt magnetometer (corrupt_magn=1)
+    subset_data = ppp.subset_data(old_data=subset_data, subset_value=1)
+    # check if length of subset data is >= required amount (1.5sec)
+    if len(subset_data) < min_data_thresh:
+        return "Fail!"
+        
+    # subset for missing type = 3
+    subset_data = ppp.subset_data(old_data=subset_data, subset_value=3)
+    # check if length of subset data is >= required amount (1.5sec)
+    if len(subset_data) < min_data_thresh:
+        return "Fail!"
 
     # Record percentage and ranges of magn_values for diagonostic purposes
     _record_magn(subset_data, file_name, aws, S3)
