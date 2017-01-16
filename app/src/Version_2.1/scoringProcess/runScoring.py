@@ -198,8 +198,8 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
 
 
 if __name__ == "__main__":
-    file_name = 'fakefilename'
-    data = 'fakefilename'
+    file_name = '9f08e748-ceeb-42bf-a00a-29e465358def'
+    data = '9f08e748-ceeb-42bf-a00a-29e465358def'
     out_data = run_scoring(data, file_name, aws=False)
 #    sdata = pd.read_csv(data)
     pass

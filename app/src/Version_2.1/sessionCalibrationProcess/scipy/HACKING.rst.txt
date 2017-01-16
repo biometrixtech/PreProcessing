@@ -1,3 +1,4 @@
+=====================
 Contributing to SciPy
 =====================
 
@@ -7,9 +8,15 @@ community process works in practice.  Readers who are familiar with the SciPy
 community and are experienced Python coders may want to jump straight to the
 `git workflow`_ documentation.
 
+.. note::
+
+   You may want to check the latest version of this guide, which is
+   available at:
+   https://github.com/scipy/scipy/blob/master/HACKING.rst.txt
+
 
 Contributing new code
----------------------
+=====================
 
 If you have been working with the scientific Python toolstack for a while, you
 probably have some code lying around of which you think "this could be useful
@@ -22,7 +29,7 @@ useful in multiple scientific domains and it fits in the scope of existing
 scipy submodules.  In principle new submodules can be added too, but this is
 far less common.  For code that is specific to a single application, there may
 be an existing project that can use the code.  Some scikits (`scikit-learn`_,
-`scikits-image`_, `statsmodels`_, etc.) are good examples here; they have a
+`scikit-image`_, `statsmodels`_, etc.) are good examples here; they have a
 narrower focus and because of that more domain-specific code than SciPy.
 
 Now if you have code that you would like to see included in SciPy, how do you
@@ -82,7 +89,7 @@ in `SciPy API`_.
 Once you think your code is ready for inclusion in SciPy, you can send a pull
 request (PR) on Github.  We won't go into the details of how to work with git
 here, this is described well in the `git workflow`_ section of the NumPy
-documentation and in the Github help pages.  When you send the PR for a new
+documentation and on the `Github help pages`_.  When you send the PR for a new
 feature, be sure to also mention this on the scipy-dev mailing list.  This can
 prompt interested people to help review your PR.  Assuming that you already got
 positive feedback before on the general idea of your code/feature, the purpose
@@ -105,15 +112,15 @@ in question can decide the issue.
 
 
 Contributing by helping maintain existing code
-----------------------------------------------
+==============================================
 
 The previous section talked specifically about adding new functionality to
 SciPy.  A large part of that discussion also applies to maintenance of existing
 code.  Maintenance means fixing bugs, improving code quality or style,
 documenting existing functionality better, adding missing unit tests, keeping
-build scripts up-to-date, etc.  The SciPy `Trac`_ bug tracker contains all
-reported bugs, build/documentation issues, etc.  Fixing issues described in
-Trac tickets helps improve the overall quality of SciPy, and is also a good way
+build scripts up-to-date, etc.  The SciPy `issue list`_ contains all
+reported bugs, build/documentation issues, etc.  Fixing issues
+helps improve the overall quality of SciPy, and is also a good way
 of getting familiar with the project.  You may also want to fix a bug because
 you ran into it and need the function in question to work correctly.
 
@@ -129,37 +136,104 @@ review process.
 
 
 Other ways to contribute
-------------------------
+========================
 
 There are many ways to contribute other than contributing code.  Participating
 in discussions on the scipy-user and scipy-dev *mailing lists* is a contribution
 in itself.  The `scipy.org`_ *website* contains a lot of information on the
-SciPy community and can always use a new pair of hands.  A redesign of this
-website is ongoing, see `scipy.github.com`_.  The redesigned website is a
-static site based on Sphinx, the sources for it are
-also on Github at `scipy.org-new`_.
+SciPy community and can always use a new pair of hands.
 
-The SciPy *documentation* is constantly being improved by many developers and
-users.  You can contribute by sending a PR on Github that improves the
-documentation, but there's also a `documentation wiki`_ that is very convenient
-for making edits to docstrings (and doesn't require git knowledge).  Anyone can
-register a username on that wiki, ask on the scipy-dev mailing list for edit
-rights and make edits.  The documentation there is updated every day with the
-latest changes in the SciPy master branch, and wiki edits are regularly
-reviewed and merged into master.  Another advantage of the documentation wiki
-is that you can immediately see how the reStructuredText (reST) of docstrings
-and other docs is rendered as html, so you can easily catch formatting errors.
 
-Code that doesn't belong in SciPy itself or in another package but helps users
-accomplish a certain task is valuable.  `SciPy Central`_ is the place to share
-this type of code (snippets, examples, plotting code, etc.).
+Recommended development setup
+=============================
+
+Since Scipy contains parts written in C, C++, and Fortran that need to be
+compiled before use, make sure you have the necessary compilers and Python
+development headers installed.  Having compiled code also means that importing
+Scipy from the development sources needs some additional steps, which are
+explained below.
+
+First fork a copy of the main Scipy repository in Github onto your own
+account and then create your local repository via::
+
+    $ git clone git@github.com:YOURUSERNAME/scipy.git scipy
+    $ cd scipy
+    $ git remote add upstream git://github.com/scipy/scipy.git
+
+To build the development version of Scipy and run tests, spawn
+interactive shells with the Python import paths properly set up etc.,
+do one of::
+
+    $ python runtests.py -v
+    $ python runtests.py -v -s optimize
+    $ python runtests.py -v -t scipy/special/tests/test_basic.py:test_xlogy
+    $ python runtests.py --ipython
+    $ python runtests.py --python somescript.py
+    $ python runtests.py --bench
+
+This builds Scipy first, so the first time it may take some time.  If
+you specify ``-n``, the tests are run against the version of Scipy (if
+any) found on current PYTHONPATH.
+
+Using ``runtests.py`` is the recommended approach to running tests.
+There are also a number of alternatives to it, for example in-place
+build or installing to a virtualenv. See the FAQ below for details.
+
+Some of the tests in Scipy are very slow and need to be separately
+enabled. See the FAQ below for details.
+
+
+SciPy structure
+===============
+
+All SciPy modules should follow the following conventions. In the
+following, a *SciPy module* is defined as a Python package, say
+``yyy``, that is located in the scipy/ directory.
+
+* Ideally, each SciPy module should be as self-contained as possible.
+  That is, it should have minimal dependencies on other packages or
+  modules.  Even dependencies on other SciPy modules should be kept to
+  a minimum.  A dependency on NumPy is of course assumed.
+
+* Directory ``yyy/`` contains:
+
+  - A file ``setup.py`` that defines
+    ``configuration(parent_package='',top_path=None)`` function
+    for `numpy.distutils`.
+
+  - A directory ``tests/`` that contains files ``test_<name>.py``
+    corresponding to modules ``yyy/<name>{.py,.so,/}``.
+
+* Private modules should be prefixed with an underscore ``_``,
+  for instance ``yyy/_somemodule.py``.
+
+* User-visible functions should have good documentation following
+  the Numpy documentation style, see `how to document`_
+
+* The ``__init__.py`` of the module should contain the main reference
+  documentation in its docstring. This is connected to the Sphinx
+  documentation under ``doc/`` via Sphinx's automodule directive.
+
+  The reference documentation should first give a categorized list of
+  the contents of the module using ``autosummary::`` directives, and
+  after that explain points essential for understanding the use of the
+  module.
+
+  Tutorial-style documentation with extensive examples should be
+  separate, and put under ``doc/source/tutorial/``
+
+See the existing Scipy submodules for guidance.
+
+For further details on Numpy distutils, see:
+
+  https://github.com/numpy/numpy/blob/master/doc/DISTUTILS.rst.txt
 
 
 Useful links, FAQ, checklist
-----------------------------
+============================
 
 Checklist before submitting a PR
-````````````````````````````````
+--------------------------------
 
   - Are there unit tests with good code coverage?
   - Do all public function have docstrings including examples?
@@ -172,7 +246,7 @@ Checklist before submitting a PR
   - In case of larger additions, is there a tutorial or more extensive
     module-level description?
   - In case compiled code is added, is it integrated correctly via setup.py
-    (and preferably also Bento/Numscons configuration files)?
+    (and preferably also Bento configuration files - bento.info and bscript)?
   - If you are a first-time contributor, did you add yourself to THANKS.txt?
     Please note that this is perfectly normal and desirable - the aim is to
     give every single contributor credit, and if you don't add yourself it's
@@ -181,7 +255,7 @@ Checklist before submitting a PR
 
 
 Useful SciPy documents
-``````````````````````
+----------------------
 
   - The `how to document`_ guidelines
   - NumPy/SciPy `testing guidelines`_
@@ -191,7 +265,7 @@ Useful SciPy documents
 
 
 FAQ
-```
+---
 
 *I based my code on existing Matlab/R/... code I found online, is this OK?*
 
@@ -203,6 +277,7 @@ Therefore if you copied existing code with such a license or made a direct
 translation to Python of it, your code can't be included.  See also `license
 compatibility`_.
 
+
 *Why is SciPy under the BSD license and not, say, the GPL?*
 
 Like Python, SciPy uses a "permissive" open source license, which allows 
@@ -211,60 +286,52 @@ without giving anything back, it is felt that the larger user base results in
 more contributions overall, and companies often publish their modifications 
 anyway, without being required to.  See John Hunter's `BSD pitch`_.
 
-*How do I set up SciPy so I can edit files, run the tests and make commits?*
-
-The simplest method is setting up an in-place build.  To create your local git
-repo and do the in-place build::
-
-  $ git clone https://github.com/scipy/scipy.git scipy
-  $ cd scipy
-  $ python setup.py build_ext -i
-
-Then you need to either set up a symlink in your site-packages or add this
-directory to your PYTHONPATH environment variable, so Python can find it.  Some
-IDEs (Spyder for example) have utilities to manage PYTHONPATH.  On Linux and OS
-X, you can for example edit your .bash_login file to automatically add this dir
-on startup of your terminal.  Add the line::
-
-  export PYTHONPATH="$HOME/scipy:${PYTHONPATH}"
-
-Alternatively, to set up the symlink, use (prefix only necessary if you want to
-use your local instead of global site-packages dir)::
-
-  $ python setupegg.py develop --prefix=${HOME}
- 
-To test that everything works, start the interpreter (not inside the scipy/
-source dir) and run the tests::
-
-  $ python
-  >>> import scipy as sp
-  >>> sp.test()
-
-Now editing a Python source file in SciPy allows you to immediately test and
-use your changes, by simply restarting the interpreter.
-
-Note that while the above procedure is the most straightforward way to get
-started, you may want to look into using Bento or numscons for faster and more
-flexible building, or virtualenv to maintain development environments for
-multiple Python versions.
-
 
 *How do I set up a development version of SciPy in parallel to a released
 version that I use to do my job/research?*
 
 One simple way to achieve this is to install the released version in
-site-packages, by using a binary installer or pip for example, and set up the
-development version with an in-place build in a virtualenv.  First install
-`virtualenv`_ and `virtualenvwrapper`_, then create your virtualenv (named
-scipy-dev here) with::
+site-packages, by using a binary installer or pip for example, and set
+up the development version in a virtualenv.  First install
+`virtualenv`_ (optionally use `virtualenvwrapper`_), then create your
+virtualenv (named scipy-dev here) with::
 
-  $ mkvirtualenv scipy-dev
+    $ virtualenv scipy-dev
 
 Now, whenever you want to switch to the virtual environment, you can use the
-command ``workon scipy-dev``, while the command ``deactivate`` exits from the
-virtual environment and brings back your previous shell.  With scipy-dev
-activated, follow the in-place build with the symlink install above to actually
-install your development version of SciPy.
+command ``source scipy-dev/bin/activate``, and ``deactivate`` to exit from the
+virtual environment and back to your previous shell.  With scipy-dev
+activated, install first Scipy's dependencies::
+
+    $ pip install Numpy Nose Cython
+
+After that, you can install a development version of Scipy, for example via::
+
+    $ python setup.py install
+
+The installation goes to the virtual environment.
+
+
+*How do I set up an in-place build for development*
+
+For development, you can set up an in-place build so that changes made to
+``.py`` files have effect without rebuild. First, run::
+
+    $ python setup.py build_ext -i
+
+Then you need to point your PYTHONPATH environment variable to this directory.
+Some IDEs (Spyder for example) have utilities to manage PYTHONPATH.  On Linux
+and OSX, you can run the command::
+
+    $ export PYTHONPATH=$PWD
+
+and on Windows
+
+    $ set PYTHONPATH=/path/to/scipy
+
+Now editing a Python source file in SciPy allows you to immediately
+test and use your changes (in ``.py`` files), by simply restarting the
+interpreter.
 
 
 *Can I use a programming language other than Python to speed up my code?*
@@ -281,18 +348,91 @@ Cython.  If there's specific reasons why C/C++/Fortran should be preferred,
 please discuss those reasons first.
 
 
-*There's overlap between Trac and Github, which do I use for what?*
+*How do I debug code written in C/C++/Fortran inside Scipy?*
 
-Trac_ is the bug tracker, Github_ the code repository.  Before the SciPy code
-repository moved to Github, the preferred way to contribute code was to create
-a patch and attach it to a Trac ticket.  The overhead of this approach is much
-larger than sending a PR on Github, so please don't do this anymore.  Use Trac
-for bug reports, Github for patches.
+The easiest way to do this is to first write a Python script that
+invokes the C code whose execution you want to debug. For instance
+``mytest.py``::
+
+    from scipy.special import hyp2f1
+    print(hyp2f1(5.0, 1.0, -1.8, 0.95))
+
+Now, you can run::
+
+    gdb --args python runtests.py -g --python mytest.py
+
+If you didn't compile with debug symbols enabled before, remove the
+``build`` directory first. While in the debugger::
+
+    (gdb) break cephes_hyp2f1
+    (gdb) run
+
+The execution will now stop at the corresponding C function and you
+can step through it as usual. Instead of plain ``gdb`` you can of
+course use your favourite alternative debugger; run it on the
+``python`` binary with arguments ``runtests.py -g --python mytest.py``.
+
+
+*How do I enable additional tests in Scipy?*
+
+Some of the tests in Scipy's test suite are very slow and not enabled
+by default. You can run the full suite via::
+
+    $ python runtests.py -g -m full
+
+This invokes the test suite ``import scipy; scipy.test("full")``,
+enabling also slow tests.
+
+There is an additional level of very slow tests (several minutes),
+which are disabled also in this case. They can be enabled by setting
+the environment variable ``SCIPY_XSLOW=1`` before running the test
+suite.
+
+
+*How do I write tests with test generators?*
+
+The Nose_ test framework supports so-called test generators, which can come
+useful if you need to have multiple tests where just a parameter changes.
+Using test generators so that they are more useful than harmful is tricky, and
+we recommend the following pattern::
+
+    def test_something():
+	some_array = (...)
+
+	def check(some_param):
+	    c = compute_result(some_array, some_param)
+	    known_result = (...)
+	    assert_allclose(c, known_result)
+
+	for some_param in ['a', 'b', 'c']:
+	    yield check, some_param
+
+We require the following:
+
+- All asserts and all computation that is tested must only be reached after a
+  yield. (Rationale: the generator body is part of no test, and a failure in it
+  will show neither the test name nor for what parameters the test failed.)
+
+- Arrays must not be passed as yield parameters. Either use variables from
+  outer scope (eg. with some index passed to yield), or capsulate test data to
+  a class with a sensible ``__repr__``. (Rationale: Nose truncates the printed
+  form of arrays in test output, and this makes it impossible to know for what
+  parameters a test failed. Arrays are big, and clutter test output
+  unnecessarily.)
+
+- Test generators cannot be used in test classes inheriting from
+  unittest.TestCase; either use object as base class, or use standalone test
+  functions.  (Rationale: Nose does not run test generators in
+  TestCase-inheriting classes.)
+
+If in doubt, do not use test generators. You can track for what parameter
+things failed also by passing ``err_msg=repr((param1, param2, ...))`` to the
+various assert functions.
 
 
 .. _scikit-learn: http://scikit-learn.org
 
-.. _scikits-image: http://scikits-image.org/
+.. _scikit-image: http://scikit-image.org/
 
 .. _statsmodels: http://statsmodels.sourceforge.net/
 
@@ -306,27 +446,29 @@ for bug reports, Github for patches.
 
 .. _pyflakes: http://pypi.python.org/pypi/pyflakes
 
-.. _SciPy API: http://docs.scipy.org/doc/scipy/reference/api.html
+.. _SciPy API: https://docs.scipy.org/doc/scipy/reference/api.html
 
-.. _git workflow: http://docs.scipy.org/doc/numpy/dev/gitwash/index.html
+.. _git workflow: https://docs.scipy.org/doc/numpy/dev/gitwash/index.html
+
+.. _Github help pages: https://help.github.com/articles/set-up-git/
 
 .. _maintainers: https://github.com/scipy/scipy/blob/master/doc/MAINTAINERS.rst.txt
 
-.. _Trac: http://projects.scipy.org/scipy/timeline
+.. _issue list: https://github.com/scipy/scipy/issues
 
 .. _Github: https://github.com/scipy/scipy
 
-.. _scipy.org: http://scipy.org/
+.. _scipy.org: https://scipy.org/
 
 .. _scipy.github.com: http://scipy.github.com/
 
 .. _scipy.org-new: https://github.com/scipy/scipy.org-new
 
-.. _documentation wiki: http://docs.scipy.org/scipy/Front%20Page/
+.. _documentation wiki: https://docs.scipy.org/scipy/Front%20Page/
 
 .. _SciPy Central: http://scipy-central.org/
 
-.. _license compatibility: http://www.scipy.org/License_Compatibility
+.. _license compatibility: https://www.scipy.org/License_Compatibility
 
 .. _doctest: http://www.doughellmann.com/PyMOTW/doctest/
 
@@ -335,3 +477,5 @@ for bug reports, Github for patches.
 .. _virtualenvwrapper: http://www.doughellmann.com/projects/virtualenvwrapper/
 
 .. _bsd pitch: http://nipy.sourceforge.net/nipy/stable/faq/johns_bsd_pitch.html
+
+.. _Nose: http://nose.readthedocs.org/en/latest/

@@ -1,7 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from numpy.testing import assert_
+from numpy.testing import assert_, assert_allclose
 import scipy.special.orthogonal as orth
 
 from scipy.special._testutils import FuncData
@@ -13,6 +13,12 @@ def test_eval_chebyt():
     v1 = np.cos(n*np.arccos(x))
     v2 = orth.eval_chebyt(n, x)
     assert_(np.allclose(v1, v2, rtol=1e-15))
+
+
+def test_eval_genlaguerre_restriction():
+    # check it returns nan for alpha <= -1
+    assert_(np.isnan(orth.eval_genlaguerre(0, -1, 0)))
+    assert_(np.isnan(orth.eval_genlaguerre(0.1, -1, 0)))
 
 
 def test_warnings():
@@ -49,8 +55,8 @@ class TestPolys(object):
                 else:
                     p = (n,)
                 x = x_range[0] + (x_range[1] - x_range[0])*np.random.rand(nx)
-                x[0] = x_range[0] # always include domain start point
-                x[1] = x_range[1] # always include domain end point
+                x[0] = x_range[0]  # always include domain start point
+                x[1] = x_range[1]  # always include domain end point
                 poly = np.poly1d(cls(*p))
                 z = np.c_[np.tile(p, (nx,1)), x, poly(x)]
                 dataset.append(z)
@@ -140,6 +146,7 @@ class TestPolys(object):
         self.check_poly(orth.eval_hermitenorm, orth.hermitenorm,
                         param_ranges=[], x_range=[-100, 100])
 
+
 class TestRecurrence(object):
     """
     Check that the eval_* functions sig='ld->d' and 'dd->d' agree.
@@ -162,8 +169,8 @@ class TestRecurrence(object):
                 else:
                     p = (n,)
                 x = x_range[0] + (x_range[1] - x_range[0])*np.random.rand(nx)
-                x[0] = x_range[0] # always include domain start point
-                x[1] = x_range[1] # always include domain end point
+                x[0] = x_range[0]  # always include domain start point
+                x[1] = x_range[1]  # always include domain end point
                 kw = dict(sig=(len(p)+1)*'d'+'->d')
                 z = np.c_[np.tile(p, (nx,1)), x, func(*(p + (x,)), **kw)]
                 dataset.append(z)
@@ -235,3 +242,7 @@ class TestRecurrence(object):
         self.check_poly(orth.eval_laguerre,
                    param_ranges=[], x_range=[0, 100])
 
+    def test_hermite(self):
+        v = orth.eval_hermite(70, 1.0)
+        a = -1.457076485701412e60
+        assert_allclose(v,a)

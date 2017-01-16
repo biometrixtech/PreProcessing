@@ -2,17 +2,19 @@
 
 from __future__ import division, print_function, absolute_import
 
-from numpy import arange, add, array, eye, copy
-from numpy.testing import TestCase, run_module_suite, assert_raises, \
-    assert_equal, assert_array_equal, assert_array_almost_equal, \
-    assert_allclose
+import numpy as np
+from numpy import arange, add, array, eye, copy, sqrt
+from numpy.testing import (TestCase, run_module_suite, assert_raises,
+    assert_equal, assert_array_equal, assert_array_almost_equal,
+    assert_allclose)
 
-from scipy.lib.six.moves import xrange
+from scipy._lib.six import xrange
 
-from scipy.misc import comb
-from scipy.linalg import toeplitz, hankel, circulant, hadamard, leslie, \
-                            companion, tri, triu, tril, kron, block_diag, \
-                            hilbert, invhilbert, pascal
+from scipy import fftpack
+from scipy.special import comb
+from scipy.linalg import (toeplitz, hankel, circulant, hadamard, leslie,
+                          companion, tri, triu, tril, kron, block_diag,
+                          helmert, hilbert, invhilbert, pascal, invpascal, dft)
 from numpy.linalg import cond
 
 
@@ -32,6 +34,7 @@ class TestTri(TestCase):
                                                 [1,1,0,0],
                                                 [1,1,1,0],
                                                 [1,1,1,1]],'f'))
+
     def test_diag(self):
         assert_equal(tri(4,k=1),array([[1,1,0,0],
                                        [1,1,1,0],
@@ -41,6 +44,7 @@ class TestTri(TestCase):
                                         [1,0,0,0],
                                         [1,1,0,0],
                                         [1,1,1,0]]))
+
     def test_2d(self):
         assert_equal(tri(4,3),array([[1,0,0],
                                      [1,1,0],
@@ -49,6 +53,7 @@ class TestTri(TestCase):
         assert_equal(tri(3,4),array([[1,0,0,0],
                                      [1,1,0,0],
                                      [1,1,1,0]]))
+
     def test_diag2d(self):
         assert_equal(tri(3,4,k=2),array([[1,1,1,0],
                                          [1,1,1,1],
@@ -57,6 +62,7 @@ class TestTri(TestCase):
                                           [0,0,0],
                                           [1,0,0],
                                           [1,1,0]]))
+
 
 class TestTril(TestCase):
     def test_basic(self):
@@ -193,9 +199,9 @@ class TestLeslie(TestCase):
     def test_basic(self):
         a = leslie([1, 2, 3], [0.25, 0.5])
         expected = array([
-            [1.0,  2.0, 3.0],
+            [1.0, 2.0, 3.0],
             [0.25, 0.0, 0.0],
-            [0.0,  0.5, 0.0]])
+            [0.0, 0.5, 0.0]])
         assert_array_equal(a, expected)
 
 
@@ -211,13 +217,13 @@ class TestCompanion(TestCase):
         c = companion([1, 2, 3])
         expected = array([
             [-2.0, -3.0],
-            [ 1.0,  0.0]])
+            [1.0, 0.0]])
         assert_array_equal(c, expected)
 
         c = companion([2.0, 5.0, -10.0])
         expected = array([
             [-2.5, 5.0],
-            [ 1.0, 0.0]])
+            [1.0, 0.0]])
         assert_array_equal(c, expected)
 
 
@@ -238,6 +244,11 @@ class TestBlockDiag:
         x = block_diag([[True]])
         assert_equal(x.dtype, bool)
 
+    def test_mixed_dtypes(self):
+        actual = block_diag([[1]], [[1j]])
+        desired = np.array([[1, 0], [0, 1j]])
+        assert_array_equal(actual, desired)
+
     def test_scalar_and_1d_args(self):
         a = block_diag(1)
         assert_equal(a.shape, (1,1))
@@ -253,6 +264,17 @@ class TestBlockDiag:
         a = block_diag()
         assert_equal(a.ndim, 2)
         assert_equal(a.nbytes, 0)
+    
+    def test_empty_matrix_arg(self):
+        # regression test for gh-4596: check the shape of the result for empty matrix inputs
+        a = block_diag([[1, 0], [0, 1]],
+                       [],
+                       [[2, 3], [4, 5], [6, 7]])
+        assert_array_equal(a, [[1, 0, 0, 0],
+                               [0, 1, 0, 0],
+                               [0, 0, 2, 3],
+                               [0, 0, 4, 5],
+                               [0, 0, 6, 7]])
 
 
 class TestKron:
@@ -266,17 +288,36 @@ class TestKron:
         m1 = array([[1, 2], [3, 4]])
         m2 = array([[10], [11]])
         a = kron(m1, m2)
-        expected = array([[ 10, 20 ],
-                          [ 11, 22 ],
-                          [ 30, 40 ],
-                          [ 33, 44 ]])
+        expected = array([[10, 20],
+                          [11, 22],
+                          [30, 40],
+                          [33, 44]])
         assert_array_equal(a, expected)
+
+
+class TestHelmert(TestCase):
+
+    def test_orthogonality(self):
+        for n in range(1, 7):
+            H = helmert(n, full=True)
+            I = np.eye(n)
+            assert_allclose(H.dot(H.T), I, atol=1e-12)
+            assert_allclose(H.T.dot(H), I, atol=1e-12)
+
+    def test_subspace(self):
+        for n in range(2, 7):
+            H_full = helmert(n, full=True)
+            H_partial = helmert(n)
+            for U in H_full[1:, :].T, H_partial.T:
+                C = np.eye(n) - np.ones((n, n)) / n
+                assert_allclose(U.dot(U.T), C)
+                assert_allclose(U.T.dot(U), np.eye(n-1), atol=1e-12)
 
 
 class TestHilbert(TestCase):
 
     def test_basic(self):
-        h3 = array([[1.0,  1/2., 1/3.],
+        h3 = array([[1.0, 1/2., 1/3.],
                     [1/2., 1/3., 1/4.],
                     [1/3., 1/4., 1/5.]])
         assert_array_almost_equal(hilbert(3), h3)
@@ -294,29 +335,29 @@ class TestInvHilbert(TestCase):
         assert_array_equal(invhilbert(1, exact=True), invh1)
         assert_array_equal(invhilbert(1), invh1)
 
-        invh2 = array([[ 4, -6],
+        invh2 = array([[4, -6],
                        [-6, 12]])
         assert_array_equal(invhilbert(2, exact=True), invh2)
         assert_array_almost_equal(invhilbert(2), invh2)
 
-        invh3 = array([[  9,  -36,  30],
-                       [-36,  192, -180],
-                        [30, -180,  180]])
+        invh3 = array([[9, -36, 30],
+                       [-36, 192, -180],
+                        [30, -180, 180]])
         assert_array_equal(invhilbert(3, exact=True), invh3)
         assert_array_almost_equal(invhilbert(3), invh3)
 
-        invh4 = array([[  16,  -120,   240,  -140],
-                       [-120,  1200, -2700,  1680],
-                       [ 240, -2700,  6480, -4200],
-                       [-140,  1680, -4200,  2800]])
+        invh4 = array([[16, -120, 240, -140],
+                       [-120, 1200, -2700, 1680],
+                       [240, -2700, 6480, -4200],
+                       [-140, 1680, -4200, 2800]])
         assert_array_equal(invhilbert(4, exact=True), invh4)
         assert_array_almost_equal(invhilbert(4), invh4)
 
-        invh5 = array([[   25,   -300,    1050,  -1400,     630],
-                       [ -300,   4800,  -18900,   26880, -12600],
-                       [ 1050, -18900,   79380, -117600,  56700],
-                       [-1400,  26880, -117600,  179200, -88200],
-                       [  630, -12600,   56700,  -88200,  44100]])
+        invh5 = array([[25, -300, 1050, -1400, 630],
+                       [-300, 4800, -18900, 26880, -12600],
+                       [1050, -18900, 79380, -117600, 56700],
+                       [-1400, 26880, -117600, 179200, -88200],
+                       [630, -12600, 56700, -88200, 44100]])
         assert_array_equal(invhilbert(5, exact=True), invh5)
         assert_array_almost_equal(invhilbert(5), invh5)
 
@@ -457,10 +498,10 @@ class TestPascal(TestCase):
             array([[1, 0, 0],
                    [1, 1, 0],
                    [1, 2, 1]])),
-        (4, array([[1,  1,  1,  1],
-                   [1,  2,  3,  4],
-                   [1,  3,  6, 10],
-                   [1,  4, 10, 20]]),
+        (4, array([[1, 1, 1, 1],
+                   [1, 2, 3, 4],
+                   [1, 3, 6, 10],
+                   [1, 4, 10, 20]]),
             array([[1, 0, 0, 0],
                    [1, 1, 0, 0],
                    [1, 2, 1, 0],
@@ -482,6 +523,61 @@ class TestPascal(TestCase):
     def test_big(self):
         p = pascal(50)
         assert_equal(p[-1, -1], comb(98, 49, exact=True))
+
+    def test_threshold(self):
+        # Regression test.  An early version of `pascal` returned an
+        # array of type np.uint64 for n=35, but that data type is too small
+        # to hold p[-1, -1].  The second assert_equal below would fail
+        # because p[-1, -1] overflowed.
+        p = pascal(34)
+        assert_equal(2*p.item(-1, -2), p.item(-1, -1), err_msg="n = 34")
+        p = pascal(35)
+        assert_equal(2*p.item(-1, -2), p.item(-1, -1), err_msg="n = 35")
+
+
+def test_invpascal():
+
+    def check_invpascal(n, kind, exact):
+        ip = invpascal(n, kind=kind, exact=exact)
+        p = pascal(n, kind=kind, exact=exact)
+        # Matrix-multiply ip and p, and check that we get the identity matrix.
+        # We can't use the simple expression e = ip.dot(p), because when
+        # n < 35 and exact is True, p.dtype is np.uint64 and ip.dtype is
+        # np.int64. The product of those dtypes is np.float64, which loses
+        # precision when n is greater than 18.  Instead we'll cast both to
+        # object arrays, and then multiply.
+        e = ip.astype(object).dot(p.astype(object))
+        assert_array_equal(e, eye(n), err_msg="n=%d  kind=%r exact=%r" %
+                                              (n, kind, exact))
+
+    kinds = ['symmetric', 'lower', 'upper']
+
+    ns = [1, 2, 5, 18]
+    for n in ns:
+        for kind in kinds:
+            for exact in [True, False]:
+                yield check_invpascal, n, kind, exact
+
+    ns = [19, 34, 35, 50]
+    for n in ns:
+        for kind in kinds:
+            yield check_invpascal, n, kind, True
+
+
+def test_dft():
+    m = dft(2)
+    expected = array([[1.0, 1.0], [1.0, -1.0]])
+    yield (assert_array_almost_equal, m, expected)
+    m = dft(2, scale='n')
+    yield (assert_array_almost_equal, m, expected/2.0)
+    m = dft(2, scale='sqrtn')
+    yield (assert_array_almost_equal, m, expected/sqrt(2.0))
+
+    x = array([0, 1, 2, 3, 4, 5, 0, 1])
+    m = dft(8)
+    mx = m.dot(x)
+    fx = fftpack.fft(x)
+    yield (assert_array_almost_equal, mx, fx)
 
 
 if __name__ == "__main__":

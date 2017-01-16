@@ -1,7 +1,8 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python
 from __future__ import division, print_function, absolute_import
 
 from os.path import join
+
 
 def configuration(parent_package='', top_path=None):
     import warnings
@@ -20,8 +21,9 @@ def configuration(parent_package='', top_path=None):
         warnings.warn(BlasNotFoundError.__doc__)
         libodr_files.append('d_lpkbls.f')
 
-    libodr = [join('odrpack', x) for x in libodr_files]
-    config.add_library('odrpack', sources=libodr)
+    odrpack_src = [join('odrpack', x) for x in libodr_files]
+    config.add_library('odrpack', sources=odrpack_src)
+
     sources = ['__odrpack.c']
     libraries = ['odrpack'] + blas_info.pop('libraries', [])
     include_dirs = ['.'] + blas_info.pop('include_dirs', [])
@@ -29,7 +31,7 @@ def configuration(parent_package='', top_path=None):
         sources=sources,
         libraries=libraries,
         include_dirs=include_dirs,
-        depends=['odrpack.h'],
+        depends=(['odrpack.h'] + odrpack_src),
         **blas_info
     )
 

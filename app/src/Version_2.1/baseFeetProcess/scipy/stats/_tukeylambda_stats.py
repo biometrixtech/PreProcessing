@@ -1,8 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from numpy import array, poly1d
-from scipy.interpolate import interp1d
+from numpy import poly1d
 from scipy.special import beta
 
 
@@ -95,7 +94,7 @@ def tukeylambda_variance(lam):
     v[neghalf_mask] = np.inf
     if small.size > 0:
         # Use the Pade approximation near lambda = 0.
-        v[small_mask] =  _tukeylambda_var_p(small) / _tukeylambda_var_q(small)
+        v[small_mask] = _tukeylambda_var_p(small) / _tukeylambda_var_q(small)
     if reg.size > 0:
         v[reg_mask] = (2.0 / reg**2) * (1.0 / (1.0 + 2 * reg) -
                                       beta(reg + 1, reg + 1))

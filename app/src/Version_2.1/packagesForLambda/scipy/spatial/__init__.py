@@ -3,14 +3,17 @@
 Spatial algorithms and data structures (:mod:`scipy.spatial`)
 =============================================================
 
+.. currentmodule:: scipy.spatial
+
 Nearest-neighbor Queries
 ========================
 .. autosummary::
    :toctree: generated/
 
-   KDTree - *Class* for efficient nearest-neighbor queries
+   KDTree      -- class for efficient nearest-neighbor queries
    cKDTree     -- class for efficient nearest-neighbor queries (faster impl.)
-   distance - *Module* containing many different distance measures
+   distance    -- module containing many different distance measures
+   Rectangle
 
 Delaunay Triangulation, Convex Hulls and Voronoi Diagrams
 =========================================================
@@ -21,6 +24,7 @@ Delaunay Triangulation, Convex Hulls and Voronoi Diagrams
    Delaunay    -- compute Delaunay triangulation of input points
    ConvexHull  -- compute a convex hull for input points
    Voronoi     -- compute a Voronoi diagram hull from input points
+   SphericalVoronoi -- compute a Voronoi diagram from input points on the surface of a sphere
 
 Plotting Helpers
 ================
@@ -57,7 +61,7 @@ structure of the simplices satisfies the condition:
     simplex, opposite to the j-vertex. It is -1 in case of no
     neighbor.
 
-Convex hull facets also define a hyperplane equation:
+Convex hull facets also define a hyperplane equation::
 
     (hull.equations[i,:-1] * coord).sum() + hull.equations[i,-1] == 0
 
@@ -79,6 +83,7 @@ Functions
    distance_matrix
    minkowski_distance
    minkowski_distance_p
+   procrustes
 
 """
 
@@ -87,7 +92,9 @@ from __future__ import division, print_function, absolute_import
 from .kdtree import *
 from .ckdtree import *
 from .qhull import *
+from ._spherical_voronoi import SphericalVoronoi
 from ._plotutils import *
+from ._procrustes import procrustes
 
 __all__ = [s for s in dir() if not s.startswith('_')]
 __all__ += ['distance']

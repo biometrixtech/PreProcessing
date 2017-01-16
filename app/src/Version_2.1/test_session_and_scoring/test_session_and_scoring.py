@@ -72,9 +72,9 @@ class TestSessionAndScoring(unittest.TestCase):
         
         
         """
-        sensor_data = "dipesh_merged_II.csv"
+        sensor_data = "9f08e748-ceeb-42bf-a00a-29e465358def.csv"
 #        data = pd.read_csv(sensor_data)
-        file_name = "46d2f70d-7866-41a0-aae4-e5478ae9d4f3"
+        file_name = "9f08e748-ceeb-42bf-a00a-29e465358def"
         quer_read_id = """select id from session_events where
                             sensor_data_filename = %s"""
         quer_delete = """delete from movement where session_event_id = %s"""
@@ -117,14 +117,14 @@ class TestSessionAndScoring(unittest.TestCase):
 #        self.assertEqual(count, len(data))
 
         #Remove file from scoringcontainer and sessionprocessedcontainer
-        S3.Object(cont_scoring, file_name).delete()
-        S3.Object(cont_sess, 'processed_'+file_name).delete()
-        S3.Object(cont_sess, 'movement_'+file_name).delete()
-        
-        #Remove data from movement table
-        cur.execute(quer_delete, (session_event_id,))
-        conn.commit()
-        conn.close()
+#        S3.Object(cont_scoring, file_name).delete()
+#        S3.Object(cont_sess, 'processed_'+file_name).delete()
+#        S3.Object(cont_sess, 'movement_'+file_name).delete()
+#        
+#        #Remove data from movement table
+#        cur.execute(quer_delete, (session_event_id,))
+#        conn.commit()
+#        conn.close()
 
 #%%
 if __name__ == "__main__":      

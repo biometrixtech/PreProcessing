@@ -6,7 +6,7 @@ from __future__ import division, print_function, absolute_import
 
 from numpy.testing import assert_, dec, TestCase, run_module_suite
 
-from scipy.lib.six.moves import xrange
+from scipy._lib.six import xrange
 from scipy.optimize import nonlin, root
 from numpy import matrix, diag, dot
 from numpy.linalg import inv
@@ -25,6 +25,7 @@ MUST_WORK = {'anderson': nonlin.anderson, 'broyden1': nonlin.broyden1,
 # Test problems
 #-------------------------------------------------------------------------------
 
+
 def F(x):
     x = np.asmatrix(x).T
     d = matrix(diag([3,2,1.5,1,0.5]))
@@ -34,11 +35,19 @@ def F(x):
 F.xin = [1,1,1,1,1]
 F.KNOWN_BAD = {}
 
+
 def F2(x):
     return x
 F2.xin = [1,2,3,4,5,6]
 F2.KNOWN_BAD = {'linearmixing': nonlin.linearmixing,
                 'excitingmixing': nonlin.excitingmixing}
+
+
+def F2_lucky(x):
+    return x
+F2_lucky.xin = [0,0,0,0,0,0]
+F2_lucky.KNOWN_BAD = {}
+
 
 def F3(x):
     A = np.mat('-2 1 0; 1 -2 1; 0 1 -2')
@@ -46,6 +55,7 @@ def F3(x):
     return np.dot(A, x) - b
 F3.xin = [1,2,3]
 F3.KNOWN_BAD = {}
+
 
 def F4_powell(x):
     A = 1e4
@@ -55,6 +65,7 @@ F4_powell.KNOWN_BAD = {'linearmixing': nonlin.linearmixing,
                        'excitingmixing': nonlin.excitingmixing,
                        'diagbroyden': nonlin.diagbroyden}
 
+
 def F5(x):
     return pressure_network(x, 4, np.array([.5, .5, .5, .5]))
 F5.xin = [2., 0, 2, 0]
@@ -62,10 +73,11 @@ F5.KNOWN_BAD = {'excitingmixing': nonlin.excitingmixing,
                 'linearmixing': nonlin.linearmixing,
                 'diagbroyden': nonlin.diagbroyden}
 
+
 def F6(x):
     x1, x2 = x
-    J0 = np.array([[ -4.256     ,  14.7       ],
-                [  0.8394989 ,   0.59964207]])
+    J0 = np.array([[-4.256, 14.7],
+                [0.8394989, 0.59964207]])
     v = np.array([(x1 + 3) * (x2**5 - 7) + 3*6,
                   np.sin(x2 * np.exp(x1) - 1)])
     return -np.linalg.solve(J0, v)
@@ -74,9 +86,11 @@ F6.KNOWN_BAD = {'excitingmixing': nonlin.excitingmixing,
                 'linearmixing': nonlin.linearmixing,
                 'diagbroyden': nonlin.diagbroyden}
 
+
 #-------------------------------------------------------------------------------
 # Tests
 #-------------------------------------------------------------------------------
+
 
 class TestNonlin(object):
     """
@@ -101,8 +115,7 @@ class TestNonlin(object):
         pass
 
     def test_problem_nonlin(self):
-        """ Tests for nonlin functions """
-        for f in [F, F2, F3, F4_powell, F5, F6]:
+        for f in [F, F2, F2_lucky, F3, F4_powell, F5, F6]:
             for func in SOLVERS.values():
                 if func in f.KNOWN_BAD.values():
                     if func in MUST_WORK.values():
@@ -110,12 +123,23 @@ class TestNonlin(object):
                     continue
                 yield self._check_nonlin_func, f, func
 
+    def test_tol_norm_called(self):
+        # Check that supplying tol_norm keyword to nonlin_solve works
+        self._tol_norm_used = False
+
+        def local_norm_func(x):
+            self._tol_norm_used = True
+            return np.absolute(x).max()
+
+        nonlin.newton_krylov(F, F.xin, f_tol=1e-2, maxiter=200, verbose=0,
+             tol_norm=local_norm_func)
+        assert_(self._tol_norm_used)
+
     def test_problem_root(self):
-        """ Tests for root """
-        for f in [F, F2, F3, F4_powell, F5, F6]:
-            for meth in SOLVERS.keys():
-                if meth in f.KNOWN_BAD.keys():
-                    if meth in MUST_WORK.keys():
+        for f in [F, F2, F2_lucky, F3, F4_powell, F5, F6]:
+            for meth in SOLVERS:
+                if meth in f.KNOWN_BAD:
+                    if meth in MUST_WORK:
                         yield self._check_func_fail, f, meth
                     continue
                 yield self._check_root, f, meth
@@ -196,6 +220,7 @@ class TestSecant(TestCase):
         # .. [Ey] V. Eyert, J. Comp. Phys., 124, 271 (1996).
         self._check_secant(nonlin.Anderson, M=3, w0=0, npoints=3)
 
+
 class TestLinear(TestCase):
     """Solve a linear equation;
     some methods find the exact solution in a finite number of steps"""
@@ -248,6 +273,7 @@ class TestJacobianDotSolve(object):
         np.random.seed(123)
 
         N = 7
+
         def rand(*a):
             q = np.random.rand(*a)
             if complex:
@@ -328,8 +354,9 @@ class TestJacobianDotSolve(object):
         self._check_dot(nonlin.ExcitingMixing, complex=True)
 
     def test_krylov(self):
-        self._check_dot(nonlin.KrylovJacobian, complex=False, tol=1e-4)
-        self._check_dot(nonlin.KrylovJacobian, complex=True, tol=1e-4)
+        self._check_dot(nonlin.KrylovJacobian, complex=False, tol=1e-3)
+        self._check_dot(nonlin.KrylovJacobian, complex=True, tol=1e-3)
+
 
 class TestNonlinOldTests(TestCase):
     """ Test case for a simple constrained entropy maximization problem
@@ -338,17 +365,17 @@ class TestNonlinOldTests(TestCase):
     """
 
     def test_broyden1(self):
-        x= nonlin.broyden1(F,F.xin,iter=12,alpha=1)
+        x = nonlin.broyden1(F,F.xin,iter=12,alpha=1)
         assert_(nonlin.norm(x) < 1e-9)
         assert_(nonlin.norm(F(x)) < 1e-9)
 
     def test_broyden2(self):
-        x= nonlin.broyden2(F,F.xin,iter=12,alpha=1)
+        x = nonlin.broyden2(F,F.xin,iter=12,alpha=1)
         assert_(nonlin.norm(x) < 1e-9)
         assert_(nonlin.norm(F(x)) < 1e-9)
 
     def test_anderson(self):
-        x= nonlin.anderson(F,F.xin,iter=12,alpha=0.03,M=5)
+        x = nonlin.anderson(F,F.xin,iter=12,alpha=0.03,M=5)
         assert_(nonlin.norm(x) < 0.33)
 
     def test_linearmixing(self):
@@ -357,12 +384,12 @@ class TestNonlinOldTests(TestCase):
         assert_(nonlin.norm(F(x)) < 1e-7)
 
     def test_exciting(self):
-        x= nonlin.excitingmixing(F,F.xin,iter=20,alpha=0.5)
+        x = nonlin.excitingmixing(F,F.xin,iter=20,alpha=0.5)
         assert_(nonlin.norm(x) < 1e-5)
         assert_(nonlin.norm(F(x)) < 1e-5)
 
     def test_diagbroyden(self):
-        x= nonlin.diagbroyden(F,F.xin,iter=11,alpha=1)
+        x = nonlin.diagbroyden(F,F.xin,iter=11,alpha=1)
         assert_(nonlin.norm(x) < 1e-8)
         assert_(nonlin.norm(F(x)) < 1e-8)
 

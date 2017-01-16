@@ -1,5 +1,8 @@
 from __future__ import division, print_function, absolute_import
 
+import sys
+
+
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('scipy',parent_package,top_path)
@@ -9,8 +12,8 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage('integrate')
     config.add_subpackage('interpolate')
     config.add_subpackage('io')
-    config.add_subpackage('lib')
     config.add_subpackage('linalg')
+    config.add_data_files('*.pxd')
     config.add_subpackage('misc')
     config.add_subpackage('odr')
     config.add_subpackage('optimize')
@@ -20,8 +23,10 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage('special')
     config.add_subpackage('stats')
     config.add_subpackage('ndimage')
-    config.add_subpackage('weave')
+    if sys.version_info[0] < 3:
+        config.add_subpackage('weave')
     config.add_subpackage('_build_utils')
+    config.add_subpackage('_lib')
     config.make_config_py()
     return config
 

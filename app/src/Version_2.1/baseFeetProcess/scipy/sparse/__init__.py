@@ -5,7 +5,7 @@ Sparse matrices (:mod:`scipy.sparse`)
 
 .. currentmodule:: scipy.sparse
 
-SciPy 2-D sparse matrix package.
+SciPy 2-D sparse matrix package for numeric data.
 
 Contents
 ========
@@ -23,6 +23,7 @@ Sparse matrix classes
    dia_matrix - Sparse matrix with DIAgonal storage
    dok_matrix - Dictionary Of Keys based sparse matrix
    lil_matrix - Row-based linked list sparse matrix
+   spmatrix - Sparse matrix base class
 
 Functions
 ---------
@@ -45,6 +46,14 @@ Building sparse matrices:
    hstack - Stack sparse matrices horizontally (column wise)
    vstack - Stack sparse matrices vertically (row wise)
    rand - Random values in a given shape
+   random - Random values in a given shape
+
+Sparse matrix tools:
+
+.. autosummary::
+   :toctree: generated/
+
+   find
 
 Identifying sparse matrices:
 
@@ -93,10 +102,17 @@ There are seven available sparse matrix types:
     6. coo_matrix: COOrdinate format (aka IJV, triplet format)
     7. dia_matrix: DIAgonal format
 
-To construct a matrix efficiently, use either lil_matrix (recommended) or
-dok_matrix. The lil_matrix class supports basic slicing and fancy
-indexing with a similar syntax to NumPy arrays.  As illustrated below,
-the COO format may also be used to efficiently construct matrices.
+To construct a matrix efficiently, use either dok_matrix or lil_matrix.
+The lil_matrix class supports basic slicing and fancy indexing with a
+similar syntax to NumPy arrays. As illustrated below, the COO format
+may also be used to efficiently construct matrices. Despite their
+similarity to NumPy arrays, it is **strongly discouraged** to use NumPy
+functions directly on these matrices because NumPy may not properly convert
+them for computations, leading to unexpected (and incorrect) results. If you
+do want to apply a NumPy function to these matrices, first check if SciPy has
+its own implementation for the given sparse matrix class, or **convert the
+sparse matrix to a NumPy array** (e.g. using the `toarray()` method of the
+class) first before applying the method.
 
 To perform manipulations such as multiplication or inversion, first
 convert the matrix to either CSC or CSR format. The lil_matrix format is
@@ -105,6 +121,29 @@ is less so.
 
 All conversions among the CSR, CSC, and COO formats are efficient,
 linear-time operations.
+
+Matrix vector product
+---------------------
+To do a vector product between a sparse matrix and a vector simply use
+the matrix `dot` method, as described in its docstring:
+
+>>> import numpy as np
+>>> from scipy.sparse import csr_matrix
+>>> A = csr_matrix([[1, 2, 0], [0, 0, 3], [4, 0, 5]])
+>>> v = np.array([1, 0, -1])
+>>> A.dot(v)
+array([ 1, -3, -1], dtype=int64)
+
+.. warning:: As of NumPy 1.7, `np.dot` is not aware of sparse matrices,
+  therefore using it will result on unexpected results or errors.
+  The corresponding dense array should be obtained first instead:
+
+  >>> np.dot(A.toarray(), v)
+  array([ 1, -3, -1], dtype=int64)
+
+  but then all the performance advantages would be lost.
+
+The CSR format is specially suitable for fast matrix vector products.
 
 Example 1
 ---------
@@ -129,7 +168,7 @@ Now convert it to CSR format and solve A x = b for x:
 Convert it to a dense matrix and solve, and check that the result
 is the same:
 
->>> x_ = solve(A.todense(), b)
+>>> x_ = solve(A.toarray(), b)
 
 Now we can compute norm of the error with:
 

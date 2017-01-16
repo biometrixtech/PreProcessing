@@ -4,7 +4,7 @@ from __future__ import division, print_function, absolute_import
 import numpy
 from numpy import asarray_chkfinite, single, asarray
 
-from scipy.lib.six import callable
+from scipy._lib.six import callable
 
 # Local imports.
 from . import misc
@@ -15,6 +15,7 @@ from .decomp import eigvals
 __all__ = ['schur', 'rsf2csf']
 
 _double_precision = ['i','l','d']
+
 
 def schur(a, output='real', lwork=None, overwrite_a=False, sort=None,
           check_finite=True):
@@ -52,9 +53,9 @@ def schur(a, output='real', lwork=None, overwrite_a=False, sort=None,
             'ouc'   Outside the unit circle (x*x.conjugate() > 1.0)
 
         Defaults to None (no sorting).
-    check_finite : boolean, optional
-        Whether to check the input matrixes contain only finite numbers.
-        Disabling may give a performance gain, but may result to problems
+    check_finite : bool, optional
+        Whether to check that the input matrix contains only finite numbers.
+        Disabling may give a performance gain, but may result in problems
         (crashes, non-termination) if the inputs do contain infinities or NaNs.
 
     Returns
@@ -86,7 +87,7 @@ def schur(a, output='real', lwork=None, overwrite_a=False, sort=None,
     rsf2csf : Convert real Schur form to complex Schur form
 
     """
-    if not output in ['real','complex','r','c']:
+    if output not in ['real','complex','r','c']:
         raise ValueError("argument must be 'real', or 'complex'")
     if check_finite:
         a1 = asarray_chkfinite(a)
@@ -155,6 +156,7 @@ _array_kind = {'b':0, 'h':0, 'B': 0, 'i':0, 'l': 0, 'f': 0, 'd': 0, 'F': 1, 'D':
 _array_precision = {'i': 1, 'l': 1, 'f': 0, 'd': 1, 'F': 0, 'D': 1}
 _array_type = [['f', 'd'], ['F', 'D']]
 
+
 def _commonType(*arrays):
     kind = 0
     precision = 0
@@ -163,6 +165,7 @@ def _commonType(*arrays):
         kind = max(kind, _array_kind[t])
         precision = max(precision, _array_precision[t])
     return _array_type[kind][precision]
+
 
 def _castCopy(type, *arrays):
     cast_arrays = ()
@@ -190,9 +193,9 @@ def rsf2csf(T, Z, check_finite=True):
         Real Schur form of the original matrix
     Z : (M, M) array_like
         Schur transformation matrix
-    check_finite : boolean, optional
-        Whether to check the input matrixes contain only finite numbers.
-        Disabling may give a performance gain, but may result to problems
+    check_finite : bool, optional
+        Whether to check that the input matrices contain only finite numbers.
+        Disabling may give a performance gain, but may result in problems
         (crashes, non-termination) if the inputs do contain infinities or NaNs.
 
     Returns
@@ -240,5 +243,5 @@ def rsf2csf(T, Z, check_finite=True):
             T[i,k] = dot(T[i,k], Gc)
             i = slice(0, N)
             Z[i,k] = dot(Z[i,k], Gc)
-        T[m,m-1] = 0.0;
+        T[m,m-1] = 0.0
     return T, Z

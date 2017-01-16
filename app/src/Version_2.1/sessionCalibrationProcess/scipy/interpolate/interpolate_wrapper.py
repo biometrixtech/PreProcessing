@@ -4,10 +4,12 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from . import _interpolate # C extension.  Does all the real work.
+from . import _interpolate  # C extension.  Does all the real work.
 
-def atleast_1d_and_contiguous(ary, dtype = np.float64):
-    return np.atleast_1d( np.ascontiguousarray(ary, dtype) )
+
+def atleast_1d_and_contiguous(ary, dtype=np.float64):
+    return np.atleast_1d(np.ascontiguousarray(ary, dtype))
+
 
 def nearest(x, y, new_x):
     """
@@ -28,18 +30,17 @@ def nearest(x, y, new_x):
         Rounds each `new_x` to nearest `x` and returns the corresponding `y`.
 
     """
-    shifted_x = np.concatenate(( np.array([x[0]-1]) , x[0:-1] ))
+    shifted_x = np.concatenate((np.array([x[0]-1]), x[0:-1]))
 
-    midpoints_of_x = atleast_1d_and_contiguous( .5*(x + shifted_x) )
+    midpoints_of_x = atleast_1d_and_contiguous(.5*(x + shifted_x))
     new_x = atleast_1d_and_contiguous(new_x)
 
     TINY = 1e-10
     indices = np.searchsorted(midpoints_of_x, new_x+TINY)-1
-    indices = np.atleast_1d(np.clip(indices, 0, np.Inf).astype(np.int))
+    indices = np.atleast_1d(np.clip(indices, 0, np.Inf).astype(int))
     new_y = np.take(y, indices, axis=-1)
 
     return new_y
-
 
 
 def linear(x, y, new_x):
@@ -64,13 +65,14 @@ def linear(x, y, new_x):
         raise ValueError("`linear` only works with 1-D or 2-D arrays.")
     if len(y.shape) == 2:
         new_y = np.zeros((y.shape[0], len(new_x)), np.float64)
-        for i in range(len(new_y)): # for each row
+        for i in range(len(new_y)):  # for each row
             _interpolate.linear_dddd(x, y[i], new_x, new_y[i])
     else:
         new_y = np.zeros(len(new_x), np.float64)
         _interpolate.linear_dddd(x, y, new_x, new_y)
 
     return new_y
+
 
 def logarithmic(x, y, new_x):
     """
@@ -101,6 +103,7 @@ def logarithmic(x, y, new_x):
         _interpolate.loginterp_dddd(x, y, new_x, new_y)
 
     return new_y
+
 
 def block_average_above(x, y, new_x):
     """
@@ -142,6 +145,7 @@ def block_average_above(x, y, new_x):
 
     return new_y
 
+
 def block(x, y, new_x):
     """
     Essentially a step function.
@@ -155,7 +159,7 @@ def block(x, y, new_x):
         Independent values.
     y : array_like
         Dependent values.
-    x_new : array_like
+    new_x : array_like
         The x values used to calculate the interpolated y.
 
     Returns
@@ -164,7 +168,7 @@ def block(x, y, new_x):
         Return array, of same length as `x_new`.
 
     """
-    # find index of values in x that preceed values in x
+    # find index of values in x that precede values in x
     # This code is a little strange -- we really want a routine that
     # returns the index of values where x[j] < x[index]
     TINY = 1e-10
@@ -173,6 +177,6 @@ def block(x, y, new_x):
     # If the value is at the front of the list, it'll have -1.
     # In this case, we will use the first (0), element in the array.
     # take requires the index array to be an Int
-    indices = np.atleast_1d(np.clip(indices, 0, np.Inf).astype(np.int))
+    indices = np.atleast_1d(np.clip(indices, 0, np.Inf).astype(int))
     new_y = np.take(y, indices, axis=-1)
     return new_y

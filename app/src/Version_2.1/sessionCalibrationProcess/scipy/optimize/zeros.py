@@ -6,19 +6,32 @@ from . import _zeros
 from numpy import finfo, sign, sqrt
 
 _iter = 100
-_xtol = 1e-12
-# not actually used at the moment
-_rtol = finfo(float).eps * 2
+_xtol = 2e-12
+_rtol = 4*finfo(float).eps
 
 __all__ = ['newton', 'bisect', 'ridder', 'brentq', 'brenth']
 
 CONVERGED = 'converged'
 SIGNERR = 'sign error'
 CONVERR = 'convergence error'
-flag_map = {0 : CONVERGED, -1 : SIGNERR, -2 : CONVERR}
+flag_map = {0: CONVERGED, -1: SIGNERR, -2: CONVERR}
 
 
 class RootResults(object):
+    """ Represents the root finding result.
+    Attributes
+    ----------
+    root : float
+        Estimated root location.
+    iterations : int
+        Number of iterations needed to find the root.
+    function_calls : int
+        Number of times the function was called.
+    converged : bool
+        True if the routine converged.
+    flag : str
+        Description of the cause of termination.
+    """
     def __init__(self, root, iterations, function_calls, flag):
         self.root = root
         self.iterations = iterations
@@ -28,6 +41,13 @@ class RootResults(object):
             self.flag = flag_map[flag]
         except KeyError:
             self.flag = 'unknown error %d' % (flag,)
+
+    def __repr__(self):
+        attrs = ['converged', 'flag', 'function_calls',
+                 'iterations', 'root']
+        m = max(map(len, attrs)) + 1
+        return '\n'.join([a.rjust(m) + ': ' + repr(getattr(self, a))
+                          for a in attrs])
 
 
 def results_c(full_output, r):
@@ -104,6 +124,10 @@ def newton(func, x0, fprime=None, args=(), tol=1.48e-8, maxiter=50,
     dimensional problems when such an interval has been found.
 
     """
+    if tol <= 0:
+        raise ValueError("tol too small (%g <= 0)" % tol)
+    if maxiter < 1:
+        raise ValueError("maxiter must be greater than 0")
     if fprime is not None:
         # Newton-Rapheson method
         # Multiply by 1.0 to convert to floating point.  We don't use float(x0)
@@ -167,7 +191,7 @@ def bisect(f, a, b, args=(),
     Find root of a function within an interval.
 
     Basic bisection routine to find a zero of the function `f` between the
-    arguments `a` and `b`. `f(a)` and `f(b)` can not have the same signs.
+    arguments `a` and `b`. `f(a)` and `f(b)` cannot have the same signs.
     Slow but sure.
 
     Parameters
@@ -180,11 +204,16 @@ def bisect(f, a, b, args=(),
     b : number
         The other end of the bracketing interval [a,b].
     xtol : number, optional
-        The routine converges when a root is known to lie within `xtol` of the
-        value return. Should be >= 0.  The routine modifies this to take into
-        account the relative precision of doubles.
+        The computed root ``x0`` will satisfy ``np.allclose(x, x0,
+        atol=xtol, rtol=rtol)``, where ``x`` is the exact root. The
+        parameter must be nonnegative.
+    rtol : number, optional
+        The computed root ``x0`` will satisfy ``np.allclose(x, x0,
+        atol=xtol, rtol=rtol)``, where ``x`` is the exact root. The
+        parameter cannot be smaller than its default value of
+        ``4*np.finfo(float).eps``.
     maxiter : number, optional
-        if convergence is not achieved in `maxiter` iterations, and error is
+        if convergence is not achieved in `maxiter` iterations, an error is
         raised.  Must be >= 0.
     args : tuple, optional
         containing extra arguments for the function `f`.
@@ -211,9 +240,13 @@ def bisect(f, a, b, args=(),
     fsolve : n-dimensional root-finding
 
     """
-    if type(args) != type(()) :
+    if not isinstance(args, tuple):
         args = (args,)
-    r = _zeros._bisect(f,a,b,xtol,maxiter,args,full_output,disp)
+    if xtol <= 0:
+        raise ValueError("xtol too small (%g <= 0)" % xtol)
+    if rtol < _rtol:
+        raise ValueError("rtol too small (%g < %g)" % (rtol, _rtol))
+    r = _zeros._bisect(f,a,b,xtol,rtol,maxiter,args,full_output,disp)
     return results_c(full_output, r)
 
 
@@ -233,11 +266,16 @@ def ridder(f, a, b, args=(),
     b : number
         The other end of the bracketing interval [a,b].
     xtol : number, optional
-        The routine converges when a root is known to lie within xtol of the
-        value return. Should be >= 0.  The routine modifies this to take into
-        account the relative precision of doubles.
+        The computed root ``x0`` will satisfy ``np.allclose(x, x0,
+        atol=xtol, rtol=rtol)``, where ``x`` is the exact root. The
+        parameter must be nonnegative.
+    rtol : number, optional
+        The computed root ``x0`` will satisfy ``np.allclose(x, x0,
+        atol=xtol, rtol=rtol)``, where ``x`` is the exact root. The
+        parameter cannot be smaller than its default value of
+        ``4*np.finfo(float).eps``.
     maxiter : number, optional
-        if convergence is not achieved in maxiter iterations, and error is
+        if convergence is not achieved in maxiter iterations, an error is
         raised.  Must be >= 0.
     args : tuple, optional
         containing extra arguments for the function `f`.
@@ -281,9 +319,13 @@ def ridder(f, a, b, args=(),
        IEEE Trans. Circuits Systems 26, 979-980, 1979.
 
     """
-    if type(args) != type(()) :
+    if not isinstance(args, tuple):
         args = (args,)
-    r = _zeros._ridder(f,a,b,xtol,maxiter,args,full_output,disp)
+    if xtol <= 0:
+        raise ValueError("xtol too small (%g <= 0)" % xtol)
+    if rtol < _rtol:
+        raise ValueError("rtol too small (%g < %g)" % (rtol, _rtol))
+    r = _zeros._ridder(f,a,b,xtol,rtol,maxiter,args,full_output,disp)
     return results_c(full_output, r)
 
 
@@ -291,18 +333,14 @@ def brentq(f, a, b, args=(),
            xtol=_xtol, rtol=_rtol, maxiter=_iter,
            full_output=False, disp=True):
     """
-    Find a root of a function in given interval.
+    Find a root of a function in a bracketing interval using Brent's method.
 
-    Return float, a zero of `f` between `a` and `b`.  `f` must be a continuous
-    function, and [a,b] must be a sign changing interval.
-
-    Description:
-    Uses the classic Brent (1973) method to find a zero of the function `f` on
+    Uses the classic Brent's method to find a zero of the function `f` on
     the sign changing interval [a , b].  Generally considered the best of the
     rootfinding routines here.  It is a safe version of the secant method that
     uses inverse quadratic extrapolation.  Brent's method combines root
     bracketing, interval bisection, and inverse quadratic interpolation.  It is
-    sometimes known as the van Wijngaarden-Deker-Brent method.  Brent (1973)
+    sometimes known as the van Wijngaarden-Dekker-Brent method.  Brent (1973)
     claims convergence is guaranteed for functions computable within [a,b].
 
     [Brent1973]_ provides the classic description of the algorithm.  Another
@@ -316,18 +354,28 @@ def brentq(f, a, b, args=(),
     Parameters
     ----------
     f : function
-        Python function returning a number.  f must be continuous, and f(a) and
-        f(b) must have opposite signs.
+        Python function returning a number.  The function :math:`f`
+        must be continuous, and :math:`f(a)` and :math:`f(b)` must
+        have opposite signs.
     a : number
-        One end of the bracketing interval [a,b].
+        One end of the bracketing interval :math:`[a, b]`.
     b : number
-        The other end of the bracketing interval [a,b].
+        The other end of the bracketing interval :math:`[a, b]`.
     xtol : number, optional
-        The routine converges when a root is known to lie within xtol of the
-        value return. Should be >= 0.  The routine modifies this to take into
-        account the relative precision of doubles.
+        The computed root ``x0`` will satisfy ``np.allclose(x, x0,
+        atol=xtol, rtol=rtol)``, where ``x`` is the exact root. The
+        parameter must be nonnegative. For nice functions, Brent's
+        method will often satisfy the above condition will ``xtol/2``
+        and ``rtol/2``. [Brent1973]_
+    rtol : number, optional
+        The computed root ``x0`` will satisfy ``np.allclose(x, x0,
+        atol=xtol, rtol=rtol)``, where ``x`` is the exact root. The
+        parameter cannot be smaller than its default value of
+        ``4*np.finfo(float).eps``. For nice functions, Brent's
+        method will often satisfy the above condition will ``xtol/2``
+        and ``rtol/2``. [Brent1973]_
     maxiter : number, optional
-        if convergence is not achieved in maxiter iterations, and error is
+        if convergence is not achieved in maxiter iterations, an error is
         raised.  Must be >= 0.
     args : tuple, optional
         containing extra arguments for the function `f`.
@@ -356,7 +404,7 @@ def brentq(f, a, b, args=(),
     constrained multivariate optimizers
       `fmin_l_bfgs_b`, `fmin_tnc`, `fmin_cobyla`
     global optimizers
-      `anneal`, `basinhopping`, `brute`
+      `basinhopping`, `brute`, `differential_evolution`
     local scalar minimizers
       `fminbound`, `brent`, `golden`, `bracket`
     n-dimensional root-finding
@@ -385,9 +433,13 @@ def brentq(f, a, b, args=(),
        Section 9.3:  "Van Wijngaarden-Dekker-Brent Method."
 
     """
-    if type(args) != type(()) :
+    if not isinstance(args, tuple):
         args = (args,)
-    r = _zeros._brentq(f,a,b,xtol,maxiter,args,full_output,disp)
+    if xtol <= 0:
+        raise ValueError("xtol too small (%g <= 0)" % xtol)
+    if rtol < _rtol:
+        raise ValueError("rtol too small (%g < %g)" % (rtol, _rtol))
+    r = _zeros._brentq(f,a,b,xtol,rtol,maxiter,args,full_output,disp)
     return results_c(full_output, r)
 
 
@@ -399,7 +451,7 @@ def brenth(f, a, b, args=(),
     A variation on the classic Brent routine to find a zero of the function f
     between the arguments a and b that uses hyperbolic extrapolation instead of
     inverse quadratic extrapolation. There was a paper back in the 1980's ...
-    f(a) and f(b) can not have the same signs. Generally on a par with the
+    f(a) and f(b) cannot have the same signs. Generally on a par with the
     brent routine, but not as heavily tested.  It is a safe version of the
     secant method that uses hyperbolic extrapolation. The version here is by
     Chuck Harris.
@@ -414,11 +466,20 @@ def brenth(f, a, b, args=(),
     b : number
         The other end of the bracketing interval [a,b].
     xtol : number, optional
-        The routine converges when a root is known to lie within xtol of the
-        value return. Should be >= 0.  The routine modifies this to take into
-        account the relative precision of doubles.
+        The computed root ``x0`` will satisfy ``np.allclose(x, x0,
+        atol=xtol, rtol=rtol)``, where ``x`` is the exact root. The
+        parameter must be nonnegative. As with `brentq`, for nice
+        functions the method will often satisfy the above condition
+        will ``xtol/2`` and ``rtol/2``.
+    rtol : number, optional
+        The computed root ``x0`` will satisfy ``np.allclose(x, x0,
+        atol=xtol, rtol=rtol)``, where ``x`` is the exact root. The
+        parameter cannot be smaller than its default value of
+        ``4*np.finfo(float).eps``. As with `brentq`, for nice functions
+        the method will often satisfy the above condition will
+        ``xtol/2`` and ``rtol/2``.
     maxiter : number, optional
-        if convergence is not achieved in maxiter iterations, and error is
+        if convergence is not achieved in maxiter iterations, an error is
         raised.  Must be >= 0.
     args : tuple, optional
         containing extra arguments for the function `f`.
@@ -447,7 +508,7 @@ def brenth(f, a, b, args=(),
 
     fmin_l_bfgs_b, fmin_tnc, fmin_cobyla : constrained multivariate optimizers
 
-    anneal, brute : global optimizers
+    basinhopping, differential_evolution, brute : global optimizers
 
     fminbound, brent, golden, bracket : local scalar minimizers
 
@@ -458,7 +519,11 @@ def brenth(f, a, b, args=(),
     fixed_point : scalar fixed-point finder
 
     """
-    if type(args) != type(()) :
+    if not isinstance(args, tuple):
         args = (args,)
-    r = _zeros._brenth(f,a, b, xtol, maxiter, args, full_output, disp)
+    if xtol <= 0:
+        raise ValueError("xtol too small (%g <= 0)" % xtol)
+    if rtol < _rtol:
+        raise ValueError("rtol too small (%g < %g)" % (rtol, _rtol))
+    r = _zeros._brenth(f,a, b, xtol, rtol, maxiter, args, full_output, disp)
     return results_c(full_output, r)

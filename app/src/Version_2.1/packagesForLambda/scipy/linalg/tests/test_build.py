@@ -11,6 +11,8 @@ from scipy.linalg import _flapack as flapack
 
 # XXX: this is copied from numpy trunk. Can be removed when we will depend on
 # numpy 1.3
+
+
 class FindDependenciesLdd:
     def __init__(self):
         self.cmd = ['ldd']
@@ -24,7 +26,7 @@ class FindDependenciesLdd:
         p = Popen(self.cmd + [file], stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
         if not (p.returncode == 0):
-            raise RuntimeError("Failed to check dependencies for %s" % libfile)
+            raise RuntimeError("Failed to check dependencies for %s" % file)
 
         return stdout
 
@@ -40,6 +42,7 @@ class FindDependenciesLdd:
 
         return founds
 
+
 class TestF77Mismatch(TestCase):
     @dec.skipif(not(sys.platform[:5] == 'linux'),
                 "Skipping fortran compiler mismatch on non Linux platform")
@@ -49,5 +52,5 @@ class TestF77Mismatch(TestCase):
                                    ['libg2c', 'libgfortran'])
         self.assertFalse(len(deps) > 1,
 """Both g77 and gfortran runtimes linked in scipy.linalg.flapack ! This is
-likely to cause random crashes and wrong results. See numpy INSTALL.txt for
+likely to cause random crashes and wrong results. See numpy INSTALL.rst.txt for
 more information.""")

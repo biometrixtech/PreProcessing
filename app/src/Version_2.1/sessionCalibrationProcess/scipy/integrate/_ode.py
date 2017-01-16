@@ -88,7 +88,7 @@ __docformat__ = "restructuredtext en"
 import re
 import warnings
 
-from numpy import asarray, array, zeros, int32, isscalar, real, imag
+from numpy import asarray, array, zeros, int32, isscalar, real, imag, vstack
 
 from . import vode as _vode
 from . import _dop
@@ -106,15 +106,20 @@ class ode(object):
 
     Solve an equation system :math:`y'(t) = f(t,y)` with (optional) ``jac = df/dy``.
 
+    *Note*: The first two arguments of ``f(t, y, ...)`` are in the
+    opposite order of the arguments in the system definition function used
+    by `scipy.integrate.odeint`.
+
     Parameters
     ----------
     f : callable ``f(t, y, *f_args)``
-        Rhs of the equation. t is a scalar, ``y.shape == (n,)``.
+        Right-hand side of the differential equation. t is a scalar,
+        ``y.shape == (n,)``.
         ``f_args`` is set by calling ``set_f_params(*args)``.
         `f` should return a scalar, array or list (not a tuple).
-    jac : callable ``jac(t, y, *jac_args)``
-        Jacobian of the rhs, ``jac[i,j] = d f[i] / d y[j]``.
-        ``jac_args`` is set by calling ``set_f_params(*args)``.
+    jac : callable ``jac(t, y, *jac_args)``, optional
+        Jacobian of the right-hand side, ``jac[i,j] = d f[i] / d y[j]``.
+        ``jac_args`` is set by calling ``set_jac_params(*args)``.
 
     Attributes
     ----------
@@ -155,14 +160,20 @@ class ode(object):
         - rtol : float or sequence
           relative tolerance for solution
         - lband : None or int
-        - rband : None or int
-          Jacobian band width, jac[i,j] != 0 for i-lband <= j <= i+rband.
+        - uband : None or int
+          Jacobian band width, jac[i,j] != 0 for i-lband <= j <= i+uband.
           Setting these requires your jac routine to return the jacobian
-          in packed format, jac_packed[i-j+lband, j] = jac[i,j].
+          in packed format, jac_packed[i-j+uband, j] = jac[i,j]. The
+          dimension of the matrix must be (lband+uband+1, len(y)).
         - method: 'adams' or 'bdf'
           Which solver to use, Adams (non-stiff) or BDF (stiff)
         - with_jacobian : bool
-          Whether to use the jacobian
+          This option is only considered when the user has not supplied a
+          Jacobian function and has not indicated (by setting either band)
+          that the Jacobian is banded.  In this case, `with_jacobian` specifies
+          whether the iteration method of the ODE solver's correction step is
+          chord iteration with an internally generated full Jacobian or
+          functional iteration with no Jacobian.
         - nsteps : int
           Maximum number of (internally defined) steps allowed during one
           call to the solver.
@@ -226,12 +237,12 @@ class ode(object):
         - rtol : float or sequence
           relative tolerance for solution
         - lband : None or int
-        - rband : None or int
-          Jacobian band width, jac[i,j] != 0 for i-lband <= j <= i+rband.
+        - uband : None or int
+          Jacobian band width, jac[i,j] != 0 for i-lband <= j <= i+uband.
           Setting these requires your jac routine to return the jacobian
-          in packed format, jac_packed[i-j+lband, j] = jac[i,j].
+          in packed format, jac_packed[i-j+uband, j] = jac[i,j].
         - with_jacobian : bool
-          Whether to use the jacobian
+          *Not used.*
         - nsteps : int
           Maximum number of (internally defined) steps allowed during one
           call to the solver.
@@ -282,6 +293,8 @@ class ode(object):
           Maximum factor to increase/decrease step size by in one step
         - beta : float
           Beta parameter for stabilised step size control.
+        - verbosity : int
+          Switch for printing messages (< 0 for no messages).
 
     "dop853"
 
@@ -300,19 +313,28 @@ class ode(object):
     >>> y0, t0 = [1.0j, 2.0], 0
     >>>
     >>> def f(t, y, arg1):
-    >>>     return [1j*arg1*y[0] + y[1], -arg1*y[1]**2]
+    ...     return [1j*arg1*y[0] + y[1], -arg1*y[1]**2]
     >>> def jac(t, y, arg1):
-    >>>     return [[1j*arg1, 1], [0, -arg1*2*y[1]]]
+    ...     return [[1j*arg1, 1], [0, -arg1*2*y[1]]]
 
     The integration:
 
-    >>> r = ode(f, jac).set_integrator('zvode', method='bdf', with_jacobian=True)
+    >>> r = ode(f, jac).set_integrator('zvode', method='bdf')
     >>> r.set_initial_value(y0, t0).set_f_params(2.0).set_jac_params(2.0)
     >>> t1 = 10
     >>> dt = 1
     >>> while r.successful() and r.t < t1:
-    >>>     r.integrate(r.t+dt)
-    >>>     print r.t, r.y
+    ...     print(r.t+dt, r.integrate(r.t+dt))
+    (1, array([-0.71038232+0.23749653j,  0.40000271+0.j        ]))
+    (2.0, array([ 0.19098503-0.52359246j,  0.22222356+0.j        ]))
+    (3.0, array([ 0.47153208+0.52701229j,  0.15384681+0.j        ]))
+    (4.0, array([-0.61905937+0.30726255j,  0.11764744+0.j        ]))
+    (5.0, array([ 0.02340997-0.61418799j,  0.09523835+0.j        ]))
+    (6.0, array([ 0.58643071+0.339819j,  0.08000018+0.j      ]))
+    (7.0, array([-0.52070105+0.44525141j,  0.06896565+0.j        ]))
+    (8.0, array([-0.15986733-0.61234476j,  0.06060616+0.j        ]))
+    (9.0, array([ 0.64850462+0.15048982j,  0.05405414+0.j        ]))
+    (10.0, array([-0.38404699+0.56382299j,  0.04878055+0.j        ]))
 
     References
     ----------
@@ -354,7 +376,7 @@ class ode(object):
         ----------
         name : str
             Name of the integrator.
-        integrator_params :
+        integrator_params
             Additional parameters for the integrator.
         """
         integrator = find_integrator(name)
@@ -408,6 +430,47 @@ class ode(object):
         self.jac_params = args
         return self
 
+    def set_solout(self, solout):
+        """
+        Set callable to be called at every successful integration step.
+
+        Parameters
+        ----------
+        solout : callable
+            ``solout(t, y)`` is called at each internal integrator step,
+            t is a scalar providing the current independent position
+            y is the current soloution ``y.shape == (n,)``
+            solout should return -1 to stop integration
+            otherwise it should return None or 0
+
+        """
+        if self._integrator.supports_solout:
+            self._integrator.set_solout(solout)
+            if self._y is not None:
+                self._integrator.reset(len(self._y), self.jac is not None)
+        else:
+            raise ValueError("selected integrator does not support solout,"
+                            + " choose another one")
+
+
+def _transform_banded_jac(bjac):
+    """
+    Convert a real matrix of the form (for example)
+
+        [0 0 A B]        [0 0 0 B]
+        [0 0 C D]        [0 0 A D]
+        [E F G H]   to   [0 F C H]
+        [I J K L]        [E J G L]
+                         [I 0 K 0]
+
+    That is, every other column is shifted up one.
+    """
+    # Shift every other column.
+    newjac = zeros((bjac.shape[0] + 1, bjac.shape[1]))
+    newjac[1:,::2] = bjac[:, ::2]
+    newjac[:-1, 1::2] = bjac[:, 1::2]
+    return newjac
+
 
 class complex_ode(ode):
     """
@@ -448,16 +511,34 @@ class complex_ode(ode):
 
     def _wrap(self, t, y, *f_args):
         f = self.cf(*((t, y[::2] + 1j * y[1::2]) + f_args))
+        # self.tmp is a real-valued array containing the interleaved
+        # real and imaginary parts of f.
         self.tmp[::2] = real(f)
         self.tmp[1::2] = imag(f)
         return self.tmp
 
     def _wrap_jac(self, t, y, *jac_args):
+        # jac is the complex Jacobian computed by the user-defined function.
         jac = self.cjac(*((t, y[::2] + 1j * y[1::2]) + jac_args))
-        self.jac_tmp[1::2, 1::2] = self.jac_tmp[::2, ::2] = real(jac)
-        self.jac_tmp[1::2, ::2] = imag(jac)
-        self.jac_tmp[::2, 1::2] = -self.jac_tmp[1::2, ::2]
-        return self.jac_tmp
+
+        # jac_tmp is the real version of the complex Jacobian.  Each complex
+        # entry in jac, say 2+3j, becomes a 2x2 block of the form
+        #     [2 -3]
+        #     [3  2]
+        jac_tmp = zeros((2*jac.shape[0], 2*jac.shape[1]))
+        jac_tmp[1::2, 1::2] = jac_tmp[::2, ::2] = real(jac)
+        jac_tmp[1::2, ::2] = imag(jac)
+        jac_tmp[::2, 1::2] = -jac_tmp[1::2, ::2]
+
+        ml = getattr(self._integrator, 'ml', None)
+        mu = getattr(self._integrator, 'mu', None)
+        if ml is not None or mu is not None:
+            # Jacobian is banded.  The user's Jacobian function has computed
+            # the complex Jacobian in packed format.  The corresponding
+            # real-valued version has every other column shifted up.
+            jac_tmp = _transform_banded_jac(jac_tmp)
+
+        return jac_tmp
 
     @property
     def y(self):
@@ -471,11 +552,22 @@ class complex_ode(ode):
         ----------
         name : str
             Name of the integrator
-        integrator_params :
+        integrator_params
             Additional parameters for the integrator.
         """
         if name == 'zvode':
-            raise ValueError("zvode should be used with ode, not zode")
+            raise ValueError("zvode must be used with ode, not complex_ode")
+
+        lband = integrator_params.get('lband')
+        uband = integrator_params.get('uband')
+        if lband is not None or uband is not None:
+            # The Jacobian is banded.  Override the user-supplied bandwidths
+            # (which are for the complex Jacobian) with the bandwidths of
+            # the corresponding real-valued Jacobian wrapper of the complex
+            # Jacobian.
+            integrator_params['lband'] = 2*(lband or 0) + 1
+            integrator_params['uband'] = 2*(uband or 0) + 1
+
         return ode.set_integrator(self, name, **integrator_params)
 
     def set_initial_value(self, y, t=0.0):
@@ -484,14 +576,32 @@ class complex_ode(ode):
         self.tmp = zeros(y.size * 2, 'float')
         self.tmp[::2] = real(y)
         self.tmp[1::2] = imag(y)
-        if self.cjac is not None:
-            self.jac_tmp = zeros((y.size * 2, y.size * 2), 'float')
         return ode.set_initial_value(self, self.tmp, t)
 
     def integrate(self, t, step=0, relax=0):
         """Find y=y(t), set y as an initial condition, and return y."""
         y = ode.integrate(self, t, step, relax)
         return y[::2] + 1j * y[1::2]
+
+    def set_solout(self, solout):
+        """
+        Set callable to be called at every successful integration step.
+
+        Parameters
+        ----------
+        solout : callable
+            ``solout(t, y)`` is called at each internal integrator step,
+            t is a scalar providing the current independent position
+            y is the current soloution ``y.shape == (n,)``
+            solout should return -1 to stop integration
+            otherwise it should return None or 0
+
+        """
+        if self._integrator.supports_solout:
+            self._integrator.set_solout(solout, complex=True)
+        else:
+            raise TypeError("selected integrator does not support solouta,"
+                            + "choose another one")
 
 
 #------------------------------------------------------------------------------
@@ -503,6 +613,7 @@ def find_integrator(name):
         if re.match(name, cl.__name__, re.I):
             return cl
     return None
+
 
 class IntegratorConcurrencyError(RuntimeError):
     """
@@ -517,12 +628,14 @@ class IntegratorConcurrencyError(RuntimeError):
                "(see `ode.set_integrator`)") % name
         RuntimeError.__init__(self, msg)
 
+
 class IntegratorBase(object):
 
     runner = None            # runner is None => integrator is not available
     success = None           # success==1 if integrator was called successfully
     supports_run_relax = None
     supports_step = None
+    supports_solout = False
     integrator_classes = []
     scalar = float
 
@@ -564,6 +677,20 @@ class IntegratorBase(object):
     #XXX: __str__ method for getting visual state of the integrator
 
 
+def _vode_banded_jac_wrapper(jacfunc, ml, jac_params):
+    """
+    Wrap a banded Jacobian function with a function that pads
+    the Jacobian with `ml` rows of zeros.
+    """
+
+    def jac_wrapper(t, y):
+        jac = asarray(jacfunc(t, y, *jac_params))
+        padded_jac = vstack((jac, zeros((ml, jac.shape[1]))))
+        return padded_jac
+
+    return jac_wrapper
+
+
 class vode(IntegratorBase):
 
     runner = getattr(_vode, 'dvode', None)
@@ -583,7 +710,7 @@ class vode(IntegratorBase):
 
     def __init__(self,
                  method='adams',
-                 with_jacobian=0,
+                 with_jacobian=False,
                  rtol=1e-6, atol=1e-12,
                  lband=None, uband=None,
                  order=12,
@@ -614,33 +741,67 @@ class vode(IntegratorBase):
 
         self.initialized = False
 
-    def reset(self, n, has_jac):
-        # Calculate parameters for Fortran subroutine dvode.
+    def _determine_mf_and_set_bands(self, has_jac):
+        """
+        Determine the `MF` parameter (Method Flag) for the Fortran subroutine `dvode`.
+
+        In the Fortran code, the legal values of `MF` are:
+            10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25,
+            -11, -12, -14, -15, -21, -22, -24, -25
+        but this python wrapper does not use negative values.
+
+        Returns
+
+            mf  = 10*self.meth + miter
+
+        self.meth is the linear multistep method:
+            self.meth == 1:  method="adams"
+            self.meth == 2:  method="bdf"
+
+        miter is the correction iteration method:
+            miter == 0:  Functional iteraton; no Jacobian involved.
+            miter == 1:  Chord iteration with user-supplied full Jacobian
+            miter == 2:  Chord iteration with internally computed full Jacobian
+            miter == 3:  Chord iteration with internally computed diagonal Jacobian
+            miter == 4:  Chord iteration with user-supplied banded Jacobian
+            miter == 5:  Chord iteration with internally computed banded Jacobian
+
+        Side effects: If either self.mu or self.ml is not None and the other is None,
+        then the one that is None is set to 0.
+        """
+
+        jac_is_banded = self.mu is not None or self.ml is not None
+        if jac_is_banded:
+            if self.mu is None:
+                self.mu = 0
+            if self.ml is None:
+                self.ml = 0
+
+        # has_jac is True if the user provided a jacobian function.
         if has_jac:
-            if self.mu is None and self.ml is None:
-                miter = 1
-            else:
-                if self.mu is None:
-                    self.mu = 0
-                if self.ml is None:
-                    self.ml = 0
+            if jac_is_banded:
                 miter = 4
-        else:
-            if self.mu is None and self.ml is None:
-                if self.with_jacobian:
-                    miter = 2
-                else:
-                    miter = 0
             else:
-                if self.mu is None:
-                    self.mu = 0
-                if self.ml is None:
-                    self.ml = 0
+                miter = 1
+        else:
+            if jac_is_banded:
                 if self.ml == self.mu == 0:
-                    miter = 3
+                    miter = 3  # Chord iteration with internal diagonal Jacobian.
                 else:
-                    miter = 5
+                    miter = 5  # Chord iteration with internal banded Jacobian.
+            else:
+                # self.with_jacobian is set by the user in the call to ode.set_integrator.
+                if self.with_jacobian:
+                    miter = 2  # Chord iteration with internal full Jacobian.
+                else:
+                    miter = 0  # Functional iteraton; no Jacobian involved.
+
         mf = 10 * self.meth + miter
+        return mf
+
+    def reset(self, n, has_jac):
+        mf = self._determine_mf_and_set_bands(has_jac)
+
         if mf == 10:
             lrw = 20 + 16 * n
         elif mf in [11, 12]:
@@ -659,15 +820,18 @@ class vode(IntegratorBase):
             lrw = 22 + 11 * n + (3 * self.ml + 2 * self.mu) * n
         else:
             raise ValueError('Unexpected mf=%s' % mf)
-        if miter in [0, 3]:
+
+        if mf % 10 in [0, 3]:
             liw = 30
         else:
             liw = 30 + n
+
         rwork = zeros((lrw,), float)
         rwork[4] = self.first_step
         rwork[5] = self.max_step
         rwork[6] = self.min_step
         self.rwork = rwork
+
         iwork = zeros((liw,), int32)
         if self.ml is not None:
             iwork[0] = self.ml
@@ -677,21 +841,30 @@ class vode(IntegratorBase):
         iwork[5] = self.nsteps
         iwork[6] = 2           # mxhnil
         self.iwork = iwork
+
         self.call_args = [self.rtol, self.atol, 1, 1,
                           self.rwork, self.iwork, mf]
         self.success = 1
         self.initialized = False
 
-    def run(self, *args):
+    def run(self, f, jac, y0, t0, t1, f_params, jac_params):
         if self.initialized:
             self.check_handle()
         else:
             self.initialized = True
             self.acquire_new_handle()
-        y1, t, istate = self.runner(*(args[:5] + tuple(self.call_args) +
-                                      args[5:]))
+
+        if self.ml is not None and self.ml > 0:
+            # Banded Jacobian.  Wrap the user-provided function with one
+            # that pads the Jacobian array with the extra `self.ml` rows
+            # required by the f2py-generated wrapper.
+            jac = _vode_banded_jac_wrapper(jac, self.ml, jac_params)
+
+        args = ((f, jac, y0, t0, t1) + tuple(self.call_args) +
+                (f_params, jac_params))
+        y1, t, istate = self.runner(*args)
         if istate < 0:
-            warnings.warn('vode: ' +
+            warnings.warn(self.__class__.__name__ + ': ' +
                           self.messages.get(istate,
                                             'Unexpected istate=%s' % istate))
             self.success = 0
@@ -727,33 +900,7 @@ class zvode(vode):
     active_global_handle = 0
 
     def reset(self, n, has_jac):
-        # Calculate parameters for Fortran subroutine dvode.
-        if has_jac:
-            if self.mu is None and self.ml is None:
-                miter = 1
-            else:
-                if self.mu is None:
-                    self.mu = 0
-                if self.ml is None:
-                    self.ml = 0
-                miter = 4
-        else:
-            if self.mu is None and self.ml is None:
-                if self.with_jacobian:
-                    miter = 2
-                else:
-                    miter = 0
-            else:
-                if self.mu is None:
-                    self.mu = 0
-                if self.ml is None:
-                    self.ml = 0
-                if self.ml == self.mu == 0:
-                    miter = 3
-                else:
-                    miter = 5
-
-        mf = 10 * self.meth + miter
+        mf = self._determine_mf_and_set_bands(has_jac)
 
         if mf in (10,):
             lzw = 15 * n
@@ -782,7 +929,7 @@ class zvode(vode):
 
         lrw = 20 + n
 
-        if miter in (0, 3):
+        if mf % 10 in (0, 3):
             liw = 30
         else:
             liw = 30 + n
@@ -811,22 +958,6 @@ class zvode(vode):
         self.success = 1
         self.initialized = False
 
-    def run(self, *args):
-        if self.initialized:
-            self.check_handle()
-        else:
-            self.initialized = True
-            self.acquire_new_handle()
-        y1, t, istate = self.runner(*(args[:5] + tuple(self.call_args) +
-                                    args[5:]))
-        if istate < 0:
-            warnings.warn('zvode: ' +
-                self.messages.get(istate, 'Unexpected istate=%s' % istate))
-            self.success = 0
-        else:
-            self.call_args[3] = 2  # upgrade istate from 1 to 2
-        return y1, t
-
 
 if zvode.runner is not None:
     IntegratorBase.integrator_classes.append(zvode)
@@ -836,6 +967,7 @@ class dopri5(IntegratorBase):
 
     runner = getattr(_dop, 'dopri5', None)
     name = 'dopri5'
+    supports_solout = True
 
     messages = {1: 'computation successful',
                 2: 'comput. successful (interrupted by solout)',
@@ -843,7 +975,7 @@ class dopri5(IntegratorBase):
                 -2: 'larger nmax is needed',
                 -3: 'step size becomes too small',
                 -4: 'problem is probably stiff (interrupted)',
-               }
+                }
 
     def __init__(self,
                  rtol=1e-6, atol=1e-12,
@@ -854,7 +986,8 @@ class dopri5(IntegratorBase):
                  ifactor=10.0,
                  dfactor=0.2,
                  beta=0.0,
-                 method=None
+                 method=None,
+                 verbosity=-1,  # no messages if negative
                  ):
         self.rtol = rtol
         self.atol = atol
@@ -865,7 +998,17 @@ class dopri5(IntegratorBase):
         self.ifactor = ifactor
         self.dfactor = dfactor
         self.beta = beta
+        self.verbosity = verbosity
         self.success = 1
+        self.set_solout(None)
+
+    def set_solout(self, solout, complex=False):
+        self.solout = solout
+        self.solout_cmplx = complex
+        if solout is None:
+            self.iout = 0
+        else:
+            self.iout = 1
 
     def reset(self, n, has_jac):
         work = zeros((8 * n + 21,), float)
@@ -878,9 +1021,10 @@ class dopri5(IntegratorBase):
         self.work = work
         iwork = zeros((21,), int32)
         iwork[0] = self.nsteps
+        iwork[2] = self.verbosity
         self.iwork = iwork
         self.call_args = [self.rtol, self.atol, self._solout,
-                          self.work, self.iwork]
+                          self.iout, self.work, self.iwork]
         self.success = 1
 
     def run(self, f, jac, y0, t0, t1, f_params, jac_params):
@@ -892,10 +1036,13 @@ class dopri5(IntegratorBase):
             self.success = 0
         return y, x
 
-    def _solout(self, *args):
-        # dummy solout function
-        pass
-
+    def _solout(self, nr, xold, x, y, nd, icomp, con):
+        if self.solout is not None:
+            if self.solout_cmplx:
+                y = y[::2] + 1j * y[1::2]
+            return self.solout(x, y)
+        else:
+            return 1
 
 if dopri5.runner is not None:
     IntegratorBase.integrator_classes.append(dopri5)
@@ -915,7 +1062,8 @@ class dop853(dopri5):
                  ifactor=6.0,
                  dfactor=0.3,
                  beta=0.0,
-                 method=None
+                 method=None,
+                 verbosity=-1,  # no messages if negative
                  ):
         self.rtol = rtol
         self.atol = atol
@@ -926,7 +1074,9 @@ class dop853(dopri5):
         self.ifactor = ifactor
         self.dfactor = dfactor
         self.beta = beta
+        self.verbosity = verbosity
         self.success = 1
+        self.set_solout(None)
 
     def reset(self, n, has_jac):
         work = zeros((11 * n + 21,), float)
@@ -939,14 +1089,15 @@ class dop853(dopri5):
         self.work = work
         iwork = zeros((21,), int32)
         iwork[0] = self.nsteps
+        iwork[2] = self.verbosity
         self.iwork = iwork
         self.call_args = [self.rtol, self.atol, self._solout,
-                          self.work, self.iwork]
+                          self.iout, self.work, self.iwork]
         self.success = 1
-
 
 if dop853.runner is not None:
     IntegratorBase.integrator_classes.append(dop853)
+
 
 class lsoda(IntegratorBase):
 
@@ -965,7 +1116,7 @@ class lsoda(IntegratorBase):
     }
 
     def __init__(self,
-                 with_jacobian=0,
+                 with_jacobian=False,
                  rtol=1e-6, atol=1e-12,
                  lband=None, uband=None,
                  nsteps=500,

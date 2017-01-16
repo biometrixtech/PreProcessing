@@ -8,12 +8,14 @@ import numpy as np
 
 from scipy.optimize import root
 
+
 class TestRoot(object):
     def test_tol_parameter(self):
         # Check that the minimize() tol= argument does something
         def func(z):
             x, y = z
             return np.array([x**3 - 1, y**3 - 1])
+
         def dfunc(z):
             x, y = z
             return np.array([[3*x**2, 0], [0, 3*y**2]])
@@ -36,3 +38,10 @@ class TestRoot(object):
             assert_(sol2.success, msg)
             assert_(abs(func(sol1.x)).max() < abs(func(sol2.x)).max(),
                     msg)
+
+    def test_minimize_scalar_coerce_args_param(self):
+        # github issue #3503
+        def func(z, f=1):
+            x, y = z
+            return np.array([x**3 - 1, y**3 - f])
+        root(func, [1.1, 1.1], args=1.5)

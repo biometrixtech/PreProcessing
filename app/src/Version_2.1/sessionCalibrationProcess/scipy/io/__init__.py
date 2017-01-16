@@ -39,6 +39,32 @@ Matrix Market files
    mmread - Read matrix from Matrix Market formatted file
    mmwrite - Write matrix to Matrix Market formatted file
 
+Unformatted Fortran files
+===============================
+
+.. autosummary::
+   :toctree: generated/
+
+   FortranFile - A file object for unformatted sequential Fortran files
+
+Netcdf
+======
+
+.. autosummary::
+   :toctree: generated/
+
+   netcdf_file - A file object for NetCDF data
+   netcdf_variable - A data object for the netcdf module
+
+Harwell-Boeing files
+====================
+
+.. autosummary::
+   :toctree: generated/
+
+   hb_read   -- read H-B file
+   hb_write  -- write H-B file
+
 Wav sound files (:mod:`scipy.io.wavfile`)
 =========================================
 
@@ -49,6 +75,7 @@ Wav sound files (:mod:`scipy.io.wavfile`)
 
    read
    write
+   WavFileWarning
 
 Arff files (:mod:`scipy.io.arff`)
 =================================
@@ -59,17 +86,9 @@ Arff files (:mod:`scipy.io.arff`)
    :toctree: generated/
 
    loadarff
-
-Netcdf (:mod:`scipy.io.netcdf`)
-===============================
-
-.. module:: scipy.io.netcdf
-
-.. autosummary::
-   :toctree: generated/
-
-   netcdf_file - A file object for NetCDF data
-   netcdf_variable - A data object for the netcdf module
+   MetaData
+   ArffError
+   ParseArffError
 
 """
 from __future__ import division, print_function, absolute_import
@@ -80,6 +99,9 @@ from .matlab import loadmat, savemat, whosmat, byteordercodes
 # netCDF file support
 from .netcdf import netcdf_file, netcdf_variable
 
+# Fortran file support
+from ._fortran import FortranFile
+
 from .mmio import mminfo, mmread, mmwrite
 from .idl import readsav
 from .harwell_boeing import hb_read, hb_write
@@ -87,4 +109,3 @@ from .harwell_boeing import hb_read, hb_write
 __all__ = [s for s in dir() if not s.startswith('_')]
 from numpy.testing import Tester
 test = Tester().test
-

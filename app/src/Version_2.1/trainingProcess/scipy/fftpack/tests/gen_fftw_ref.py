@@ -6,6 +6,7 @@ import numpy as np
 
 SZ = [2, 3, 4, 8, 12, 15, 16, 17, 32, 64, 128, 256, 512, 1024]
 
+
 def gen_data(dt):
     arrays = {}
 
@@ -16,7 +17,7 @@ def gen_data(dt):
     else:
         raise ValueError("unknown: %s" % dt)
     # Generate test data using FFTW for reference
-    for type in [1, 2, 3, 4,  5, 6, 7, 8]:
+    for type in [1, 2, 3, 4, 5, 6, 7, 8]:
         arrays[type] = {}
         for sz in SZ:
             a = Popen([pg, str(type), str(sz)], stdout=PIPE, stderr=STDOUT)
@@ -29,8 +30,7 @@ def gen_data(dt):
 data = gen_data(np.float32)
 filename = 'fftw_single_ref'
 # Save ref data into npz format
-d = {}
-d['sizes'] = SZ
+d = {'sizes': SZ}
 for type in [1, 2, 3, 4]:
     for sz in SZ:
         d['dct_%d_%d' % (type, sz)] = data[type][sz]
@@ -46,8 +46,7 @@ np.savez(filename, **d)
 data = gen_data(np.float64)
 filename = 'fftw_double_ref'
 # Save ref data into npz format
-d = {}
-d['sizes'] = SZ
+d = {'sizes': SZ}
 for type in [1, 2, 3, 4]:
     for sz in SZ:
         d['dct_%d_%d' % (type, sz)] = data[type][sz]

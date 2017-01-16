@@ -1,9 +1,10 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from scipy.lib.decorator import decorator as _decorator
+from scipy._lib.decorator import decorator as _decorator
 
 __all__ = ['delaunay_plot_2d', 'convex_hull_plot_2d', 'voronoi_plot_2d']
+
 
 @_decorator
 def _held_figure(func, obj, ax=None, **kw):
@@ -20,12 +21,14 @@ def _held_figure(func, obj, ax=None, **kw):
     finally:
         ax.hold(was_held)
 
+
 def _adjust_bounds(ax, points):
     ptp_bound = points.ptp(axis=0)
     ax.set_xlim(points[:,0].min() - 0.1*ptp_bound[0],
                 points[:,0].max() + 0.1*ptp_bound[0])
     ax.set_ylim(points[:,1].min() - 0.1*ptp_bound[1],
                 points[:,1].max() + 0.1*ptp_bound[1])
+
 
 @_held_figure
 def delaunay_plot_2d(tri, ax=None):
@@ -64,6 +67,7 @@ def delaunay_plot_2d(tri, ax=None):
 
     return ax.figure
 
+
 @_held_figure
 def convex_hull_plot_2d(hull, ax=None):
     """
@@ -90,19 +94,25 @@ def convex_hull_plot_2d(hull, ax=None):
     Requires Matplotlib.
 
     """
+    from matplotlib.collections import LineCollection
+
     if hull.points.shape[1] != 2:
         raise ValueError("Convex hull is not 2-D")
 
     ax.plot(hull.points[:,0], hull.points[:,1], 'o')
+    line_segments = []
     for simplex in hull.simplices:
-        ax.plot(hull.points[simplex,0], hull.points[simplex,1], 'k-')
-
+        line_segments.append([(x, y) for x, y in hull.points[simplex]])
+    ax.add_collection(LineCollection(line_segments,
+                                     colors='k',
+                                     linestyle='solid'))
     _adjust_bounds(ax, hull.points)
 
     return ax.figure
 
+
 @_held_figure
-def voronoi_plot_2d(vor, ax=None):
+def voronoi_plot_2d(vor, ax=None, **kw):
     """
     Plot the given Voronoi diagram in 2-D
 
@@ -112,6 +122,16 @@ def voronoi_plot_2d(vor, ax=None):
         Diagram to plot
     ax : matplotlib.axes.Axes instance, optional
         Axes to plot on
+    show_points: bool, optional
+        Add the Voronoi points to the plot.
+    show_vertices : bool, optional
+        Add the Voronoi vertices to the plot.
+    line_colors : string, optional
+        Specifies the line color for polygon boundaries
+    line_width : float, optional
+        Specifies the line width for polygon boundaries
+    line_alpha: float, optional
+        Specifies the line alpha for polygon boundaries
 
     Returns
     -------
@@ -127,36 +147,58 @@ def voronoi_plot_2d(vor, ax=None):
     Requires Matplotlib.
 
     """
+    from matplotlib.collections import LineCollection
+
     if vor.points.shape[1] != 2:
         raise ValueError("Voronoi diagram is not 2-D")
 
-    ax.plot(vor.points[:,0], vor.points[:,1], '.')
-    ax.plot(vor.vertices[:,0], vor.vertices[:,1], 'o')
+    if kw.get('show_points', True):
+        ax.plot(vor.points[:,0], vor.points[:,1], '.')
+    if kw.get('show_vertices', True):
+        ax.plot(vor.vertices[:,0], vor.vertices[:,1], 'o')
 
+    line_colors = kw.get('line_colors', 'k')
+    line_width = kw.get('line_width', 1.0)
+    line_alpha = kw.get('line_alpha', 1.0)
+
+    line_segments = []
     for simplex in vor.ridge_vertices:
         simplex = np.asarray(simplex)
         if np.all(simplex >= 0):
-            ax.plot(vor.vertices[simplex,0], vor.vertices[simplex,1], 'k-')
+            line_segments.append([(x, y) for x, y in vor.vertices[simplex]])
 
+    lc = LineCollection(line_segments,
+                        colors=line_colors,
+                        lw=line_width,
+                        linestyle='solid')
+    lc.set_alpha(line_alpha)
+    ax.add_collection(lc)
     ptp_bound = vor.points.ptp(axis=0)
 
+    line_segments = []
     center = vor.points.mean(axis=0)
     for pointidx, simplex in zip(vor.ridge_points, vor.ridge_vertices):
         simplex = np.asarray(simplex)
         if np.any(simplex < 0):
-            i = simplex[simplex >= 0][0] # finite end Voronoi vertex
+            i = simplex[simplex >= 0][0]  # finite end Voronoi vertex
 
-            t = vor.points[pointidx[1]] - vor.points[pointidx[0]] # tangent
+            t = vor.points[pointidx[1]] - vor.points[pointidx[0]]  # tangent
             t /= np.linalg.norm(t)
-            n = np.array([-t[1], t[0]]) # normal
+            n = np.array([-t[1], t[0]])  # normal
 
             midpoint = vor.points[pointidx].mean(axis=0)
             direction = np.sign(np.dot(midpoint - center, n)) * n
             far_point = vor.vertices[i] + direction * ptp_bound.max()
 
-            ax.plot([vor.vertices[i,0], far_point[0]], 
-                    [vor.vertices[i,1], far_point[1]], 'k--')
+            line_segments.append([(vor.vertices[i, 0], vor.vertices[i, 1]),
+                                  (far_point[0], far_point[1])])
 
+    lc = LineCollection(line_segments,
+                        colors=line_colors,
+                        lw=line_width,
+                        linestyle='dashed')
+    lc.set_alpha(line_alpha)
+    ax.add_collection(lc)
     _adjust_bounds(ax, vor.points)
 
     return ax.figure

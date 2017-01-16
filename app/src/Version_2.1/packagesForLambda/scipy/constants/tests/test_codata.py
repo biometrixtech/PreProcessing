@@ -3,15 +3,12 @@ from __future__ import division, print_function, absolute_import
 import warnings
 
 from scipy.constants import constants, codata, find, value
-from numpy.testing import assert_equal, assert_, run_module_suite, \
-                          assert_almost_equal
-from numpy.testing.utils import WarningManager
+from numpy.testing import (assert_equal, assert_, run_module_suite,
+                           assert_almost_equal)
 
 
 def test_find():
-    warn_ctx = WarningManager()
-    warn_ctx.__enter__()
-    try:
+    with warnings.catch_warnings():
         warnings.simplefilter('ignore', DeprecationWarning)
 
         keys = find('weak mixing', disp=False)
@@ -31,8 +28,6 @@ def test_find():
                                     'natural unit of mom.um in MeV/c',
                                     'natural unit of length',
                                     'natural unit of time']))
-    finally:
-        warn_ctx.__exit__()
 
 
 def test_basic_table_parse():
@@ -40,23 +35,28 @@ def test_basic_table_parse():
     assert_equal(codata.value(c), constants.c)
     assert_equal(codata.value(c), constants.speed_of_light)
 
+
 def test_basic_lookup():
     assert_equal('%d %s' % (codata.c, codata.unit('speed of light in vacuum')),
                  '299792458 m s^-1')
 
+
 def test_find_all():
     assert_(len(codata.find(disp=False)) > 300)
+
 
 def test_find_single():
     assert_equal(codata.find('Wien freq', disp=False)[0],
                  'Wien frequency displacement law constant')
 
+
 def test_2002_vs_2006():
     assert_almost_equal(codata.value('magn. flux quantum'),
                         codata.value('mag. flux quantum'))
 
+
 def test_exact_values():
-    """Check that updating stored values with exact ones worked."""
+    # Check that updating stored values with exact ones worked.
     for key in codata.exact_values:
         assert_((codata.exact_values[key][0] - value(key)) / value(key) == 0)
 

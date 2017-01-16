@@ -21,11 +21,11 @@ import math as _math
 from .codata import value as _cd
 import numpy as _np
 
-#mathematical constants
+# mathematical constants
 pi = _math.pi
 golden = golden_ratio = (1 + _math.sqrt(5)) / 2
 
-#SI prefixes
+# SI prefixes
 yotta = 1e24
 zetta = 1e21
 exa = 1e18
@@ -46,7 +46,7 @@ femto = 1e-15
 atto = 1e-18
 zepto = 1e-21
 
-#binary prefixes
+# binary prefixes
 kibi = 2**10
 mebi = 2**20
 gibi = 2**30
@@ -56,7 +56,7 @@ exbi = 2**60
 zebi = 2**70
 yobi = 2**80
 
-#physical constants
+# physical constants
 c = speed_of_light = _cd('speed of light in vacuum')
 mu_0 = 4e-7*pi
 epsilon_0 = 1 / (mu_0*c*c)
@@ -73,17 +73,17 @@ sigma = Stefan_Boltzmann = _cd('Stefan-Boltzmann constant')
 Wien = _cd('Wien wavelength displacement law constant')
 Rydberg = _cd('Rydberg constant')
 
-#weight in kg
+# weight in kg
 gram = 1e-3
 metric_ton = 1e3
 grain = 64.79891e-6
-lb = pound = 7000 * grain #avoirdupois
+lb = pound = 7000 * grain  # avoirdupois
 oz = ounce = pound / 16
 stone = 14 * pound
 long_ton = 2240 * pound
 short_ton = 2000 * pound
 
-troy_ounce = 480 * grain #only for metals / gems
+troy_ounce = 480 * grain  # only for metals / gems
 troy_pound = 12 * troy_ounce
 carat = 200e-6
 
@@ -92,12 +92,12 @@ m_p = proton_mass = _cd('proton mass')
 m_n = neutron_mass = _cd('neutron mass')
 m_u = u = atomic_mass = _cd('atomic mass constant')
 
-#angle in rad
+# angle in rad
 degree = pi / 180
 arcmin = arcminute = degree / 60
 arcsec = arcsecond = arcmin / 60
 
-#time in second
+# time in second
 minute = 60.0
 hour = 60 * minute
 day = 24 * hour
@@ -105,13 +105,13 @@ week = 7 * day
 year = 365 * day
 Julian_year = 365.25 * day
 
-#length in meter
+# length in meter
 inch = 0.0254
 foot = 12 * inch
 yard = 3 * foot
 mile = 1760 * yard
 mil = inch / 1000
-pt = point = inch / 72 #typography
+pt = point = inch / 72  # typography
 survey_foot = 1200.0 / 3937
 survey_mile = 5280 * survey_foot
 nautical_mile = 1852.0
@@ -122,56 +122,131 @@ au = astronomical_unit = 149597870691.0
 light_year = Julian_year * c
 parsec = au / arcsec
 
-#pressure in pascal
+# pressure in pascal
 atm = atmosphere = _cd('standard atmosphere')
 bar = 1e5
 torr = mmHg = atm / 760
 psi = pound * g / (inch * inch)
 
-#area in meter**2
+# area in meter**2
 hectare = 1e4
 acre = 43560 * foot**2
 
-#volume in meter**3
+# volume in meter**3
 litre = liter = 1e-3
-gallon = gallon_US = 231 * inch**3 #US
-#pint = gallon_US / 8
+gallon = gallon_US = 231 * inch**3  # US
+# pint = gallon_US / 8
 fluid_ounce = fluid_ounce_US = gallon_US / 128
-bbl = barrel = 42 * gallon_US #for oil
+bbl = barrel = 42 * gallon_US  # for oil
 
-gallon_imp = 4.54609e-3 #uk
+gallon_imp = 4.54609e-3  # UK
 fluid_ounce_imp = gallon_imp / 160
 
-#speed in meter per second
+# speed in meter per second
 kmh = 1e3 / hour
 mph = mile / hour
-mach = speed_of_sound = 340.5 #approx value at 15 degrees in 1 atm. is this a common value?
+mach = speed_of_sound = 340.5  # approx value at 15 degrees in 1 atm. is this a common value?
 knot = nautical_mile / hour
 
-#temperature in kelvin
+# temperature in kelvin
 zero_Celsius = 273.15
-degree_Fahrenheit = 1/1.8 #only for differences
+degree_Fahrenheit = 1/1.8  # only for differences
 
-#energy in joule
-eV = electron_volt = elementary_charge # * 1 Volt
+# energy in joule
+eV = electron_volt = elementary_charge  # * 1 Volt
 calorie = calorie_th = 4.184
 calorie_IT = 4.1868
 erg = 1e-7
 Btu_th = pound * degree_Fahrenheit * calorie_th / gram
 Btu = Btu_IT = pound * degree_Fahrenheit * calorie_IT / gram
 ton_TNT = 1e9 * calorie_th
-#Wh = watt_hour
+# Wh = watt_hour
 
-#power in watt
+# power in watt
 hp = horsepower = 550 * foot * pound * g
 
-#force in newton
+# force in newton
 dyn = dyne = 1e-5
 lbf = pound_force = pound * g
-kgf = kilogram_force = g # * 1 kg
+kgf = kilogram_force = g  # * 1 kg
 
-#functions for conversions that are not linear
+# functions for conversions that are not linear
 
+
+def convert_temperature(val, old_scale, new_scale):
+    """
+    Convert from a temperature scale to another one among Celsius, Kelvin,
+    Fahrenheit and Rankine scales.
+
+    Parameters
+    ----------
+    val : array_like
+        Value(s) of the temperature(s) to be converted expressed in the
+        original scale.
+
+    old_scale: str
+        Specifies as a string the original scale from which the temperature
+        value(s) will be converted. Supported scales are Celsius ('Celsius',
+        'celsius', 'C' or 'c'), Kelvin ('Kelvin', 'kelvin', 'K', 'k'),
+        Fahrenheit ('Fahrenheit', 'fahrenheit', 'F' or 'f') and Rankine
+        ('Rankine', 'rankine', 'R', 'r').
+
+    new_scale: str
+        Specifies as a string the new scale to which the temperature
+        value(s) will be converted. Supported scales are Celsius ('Celsius',
+        'celsius', 'C' or 'c'), Kelvin ('Kelvin', 'kelvin', 'K', 'k'),
+        Fahrenheit ('Fahrenheit', 'fahrenheit', 'F' or 'f') and Rankine
+        ('Rankine', 'rankine', 'R', 'r').
+
+    Returns
+    -------
+    res : float or array of floats
+        Value(s) of the converted temperature(s) expressed in the new scale.
+
+    Notes
+    -----
+    .. versionadded:: 0.18.0
+
+    Examples
+    --------
+    >>> from scipy.constants import convert_temperature
+    >>> convert_temperature(np.array([-40, 40.0]), 'Celsius', 'Kelvin')
+    array([ 233.15,  313.15])
+
+    """
+    # Convert from `old_scale` to Kelvin
+    if old_scale.lower() in ['celsius', 'c']:
+        tempo = _np.asanyarray(val) + zero_Celsius
+    elif old_scale.lower() in ['kelvin', 'k']:
+        tempo = _np.asanyarray(val)
+    elif old_scale.lower() in ['fahrenheit', 'f']:
+        tempo = (_np.asanyarray(val) - 32.) * 5. / 9. + zero_Celsius
+    elif old_scale.lower() in ['rankine', 'r']:
+        tempo = _np.asanyarray(val) * 5. / 9.
+    else:
+        raise NotImplementedError("%s scale is unsupported: supported scales "
+                                  "are Celsius, Kelvin, Fahrenheit and "
+                                  "Rankine" % old_scale)
+    # and from Kelvin to `new_scale`.
+    if new_scale.lower() in ['celsius', 'c']:
+        res = tempo - zero_Celsius
+    elif new_scale.lower() in ['kelvin', 'k']:
+        res = tempo
+    elif new_scale.lower() in ['fahrenheit', 'f']:
+        res = (tempo - zero_Celsius) * 9. / 5. + 32.
+    elif new_scale.lower() in ['rankine', 'r']:
+        res = tempo * 9. / 5.
+    else:
+        raise NotImplementedError("'%s' scale is unsupported: supported "
+                                  "scales are 'Celsius', 'Kelvin', "
+                                  "'Fahrenheit' and 'Rankine'" % new_scale)
+
+    return res
+
+
+@_np.deprecate(message="scipy.constants.C2K is deprecated in scipy 0.18.0. "
+                       "Use scipy.constants.convert_teperature instead. "
+                       "Note that the new function has a different signature.")
 def C2K(C):
     """
     Convert Celsius to Kelvin
@@ -186,6 +261,10 @@ def C2K(C):
     K : float or array of floats
         Equivalent Kelvin temperature(s).
 
+    See also
+    --------
+    convert_temperature
+
     Notes
     -----
     Computes ``K = C + zero_Celsius`` where `zero_Celsius` = 273.15, i.e.,
@@ -193,13 +272,17 @@ def C2K(C):
 
     Examples
     --------
-    >>> from scipy.constants.constants import C2K
-    >>> C2K(_np.array([-40, 40.0]))
+    >>> from scipy.constants import C2K
+    >>> C2K(np.array([-40, 40.0]))
     array([ 233.15,  313.15])
 
     """
     return _np.asanyarray(C) + zero_Celsius
 
+
+@_np.deprecate(message="scipy.constants.K2C is deprecated in scipy 0.18.0. "
+                       "Use scipy.constants.convert_teperature instead. "
+                       "Note that the new function has a different signature.")
 def K2C(K):
     """
     Convert Kelvin to Celsius
@@ -214,6 +297,10 @@ def K2C(K):
     C : float or array of floats
         Equivalent Celsius temperature(s).
 
+    See also
+    --------
+    convert_temperature
+
     Notes
     -----
     Computes ``C = K - zero_Celsius`` where `zero_Celsius` = 273.15, i.e.,
@@ -221,13 +308,17 @@ def K2C(K):
 
     Examples
     --------
-    >>> from scipy.constants.constants import K2C
-    >>> K2C(_np.array([233.15, 313.15]))
+    >>> from scipy.constants import K2C
+    >>> K2C(np.array([233.15, 313.15]))
     array([-40.,  40.])
 
     """
     return _np.asanyarray(K) - zero_Celsius
 
+
+@_np.deprecate(message="scipy.constants.F2C is deprecated in scipy 0.18.0. "
+                       "Use scipy.constants.convert_teperature instead. "
+                       "Note that the new function has a different signature.")
 def F2C(F):
     """
     Convert Fahrenheit to Celsius
@@ -242,19 +333,27 @@ def F2C(F):
     C : float or array of floats
         Equivalent Celsius temperature(s).
 
+    See also
+    --------
+    convert_temperature
+
     Notes
     -----
     Computes ``C = (F - 32) / 1.8``.
 
     Examples
     --------
-    >>> from scipy.constants.constants import F2C
-    >>> F2C(_np.array([-40, 40.0]))
+    >>> from scipy.constants import F2C
+    >>> F2C(np.array([-40, 40.0]))
     array([-40.        ,   4.44444444])
 
     """
     return (_np.asanyarray(F) - 32) / 1.8
 
+
+@_np.deprecate(message="scipy.constants.C2F is deprecated in scipy 0.18.0. "
+                       "Use scipy.constants.convert_teperature instead. "
+                       "Note that the new function has a different signature.")
 def C2F(C):
     """
     Convert Celsius to Fahrenheit
@@ -269,19 +368,27 @@ def C2F(C):
     F : float or array of floats
         Equivalent Fahrenheit temperature(s).
 
+    See also
+    --------
+    convert_temperature
+
     Notes
     -----
     Computes ``F = 1.8 * C + 32``.
 
     Examples
     --------
-    >>> from scipy.constants.constants import C2F
-    >>> C2F(_np.array([-40, 40.0]))
+    >>> from scipy.constants import C2F
+    >>> C2F(np.array([-40, 40.0]))
     array([ -40.,  104.])
 
     """
     return 1.8 * _np.asanyarray(C) + 32
 
+
+@_np.deprecate(message="scipy.constants.F2K is deprecated in scipy 0.18.0. "
+                       "Use scipy.constants.convert_teperature instead. "
+                       "Note that the new function has a different signature.")
 def F2K(F):
     """
     Convert Fahrenheit to Kelvin
@@ -296,6 +403,10 @@ def F2K(F):
     K : float or array of floats
         Equivalent Kelvin temperature(s).
 
+    See also
+    --------
+    convert_temperature
+
     Notes
     -----
     Computes ``K = (F - 32)/1.8 + zero_Celsius`` where `zero_Celsius` =
@@ -304,13 +415,17 @@ def F2K(F):
 
     Examples
     --------
-    >>> from scipy.constants.constants import F2K
-    >>> F2K(_np.array([-40, 104]))
+    >>> from scipy.constants import F2K
+    >>> F2K(np.array([-40, 104]))
     array([ 233.15,  313.15])
 
     """
     return C2K(F2C(_np.asanyarray(F)))
 
+
+@_np.deprecate(message="scipy.constants.K2F is deprecated in scipy 0.18.0. "
+                       "Use scipy.constants.convert_teperature instead. "
+                       "Note that the new function has a different signature.")
 def K2F(K):
     """
     Convert Kelvin to Fahrenheit
@@ -325,6 +440,10 @@ def K2F(K):
     F : float or array of floats
         Equivalent Fahrenheit temperature(s).
 
+    See also
+    --------
+    convert_temperature
+
     Notes
     -----
     Computes ``F = 1.8 * (K - zero_Celsius) + 32`` where `zero_Celsius` =
@@ -333,14 +452,16 @@ def K2F(K):
 
     Examples
     --------
-    >>> from scipy.constants.constants import K2F
-    >>> K2F(_np.array([233.15,  313.15]))
+    >>> from scipy.constants import K2F
+    >>> K2F(np.array([233.15,  313.15]))
     array([ -40.,  104.])
 
     """
     return C2F(K2C(_np.asanyarray(K)))
 
-#optics
+
+# optics
+
 
 def lambda2nu(lambda_):
     """
@@ -348,7 +469,7 @@ def lambda2nu(lambda_):
 
     Parameters
     ----------
-    lambda : array_like
+    lambda_ : array_like
         Wavelength(s) to be converted.
 
     Returns
@@ -363,12 +484,13 @@ def lambda2nu(lambda_):
 
     Examples
     --------
-    >>> from scipy.constants.constants import lambda2nu
-    >>> lambda2nu(_np.array((1, speed_of_light)))
+    >>> from scipy.constants import lambda2nu, speed_of_light
+    >>> lambda2nu(np.array((1, speed_of_light)))
     array([  2.99792458e+08,   1.00000000e+00])
 
     """
     return _np.asanyarray(c) / lambda_
+
 
 def nu2lambda(nu):
     """
@@ -391,8 +513,8 @@ def nu2lambda(nu):
 
     Examples
     --------
-    >>> from scipy.constants.constants import nu2lambda
-    >>> nu2lambda(_np.array((1, speed_of_light)))
+    >>> from scipy.constants import nu2lambda, speed_of_light
+    >>> nu2lambda(np.array((1, speed_of_light)))
     array([  2.99792458e+08,   1.00000000e+00])
 
     """

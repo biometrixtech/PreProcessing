@@ -1,8 +1,12 @@
 """
-Low-level LAPACK functions
-==========================
+Low-level LAPACK functions (:mod:`scipy.linalg.lapack`)
+=======================================================
 
 This module contains low-level functions from the LAPACK library.
+
+The `*gegv` family of routines have been removed from LAPACK 3.6.0
+and have been deprecated in SciPy 0.17.0. They will be removed in
+a future release.
 
 .. versionadded:: 0.12.0
 
@@ -13,190 +17,343 @@ This module contains low-level functions from the LAPACK library.
    so prefer using the higher-level routines in `scipy.linalg`.
 
 Finding functions
-=================
+-----------------
 
 .. autosummary::
 
    get_lapack_funcs
 
 All functions
-=============
+-------------
 
 .. autosummary::
    :toctree: generated/
 
-   cgbsv
-   cgbtrf
-   cgbtrs
-   cgebal
-   cgees
-   cgeev
-   cgegv
-   cgehrd
-   cgelss
-   cgeqp3
-   cgeqrf
-   cgerqf
-   cgesdd
-   cgesv
-   cgetrf
-   cgetri
-   cgetrs
-   cgges
-   cggev
-   chbevd
-   chbevx
-   cheev
-   cheevd
-   cheevr
-   chegv
-   chegvd
-   chegvx
-   claswp
-   clauum
-   cpbsv
-   cpbtrf
-   cpbtrs
-   cposv
-   cpotrf
-   cpotri
-   cpotrs
-   ctrsyl
-   ctrtri
-   ctrtrs
-   cungqr
-   cungrq
-   cunmqr
-   dgbsv
-   dgbtrf
-   dgbtrs
-   dgebal
-   dgees
-   dgeev
-   dgegv
-   dgehrd
-   dgelss
-   dgeqp3
-   dgeqrf
-   dgerqf
-   dgesdd
-   dgesv
-   dgetrf
-   dgetri
-   dgetrs
-   dgges
-   dggev
-   dlamch
-   dlaswp
-   dlauum
-   dorgqr
-   dorgrq
-   dormqr
-   dpbsv
-   dpbtrf
-   dpbtrs
-   dposv
-   dpotrf
-   dpotri
-   dpotrs
-   dsbev
-   dsbevd
-   dsbevx
-   dsyev
-   dsyevd
-   dsyevr
-   dsygv
-   dsygvd
-   dsygvx
-   dtrsyl
-   dtrtri
-   dtrtrs
+
    sgbsv
-   sgbtrf
-   sgbtrs
-   sgebal
-   sgees
-   sgeev
-   sgegv
-   sgehrd
-   sgelss
-   sgeqp3
-   sgeqrf
-   sgerqf
-   sgesdd
-   sgesv
-   sgetrf
-   sgetri
-   sgetrs
-   sgges
-   sggev
-   slamch
-   slaswp
-   slauum
-   sorgqr
-   sorgrq
-   sormqr
-   spbsv
-   spbtrf
-   spbtrs
-   sposv
-   spotrf
-   spotri
-   spotrs
-   ssbev
-   ssbevd
-   ssbevx
-   ssyev
-   ssyevd
-   ssyevr
-   ssygv
-   ssygvd
-   ssygvx
-   strsyl
-   strtri
-   strtrs
+   dgbsv
+   cgbsv
    zgbsv
+
+   sgbtrf
+   dgbtrf
+   cgbtrf
    zgbtrf
+
+   sgbtrs
+   dgbtrs
+   cgbtrs
    zgbtrs
+
+   sgebal
+   dgebal
+   cgebal
    zgebal
+
+   sgees
+   dgees
+   cgees
    zgees
+
+   sgeev
+   dgeev
+   cgeev
    zgeev
+
+   sgeev_lwork
+   dgeev_lwork
+   cgeev_lwork
+   zgeev_lwork
+
+   sgegv
+   dgegv
+   cgegv
    zgegv
+
+   sgehrd
+   dgehrd
+   cgehrd
    zgehrd
+
+   sgehrd_lwork
+   dgehrd_lwork
+   cgehrd_lwork
+   zgehrd_lwork
+
+   sgelss
+   dgelss
+   cgelss
    zgelss
+
+   sgelss_lwork
+   dgelss_lwork
+   cgelss_lwork
+   zgelss_lwork
+
+   sgelsd
+   dgelsd
+   cgelsd
+   zgelsd
+
+   sgelsd_lwork
+   dgelsd_lwork
+   cgelsd_lwork
+   zgelsd_lwork
+
+   sgelsy
+   dgelsy
+   cgelsy
+   zgelsy
+
+   sgelsy_lwork
+   dgelsy_lwork
+   cgelsy_lwork
+   zgelsy_lwork
+
+   sgeqp3
+   dgeqp3
+   cgeqp3
    zgeqp3
+
+   sgeqrf
+   dgeqrf
+   cgeqrf
    zgeqrf
+
+   sgerqf
+   dgerqf
+   cgerqf
    zgerqf
+
+   sgesdd
+   dgesdd
+   cgesdd
    zgesdd
+
+   sgesdd_lwork
+   dgesdd_lwork
+   cgesdd_lwork
+   zgesdd_lwork
+
+   sgesvd
+   dgesvd
+   cgesvd
+   zgesvd
+
+   sgesvd_lwork
+   dgesvd_lwork
+   cgesvd_lwork
+   zgesvd_lwork
+
+   sgesv
+   dgesv
+   cgesv
    zgesv
+
+   sgetrf
+   dgetrf
+   cgetrf
    zgetrf
+
+   sgetri
+   dgetri
+   cgetri
    zgetri
+
+   sgetri_lwork
+   dgetri_lwork
+   cgetri_lwork
+   zgetri_lwork
+
+   sgetrs
+   dgetrs
+   cgetrs
    zgetrs
+
+   sgges
+   dgges
+   cgges
    zgges
+
+   sggev
+   dggev
+   cggev
    zggev
+
+   chbevd
    zhbevd
+
+   chbevx
    zhbevx
+
+   cheev
    zheev
+
+   cheevd
    zheevd
+
+   cheevr
    zheevr
+
+   chegv
    zhegv
+
+   chegvd
    zhegvd
+
+   chegvx
    zhegvx
+
+   slarf
+   dlarf
+   clarf
+   zlarf
+
+   slarfg
+   dlarfg
+   clarfg
+   zlarfg
+
+   slartg
+   dlartg
+   clartg
+   zlartg
+
+   slasd4
+   dlasd4
+
+   slaswp
+   dlaswp
+   claswp
    zlaswp
+
+   slauum
+   dlauum
+   clauum
    zlauum
+
+   spbsv
+   dpbsv
+   cpbsv
    zpbsv
+
+   spbtrf
+   dpbtrf
+   cpbtrf
    zpbtrf
+
+   spbtrs
+   dpbtrs
+   cpbtrs
    zpbtrs
+
+   sposv
+   dposv
+   cposv
    zposv
+
+   spotrf
+   dpotrf
+   cpotrf
    zpotrf
+
+   spotri
+   dpotri
+   cpotri
    zpotri
+
+   spotrs
+   dpotrs
+   cpotrs
    zpotrs
+
+   crot
+   zrot
+
+   strsyl
+   dtrsyl
+   ctrsyl
    ztrsyl
+
+   strtri
+   dtrtri
+   ctrtri
    ztrtri
+
+   strtrs
+   dtrtrs
+   ctrtrs
    ztrtrs
+
+   cunghr
+   zunghr
+
+   cungqr
    zungqr
+
+   cungrq
    zungrq
+
+   cunmqr
    zunmqr
+
+   sgtsv
+   dgtsv
+   cgtsv
+   zgtsv
+
+   sptsv
+   dptsv
+   cptsv
+   zptsv
+
+   slamch
+   dlamch
+
+   sorghr
+   dorghr
+   sorgqr
+   dorgqr
+
+   sorgrq
+   dorgrq
+
+   sormqr
+   dormqr
+
+   ssbev
+   dsbev
+
+   ssbevd
+   dsbevd
+
+   ssbevx
+   dsbevx
+
+   ssyev
+   dsyev
+
+   ssyevd
+   dsyevd
+
+   ssyevr
+   dsyevr
+
+   ssygv
+   dsygv
+
+   ssygvd
+   dsygvd
+
+   ssygvx
+   dsygvx
+
+   slange
+   dlange
+   clange
+   zlange
+
+   ilaver
 
 """
 #
@@ -206,6 +363,8 @@ All functions
 from __future__ import division, print_function, absolute_import
 
 __all__ = ['get_lapack_funcs']
+
+import numpy as _np
 
 from .blas import _get_funcs
 
@@ -219,7 +378,7 @@ except ImportError:
     _clapack = None
 
 # Backward compatibility
-from scipy.lib._util import DeprecatedImport as _DeprecatedImport
+from scipy._lib._util import DeprecatedImport as _DeprecatedImport
 clapack = _DeprecatedImport("scipy.linalg.blas.clapack", "scipy.linalg.lapack")
 flapack = _DeprecatedImport("scipy.linalg.blas.flapack", "scipy.linalg.lapack")
 
@@ -228,12 +387,32 @@ empty_module = None
 from scipy.linalg._flapack import *
 del empty_module
 
+_dep_message = """The `*gegv` family of routines has been deprecated in
+LAPACK 3.6.0 in favor of the `*ggev` family of routines.
+The corresponding wrappers will be removed from SciPy in
+a future release."""
+
+cgegv = _np.deprecate(cgegv, old_name='cgegv', message=_dep_message)
+dgegv = _np.deprecate(dgegv, old_name='dgegv', message=_dep_message)
+sgegv = _np.deprecate(sgegv, old_name='sgegv', message=_dep_message)
+zgegv = _np.deprecate(zgegv, old_name='zgegv', message=_dep_message)
+
+# Modyfy _flapack in this scope so the deprecation warnings apply to
+# functions returned by get_lapack_funcs.
+_flapack.cgegv = cgegv
+_flapack.dgegv = dgegv
+_flapack.sgegv = sgegv
+_flapack.zgegv = zgegv
+
 # some convenience alias for complex functions
 _lapack_alias = {
+    'corghr': 'cunghr', 'zorghr': 'zunghr',
+    'corghr_lwork': 'cunghr_lwork', 'zorghr_lwork': 'zunghr_lwork',
     'corgqr': 'cungqr', 'zorgqr': 'zungqr',
     'cormqr': 'cunmqr', 'zormqr': 'zunmqr',
     'corgrq': 'cungrq', 'zorgrq': 'zungrq',
 }
+
 
 def get_lapack_funcs(names, arrays=(), dtype=None):
     """Return available LAPACK function objects from names.
@@ -243,10 +422,10 @@ def get_lapack_funcs(names, arrays=(), dtype=None):
     Parameters
     ----------
     names : str or sequence of str
-        Name(s) of LAPACK functions withouth type prefix.
+        Name(s) of LAPACK functions without type prefix.
 
-    arrays : sequency of ndarrays, optional
-        Arrays can be given to determine optiomal prefix of LAPACK
+    arrays : sequence of ndarrays, optional
+        Arrays can be given to determine optimal prefix of LAPACK
         routines. If not given, double-precision routines will be
         used, otherwise the most generic type in arrays will be used.
 
@@ -262,7 +441,7 @@ def get_lapack_funcs(names, arrays=(), dtype=None):
 
     Notes
     -----
-    This routines automatically chooses between Fortran/C
+    This routine automatically chooses between Fortran/C
     interfaces. Fortran code is used whenever possible for arrays with
     column major order. In all other cases, C code is preferred.
 
@@ -275,3 +454,40 @@ def get_lapack_funcs(names, arrays=(), dtype=None):
     return _get_funcs(names, arrays, dtype,
                       "LAPACK", _flapack, _clapack,
                       "flapack", "clapack", _lapack_alias)
+
+
+def _compute_lwork(routine, *args, **kwargs):
+    """
+    Round floating-point lwork returned by lapack to integer.
+
+    Several LAPACK routines compute optimal values for LWORK, which
+    they return in a floating-point variable. However, for large
+    values of LWORK, single-precision floating point is not sufficient
+    to hold the exact value --- some LAPACK versions (<= 3.5.0 at
+    least) truncate the returned integer to single precision and in
+    some cases this can be smaller than the required value.
+    """
+    wi = routine(*args, **kwargs)
+    if len(wi) < 2:
+        raise ValueError('')
+    info = wi[-1]
+    if info != 0:
+        raise ValueError("Internal work array size computation failed: "
+                         "%d" % (info,))
+
+    lwork = [w.real for w in wi[:-1]]
+
+    dtype = getattr(routine, 'dtype', None)
+    if dtype == _np.float32 or dtype == _np.complex64:
+        # Single-precision routine -- take next fp value to work
+        # around possible truncation in LAPACK code
+        lwork = _np.nextafter(lwork, _np.inf, dtype=_np.float32)
+
+    lwork = _np.array(lwork, _np.int64)
+    if _np.any(_np.logical_or(lwork < 0, lwork > _np.iinfo(_np.int32).max)):
+        raise ValueError("Too large work array required -- computation cannot "
+                         "be performed with standard 32-bit LAPACK.")
+    lwork = lwork.astype(_np.int32)
+    if lwork.size == 1:
+        return lwork[0]
+    return lwork

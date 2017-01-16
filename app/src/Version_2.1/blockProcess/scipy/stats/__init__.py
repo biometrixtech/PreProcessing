@@ -8,50 +8,14 @@ Statistical functions (:mod:`scipy.stats`)
 This module contains a large number of probability distributions as
 well as a growing library of statistical functions.
 
-Each included distribution is an instance of the class rv_continous:
-For each given name the following methods are available:
+Each univariate distribution is an instance of a subclass of `rv_continuous`
+(`rv_discrete` for discrete distributions):
 
 .. autosummary::
    :toctree: generated/
 
    rv_continuous
-   rv_continuous.pdf
-   rv_continuous.logpdf
-   rv_continuous.cdf
-   rv_continuous.logcdf
-   rv_continuous.sf
-   rv_continuous.logsf
-   rv_continuous.ppf
-   rv_continuous.isf
-   rv_continuous.moment
-   rv_continuous.stats
-   rv_continuous.entropy
-   rv_continuous.fit
-   rv_continuous.expect
-
-Calling the instance as a function returns a frozen pdf whose shape,
-location, and scale parameters are fixed.
-
-Similarly, each discrete distribution is an instance of the class
-rv_discrete:
-
-.. autosummary::
-   :toctree: generated/
-
    rv_discrete
-   rv_discrete.rvs
-   rv_discrete.pmf
-   rv_discrete.logpmf
-   rv_discrete.cdf
-   rv_discrete.logcdf
-   rv_discrete.sf
-   rv_discrete.logsf
-   rv_discrete.ppf
-   rv_discrete.isf
-   rv_discrete.stats
-   rv_discrete.moment
-   rv_discrete.entropy
-   rv_discrete.expect
 
 Continuous distributions
 ========================
@@ -65,7 +29,8 @@ Continuous distributions
    beta              -- Beta
    betaprime         -- Beta Prime
    bradford          -- Bradford
-   burr              -- Burr
+   burr              -- Burr (Type III)
+   burr12            -- Burr (Type XII)
    cauchy            -- Cauchy
    chi               -- Chi
    chi2              -- Chi-squared
@@ -74,16 +39,18 @@ Continuous distributions
    dweibull          -- Double Weibull
    erlang            -- Erlang
    expon             -- Exponential
+   exponnorm         -- Exponentially Modified Normal
    exponweib         -- Exponentiated Weibull
    exponpow          -- Exponential Power
    f                 -- F (Snecdor F)
-   fatiguelife       -- Fatigue Life (Birnbaum-Sanders)
+   fatiguelife       -- Fatigue Life (Birnbaum-Saunders)
    fisk              -- Fisk
-  foldcauchy        -- Folded Cauchy
+   foldcauchy        -- Folded Cauchy
    foldnorm          -- Folded Normal
    frechet_r         -- Frechet Right Sided, Extreme Value Type II (Extreme LB) or weibull_min
    frechet_l         -- Frechet Left Sided, Weibull_max
    genlogistic       -- Generalized Logistic
+   gennorm           -- Generalized normal
    genpareto         -- Generalized Pareto
    genexpon          -- Generalized Exponential
    genextreme        -- Generalized Extreme Value
@@ -98,15 +65,21 @@ Continuous distributions
    halfcauchy        -- Half Cauchy
    halflogistic      -- Half Logistic
    halfnorm          -- Half Normal
+   halfgennorm       -- Generalized Half Normal
    hypsecant         -- Hyperbolic Secant
    invgamma          -- Inverse Gamma
    invgauss          -- Inverse Gaussian
    invweibull        -- Inverse Weibull
    johnsonsb         -- Johnson SB
    johnsonsu         -- Johnson SU
+   kappa4            -- Kappa 4 parameter
+   kappa3            -- Kappa 3 parameter
    ksone             -- Kolmogorov-Smirnov one-sided (no stats)
    kstwobign         -- Kolmogorov-Smirnov two-sided test for Large N (no stats)
    laplace           -- Laplace
+   levy              -- Levy
+   levy_l
+   levy_stable
    logistic          -- Logistic
    loggamma          -- Log-Gamma
    loglaplace        -- Log-Laplace (Log Double Exponential)
@@ -130,17 +103,35 @@ Continuous distributions
    rice              -- Rice
    recipinvgauss     -- Reciprocal Inverse Gaussian
    semicircular      -- Semicircular
+   skewnorm          -- Skew normal
    t                 -- Student's T
+   trapz              -- Trapezoidal
    triang            -- Triangular
    truncexpon        -- Truncated Exponential
    truncnorm         -- Truncated Normal
    tukeylambda       -- Tukey-Lambda
    uniform           -- Uniform
    vonmises          -- Von-Mises (Circular)
+   vonmises_line     -- Von-Mises (Line)
    wald              -- Wald
    weibull_min       -- Minimum Weibull (see Frechet)
    weibull_max       -- Maximum Weibull (see Frechet)
    wrapcauchy        -- Wrapped Cauchy
+
+Multivariate distributions
+==========================
+
+.. autosummary::
+   :toctree: generated/
+
+   multivariate_normal   -- Multivariate normal distribution
+   matrix_normal         -- Matrix normal distribution
+   dirichlet             -- Dirichlet
+   wishart               -- Wishart
+   invwishart            -- Inverse Wishart
+   special_ortho_group   -- SO(N) group
+   ortho_group           -- O(N) group
+   random_correlation    -- random correlation matrices
 
 Discrete distributions
 ======================
@@ -171,7 +162,6 @@ which work for masked arrays.
 .. autosummary::
    :toctree: generated/
 
-   cmedian           -- Computed median
    describe          -- Descriptive statistics
    gmean             -- Geometric mean
    hmean             -- Harmonic mean
@@ -182,6 +172,8 @@ which work for masked arrays.
    normaltest        --
    skew              -- Skewness
    skewtest          --
+   kstat             --
+   kstatvar          --
    tmean             -- Truncated arithmetic mean
    tvar              -- Truncated variance
    tmin              --
@@ -189,17 +181,19 @@ which work for masked arrays.
    tstd              --
    tsem              --
    variation         -- Coefficient of variation
+   find_repeats
+   trim_mean
 
 .. autosummary::
    :toctree: generated/
 
-   cumfreq           _
-   histogram2        _
-   histogram         _
-   itemfreq          _
-   percentileofscore _
-   scoreatpercentile _
-   relfreq           _
+   cumfreq
+   histogram2
+   histogram
+   itemfreq
+   percentileofscore
+   scoreatpercentile
+   relfreq
 
 .. autosummary::
    :toctree: generated/
@@ -214,13 +208,16 @@ which work for masked arrays.
    obrientransform
    signaltonoise
    bayes_mvs
+   mvsdist
    sem
    zmap
    zscore
+   iqr
 
 .. autosummary::
    :toctree: generated/
 
+   sigmaclip
    threshold
    trimboth
    trim1
@@ -234,15 +231,19 @@ which work for masked arrays.
    pointbiserialr
    kendalltau
    linregress
+   theilslopes
+   f_value
 
 .. autosummary::
    :toctree: generated/
 
    ttest_1samp
    ttest_ind
+   ttest_ind_from_stats
    ttest_rel
    kstest
    chisquare
+   power_divergence
    ks_2samp
    mannwhitneyu
    tiecorrect
@@ -251,6 +252,10 @@ which work for masked arrays.
    wilcoxon
    kruskal
    friedmanchisquare
+   combine_pvalues
+   ss
+   square_of_sums
+   jarque_bera
 
 .. autosummary::
    :toctree: generated/
@@ -260,10 +265,36 @@ which work for masked arrays.
    levene
    shapiro
    anderson
+   anderson_ksamp
    binom_test
    fligner
+   median_test
    mood
-   oneway
+
+.. autosummary::
+   :toctree: generated/
+
+   boxcox
+   boxcox_normmax
+   boxcox_llf
+
+   entropy
+
+.. autosummary::
+   :toctree: generated/
+
+   chisqprob
+   betai
+
+Circular statistical functions
+==============================
+
+.. autosummary::
+   :toctree: generated/
+
+   circmean
+   circvar
+   circstd
 
 Contingency table functions
 ===========================
@@ -276,14 +307,6 @@ Contingency table functions
    contingency.margins
    fisher_exact
 
-General linear model
-====================
-
-.. autosummary::
-   :toctree: generated/
-
-   glm
-
 Plot-tests
 ==========
 
@@ -293,6 +316,7 @@ Plot-tests
    ppcc_max
    ppcc_plot
    probplot
+   boxcox_normplot
 
 
 Masked statistics functions
@@ -319,15 +343,14 @@ from __future__ import division, print_function, absolute_import
 
 from .stats import *
 from .distributions import *
-from .rv import *
 from .morestats import *
 from ._binned_statistic import *
 from .kde import gaussian_kde
 from . import mstats
 from .contingency import chi2_contingency
+from ._multivariate import *
 
-#remove vonmises_cython from __all__, I don't know why it is included
-__all__ = [s for s in dir() if not (s.startswith('_') or s.endswith('cython'))]
+__all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.
 
 from numpy.testing import Tester
 test = Tester().test

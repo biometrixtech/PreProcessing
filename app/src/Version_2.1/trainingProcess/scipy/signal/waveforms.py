@@ -6,9 +6,9 @@
 #   Added sweep_poly()
 from __future__ import division, print_function, absolute_import
 
-
+import numpy as np
 from numpy import asarray, zeros, place, nan, mod, pi, extract, log, sqrt, \
-     exp, cos, sin, polyval, polyint
+    exp, cos, sin, polyval, polyint
 
 __all__ = ['sawtooth', 'square', 'gausspulse', 'chirp', 'sweep_poly']
 
@@ -32,9 +32,9 @@ def sawtooth(t, width=1):
     width : array_like, optional
         Width of the rising ramp as a proportion of the total cycle.
         Default is 1, producing a rising ramp, while 0 produces a falling
-        ramp.  `t` = 0.5 produces a triangle wave.
-        If an array, must be the same length as t, causes wave shape to change
-        over time.
+        ramp.  `width` = 0.5 produces a triangle wave.
+        If an array, causes wave shape to change over time, and must be the
+        same length as t.
 
     Returns
     -------
@@ -102,8 +102,8 @@ def square(t, duty=0.5):
         The input time array.
     duty : array_like, optional
         Duty cycle.  Default is 0.5 (50% duty cycle).
-        If an array, must be the same length as t, causes wave shape to change
-        over time.
+        If an array, causes wave shape to change over time, and must be the
+        same length as t.
 
     Returns
     -------
@@ -122,6 +122,7 @@ def square(t, duty=0.5):
 
     A pulse-width modulated sine wave:
 
+    >>> plt.figure()
     >>> sig = np.sin(2 * np.pi * t)
     >>> pwm = signal.square(2 * np.pi * 30 * t, duty=(sig + 1)/2)
     >>> plt.subplot(2, 1, 1)
@@ -174,9 +175,9 @@ def gausspulse(t, fc=1000, bw=0.5, bwr=-6, tpr=-60, retquad=False,
     t : ndarray or the string 'cutoff'
         Input array.
     fc : int, optional
-        Center frequency (Hz).  Default is 1000.
+        Center frequency (e.g. Hz).  Default is 1000.
     bw : float, optional
-        Fractional bandwidth in frequency domain of pulse (Hz).
+        Fractional bandwidth in frequency domain of pulse (e.g. Hz).
         Default is 0.5.
     bwr : float, optional
         Reference level at which fractional bandwidth is calculated (dB).
@@ -222,7 +223,7 @@ def gausspulse(t, fc=1000, bw=0.5, bwr=-6, tpr=-60, retquad=False,
         raise ValueError("Fractional bandwidth (bw=%.2f) must be > 0." % bw)
     if bwr >= 0:
         raise ValueError("Reference level for bandwidth (bwr=%.2f) must "
-              "be < 0 dB" % bwr)
+                         "be < 0 dB" % bwr)
 
     # exp(-a t^2) <->  sqrt(pi/a) exp(-pi^2/a * f^2)  = g(f)
 
@@ -256,21 +257,21 @@ def gausspulse(t, fc=1000, bw=0.5, bwr=-6, tpr=-60, retquad=False,
 def chirp(t, f0, t1, f1, method='linear', phi=0, vertex_zero=True):
     """Frequency-swept cosine generator.
 
-    In the following, 'Hz' should be interpreted as 'cycles per time unit';
-    there is no assumption here that the time unit is one second.  The
+    In the following, 'Hz' should be interpreted as 'cycles per unit';
+    there is no requirement here that the unit is one second.  The
     important distinction is that the units of rotation are cycles, not
-    radians.
+    radians. Likewise, `t` could be a measurement of space instead of time.
 
     Parameters
     ----------
-    t : ndarray
+    t : array_like
         Times at which to evaluate the waveform.
     f0 : float
-        Frequency (in Hz) at time t=0.
+        Frequency (e.g. Hz) at time t=0.
     t1 : float
         Time at which `f1` is specified.
     f1 : float
-        Frequency (in Hz) of the waveform at time `t1`.
+        Frequency (e.g. Hz) of the waveform at time `t1`.
     method : {'linear', 'quadratic', 'logarithmic', 'hyperbolic'}, optional
         Kind of frequency sweep.  If not given, `linear` is assumed.  See
         Notes below for more details.
@@ -334,7 +335,7 @@ def chirp(t, f0, t1, f1, method='linear', phi=0, vertex_zero=True):
 
         ``f(t) = f0*f1*t1 / ((f0 - f1)*t + f1*t1)``
 
-        f1 must be positive, and f0 must be greater than f1.
+        f0 and f1 must be nonzero.
 
     """
     # 'phase' is computed in _chirp_phase, to make testing easier.
@@ -351,6 +352,7 @@ def _chirp_phase(t, f0, t1, f1, method='linear', vertex_zero=True):
     See `chirp_phase` for a description of the arguments.
 
     """
+    t = asarray(t)
     f0 = float(f0)
     t1 = float(t1)
     f1 = float(f1)
@@ -367,7 +369,7 @@ def _chirp_phase(t, f0, t1, f1, method='linear', vertex_zero=True):
 
     elif method in ['logarithmic', 'log', 'lo']:
         if f0 * f1 <= 0.0:
-            raise ValueError("For a geometric chirp, f0 and f1 must be "
+            raise ValueError("For a logarithmic chirp, f0 and f1 must be "
                              "nonzero and have the same sign.")
         if f0 == f1:
             phase = 2 * pi * f0 * t
@@ -376,15 +378,22 @@ def _chirp_phase(t, f0, t1, f1, method='linear', vertex_zero=True):
             phase = 2 * pi * beta * f0 * (pow(f1 / f0, t / t1) - 1.0)
 
     elif method in ['hyperbolic', 'hyp']:
-        if f1 <= 0.0 or f0 <= f1:
-            raise ValueError("hyperbolic chirp requires f0 > f1 > 0.0.")
-        c = f1 * t1
-        df = f0 - f1
-        phase = 2 * pi * (f0 * c / df) * log((df * t + c) / c)
+        if f0 == 0 or f1 == 0:
+            raise ValueError("For a hyperbolic chirp, f0 and f1 must be "
+                             "nonzero.")
+        if f0 == f1:
+            # Degenerate case: constant frequency.
+            phase = 2 * pi * f0 * t
+        else:
+            # Singular point: the instantaneous frequency blows up
+            # when t == sing.
+            sing = -f1 * t1 / (f0 - f1)
+            phase = 2 * pi * (-sing * f0) * log(np.abs(1 - t/sing))
 
     else:
         raise ValueError("method must be 'linear', 'quadratic', 'logarithmic',"
-                " or 'hyperbolic', but a value of %r was given." % method)
+                         " or 'hyperbolic', but a value of %r was given."
+                         % method)
 
     return phase
 
@@ -401,7 +410,7 @@ def sweep_poly(t, poly, phi=0):
     ----------
     t : ndarray
         Times at which to evaluate the waveform.
-    poly : 1-D array-like or instance of numpy.poly1d
+    poly : 1-D array_like or instance of numpy.poly1d
         The desired frequency expressed as a polynomial.  If `poly` is
         a list or ndarray of length n, then the elements of `poly` are
         the coefficients of the polynomial, and the instantaneous

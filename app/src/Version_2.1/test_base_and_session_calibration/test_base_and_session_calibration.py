@@ -146,10 +146,10 @@ class TestBaseAndSessionCalib(unittest.TestCase):
               Processed files written to s3 deleted at the end.
         """
         aws = False
-        sensor_data_base = "dipesh_baseAnatomicalCalibration.csv"
-        file_name_base = "67fd2d25-3ac7-482d-a659-6c452acbe900"
-        sensor_data_session = "dipesh_sessionAnatomicalCalibration.csv"
-        file_name_session = "8051538e-9046-4aac-acef-c37418d392e7"
+        sensor_data_base = "2c9df1c5-6af4-4529-88f9-a3e740e5c84e.csv"
+        file_name_base = "2c9df1c5-6af4-4529-88f9-a3e740e5c84e"
+        sensor_data_session = "bfdda1ec-be6a-4473-af78-7650a81c6fc7.csv"
+        file_name_session = "bfdda1ec-be6a-4473-af78-7650a81c6fc7"
 
         # Make sure no unnecessary data is present in DB
         self._remove_data(file_name_base, file_name_session)

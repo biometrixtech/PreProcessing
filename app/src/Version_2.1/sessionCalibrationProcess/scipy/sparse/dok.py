@@ -6,15 +6,16 @@ __docformat__ = "restructuredtext en"
 
 __all__ = ['dok_matrix', 'isspmatrix_dok']
 
-
+import functools
+import operator
 
 import numpy as np
 
-from scipy.lib.six.moves import zip as izip, xrange
-from scipy.lib.six import iteritems
+from scipy._lib.six import zip as izip, xrange, iteritems, itervalues
 
 from .base import spmatrix, isspmatrix
-from .sputils import isdense, getdtype, isshape, isintlike, isscalarlike, upcast
+from .sputils import (isdense, getdtype, isshape, isintlike, isscalarlike,
+                      upcast, upcast_scalar, IndexMixin, get_index_dtype)
 
 try:
     from operator import isSequenceType as _is_sequence
@@ -23,7 +24,8 @@ except ImportError:
         return (hasattr(x, '__len__') or hasattr(x, '__next__')
                 or hasattr(x, 'next'))
 
-class dok_matrix(spmatrix, dict):
+
+class dok_matrix(spmatrix, IndexMixin, dict):
     """
     Dictionary Of Keys based sparse matrix.
 
@@ -64,24 +66,25 @@ class dok_matrix(spmatrix, dict):
 
     Examples
     --------
-    >>> from scipy.sparse import *
-    >>> from scipy import *
-    >>> S = dok_matrix((5,5), dtype=float32)
+    >>> import numpy as np
+    >>> from scipy.sparse import dok_matrix
+    >>> S = dok_matrix((5, 5), dtype=np.float32)
     >>> for i in range(5):
-    >>>     for j in range(5):
-    >>>         S[i,j] = i+j # Update element
+    ...     for j in range(5):
+    ...         S[i, j] = i + j    # Update element
 
     """
+    format = 'dok'
 
     def __init__(self, arg1, shape=None, dtype=None, copy=False):
         dict.__init__(self)
         spmatrix.__init__(self)
 
         self.dtype = getdtype(dtype, default=float)
-        if isinstance(arg1, tuple) and isshape(arg1): # (M,N)
+        if isinstance(arg1, tuple) and isshape(arg1):  # (M,N)
             M, N = arg1
             self.shape = (M, N)
-        elif isspmatrix(arg1): # Sparse ctor
+        elif isspmatrix(arg1):  # Sparse ctor
             if isspmatrix_dok(arg1) and copy:
                 arg1 = arg1.copy()
             else:
@@ -93,23 +96,32 @@ class dok_matrix(spmatrix, dict):
             self.update(arg1)
             self.shape = arg1.shape
             self.dtype = arg1.dtype
-        else: # Dense ctor
+        else:  # Dense ctor
             try:
                 arg1 = np.asarray(arg1)
             except:
                 raise TypeError('invalid input format')
 
-            if len(arg1.shape)!=2:
+            if len(arg1.shape) != 2:
                 raise TypeError('expected rank <=2 dense array or matrix')
 
             from .coo import coo_matrix
-            self.update( coo_matrix(arg1, dtype=dtype).todok() )
+            d = coo_matrix(arg1, dtype=dtype).todok()
+            self.update(d)
             self.shape = arg1.shape
-            self.dtype = arg1.dtype
+            self.dtype = d.dtype
 
-    def getnnz(self):
+    def getnnz(self, axis=None):
+        if axis is not None:
+            raise NotImplementedError("getnnz over an axis is not implemented "
+                                      "for DOK format")
         return dict.__len__(self)
-    nnz = property(fget=getnnz)
+
+    def count_nonzero(self):
+        return sum(x != 0 for x in itervalues(self))
+
+    getnnz.__doc__ = spmatrix.getnnz.__doc__
+    count_nonzero.__doc__ = spmatrix.count_nonzero.__doc__
 
     def __len__(self):
         return dict.__len__(self)
@@ -127,213 +139,161 @@ class dok_matrix(spmatrix, dict):
             raise IndexError('index out of bounds')
         return dict.get(self, key, default)
 
-    def  __getitem__(self, key):
+    def __getitem__(self, index):
         """If key=(i,j) is a pair of integers, return the corresponding
         element.  If either i or j is a slice or sequence, return a new sparse
         matrix with just these elements.
         """
-        try:
-            i, j = key
-        except (ValueError, TypeError):
-            raise TypeError('index must be a pair of integers or slices')
+        zero = self.dtype.type(0)
+        i, j = self._unpack_index(index)
 
+        i_intlike = isintlike(i)
+        j_intlike = isintlike(j)
 
-        # Bounds checking
-        if isintlike(i):
+        if i_intlike and j_intlike:
+            # Scalar index case
+            i = int(i)
+            j = int(j)
             if i < 0:
                 i += self.shape[0]
             if i < 0 or i >= self.shape[0]:
                 raise IndexError('index out of bounds')
-
-        if isintlike(j):
             if j < 0:
                 j += self.shape[1]
             if j < 0 or j >= self.shape[1]:
                 raise IndexError('index out of bounds')
+            return dict.get(self, (i,j), zero)
+        elif ((i_intlike or isinstance(i, slice)) and
+              (j_intlike or isinstance(j, slice))):
+            # Fast path for slicing very sparse matrices
+            i_slice = slice(i, i+1) if i_intlike else i
+            j_slice = slice(j, j+1) if j_intlike else j
+            i_indices = i_slice.indices(self.shape[0])
+            j_indices = j_slice.indices(self.shape[1])
+            i_seq = xrange(*i_indices)
+            j_seq = xrange(*j_indices)
+            newshape = (len(i_seq), len(j_seq))
+            newsize = _prod(newshape)
 
-        # First deal with the case where both i and j are integers
-        if isintlike(i) and isintlike(j):
-            return dict.get(self, (i,j), 0.)
-        else:
-            # Either i or j is a slice, sequence, or invalid.  If i is a slice
-            # or sequence, unfold it first and call __getitem__ recursively.
+            if len(self) < 2*newsize and newsize != 0:
+                # Switch to the fast path only when advantageous
+                # (count the iterations in the loops, adjust for complexity)
+                #
+                # We also don't handle newsize == 0 here (if
+                # i/j_intlike, it can mean index i or j was out of
+                # bounds)
+                return self._getitem_ranges(i_indices, j_indices, newshape)
 
-            if isinstance(i, slice):
-                # Is there an easier way to do this?
-                seq = xrange(i.start or 0, i.stop or self.shape[0], i.step or 1)
-            elif _is_sequence(i):
-                seq = i
-            else:
-                # Make sure i is an integer. (But allow it to be a subclass of int).
-                if not isintlike(i):
-                    raise TypeError('index must be a pair of integers or slices')
-                seq = None
-            if seq is not None:
-                # i is a seq
-                if isintlike(j):
-                    # Create a new matrix of the correct dimensions
-                    first = seq[0]
-                    last = seq[-1]
-                    if first < 0 or first >= self.shape[0] or last < 0 \
-                                 or last >= self.shape[0]:
-                        raise IndexError('index out of bounds')
-                    newshape = (last-first+1, 1)
-                    new = dok_matrix(newshape)
-                    # ** This uses linear time in the size m of dimension 0:
-                    # new[0:seq[-1]-seq[0]+1, 0] = \
-                    #         [self.get((element, j), 0) for element in seq]
-                    # ** Instead just add the non-zero elements.  This uses
-                    # ** linear time in the number of non-zeros:
-                    for (ii, jj) in self.keys():
-                        if jj == j and ii >= first and ii <= last:
-                            dict.__setitem__(new, (ii-first, 0), \
-                                             dict.__getitem__(self, (ii,jj)))
-                else:
-                    ###################################
-                    # We should reshape the new matrix here!
-                    ###################################
-                    raise NotImplementedError("fancy indexing supported over"
-                            " one axis only")
-                return new
+        i, j = self._index_to_arrays(i, j)
 
-            # Below here, j is a sequence, but i is an integer
-            if isinstance(j, slice):
-                # Is there an easier way to do this?
-                seq = xrange(j.start or 0, j.stop or self.shape[1], j.step or 1)
-            elif _is_sequence(j):
-                seq = j
-            else:
-                # j is not an integer
-                raise TypeError("index must be a pair of integers or slices")
+        if i.size == 0:
+            return dok_matrix(i.shape, dtype=self.dtype)
 
-            # Create a new matrix of the correct dimensions
-            first = seq[0]
-            last = seq[-1]
-            if first < 0 or first >= self.shape[1] or last < 0 \
-                         or last >= self.shape[1]:
-                raise IndexError("index out of bounds")
-            newshape = (1, last-first+1)
-            new = dok_matrix(newshape)
-            # ** This uses linear time in the size n of dimension 1:
-            # new[0, 0:seq[-1]-seq[0]+1] = \
-            #         [self.get((i, element), 0) for element in seq]
-            # ** Instead loop over the non-zero elements.  This is slower
-            # ** if there are many non-zeros
-            for (ii, jj) in self.keys():
-                if ii == i and jj >= first and jj <= last:
-                    dict.__setitem__(new, (0, jj-first), \
-                                     dict.__getitem__(self, (ii,jj)))
-            return new
+        min_i = i.min()
+        if min_i < -self.shape[0] or i.max() >= self.shape[0]:
+            raise IndexError('index (%d) out of range -%d to %d)' %
+                             (i.min(), self.shape[0], self.shape[0]-1))
+        if min_i < 0:
+            i = i.copy()
+            i[i < 0] += self.shape[0]
 
+        min_j = j.min()
+        if min_j < -self.shape[1] or j.max() >= self.shape[1]:
+            raise IndexError('index (%d) out of range -%d to %d)' %
+                             (j.min(), self.shape[1], self.shape[1]-1))
+        if min_j < 0:
+            j = j.copy()
+            j[j < 0] += self.shape[1]
 
-    def __setitem__(self, key, value):
-        try:
-            i, j = key
-        except (ValueError, TypeError):
-            raise TypeError("index must be a pair of integers or slices")
+        newdok = dok_matrix(i.shape, dtype=self.dtype)
 
-        # First deal with the case where both i and j are integers
-        if isintlike(i) and isintlike(j):
-            if i < 0:
-                i += self.shape[0]
-            if j < 0:
-                j += self.shape[1]
+        for a in xrange(i.shape[0]):
+            for b in xrange(i.shape[1]):
+                v = dict.get(self, (i[a,b], j[a,b]), zero)
+                if v != 0:
+                    dict.__setitem__(newdok, (a, b), v)
 
-            if i < 0 or i >= self.shape[0] or j < 0 or j >= self.shape[1]:
-                raise IndexError("index out of bounds")
+        return newdok
 
-            if np.isscalar(value):
-                if value == 0:
-                    if (i,j) in self:
-                        del self[(i,j)]
-                else:
-                    dict.__setitem__(self, (i,j), self.dtype.type(value))
-            else:
-                raise ValueError('setting an array element with a sequence')
+    def _getitem_ranges(self, i_indices, j_indices, shape):
+        # performance golf: we don't want Numpy scalars here, they are slow
+        i_start, i_stop, i_stride = map(int, i_indices)
+        j_start, j_stop, j_stride = map(int, j_indices)
 
-        else:
-            # Either i or j is a slice, sequence, or invalid.  If i is a slice
-            # or sequence, unfold it first and call __setitem__ recursively.
-            if isinstance(i, slice):
-                # Is there an easier way to do this?
-                seq = xrange(i.start or 0, i.stop or self.shape[0], i.step or 1)
-            elif _is_sequence(i):
-                seq = i
-            else:
-                # Make sure i is an integer. (But allow it to be a subclass of int).
-                if not isintlike(i):
-                    raise TypeError("index must be a pair of integers or slices")
-                seq = None
-            if seq is not None:
-                # First see if 'value' is another dok_matrix of the appropriate
-                # dimensions
-                if isinstance(value, dok_matrix):
-                    if value.shape[1] == 1:
-                        for element in seq:
-                            self[element, j] = value[element, 0]
-                    else:
-                        raise NotImplementedError("setting a 2-d slice of"
-                                " a dok_matrix is not yet supported")
-                elif np.isscalar(value):
-                    for element in seq:
-                        self[element, j] = value
-                else:
-                    # See if value is a sequence
-                    try:
-                        if len(seq) != len(value):
-                            raise ValueError("index and value ranges must"
-                                              " have the same length")
-                    except TypeError:
-                        # Not a sequence
-                        raise TypeError("unsupported type for"
-                                         " dok_matrix.__setitem__")
+        newdok = dok_matrix(shape, dtype=self.dtype)
 
-                    # Value is a sequence
-                    for element, val in izip(seq, value):
-                        self[element, j] = val   # don't use dict.__setitem__
-                            # here, since we still want to be able to delete
-                            # 0-valued keys, do type checking on 'val' (e.g. if
-                            # it's a rank-1 dense array), etc.
-            else:
-                # Process j
-                if isinstance(j, slice):
-                    seq = xrange(j.start or 0, j.stop or self.shape[1], j.step or 1)
-                elif _is_sequence(j):
-                    seq = j
-                else:
-                    # j is not an integer
-                    raise TypeError("index must be a pair of integers or slices")
+        for (ii, jj) in self.keys():
+            # ditto for numpy scalars
+            ii = int(ii)
+            jj = int(jj)
+            a, ra = divmod(ii - i_start, i_stride)
+            if a < 0 or a >= shape[0] or ra != 0:
+                continue
+            b, rb = divmod(jj - j_start, j_stride)
+            if b < 0 or b >= shape[1] or rb != 0:
+                continue
+            dict.__setitem__(newdok, (a, b),
+                             dict.__getitem__(self, (ii, jj)))
 
-                # First see if 'value' is another dok_matrix of the appropriate
-                # dimensions
-                if isinstance(value, dok_matrix):
-                    if value.shape[0] == 1:
-                        for element in seq:
-                            self[i, element] = value[0, element]
-                    else:
-                        raise NotImplementedError("setting a 2-d slice of"
-                                " a dok_matrix is not yet supported")
-                elif np.isscalar(value):
-                    for element in seq:
-                        self[i, element] = value
-                else:
-                    # See if value is a sequence
-                    try:
-                        if len(seq) != len(value):
-                            raise ValueError("index and value ranges must have"
-                                              " the same length")
-                    except TypeError:
-                        # Not a sequence
-                        raise TypeError("unsupported type for dok_matrix.__setitem__")
-                    else:
-                        for element, val in izip(seq, value):
-                            self[i, element] = val
+        return newdok
 
+    def __setitem__(self, index, x):
+        if isinstance(index, tuple) and len(index) == 2:
+            # Integer index fast path
+            i, j = index
+            if (isintlike(i) and isintlike(j) and 0 <= i < self.shape[0]
+                    and 0 <= j < self.shape[1]):
+                v = np.asarray(x, dtype=self.dtype)
+                if v.ndim == 0 and v != 0:
+                    dict.__setitem__(self, (int(i), int(j)), v[()])
+                    return
+
+        i, j = self._unpack_index(index)
+        i, j = self._index_to_arrays(i, j)
+
+        if isspmatrix(x):
+            x = x.toarray()
+
+        # Make x and i into the same shape
+        x = np.asarray(x, dtype=self.dtype)
+        x, _ = np.broadcast_arrays(x, i)
+
+        if x.shape != i.shape:
+            raise ValueError("shape mismatch in assignment")
+
+        if np.size(x) == 0:
+            return
+
+        min_i = i.min()
+        if min_i < -self.shape[0] or i.max() >= self.shape[0]:
+            raise IndexError('index (%d) out of range -%d to %d)' %
+                             (i.min(), self.shape[0], self.shape[0]-1))
+        if min_i < 0:
+            i = i.copy()
+            i[i < 0] += self.shape[0]
+
+        min_j = j.min()
+        if min_j < -self.shape[1] or j.max() >= self.shape[1]:
+            raise IndexError('index (%d) out of range -%d to %d)' %
+                             (j.min(), self.shape[1], self.shape[1]-1))
+        if min_j < 0:
+            j = j.copy()
+            j[j < 0] += self.shape[1]
+
+        dict.update(self, izip(izip(i.flat, j.flat), x.flat))
+
+        if 0 in x:
+            zeroes = x == 0
+            for key in izip(i[zeroes].flat, j[zeroes].flat):
+                if dict.__getitem__(self, key) == 0:
+                    # may have been superseded by later update
+                    del self[key]
 
     def __add__(self, other):
         # First check if argument is a scalar
         if isscalarlike(other):
-            new = dok_matrix(self.shape, dtype=self.dtype)
+            res_dtype = upcast_scalar(self.dtype, other)
+            new = dok_matrix(self.shape, dtype=res_dtype)
             # Add this scalar to every element.
             M, N = self.shape
             for i in xrange(M):
@@ -341,23 +301,25 @@ class dok_matrix(spmatrix, dict):
                     aij = self.get((i, j), 0) + other
                     if aij != 0:
                         new[i, j] = aij
-            #new.dtype.char = self.dtype.char
+            # new.dtype.char = self.dtype.char
         elif isinstance(other, dok_matrix):
             if other.shape != self.shape:
                 raise ValueError("matrix dimensions are not equal")
-            # We could alternatively set the dimensions to the the largest of
+            # We could alternatively set the dimensions to the largest of
             # the two matrices to be summed.  Would this be a good idea?
-            new = dok_matrix(self.shape, dtype=self.dtype)
+            res_dtype = upcast(self.dtype, other.dtype)
+            new = dok_matrix(self.shape, dtype=res_dtype)
             new.update(self)
-            for key in other.keys():
-                new[key] += other[key]
+            with np.errstate(over='ignore'):
+                for key in other.keys():
+                    new[key] += other[key]
         elif isspmatrix(other):
             csc = self.tocsc()
             new = csc + other
         elif isdense(other):
             new = self.todense() + other
         else:
-            raise TypeError("data type not understood")
+            return NotImplemented
         return new
 
     def __radd__(self, other):
@@ -384,7 +346,7 @@ class dok_matrix(spmatrix, dict):
         elif isdense(other):
             new = other + self.todense()
         else:
-            raise TypeError("data type not understood")
+            return NotImplemented
         return new
 
     def __neg__(self):
@@ -394,24 +356,25 @@ class dok_matrix(spmatrix, dict):
         return new
 
     def _mul_scalar(self, other):
+        res_dtype = upcast_scalar(self.dtype, other)
         # Multiply this scalar by every element.
-        new = dok_matrix(self.shape, dtype=self.dtype)
+        new = dok_matrix(self.shape, dtype=res_dtype)
         for (key, val) in iteritems(self):
             new[key] = val * other
         return new
 
     def _mul_vector(self, other):
-        #matrix * vector
-        result = np.zeros( self.shape[0], dtype=upcast(self.dtype,other.dtype) )
+        # matrix * vector
+        result = np.zeros(self.shape[0], dtype=upcast(self.dtype,other.dtype))
         for (i,j),v in iteritems(self):
             result[i] += v * other[j]
         return result
 
     def _mul_multivector(self, other):
-        #matrix * multivector
+        # matrix * multivector
         M,N = self.shape
-        n_vecs = other.shape[1] #number of column vectors
-        result = np.zeros( (M,n_vecs), dtype=upcast(self.dtype,other.dtype) )
+        n_vecs = other.shape[1]  # number of column vectors
+        result = np.zeros((M,n_vecs), dtype=upcast(self.dtype,other.dtype))
         for (i,j),v in iteritems(self):
             result[i,:] += v * other[j,:]
         return result
@@ -421,23 +384,22 @@ class dok_matrix(spmatrix, dict):
             # Multiply this scalar by every element.
             for (key, val) in iteritems(self):
                 self[key] = val * other
-            #new.dtype.char = self.dtype.char
+            # new.dtype.char = self.dtype.char
             return self
         else:
-            return NotImplementedError
-
+            return NotImplemented
 
     def __truediv__(self, other):
         if isscalarlike(other):
-            new = dok_matrix(self.shape, dtype=self.dtype)
+            res_dtype = upcast_scalar(self.dtype, other)
+            new = dok_matrix(self.shape, dtype=res_dtype)
             # Multiply this scalar by every element.
             for (key, val) in iteritems(self):
                 new[key] = val / other
-            #new.dtype.char = self.dtype.char
+            # new.dtype.char = self.dtype.char
             return new
         else:
             return self.tocsr() / other
-
 
     def __itruediv__(self, other):
         if isscalarlike(other):
@@ -446,20 +408,27 @@ class dok_matrix(spmatrix, dict):
                 self[key] = val / other
             return self
         else:
-            return NotImplementedError
+            return NotImplemented
 
     # What should len(sparse) return? For consistency with dense matrices,
     # perhaps it should be the number of rows?  For now it returns the number
     # of non-zeros.
 
-    def transpose(self):
-        """ Return the transpose
-        """
+    def transpose(self, axes=None, copy=False):
+        if axes is not None:
+            raise ValueError(("Sparse matrices do not support "
+                              "an 'axes' parameter because swapping "
+                              "dimensions is the only logical permutation."))
+
         M, N = self.shape
-        new = dok_matrix((N, M), dtype=self.dtype)
+        new = dok_matrix((N, M), dtype=self.dtype, copy=copy)
+
         for key, value in iteritems(self):
             new[key[1], key[0]] = value
+
         return new
+
+    transpose.__doc__ = spmatrix.transpose.__doc__
 
     def conjtransp(self):
         """ Return the conjugate transpose
@@ -475,79 +444,52 @@ class dok_matrix(spmatrix, dict):
         new.update(self)
         return new
 
-    def take(self, cols_or_rows, columns=1):
-        # Extract columns or rows as indictated from matrix
-        # assume cols_or_rows is sorted
-        new = dok_matrix(dtype=self.dtype)    # what should the dimensions be ?!
-        indx = int((columns == 1))
-        N = len(cols_or_rows)
-        if indx: # columns
-            for key in self.keys():
-                num = np.searchsorted(cols_or_rows, key[1])
-                if num < N:
-                    newkey = (key[0], num)
-                    new[newkey] = self[key]
-        else:
-            for key in self.keys():
-                num = np.searchsorted(cols_or_rows, key[0])
-                if num < N:
-                    newkey = (num, key[1])
-                    new[newkey] = self[key]
-        return new
+    copy.__doc__ = spmatrix.copy.__doc__
 
-    def split(self, cols_or_rows, columns=1):
-        # Similar to take but returns two arrays, the extracted columns plus
-        # the resulting array.  Assumes cols_or_rows is sorted
-        base = dok_matrix()
-        ext = dok_matrix()
-        indx = int((columns == 1))
-        if indx:
-            for key in self.keys():
-                num = np.searchsorted(cols_or_rows, key[1])
-                if cols_or_rows[num] == key[1]:
-                    newkey = (key[0], num)
-                    ext[newkey] = self[key]
-                else:
-                    newkey = (key[0], key[1]-num)
-                    base[newkey] = self[key]
-        else:
-            for key in self.keys():
-                num = np.searchsorted(cols_or_rows, key[0])
-                if cols_or_rows[num] == key[0]:
-                    newkey = (num, key[1])
-                    ext[newkey] = self[key]
-                else:
-                    newkey = (key[0]-num, key[1])
-                    base[newkey] = self[key]
-        return base, ext
+    def getrow(self, i):
+        """Returns a copy of row i of the matrix as a (1 x n)
+        DOK matrix.
+        """
+        out = self.__class__((1, self.shape[1]), dtype=self.dtype)
+        for j in range(self.shape[1]):
+            out[0, j] = self[i, j]
+        return out
 
-    def tocoo(self):
-        """ Return a copy of this matrix in COOrdinate format"""
+    def getcol(self, j):
+        """Returns a copy of column j of the matrix as a (m x 1)
+        DOK matrix.
+        """
+        out = self.__class__((self.shape[0], 1), dtype=self.dtype)
+        for i in range(self.shape[0]):
+            out[i, 0] = self[i, j]
+        return out
+
+    def tocoo(self, copy=False):
         from .coo import coo_matrix
         if self.nnz == 0:
             return coo_matrix(self.shape, dtype=self.dtype)
-        else:
-            data    = np.asarray(list(self.values()), dtype=self.dtype)
-            indices = np.asarray(list(self.keys()), dtype=np.intc).T
-            return coo_matrix((data,indices), shape=self.shape, dtype=self.dtype)
 
-    def todok(self,copy=False):
+        idx_dtype = get_index_dtype(maxval=max(self.shape))
+        data = np.asarray(_list(self.values()), dtype=self.dtype)
+        indices = np.asarray(_list(self.keys()), dtype=idx_dtype).T
+        A = coo_matrix((data, indices), shape=self.shape, dtype=self.dtype)
+        A.has_canonical_format = True
+        return A
+
+    tocoo.__doc__ = spmatrix.tocoo.__doc__
+
+    def todok(self, copy=False):
         if copy:
             return self.copy()
         else:
             return self
 
-    def tocsr(self):
-        """ Return a copy of this matrix in Compressed Sparse Row format"""
-        return self.tocoo().tocsr()
+    todok.__doc__ = spmatrix.todok.__doc__
 
-    def tocsc(self):
-        """ Return a copy of this matrix in Compressed Sparse Column format"""
-        return self.tocoo().tocsc()
+    def tocsc(self, copy=False):
+        return self.tocoo(copy=False).tocsc(copy=copy)
 
-    def toarray(self, order=None, out=None):
-        """See the docstring for `spmatrix.toarray`."""
-        return self.tocoo().toarray(order=order, out=out)
+    tocsc.__doc__ = spmatrix.tocsc.__doc__
 
     def resize(self, shape):
         """ Resize the matrix in-place to dimensions given by 'shape'.
@@ -567,6 +509,19 @@ class dok_matrix(spmatrix, dict):
         self._shape = shape
 
 
+def _list(x):
+    """Force x to a list."""
+    if not isinstance(x, list):
+        x = list(x)
+    return x
+
 
 def isspmatrix_dok(x):
     return isinstance(x, dok_matrix)
+
+
+def _prod(x):
+    """Product of a list of numbers; ~40x faster vs np.prod for Python tuples"""
+    if len(x) == 0:
+        return 1
+    return functools.reduce(operator.mul, x)

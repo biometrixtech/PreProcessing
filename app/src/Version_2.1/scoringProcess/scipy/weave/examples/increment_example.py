@@ -1,6 +1,6 @@
 # examples/increment_example.py
 
-#from weave import ext_tools
+# from weave import ext_tools
 
 # use the following so that development version is used.
 from __future__ import absolute_import, print_function
@@ -9,14 +9,15 @@ import sys
 sys.path.insert(0,'..')
 import ext_tools
 
+
 def build_increment_ext():
     """ Build a simple extension with functions that increment numbers.
         The extension will be built in the local directory.
     """
     mod = ext_tools.ext_module('increment_ext')
 
-    a = 1 # effectively a type declaration for 'a' in the
-          # following functions.
+    # Effectively a type declaration for 'a' in the following functions.
+    a = 1
 
     ext_code = "return_val = PyInt_FromLong(a+1);"
     func = ext_tools.ext_function('increment',ext_code,['a'])

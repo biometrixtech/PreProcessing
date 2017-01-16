@@ -6,6 +6,7 @@ try:
     import matplotlib
     matplotlib.rcParams['backend'] = 'Agg'
     import matplotlib.pyplot as plt
+    from matplotlib.collections import LineCollection
     has_matplotlib = True
 except:
     has_matplotlib = False
@@ -13,6 +14,7 @@ except:
 from scipy.spatial import \
      delaunay_plot_2d, voronoi_plot_2d, convex_hull_plot_2d, \
      Delaunay, Voronoi, ConvexHull
+
 
 class TestPlotting:
     points = [(0,0), (0,1), (1,0), (1,1)]
@@ -24,7 +26,7 @@ class TestPlotting:
         obj = Delaunay(self.points)
         s_before = obj.simplices.copy()
         r = delaunay_plot_2d(obj, ax=fig.gca())
-        assert_array_equal(obj.simplices, s_before) # shouldn't modify
+        assert_array_equal(obj.simplices, s_before)  # shouldn't modify
         assert_(r is fig)
         delaunay_plot_2d(obj, ax=fig.gca())
 
@@ -36,6 +38,7 @@ class TestPlotting:
         r = voronoi_plot_2d(obj, ax=fig.gca())
         assert_(r is fig)
         voronoi_plot_2d(obj)
+        voronoi_plot_2d(obj, show_vertices=False)
 
     @dec.skipif(not has_matplotlib, "Matplotlib not available")
     def test_convex_hull(self):

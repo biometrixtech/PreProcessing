@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
 """
 generate_ufuncs.py
 
@@ -48,10 +48,25 @@ function. Cython pxd files are allowed in addition to .h files.
 Cython functions may use fused types, but the names in the list
 should be the specialized ones, such as 'somefunc[float]'.
 
+Function coming from C++ should have ``++`` appended to the name of
+the header.
+
 Floating-point exceptions inside these Ufuncs are converted to
 special function errors --- which are separately controlled by the
 user, and off by default, as they are usually not especially useful
 for the user.
+
+
+The C++ module
+--------------
+In addition to ``_ufuncs`` module, a second module ``_ufuncs_cxx`` is
+generated. This module only exports function pointers that are to be
+used when constructing some of the ufuncs in ``_ufuncs``. The function
+pointers are exported via Cython's standard mechanism.
+
+This mainly avoids build issues --- Python distutils has no way to
+figure out what to do if you want to link both C++ and Fortran code in
+the same shared library.
 
 """
 
@@ -66,7 +81,9 @@ from __future__ import division, print_function, absolute_import
 
 # Ufuncs without C++
 UFUNCS = """
+sph_harm -- sph_harmonic: iidd->D, sph_harmonic_unsafe: dddd->D -- sph_harm.pxd, _legacy.pxd
 _lambertw -- lambertw_scalar: Dld->D                       -- lambertw.pxd
+_ellip_harm -- ellip_harmonic: ddiiddd->d, ellip_harmonic_unsafe: ddddddd->d --_ellip_harm.pxd, _legacy.pxd
 logit -- logitf: f->f, logit: d->d, logitl: g->g           -- _logit.h
 expit -- expitf: f->f, expit: d->d, expitl: g->g           -- _logit.h
 bdtrc -- bdtrc: iid->d, bdtrc_unsafe: ddd->d               -- cephes.h, _legacy.pxd
@@ -80,6 +97,7 @@ fdtr -- fdtr: ddd->d                                       -- cephes.h
 fdtri -- fdtri: ddd->d                                     -- cephes.h
 gdtrc -- gdtrc: ddd->d                                     -- cephes.h
 gdtr -- gdtr: ddd->d                                       -- cephes.h
+hyp0f1 -- _hyp0f1_real: dd->d, _hyp0f1_cmplx: dD->D        -- _hyp0f1.pxd
 hyp2f1 -- hyp2f1: dddd->d, chyp2f1_wrap: dddD->D           -- cephes.h, specfun_wrappers.h
 hyp1f1 -- hyp1f1_wrap: ddd->d, chyp1f1_wrap: ddD->D        -- specfun_wrappers.h
 hyperu -- hypU_wrap: ddd->d                                -- specfun_wrappers.h
@@ -118,8 +136,8 @@ eval_hermite  -- eval_hermite: ld->d                       -- orthogonal_eval.px
 eval_hermitenorm -- eval_hermitenorm: ld->d                -- orthogonal_eval.pxd
 exp10 -- exp10: d->d                                       -- cephes.h
 exp2 -- exp2: d->d                                         -- cephes.h
-gamma -- Gamma: d->d, cgamma_wrap: D->D                    -- cephes.h, specfun_wrappers.h
-gammaln -- lgam: d->d, clngamma_wrap: D->D                 -- cephes.h, specfun_wrappers.h
+gamma -- Gamma: d->d, cgamma: D->D                         -- cephes.h, _loggamma.pxd
+_gammaln -- lgam: d->d, clngamma_wrap: D->D                -- cephes.h, specfun_wrappers.h
 gammasgn -- gammasgn: d->d                                 -- c_misc/misc.h
 i0 -- i0: d->d                                             -- cephes.h
 i0e -- i0e: d->d                                           -- cephes.h
@@ -135,14 +153,14 @@ ellipj -- ellpj: dd*dddd->*i                               -- cephes.h
 expn -- expn: id->d, expn_unsafe: dd->d                    -- cephes.h, _legacy.pxd
 exp1 -- exp1_wrap: d->d, cexp1_wrap: D->D                  -- specfun_wrappers.h
 expi -- expi_wrap: d->d, cexpi_wrap: D->D                  -- specfun_wrappers.h
-kn -- kn: id->d, kn_unsafe: dd->d                          -- cephes.h, _legacy.pxd
+kn -- cbesk_wrap_real_int: id->d, kn_unsafe: dd->d         -- cephes.h, _legacy.pxd
 pdtrc -- pdtrc: id->d, pdtrc_unsafe: dd->d                 -- cephes.h, _legacy.pxd
 pdtr -- pdtr: id->d, pdtr_unsafe: dd->d                    -- cephes.h, _legacy.pxd
 pdtri -- pdtri: id->d, pdtri_unsafe: dd->d                 -- cephes.h, _legacy.pxd
 yn -- yn: id->d, yn_unsafe: dd->d                          -- cephes.h, _legacy.pxd
 smirnov -- smirnov: id->d, smirnov_unsafe: dd->d           -- cephes.h, _legacy.pxd
 smirnovi -- smirnovi: id->d, smirnovi_unsafe: dd->d        -- cephes.h, _legacy.pxd
-airy -- airy: d*dddd->*i, cairy_wrap: D*DDDD->*i           -- cephes.h, amos_wrappers.h
+airy -- airy_wrap: d*dddd->*i, cairy_wrap: D*DDDD->*i      -- amos_wrappers.h
 itairy -- itairy_wrap: d*dddd->*i                          -- specfun_wrappers.h
 airye -- cairy_wrap_e_real: d*dddd->*i, cairy_wrap_e: D*DDDD->*i -- amos_wrappers.h
 fresnel -- fresnl: d*dd->*i, cfresnl_wrap: D*DD->*i        -- cephes.h, specfun_wrappers.h
@@ -156,9 +174,9 @@ j0 -- j0: d->d                                             -- cephes.h
 y0 -- y0: d->d                                             -- cephes.h
 j1 -- j1: d->d                                             -- cephes.h
 y1 -- y1: d->d                                             -- cephes.h
-jv -- jv: dd->d, cbesj_wrap: dD->D                         -- cephes.h, amos_wrappers.h
+jv -- cbesj_wrap_real: dd->d, cbesj_wrap: dD->D            -- amos_wrappers.h
 jve -- cbesj_wrap_e_real: dd->d, cbesj_wrap_e: dD->D       -- amos_wrappers.h
-yv -- yv: dd->d, cbesy_wrap: dD->D                         -- cephes.h, amos_wrappers.h
+yv -- cbesy_wrap_real: dd->d, cbesy_wrap: dD->D            -- amos_wrappers.h
 yve -- cbesy_wrap_e_real: dd->d, cbesy_wrap_e: dD->D       -- amos_wrappers.h
 k0 -- k0: d->d                                             -- cephes.h
 k0e -- k0e: d->d                                           -- cephes.h
@@ -170,24 +188,27 @@ hankel1 -- cbesh_wrap1: dD->D                              -- amos_wrappers.h
 hankel1e -- cbesh_wrap1_e: dD->D                           -- amos_wrappers.h
 hankel2 -- cbesh_wrap2: dD->D                              -- amos_wrappers.h
 hankel2e -- cbesh_wrap2_e: dD->D                           -- amos_wrappers.h
-ndtr -- ndtr: d->d                                         -- cephes.h
-log_ndtr -- log_ndtr: d->d                                 -- cephes.h
+ndtr -- ndtr: d->d, faddeeva_ndtr: D->D                    -- cephes.h, _faddeeva.h++
+log_ndtr -- log_ndtr: d->d, faddeeva_log_ndtr: D->D        -- cephes.h, _faddeeva.h++
 ndtri -- ndtri: d->d                                       -- cephes.h
-psi -- psi: d->d, cpsi_wrap: D->D                          -- cephes.h, specfun_wrappers.h
-rgamma -- rgamma: d->d, crgamma_wrap: D->D                 -- cephes.h, specfun_wrappers.h
+psi -- digamma: d->d, cdigamma: D->D                       -- _digamma.pxd, _digamma.pxd
+rgamma -- rgamma: d->d, crgamma: D->D                      -- cephes.h, _loggamma.pxd
 round -- round: d->d                                       -- cephes.h
 sindg -- sindg: d->d                                       -- cephes.h
 cosdg -- cosdg: d->d                                       -- cephes.h
 radian -- radian: ddd->d                                   -- cephes.h
 tandg -- tandg: d->d                                       -- cephes.h
 cotdg -- cotdg: d->d                                       -- cephes.h
-log1p -- log1p: d->d                                       -- cephes.h
-expm1 -- expm1: d->d                                       -- cephes.h
+log1p -- log1p: d->d, clog1p: D->D                         -- cephes.h, _cunity.pxd
+expm1 -- expm1: d->d, cexpm1: D->D                         -- cephes.h, _cunity.pxd
 cosm1 -- cosm1: d->d                                       -- cephes.h
-spence -- spence: d->d                                     -- cephes.h
+spence -- spence: d->d, cspence: D-> D                     -- cephes.h, _spence.pxd
 zetac -- zetac: d->d                                       -- cephes.h
-struve -- struve_wrap: dd->d                               -- specfun_wrappers.h
-modstruve -- modstruve_wrap: dd->d                         -- specfun_wrappers.h
+struve -- struve_h: dd->d                                  -- misc.h
+modstruve -- struve_l: dd->d                               -- misc.h
+_struve_power_series -- struve_power_series:  ddi*d->d     -- misc.h
+_struve_asymp_large_z -- struve_asymp_large_z: ddi*d->d    -- misc.h
+_struve_bessel_series -- struve_bessel_series: ddi*d->d    -- misc.h
 itstruve0 -- itstruve0_wrap: d->d                          -- specfun_wrappers.h
 it2struve0 -- it2struve0_wrap: d->d                        -- specfun_wrappers.h
 itmodstruve0 -- itmodstruve0_wrap: d->d                    -- specfun_wrappers.h
@@ -200,7 +221,7 @@ berp -- berp_wrap: d->d                                    -- specfun_wrappers.h
 beip -- beip_wrap: d->d                                    -- specfun_wrappers.h
 kerp -- kerp_wrap: d->d                                    -- specfun_wrappers.h
 keip -- keip_wrap: d->d                                    -- specfun_wrappers.h
-zeta -- zeta: dd->d                                        -- cephes.h
+_zeta -- zeta: dd->d                                       -- cephes.h
 kolmogorov -- kolmogorov: d->d                             -- cephes.h
 kolmogi -- kolmogi: d->d                                   -- cephes.h
 besselpoly -- besselpoly: ddd->d                           -- c_misc/misc.h
@@ -263,28 +284,64 @@ obl_rad1 -- oblate_radial1_nocv_wrap: dddd*d->d            -- specfun_wrappers.h
 obl_rad2 -- oblate_radial2_nocv_wrap: dddd*d->d            -- specfun_wrappers.h
 modfresnelp -- modified_fresnel_plus_wrap: d*DD->*i        -- specfun_wrappers.h
 modfresnelm -- modified_fresnel_minus_wrap: d*DD->*i       -- specfun_wrappers.h
-"""
-
-# Ufuncs with C++
-UFUNCS_CXX = """
-wofz -- faddeeva_w: D->D                                    -- _faddeeva.h
-erfc -- erfc: d->d, faddeeva_erfc: D->D                     -- cephes.h, _faddeeva.h
-erf -- erf: d->d, faddeeva_erf: D->D                        -- cephes.h, _faddeeva.h
-dawsn -- faddeeva_dawsn: d->d, faddeeva_dawsn_complex: D->D -- _faddeeva.h
-erfcx -- faddeeva_erfcx: d->d, faddeeva_erfcx_complex: D->D -- _faddeeva.h
-erfi -- faddeeva_erfi: d->d, faddeeva_erfi_complex: D->D    -- _faddeeva.h
+wofz -- faddeeva_w: D->D                                   -- _faddeeva.h++
+erfc -- erfc: d->d, faddeeva_erfc: D->D                    -- cephes.h, _faddeeva.h++
+erf -- erf: d->d, faddeeva_erf: D->D                       -- cephes.h, _faddeeva.h++
+dawsn -- faddeeva_dawsn: d->d, faddeeva_dawsn_complex: D->D -- _faddeeva.h++
+erfcx -- faddeeva_erfcx: d->d, faddeeva_erfcx_complex: D->D -- _faddeeva.h++
+erfi -- faddeeva_erfi: d->d, faddeeva_erfi_complex: D->D   -- _faddeeva.h++
+xlogy -- xlogy[double]: dd->d, xlogy[double_complex]: DD->D -- _xlogy.pxd
+xlog1py -- xlog1py[double]: dd->d, xlog1py[double_complex]: DD->D   -- _xlogy.pxd
+poch -- poch: dd->d                                        -- c_misc/misc.h
+boxcox -- boxcox: dd->d                                    -- _boxcox.pxd
+boxcox1p -- boxcox1p: dd->d                                -- _boxcox.pxd
+inv_boxcox -- inv_boxcox: dd->d                            -- _boxcox.pxd
+inv_boxcox1p -- inv_boxcox1p: dd->d                        -- _boxcox.pxd
+entr -- entr: d->d                                         -- _convex_analysis.pxd
+kl_div -- kl_div: dd->d                                    -- _convex_analysis.pxd
+rel_entr -- rel_entr: dd->d                                -- _convex_analysis.pxd
+huber -- huber: dd->d                                      -- _convex_analysis.pxd
+pseudo_huber -- pseudo_huber: dd->d                        -- _convex_analysis.pxd
+exprel -- exprel: d->d                                     -- _exprel.pxd
+_spherical_yn -- spherical_yn_real: ld->d, spherical_yn_complex: lD->D -- _spherical_bessel.pxd
+_spherical_jn -- spherical_jn_real: ld->d, spherical_jn_complex: lD->D -- _spherical_bessel.pxd
+_spherical_in -- spherical_in_real: ld->d, spherical_in_complex: lD->D -- _spherical_bessel.pxd
+_spherical_kn -- spherical_kn_real: ld->d, spherical_kn_complex: lD->D -- _spherical_bessel.pxd
+_spherical_yn_d -- spherical_yn_d_real: ld->d, spherical_yn_d_complex: lD->D -- _spherical_bessel.pxd
+_spherical_jn_d -- spherical_jn_d_real: ld->d, spherical_jn_d_complex: lD->D -- _spherical_bessel.pxd
+_spherical_in_d -- spherical_in_d_real: ld->d, spherical_in_d_complex: lD->D -- _spherical_bessel.pxd
+_spherical_kn_d -- spherical_kn_d_real: ld->d, spherical_kn_d_complex: lD->D -- _spherical_bessel.pxd
+loggamma -- loggamma: D->D                                 -- _loggamma.pxd
+_sinpi -- sinpi[double]: d->d, sinpi[double_complex]: D->D -- _trig.pxd
+_cospi -- cospi[double]: d->d, cospi[double_complex]: D->D -- _trig.pxd
 """
 
 #---------------------------------------------------------------------------------
 # Extra code
 #---------------------------------------------------------------------------------
 
-EXTRA_CODE_COMMON = """
-#
-# Error handling system
-#
+EXTRA_CODE_COMMON = """\
+# This file is automatically generated by generate_ufuncs.py.
+# Do not edit manually!
 
-cimport sf_error
+cdef extern from "_complexstuff.h":
+    # numpy/npy_math.h doesn't have correct extern "C" declarations,
+    # so we must include a wrapped version first
+    pass
+
+cdef extern from "numpy/npy_math.h":
+    double NPY_NAN
+
+cimport numpy as np
+from numpy cimport (
+    npy_float, npy_double, npy_longdouble,
+    npy_cfloat, npy_cdouble, npy_clongdouble,
+    npy_int, npy_long,
+    NPY_FLOAT, NPY_DOUBLE, NPY_LONGDOUBLE,
+    NPY_CFLOAT, NPY_CDOUBLE, NPY_CLONGDOUBLE,
+    NPY_INT, NPY_LONG)
+
+ctypedef double complex double_complex
 
 cdef extern from "numpy/ufuncobject.h":
     int PyUFunc_getfperr() nogil
@@ -296,15 +353,29 @@ cdef public int wrap_PyUFunc_getfperr() nogil:
     \"\"\"
     return PyUFunc_getfperr()
 
-def _errprint(inflag=None):
+cimport libc
+
+cimport sf_error
+
+np.import_array()
+np.import_ufunc()
+
+cdef int _set_errprint(int flag) nogil:
+    return sf_error.set_print(flag)
+"""
+
+EXTRA_CODE = """
+cimport scipy.special._ufuncs_cxx
+
+def errprint(inflag=None):
     \"\"\"
-    errprint(flag=None)
+    errprint(inflag=None)
 
     Sets or returns the error printing flag for special functions.
 
     Parameters
     ----------
-    flag : bool, optional
+    inflag : bool, optional
         Whether warnings concerning evaluation of special functions in
         scipy.special are shown. If omitted, no change is made to the
         current setting.
@@ -316,23 +387,18 @@ def _errprint(inflag=None):
 
     \"\"\"
     if inflag is not None:
+        scipy.special._ufuncs_cxx._set_errprint(int(bool(inflag)))
         return sf_error.set_print(int(bool(inflag)))
     else:
         return sf_error.get_print()
-
 """
 
-EXTRA_CODE = EXTRA_CODE_COMMON + """
+EXTRA_CODE_BOTTOM = """\
 #
 # Aliases
 #
-
 jn = jv
 """
-
-EXTRA_CODE_CXX = EXTRA_CODE_COMMON + """
-"""
-
 
 
 #---------------------------------------------------------------------------------
@@ -340,7 +406,6 @@ EXTRA_CODE_CXX = EXTRA_CODE_COMMON + """
 #---------------------------------------------------------------------------------
 
 import os
-import subprocess
 import optparse
 import re
 import textwrap
@@ -382,6 +447,7 @@ TYPE_NAMES = {
     'l': 'NPY_LONG',
 }
 
+
 def cast_order(c):
     return ['ilfdgFDG'.index(x) for x in c]
 
@@ -407,6 +473,7 @@ NAN_VALUE = {
     'i': '0xbad0bad0',
     'l': '0xbad0bad0',
 }
+
 
 def generate_loop(func_inputs, func_outputs, func_retval,
                   ufunc_inputs, ufunc_outputs):
@@ -462,12 +529,10 @@ def generate_loop(func_inputs, func_outputs, func_retval,
     body += "    cdef void *func = (<void**>data)[0]\n"
     body += "    cdef char *func_name = <char*>(<void**>data)[1]\n"
 
-    pointers = []
     for j in range(len(ufunc_inputs)):
-        pointers.append("*ip%d = args[%d]" % (j, j))
+        body += "    cdef char *ip%d = args[%d]\n" % (j, j)
     for j in range(len(ufunc_outputs)):
-        pointers.append("*op%d = args[%d]" % (j, j + len(ufunc_inputs)))
-    body += "    cdef char %s\n" % ", ".join(pointers)
+        body += "    cdef char *op%d = args[%d]\n" % (j, j + len(ufunc_inputs))
 
     ftypes = []
     fvars = []
@@ -542,6 +607,7 @@ def generate_loop(func_inputs, func_outputs, func_retval,
 
     return name, body
 
+
 def iter_variants(inputs, outputs):
     """
     Generate variants of UFunc signatures, by changing variable types,
@@ -569,7 +635,14 @@ def iter_variants(inputs, outputs):
     ]
 
     # float32-preserving signatures
-    maps = maps + [(a + 'dD', b + 'fF') for a, b in maps]
+    if not ('i' in inputs or 'l' in inputs):
+        # Don't add float32 versions of ufuncs with integer arguments, as this
+        # can lead to incorrect dtype selection if the integer arguments are
+        # arrays, but float arguments are scalars.
+        # For instance sph_harm(0,[0],0,0).dtype == complex64
+        # This may be a Numpy bug, but we need to work around it.
+        # cf. gh-4895, https://github.com/numpy/numpy/issues/5895
+        maps = maps + [(a + 'dD', b + 'fF') for a, b in maps]
 
     # do the replacements
     for src, dst in maps:
@@ -579,6 +652,7 @@ def iter_variants(inputs, outputs):
             new_inputs = new_inputs.replace(a, b)
             new_outputs = new_outputs.replace(a, b)
         yield new_inputs, new_outputs
+
 
 class Ufunc(object):
     """
@@ -595,18 +669,36 @@ class Ufunc(object):
 
         The syntax is 'function_name: inputparams*outputparams->output_retval*ignored_retval'
 
+    Attributes
+    ----------
+    name : str
+        Python name for the Ufunc
+    signatures : list of (func_name, inarg_spec, outarg_spec, ret_spec, header_name)
+        List of parsed signatures
+    doc : str
+        Docstring, obtained from add_newdocs
+    function_name_overrides : dict of str->str
+        Overrides for the function names in signatures
+
     """
-    def __init__(self, name, signatures):
+    def __init__(self, name, signatures, headers):
         self.name = name
-        self.signatures = self._parse_signatures(signatures)
+        self.signatures = self._parse_signatures(signatures, headers)
         self.doc = add_newdocs.get("scipy.special." + name)
         if self.doc is None:
             raise ValueError("No docstring for ufunc %r" % name)
         self.doc = textwrap.dedent(self.doc).strip()
+        self.function_name_overrides = {}
 
-    def _parse_signatures(self, sigs):
-        return [self._parse_signature(x) for x in sigs.split(",")
-                if x.strip()]
+    def _parse_signatures(self, sigs_str, headers_str):
+        sigs = [x.strip() for x in sigs_str.split(",") if x.strip()]
+        headers = [x.strip() for x in headers_str.split(",") if x.strip()]
+        if len(headers) == 1:
+            headers = headers * len(sigs)
+        if len(headers) != len(sigs):
+            raise ValueError("%s: Number of headers and signatures doesn't match: %r -- %r" % (
+                self.name, sigs_str, headers_str))
+        return [self._parse_signature(x) + (h,) for x, h in zip(sigs, headers)]
 
     def _parse_signature(self, sig):
         m = re.match("\s*(.*):\s*([fdgFDGil]*)\s*\\*\s*([fdgFDGil]*)\s*->\s*([*fdgFDGil]*)\s*$", sig)
@@ -646,7 +738,7 @@ class Ufunc(object):
             variants.append((func_name, loop_name, inp, outp))
 
         # First add base variants
-        for func_name, inarg, outarg, ret in self.signatures:
+        for func_name, inarg, outarg, ret, header in self.signatures:
             outp = re.sub(r'\*.*', '', ret) + outarg
             ret = ret.replace('*', '')
             if inarg_num is None:
@@ -657,7 +749,7 @@ class Ufunc(object):
             add_variant(func_name, inarg, outarg, ret, inp, outp)
 
         # Then the supplementary ones
-        for func_name, inarg, outarg, ret in self.signatures:
+        for func_name, inarg, outarg, ret, header in self.signatures:
             outp = re.sub(r'\*.*', '', ret) + outarg
             ret = ret.replace('*', '')
             for inp, outp in iter_variants(inarg, outp):
@@ -670,7 +762,13 @@ class Ufunc(object):
 
         return variants, inarg_num, outarg_num
 
-    def cython_func_name(self, c_name, specialized=False, prefix="_func_"):
+    def cython_func_name(self, c_name, specialized=False, prefix="_func_",
+                         override=True):
+        # act on function name overrides
+        if override and c_name in self.function_name_overrides:
+            c_name = self.function_name_overrides[c_name]
+            prefix = ""
+
         # support fused types
         m = re.match(r'^(.*?)(\[.*\])$', c_name)
         if m:
@@ -684,7 +782,7 @@ class Ufunc(object):
 
     def get_prototypes(self):
         prototypes = []
-        for func_name, inarg, outarg, ret in self.signatures:
+        for func_name, inarg, outarg, ret, header in self.signatures:
             ret = ret.replace('*', '')
             c_args = ([C_TYPES[x] for x in inarg]
                       + [C_TYPES[x] + ' *' for x in outarg])
@@ -692,7 +790,7 @@ class Ufunc(object):
                        + [CY_TYPES[x] + ' *' for x in outarg])
             c_proto = "%s (*)(%s)" % (C_TYPES[ret], ", ".join(c_args))
             cy_proto = "%s (*)(%s) nogil" % (CY_TYPES[ret], ", ".join(cy_args))
-            prototypes.append((func_name, c_proto, cy_proto))
+            prototypes.append((func_name, c_proto, cy_proto, header))
         return prototypes
 
     def generate(self, all_loops):
@@ -701,7 +799,7 @@ class Ufunc(object):
         variants, inarg_num, outarg_num = self._get_signatures_and_loops(all_loops)
 
         loops = []
-        datas = []
+        funcs = []
         types = []
 
         for func_name, loop_name, inputs, outputs in variants:
@@ -710,27 +808,27 @@ class Ufunc(object):
             for x in outputs:
                 types.append(TYPE_NAMES[x])
             loops.append(loop_name)
-            datas.append(func_name)
+            funcs.append(func_name)
 
         toplevel += "cdef np.PyUFuncGenericFunction ufunc_%s_loops[%d]\n" % (self.name, len(loops))
-        toplevel += "cdef void *ufunc_%s_ptr[%d]\n" % (self.name, 2*len(datas))
-        toplevel += "cdef void *ufunc_%s_data[%d]\n" % (self.name, len(datas))
+        toplevel += "cdef void *ufunc_%s_ptr[%d]\n" % (self.name, 2*len(funcs))
+        toplevel += "cdef void *ufunc_%s_data[%d]\n" % (self.name, len(funcs))
         toplevel += "cdef char ufunc_%s_types[%d]\n" % (self.name, len(types))
         toplevel += 'cdef char *ufunc_%s_doc = (\n    "%s")\n' % (
             self.name,
-            self.doc.replace('"', '\\"').replace('\n', '\\n\"\n    "')
+            self.doc.replace("\\", "\\\\").replace('"', '\\"').replace('\n', '\\n\"\n    "')
             )
 
         for j, function in enumerate(loops):
             toplevel += "ufunc_%s_loops[%d] = <np.PyUFuncGenericFunction>%s\n" % (self.name, j, function)
         for j, type in enumerate(types):
             toplevel += "ufunc_%s_types[%d] = <char>%s\n" % (self.name, j, type)
-        for j, data in enumerate(datas):
+        for j, func in enumerate(funcs):
             toplevel += "ufunc_%s_ptr[2*%d] = <void*>%s\n" % (self.name, j,
-                                                              self.cython_func_name(data, specialized=True))
+                                                              self.cython_func_name(func, specialized=True))
             toplevel += "ufunc_%s_ptr[2*%d+1] = <void*>(<char*>\"%s\")\n" % (self.name, j,
                                                                              self.name)
-        for j, data in enumerate(datas):
+        for j, func in enumerate(funcs):
             toplevel += "ufunc_%s_data[%d] = &ufunc_%s_ptr[2*%d]\n" % (
                 self.name, j, self.name, j)
 
@@ -742,112 +840,138 @@ class Ufunc(object):
 
         return toplevel
 
-def generate(filename, ufunc_str, extra_code):
+    @classmethod
+    def parse_all(cls, ufunc_str):
+        ufuncs = []
+
+        lines = ufunc_str.splitlines()
+        lines.sort()
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            m = re.match("^([a-z0-9_]+)\s*--\s*(.*?)\s*--(.*)$", line)
+            if not m:
+                raise ValueError("Unparseable line %r" % line)
+            ufuncs.append(cls(m.group(1), m.group(2), m.group(3)))
+        return ufuncs
+
+
+def get_declaration(ufunc, c_name, c_proto, cy_proto, header, proto_h_filename):
+    """
+    Construct a Cython declaration of a function coming either from a
+    pxd or a header file. Do sufficient tricks to enable compile-time
+    type checking against the signature expected by the ufunc.
+    """
+
+    defs = []
+    defs_h = []
+
+    var_name = c_name.replace('[', '_').replace(']', '_').replace(' ', '_')
+
+    if header.endswith('.pxd'):
+        defs.append("from %s cimport %s as %s" % (
+            header[:-4], ufunc.cython_func_name(c_name, prefix=""),
+            ufunc.cython_func_name(c_name)))
+
+        # check function signature at compile time
+        proto_name = '_proto_%s_t' % var_name
+        defs.append("ctypedef %s" % (cy_proto.replace('(*)', proto_name)))
+        defs.append("cdef %s *%s_var = &%s" % (
+            proto_name, proto_name, ufunc.cython_func_name(c_name, specialized=True)))
+    else:
+        # redeclare the function, so that the assumed
+        # signature is checked at compile time
+        new_name = "%s \"%s\"" % (ufunc.cython_func_name(c_name), c_name)
+        defs.append("cdef extern from \"%s\":" % proto_h_filename)
+        defs.append("    cdef %s" % (cy_proto.replace('(*)', new_name)))
+        defs_h.append("#include \"%s\"" % header)
+        defs_h.append("%s;" % (c_proto.replace('(*)', c_name)))
+
+    return defs, defs_h, var_name
+
+
+def generate(filename, cxx_fn_prefix, ufuncs):
     proto_h_filename = os.path.splitext(filename)[0] + '_defs.h'
-    proto_h_basename = os.path.basename(proto_h_filename)
 
-    ufuncs = []
-    headers = {}
-
-    lines = ufunc_str.splitlines()
-    lines.sort()
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        m = re.match("^([a-z0-9_]+)\s*--\s*(.*?)\s*(--.*)?$", line)
-        if not m:
-            raise ValueError("Unparseable line %r" % line)
-        ufuncs.append(Ufunc(m.group(1), m.group(2)))
-        if m.group(3):
-            headers[ufuncs[-1].name] = [x.strip() for x in m.group(3)[2:].split(",")]
+    cxx_proto_h_filename = cxx_fn_prefix + '_defs.h'
+    cxx_pyx_filename = cxx_fn_prefix + ".pyx"
+    cxx_pxd_filename = cxx_fn_prefix + ".pxd"
 
     toplevel = ""
-    defs = ""
+
+    # for _ufuncs*
+    defs = []
     defs_h = []
     all_loops = {}
 
+    # for _ufuncs_cxx*
+    cxx_defs = []
+    cxx_pxd_defs = ["cdef int _set_errprint(int flag) nogil"]
+    cxx_defs_h = []
+
     ufuncs.sort(key=lambda u: u.name)
+
     for ufunc in ufuncs:
+        # generate function declaration and type checking snippets
+        cfuncs = ufunc.get_prototypes()
+        for c_name, c_proto, cy_proto, header in cfuncs:
+            if header.endswith('++'):
+                header = header[:-2]
+
+                # for the CXX module
+                item_defs, item_defs_h, var_name = get_declaration(ufunc, c_name, c_proto, cy_proto,
+                                                                   header, cxx_proto_h_filename)
+                cxx_defs.extend(item_defs)
+                cxx_defs_h.extend(item_defs_h)
+
+                cxx_defs.append("cdef void *_export_%s = <void*>%s" % (
+                    var_name, ufunc.cython_func_name(c_name, specialized=True, override=False)))
+                cxx_pxd_defs.append("cdef void *_export_%s" % (var_name,))
+
+                # let cython grab the function pointer from the c++ shared library
+                ufunc.function_name_overrides[c_name] = "scipy.special._ufuncs_cxx._export_" + var_name
+            else:
+                # usual case
+                item_defs, item_defs_h, _ = get_declaration(ufunc, c_name, c_proto, cy_proto, header,
+                                                            proto_h_filename)
+                defs.extend(item_defs)
+                defs_h.extend(item_defs_h)
+
+        # ufunc creation code snippet
         t = ufunc.generate(all_loops)
         toplevel += t + "\n"
 
-        cfuncs = ufunc.get_prototypes()
+    # Produce output
+    toplevel = "\n".join(sorted(all_loops.values()) + defs + [toplevel])
 
-        hdrs = headers.get(ufunc.name, ['cephes.h'])
-        if len(hdrs) == 1:
-            hdrs = [hdrs[0]] * len(cfuncs)
-        elif len(hdrs) != len(cfuncs):
-            raise ValueError("%s: wrong number of headers" % ufunc.name)
-
-        for (c_name, c_proto, cy_proto), header in zip(cfuncs, hdrs):
-            if header.endswith('.pxd'):
-                defs += "from %s cimport %s as %s\n" % (header[:-4],
-                                                        ufunc.cython_func_name(c_name,
-                                                                               prefix=""),
-                                                        ufunc.cython_func_name(c_name))
-
-                # check function signature at compile time
-                var_name = c_name.replace('[', '_').replace(']', '_').replace(' ', '_')
-                proto_name = '_proto_%s_t' % var_name
-                defs += "ctypedef %s\n" % (cy_proto.replace('(*)', proto_name))
-                defs += "cdef %s *%s_var = &%s\n" % (
-                    proto_name, proto_name, ufunc.cython_func_name(c_name, specialized=True))
-            else:
-                # redeclare the function, so that the assumed
-                # signature is checked at compile time
-                new_name = "%s \"%s\"" % (ufunc.cython_func_name(c_name), c_name)
-                defs += "cdef extern from \"%s\":\n" % proto_h_filename
-                defs += "    cdef %s\n" % (cy_proto.replace('(*)', new_name))
-                defs_h.append("#include \"%s\"" % header)
-                defs_h.append("%s;" % (c_proto.replace('(*)', c_name)))
-
-    toplevel = "\n".join(list(all_loops.values()) + [defs, toplevel])
-
-    f = open(filename, 'wb')
-    f.write("""\
-# This file is automatically generated by generate_ufuncs.py.
-# Do not edit manually!
-
-cdef extern from "_complexstuff.h":
-    # numpy/npy_math.h doesn't have correct extern "C" declarations,
-    # so we must include a wrapped version first
-    pass
-
-cdef extern from "numpy/npy_math.h":
-    double NPY_NAN
-
-cimport numpy as np
-from numpy cimport (
-    npy_float, npy_double, npy_longdouble,
-    npy_cfloat, npy_cdouble, npy_clongdouble,
-    npy_int, npy_long,
-    NPY_FLOAT, NPY_DOUBLE, NPY_LONGDOUBLE,
-    NPY_CFLOAT, NPY_CDOUBLE, NPY_CLONGDOUBLE,
-    NPY_INT, NPY_LONG)
-
-ctypedef double complex double_complex
-
-cimport libc
-
-np.import_array()
-np.import_ufunc()
-
-""")
-
-    f.write(toplevel)
-
-    f.write(extra_code)
-
-    f.close()
+    with open(filename, 'w') as f:
+        f.write(EXTRA_CODE_COMMON)
+        f.write(EXTRA_CODE)
+        f.write(toplevel)
+        f.write(EXTRA_CODE_BOTTOM)
 
     defs_h = unique(defs_h)
-    f = open(proto_h_filename, 'wb')
-    f.write("#ifndef UFUNCS_PROTO_H\n#define UFUNCS_PROTO_H 1\n")
-    f.write("\n".join(defs_h))
-    f.write("\n#endif\n")
-    f.close()
+    with open(proto_h_filename, 'w') as f:
+        f.write("#ifndef UFUNCS_PROTO_H\n#define UFUNCS_PROTO_H 1\n")
+        f.write("\n".join(defs_h))
+        f.write("\n#endif\n")
+
+    cxx_defs_h = unique(cxx_defs_h)
+    with open(cxx_proto_h_filename, 'w') as f:
+        f.write("#ifndef UFUNCS_PROTO_H\n#define UFUNCS_PROTO_H 1\n")
+        f.write("\n".join(cxx_defs_h))
+        f.write("\n#endif\n")
+
+    with open(cxx_pyx_filename, 'w') as f:
+        f.write(EXTRA_CODE_COMMON)
+        f.write("\n".join(cxx_defs))
+        f.write("\n# distutils: language = c++\n")
+
+    with open(cxx_pxd_filename, 'w') as f:
+        f.write("\n".join(cxx_pxd_defs))
+
 
 def unique(lst):
     """
@@ -863,31 +987,15 @@ def unique(lst):
         new_lst.append(item)
     return new_lst
 
+
 def main():
     p = optparse.OptionParser(usage=__doc__.strip())
     options, args = p.parse_args()
     if len(args) != 0:
         p.error('invalid number of arguments')
 
-    generate("_ufuncs.pyx", UFUNCS, EXTRA_CODE)
-    generate("_ufuncs_cxx.pyx", UFUNCS_CXX, EXTRA_CODE_CXX)
-
-    subprocess.call(['cython', '_ufuncs.pyx'])
-    subprocess.call(['cython', '--cplus', '-o', '_ufuncs_cxx.cxx',
-                     '_ufuncs_cxx.pyx'])
-
-    # Strip comments
-    for fn in ['_ufuncs.c', '_ufuncs_cxx.cxx']:
-        f = open(fn, 'r')
-        text = f.read()
-        f.close()
-
-        r = re.compile(r'/\*(.*?)\*/', re.S)
-
-        text = r.sub('', text)
-        f = open(fn, 'w')
-        f.write(text)
-        f.close()
+    ufuncs = Ufunc.parse_all(UFUNCS)
+    generate("_ufuncs.pyx", "_ufuncs_cxx", ufuncs)
 
 if __name__ == "__main__":
     main()

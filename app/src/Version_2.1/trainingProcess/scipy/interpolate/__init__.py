@@ -1,5 +1,4 @@
-"""
-========================================
+"""========================================
 Interpolation (:mod:`scipy.interpolate`)
 ========================================
 
@@ -10,7 +9,7 @@ Sub-package for objects used in interpolation.
 As listed below, this sub-package contains spline functions and classes,
 one-dimensional and multi-dimensional (univariate and multivariate)
 interpolation classes, Lagrange and Taylor polynomial interpolators, and
-wrappers for `FITPACK <http://www.cisl.ucar.edu/softlib/FITPACK.html>`_
+wrappers for `FITPACK <http://www.netlib.org/dierckx/>`__
 and DFITPACK functions.
 
 Univariate interpolation
@@ -22,12 +21,14 @@ Univariate interpolation
    interp1d
    BarycentricInterpolator
    KroghInterpolator
-   PiecewisePolynomial
    PchipInterpolator
    barycentric_interpolate
    krogh_interpolate
-   piecewise_polynomial_interpolate
    pchip_interpolate
+   Akima1DInterpolator
+   CubicSpline
+   PPoly
+   BPoly
 
 
 Multivariate interpolation
@@ -48,11 +49,17 @@ Unstructured data:
 For data on a grid:
 
 .. autosummary::
+   :toctree: generated/
 
+   interpn
+   RegularGridInterpolator
    RectBivariateSpline
 
-.. seealso:: `scipy.ndimage.map_coordinates`
+.. seealso:: `scipy.ndimage.interpolation.map_coordinates`
 
+Tensor product polynomials:
+
+   NdPPoly
 
 1-D Splines
 ===========
@@ -64,21 +71,8 @@ For data on a grid:
    InterpolatedUnivariateSpline
    LSQUnivariateSpline
 
-The above univariate spline classes have the following methods:
 
-.. autosummary::
-
-   UnivariateSpline.__call__
-   UnivariateSpline.derivatives
-   UnivariateSpline.integral
-   UnivariateSpline.roots
-   UnivariateSpline.get_coeffs
-   UnivariateSpline.get_knots
-   UnivariateSpline.get_residual
-   UnivariateSpline.set_smoothing_factor
-
-
-Low-level interface to FITPACK functions:
+Functional interface to FITPACK functions:
 
 .. autosummary::
    :toctree: generated/
@@ -89,8 +83,9 @@ Low-level interface to FITPACK functions:
    splint
    sproot
    spalde
-   bisplrep
-   bisplev
+   splder
+   splantider
+   insert
 
 
 2-D Splines
@@ -111,7 +106,9 @@ For unstructured data:
 
    BivariateSpline
    SmoothBivariateSpline
+   SmoothSphereBivariateSpline
    LSQBivariateSpline
+   LSQSphereBivariateSpline
 
 Low-level interface to FITPACK functions:
 
@@ -132,8 +129,8 @@ Additional tools
 
 .. seealso::
 
-   `scipy.ndimage.map_coordinates`,
-   `scipy.ndimage.spline_filter`,
+   `scipy.ndimage.interpolation.map_coordinates`,
+   `scipy.ndimage.interpolation.spline_filter`,
    `scipy.signal.resample`,
    `scipy.signal.bspline`,
    `scipy.signal.gauss_spline`,
@@ -143,6 +140,19 @@ Additional tools
    `scipy.signal.cspline1d_eval`,
    `scipy.signal.qspline2d`,
    `scipy.signal.cspline2d`.
+
+Functions existing for backward compatibility (should not be used in
+new code):
+
+.. autosummary::
+   :toctree: generated/
+
+   ppform
+   spleval
+   spline
+   splmake
+   spltopp
+   pchip
 
 """
 from __future__ import division, print_function, absolute_import
@@ -157,8 +167,11 @@ from .rbf import Rbf
 
 from .polyint import *
 
+from ._cubic import *
+
 from .ndgriddata import *
 
 __all__ = [s for s in dir() if not s.startswith('_')]
 from numpy.testing import Tester
 test = Tester().test
+bench = Tester().bench

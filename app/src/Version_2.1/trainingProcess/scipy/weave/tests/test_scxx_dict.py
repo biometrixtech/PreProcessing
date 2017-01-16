@@ -4,9 +4,11 @@ from __future__ import absolute_import, print_function
 
 import sys
 
-from numpy.testing import TestCase, dec, assert_, assert_raises
+from numpy.testing import TestCase, assert_, assert_raises, run_module_suite
 
 from scipy.weave import inline_tools
+
+from weave_test_utils import dec
 
 
 class TestDictConstruct(TestCase):
@@ -33,8 +35,7 @@ class TestDictHasKey(TestCase):
         class Foo:
             pass
         key = Foo()
-        a = {}
-        a[key] = 12345
+        a = {key: 12345}
         code = """
                return_val =  a.has_key(key);
                """
@@ -43,8 +44,7 @@ class TestDictHasKey(TestCase):
 
     @dec.slow
     def test_int(self):
-        a = {}
-        a[1234] = 12345
+        a = {1234: 12345}
         code = """
                return_val = a.has_key(1234);
                """
@@ -53,8 +53,7 @@ class TestDictHasKey(TestCase):
 
     @dec.slow
     def test_double(self):
-        a = {}
-        a[1234.] = 12345
+        a = {1234.: 12345}
         code = """
                return_val = a.has_key(1234.);
                """
@@ -63,8 +62,7 @@ class TestDictHasKey(TestCase):
 
     @dec.slow
     def test_complex(self):
-        a = {}
-        a[1+1j] = 12345
+        a = {1 + 1j: 12345}
         key = 1+1j
         code = """
                return_val = a.has_key(key);
@@ -74,8 +72,7 @@ class TestDictHasKey(TestCase):
 
     @dec.slow
     def test_string(self):
-        a = {}
-        a["b"] = 12345
+        a = {"b": 12345}
         code = """
                return_val = a.has_key("b");
                """
@@ -84,8 +81,7 @@ class TestDictHasKey(TestCase):
 
     @dec.slow
     def test_std_string(self):
-        a = {}
-        a["b"] = 12345
+        a = {"b": 12345}
         key_name = "b"
         code = """
                return_val = a.has_key(key_name);
@@ -95,8 +91,7 @@ class TestDictHasKey(TestCase):
 
     @dec.slow
     def test_string_fail(self):
-        a = {}
-        a["b"] = 12345
+        a = {"b": 12345}
         code = """
                return_val = a.has_key("c");
                """
@@ -107,8 +102,7 @@ class TestDictHasKey(TestCase):
 class TestDictGetItemOp(TestCase):
 
     def generic_get(self,code,args=['a']):
-        a = {}
-        a['b'] = 12345
+        a = {'b': 12345}
 
         res = inline_tools.inline(code,args)
         assert_(res == a['b'])
@@ -127,7 +121,6 @@ class TestDictGetItemOp(TestCase):
     @dec.slow
     def test_string(self):
         self.generic_get('return_val = a[std::string("b")];')
-
 
     @dec.slow
     def test_obj(self):
@@ -168,7 +161,7 @@ class TestDictSetOperator(TestCase):
     def generic_overwrite(self,key,val):
         a = {}
         overwritten = 1
-        a[key] = overwritten # put an item in the dict to be overwritten
+        a[key] = overwritten  # put an item in the dict to be overwritten
         # call once to handle mysterious addition of one ref count
         # on first call to inline.
         before_overwritten = sys.getrefcount(overwritten)
@@ -243,8 +236,7 @@ class TestDictDel(TestCase):
         # test that value is set correctly and that reference counts
         # on dict, key, are being handled correctly. after deletion,
         # the keys refcount should be one less than before.
-        a = {}
-        a[key] = 1
+        a = {key: 1}
         inline_tools.inline("a.del(key);",['a','key'])
         assert_(key not in a)
         a[key] = 1
@@ -287,29 +279,25 @@ class TestDictOthers(TestCase):
 
     @dec.slow
     def test_clear(self):
-        a = {}
-        a["hello"] = 1
+        a = {"hello": 1}
         inline_tools.inline("a.clear();",['a'])
         assert_(not a)
 
     @dec.slow
     def test_items(self):
-        a = {}
-        a["hello"] = 1
+        a = {"hello": 1}
         items = inline_tools.inline("return_val = a.items();",['a'])
         assert_(items == a.items())
 
     @dec.slow
     def test_values(self):
-        a = {}
-        a["hello"] = 1
+        a = {"hello": 1}
         values = inline_tools.inline("return_val = a.values();",['a'])
         assert_(values == a.values())
 
     @dec.slow
     def test_keys(self):
-        a = {}
-        a["hello"] = 1
+        a = {"hello": 1}
         keys = inline_tools.inline("return_val = a.keys();",['a'])
         assert_(keys == a.keys())
 
@@ -323,5 +311,4 @@ class TestDictOthers(TestCase):
 
 
 if __name__ == "__main__":
-    import nose
-    nose.run(argv=['', __file__])
+    run_module_suite()

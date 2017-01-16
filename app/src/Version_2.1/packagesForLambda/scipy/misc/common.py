@@ -5,42 +5,59 @@ Functions which are common and require SciPy Base and Level 1 SciPy
 
 from __future__ import division, print_function, absolute_import
 
-from scipy.lib.six.moves import xrange
+import numpy
+import numpy as np
+from numpy import (exp, log, asarray, arange, newaxis, hstack, product, array,
+                   zeros, eye, poly1d, r_, fromstring, isfinite,
+                   squeeze, amax, reshape, sign, broadcast_arrays)
 
-from numpy import exp, log, asarray, arange, newaxis, hstack, product, array, \
-                  where, zeros, extract, place, pi, sqrt, eye, poly1d, dot, \
-                  r_, rollaxis, sum, fromstring
+from scipy._lib._util import _asarray_validated
 
-__all__ = ['logsumexp', 'factorial','factorial2','factorialk','comb',
-           'central_diff_weights', 'derivative', 'pade', 'lena', 'ascent', 'face']
+__all__ = ['logsumexp', 'central_diff_weights', 'derivative', 'pade', 'lena',
+           'ascent', 'face']
 
-# XXX: the factorial functions could move to scipy.special, and the others
-# to numpy perhaps?
 
-def logsumexp(a, axis=None, b=None):
+def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
     """Compute the log of the sum of exponentials of input elements.
 
     Parameters
     ----------
     a : array_like
         Input array.
-    axis : int, optional
-        Axis over which the sum is taken. By default `axis` is None,
-        and all elements are summed.
+    axis : None or int or tuple of ints, optional
+        Axis or axes over which the sum is taken. By default `axis` is None,
+        and all elements are summed. Tuple of ints is not accepted if NumPy
+        version is lower than 1.7.0.
 
         .. versionadded:: 0.11.0
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left in the
+        result as dimensions with size one. With this option, the result
+        will broadcast correctly against the original array.
+
+        .. versionadded:: 0.15.0
     b : array-like, optional
         Scaling factor for exp(`a`) must be of the same shape as `a` or
-        broadcastable to `a`.
+        broadcastable to `a`. These values may be negative in order to
+        implement subtraction.
 
         .. versionadded:: 0.12.0
+    return_sign : bool, optional
+        If this is set to True, the result will be a pair containing sign
+        information; if False, results that are negative will be returned
+        as NaN. Default is False (no sign information).
 
+        .. versionadded:: 0.16.0
     Returns
     -------
     res : ndarray
         The result, ``np.log(np.sum(np.exp(a)))`` calculated in a numerically
         more stable way. If `b` is given then ``np.log(np.sum(b*np.exp(a)))``
         is returned.
+    sgn : ndarray
+        If return_sign is True, this will be an array of floating-point
+        numbers matching res and +1, 0, or -1 depending on the sign
+        of the result. If False, only one result is returned.
 
     See Also
     --------
@@ -69,229 +86,59 @@ def logsumexp(a, axis=None, b=None):
     9.9170178533034665
     >>> np.log(np.sum(b*np.exp(a)))
     9.9170178533034647
+
+    Returning a sign flag
+
+    >>> logsumexp([1,2],b=[1,-1],return_sign=True)
+    (1.5413248546129181, -1.0)
+
+    Notice that `logsumexp` does not directly support masked arrays. To use it
+    on a masked array, convert the mask into zero weights:
+
+    >>> a = np.ma.array([np.log(2), 2, np.log(3)],
+    ...                  mask=[False, True, False])
+    >>> b = (~a.mask).astype(int)
+    >>> logsumexp(a.data, b=b), np.log(5)
+    1.6094379124341005, 1.6094379124341005
+
     """
-    a = asarray(a)
-    if axis is None:
-        a = a.ravel()
-    else:
-        a = rollaxis(a, axis)
-    a_max = a.max(axis=0)
+    a = _asarray_validated(a, check_finite=False)
+    if b is not None:
+        a, b = broadcast_arrays(a,b)
+        if np.any(b == 0):
+            a = a + 0.  # promote to at least float
+            a[b == 0] = -np.inf
+
+    a_max = amax(a, axis=axis, keepdims=True)
+
+    if a_max.ndim > 0:
+        a_max[~isfinite(a_max)] = 0
+    elif not isfinite(a_max):
+        a_max = 0
+
     if b is not None:
         b = asarray(b)
-        if axis is None:
-            b = b.ravel()
-        else:
-            b = rollaxis(b, axis)
-        out = log(sum(b * exp(a - a_max), axis=0))
+        tmp = b * exp(a - a_max)
     else:
-        out = log(sum(exp(a - a_max), axis=0))
+        tmp = exp(a - a_max)
+
+    # suppress warnings about log of zero
+    with np.errstate(divide='ignore'):
+        s = np.sum(tmp, axis=axis, keepdims=keepdims)
+        if return_sign:
+            sgn = sign(s)
+            s *= sgn  # /= makes more sense but we need zero -> zero
+        out = log(s)
+
+    if not keepdims:
+        a_max = squeeze(a_max, axis=axis)
     out += a_max
-    return out
 
-def factorial(n,exact=0):
-    """
-    The factorial function, n! = special.gamma(n+1).
-
-    If exact is 0, then floating point precision is used, otherwise
-    exact long integer is computed.
-
-    - Array argument accepted only for exact=0 case.
-    - If n<0, the return value is 0.
-
-    Parameters
-    ----------
-    n : int or array_like of ints
-        Calculate ``n!``.  Arrays are only supported with `exact` set
-        to False.  If ``n < 0``, the return value is 0.
-    exact : bool, optional
-        The result can be approximated rapidly using the gamma-formula
-        above.  If `exact` is set to True, calculate the
-        answer exactly using integer arithmetic. Default is False.
-
-    Returns
-    -------
-    nf : float or int
-        Factorial of `n`, as an integer or a float depending on `exact`.
-
-    Examples
-    --------
-    >>> arr = np.array([3,4,5])
-    >>> sc.factorial(arr, exact=False)
-    array([   6.,   24.,  120.])
-    >>> sc.factorial(5, exact=True)
-    120L
-
-    """
-    if exact:
-        if n < 0:
-            return 0
-        val = 1
-        for k in xrange(1,n+1):
-            val *= k
-        return val
+    if return_sign:
+        return out, sgn
     else:
-        from scipy import special
-        n = asarray(n)
-        sv = special.errprint(0)
-        vals = special.gamma(n+1)
-        sv = special.errprint(sv)
-        return where(n>=0,vals,0)
+        return out
 
-
-def factorial2(n, exact=False):
-    """
-    Double factorial.
-
-    This is the factorial with every second value skipped, i.e.,
-    ``7!! = 7 * 5 * 3 * 1``.  It can be approximated numerically as::
-
-      n!! = special.gamma(n/2+1)*2**((m+1)/2)/sqrt(pi)  n odd
-          = 2**(n/2) * (n/2)!                           n even
-
-    Parameters
-    ----------
-    n : int or array_like
-        Calculate ``n!!``.  Arrays are only supported with `exact` set
-        to False.  If ``n < 0``, the return value is 0.
-    exact : bool, optional
-        The result can be approximated rapidly using the gamma-formula
-        above (default).  If `exact` is set to True, calculate the
-        answer exactly using integer arithmetic.
-
-    Returns
-    -------
-    nff : float or int
-        Double factorial of `n`, as an int or a float depending on
-        `exact`.
-
-    Examples
-    --------
-    >>> factorial2(7, exact=False)
-    array(105.00000000000001)
-    >>> factorial2(7, exact=True)
-    105L
-
-    """
-    if exact:
-        if n < -1:
-            return 0
-        if n <= 0:
-            return 1
-        val = 1
-        for k in xrange(n,0,-2):
-            val *= k
-        return val
-    else:
-        from scipy import special
-        n = asarray(n)
-        vals = zeros(n.shape,'d')
-        cond1 = (n % 2) & (n >= -1)
-        cond2 = (1-(n % 2)) & (n >= -1)
-        oddn = extract(cond1,n)
-        evenn = extract(cond2,n)
-        nd2o = oddn / 2.0
-        nd2e = evenn / 2.0
-        place(vals,cond1,special.gamma(nd2o+1)/sqrt(pi)*pow(2.0,nd2o+0.5))
-        place(vals,cond2,special.gamma(nd2e+1) * pow(2.0,nd2e))
-        return vals
-
-def factorialk(n,k,exact=1):
-    """
-    n(!!...!)  = multifactorial of order k
-    k times
-
-    Parameters
-    ----------
-    n : int, array_like
-        Calculate multifactorial. Arrays are only supported with exact
-        set to False. If `n` < 0, the return value is 0.
-    exact : bool, optional
-        If exact is set to True, calculate the answer exactly using
-        integer arithmetic.
-
-    Returns
-    -------
-    val : int
-        Multi factorial of `n`.
-
-    Raises
-    ------
-    NotImplementedError
-        Raises when exact is False
-
-    Examples
-    --------
-    >>> sc.factorialk(5, 1, exact=True)
-    120L
-    >>> sc.factorialk(5, 3, exact=True)
-    10L
-
-    """
-    if exact:
-        if n < 1-k:
-            return 0
-        if n<=0:
-            return 1
-        val = 1
-        for j in xrange(n,0,-k):
-            val = val*j
-        return val
-    else:
-        raise NotImplementedError
-
-
-def comb(N,k,exact=0):
-    """
-    The number of combinations of N things taken k at a time.
-
-    This is often expressed as "N choose k".
-
-    Parameters
-    ----------
-    N : int, ndarray
-        Number of things.
-    k : int, ndarray
-        Number of elements taken.
-    exact : int, optional
-        If `exact` is 0, then floating point precision is used, otherwise
-        exact long integer is computed.
-
-    Returns
-    -------
-    val : int, ndarray
-        The total number of combinations.
-
-    Notes
-    -----
-    - Array arguments accepted only for exact=0 case.
-    - If k > N, N < 0, or k < 0, then a 0 is returned.
-
-    Examples
-    --------
-    >>> k = np.array([3, 4])
-    >>> n = np.array([10, 10])
-    >>> sc.comb(n, k, exact=False)
-    array([ 120.,  210.])
-    >>> sc.comb(10, 3, exact=True)
-    120L
-
-    """
-    if exact:
-        if (k > N) or (N < 0) or (k < 0):
-            return 0
-        val = 1
-        for j in xrange(min(k, N-k)):
-            val = (val*(N-j))//(j+1)
-        return val
-    else:
-        from scipy import special
-        k,N = asarray(k), asarray(N)
-        lgam = special.gammaln
-        cond = (k <= N) & (N >= 0) & (k >= 0)
-        sv = special.errprint(0)
-        vals = exp(lgam(N+1) - lgam(N-k+1) - lgam(k+1))
-        sv = special.errprint(sv)
-        return where(cond, vals, 0.0)
 
 def central_diff_weights(Np, ndiv=1):
     """
@@ -328,6 +175,7 @@ def central_diff_weights(Np, ndiv=1):
     w = product(arange(1,ndiv+1),axis=0)*linalg.inv(X)[ndiv]
     return w
 
+
 def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
     """
     Find the n-th derivative of a function at a point.
@@ -341,7 +189,7 @@ def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
         Input function.
     x0 : float
         The point at which `n`-th derivative is found.
-    dx : int, optional
+    dx : float, optional
         Spacing.
     n : int, optional
         Order of the derivative. Default is 1.
@@ -356,11 +204,11 @@ def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
 
     Examples
     --------
-    >>> def x2(x):
-    ...     return x*x
-    ...
-    >>> derivative(x2, 2)
-    4.0
+    >>> from scipy.misc import derivative
+    >>> def f(x):
+    ...     return x**3 + x**2
+    >>> derivative(f, 1.0, dx=1e-6)
+    4.9999999999217337
 
     """
     if order < n + 1:
@@ -370,7 +218,7 @@ def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
         raise ValueError("'order' (the number of points used to compute the derivative) "
                          "must be odd.")
     # pre-computed for n=1 and 2 and low-order for speed.
-    if n==1:
+    if n == 1:
         if order == 3:
             weights = array([-1,0,1])/2.0
         elif order == 5:
@@ -381,7 +229,7 @@ def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
             weights = array([3,-32,168,-672,0,672,-168,32,-3])/840.0
         else:
             weights = central_diff_weights(order,1)
-    elif n==2:
+    elif n == 2:
         if order == 3:
             weights = array([1,-2.0,1])
         elif order == 5:
@@ -399,6 +247,7 @@ def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
     for k in range(order):
         val += weights[k]*func(x0+(k-ho)*dx,*args)
     return val / product((dx,)*n,axis=0)
+
 
 def pade(an, m):
     """
@@ -453,10 +302,12 @@ def pade(an, m):
     q = r_[1.0, pq[n+1:]]
     return poly1d(p[::-1]), poly1d(q[::-1])
 
+
 def lena():
     """
-    Get classic image processing example image, Lena, at 8-bit grayscale
-    bit-depth, 512 x 512 size.
+    Function that previously returned an example image
+
+    .. note:: Removed in 0.17
 
     Parameters
     ----------
@@ -464,32 +315,25 @@ def lena():
 
     Returns
     -------
-    lena : ndarray
-        Lena image
+    None
 
-    Examples
+    Raises
+    ------
+    RuntimeError
+        This functionality has been removed due to licensing reasons.
+
+    Notes
+    -----
+    The image previously returned by this function has an incompatible license
+    and has been removed from SciPy. Please use `face` or `ascent` instead.
+
+    See Also
     --------
-    >>> import scipy.misc
-    >>> lena = scipy.misc.lena()
-    >>> lena.shape
-    (512, 512)
-    >>> lena.max()
-    245
-    >>> lena.dtype
-    dtype('int32')
-
-    >>> import matplotlib.pyplot as plt
-    >>> plt.gray()
-    >>> plt.imshow(lena)
-    >>> plt.show()
-
+    face, ascent
     """
-    import pickle, os
-    fname = os.path.join(os.path.dirname(__file__),'lena.dat')
-    f = open(fname,'rb')
-    lena = array(pickle.load(f))
-    f.close()
-    return lena
+    raise RuntimeError('lena() is no longer included in SciPy, please use '
+                       'ascent() or face() instead')
+
 
 def ascent():
     """
@@ -522,12 +366,13 @@ def ascent():
     >>> plt.show()
 
     """
-    import pickle, os
+    import pickle
+    import os
     fname = os.path.join(os.path.dirname(__file__),'ascent.dat')
-    f = open(fname,'rb')
-    ascent = array(pickle.load(f))
-    f.close()
+    with open(fname, 'rb') as f:
+        ascent = array(pickle.load(f))
     return ascent
+
 
 def face(gray=False):
     """
@@ -538,7 +383,7 @@ def face(gray=False):
     Parameters
     ----------
     gray : bool, optional
-        If True then return color image, otherwise return an 8-bit gray-scale
+        If True return 8-bit grey-scale image, otherwise return a color image
 
     Returns
     -------
@@ -552,7 +397,7 @@ def face(gray=False):
     >>> face.shape
     (768, 1024, 3)
     >>> face.max()
-    230
+    255
     >>> face.dtype
     dtype('uint8')
 
@@ -562,8 +407,10 @@ def face(gray=False):
     >>> plt.show()
 
     """
-    import bz2, os
-    rawdata = open(os.path.join(os.path.dirname(__file__), 'face.dat')).read()
+    import bz2
+    import os
+    with open(os.path.join(os.path.dirname(__file__), 'face.dat'), 'rb') as f:
+        rawdata = f.read()
     data = bz2.decompress(rawdata)
     face = fromstring(data, dtype='uint8')
     face.shape = (768, 1024, 3)

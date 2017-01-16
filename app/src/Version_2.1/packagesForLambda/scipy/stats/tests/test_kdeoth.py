@@ -3,7 +3,7 @@ from __future__ import division, print_function, absolute_import
 from scipy import stats
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_, assert_raises, \
-    assert_array_almost_equal, assert_array_almost_equal_nulp
+    assert_array_almost_equal, assert_array_almost_equal_nulp, run_module_suite
 
 
 def test_kde_1d():
@@ -17,7 +17,7 @@ def test_kde_1d():
     # get kde for original sample
     gkde = stats.gaussian_kde(xn)
 
-    # evaluate the density funtion for the kde for some points
+    # evaluate the density function for the kde for some points
     xs = np.linspace(-7,7,501)
     kdepdf = gkde.evaluate(xs)
     normpdf = stats.norm.pdf(xs, loc=xnmean, scale=xnstd)
@@ -35,6 +35,44 @@ def test_kde_1d():
                         (kdepdf**2).sum()*intervall, decimal=2)
     assert_almost_equal(gkde.integrate_gaussian(xnmean, xnstd**2),
                         (kdepdf*normpdf).sum()*intervall, decimal=2)
+
+
+def test_kde_2d():
+    #some basic tests comparing to normal distribution
+    np.random.seed(8765678)
+    n_basesample = 500
+
+    mean = np.array([1.0, 3.0])
+    covariance = np.array([[1.0, 2.0], [2.0, 6.0]])
+
+    # Need transpose (shape (2, 500)) for kde
+    xn = np.random.multivariate_normal(mean, covariance, size=n_basesample).T
+
+    # get kde for original sample
+    gkde = stats.gaussian_kde(xn)
+
+    # evaluate the density function for the kde for some points
+    x, y = np.mgrid[-7:7:500j, -7:7:500j]
+    grid_coords = np.vstack([x.ravel(), y.ravel()])
+    kdepdf = gkde.evaluate(grid_coords)
+    kdepdf = kdepdf.reshape(500, 500)
+
+    normpdf = stats.multivariate_normal.pdf(np.dstack([x, y]), mean=mean, cov=covariance)
+    intervall = y.ravel()[1] - y.ravel()[0]
+
+    assert_(np.sum((kdepdf - normpdf)**2) * (intervall**2) < 0.01)
+
+    small = -1e100
+    large = 1e100
+    prob1 = gkde.integrate_box([small, mean[1]], [large, large])
+    prob2 = gkde.integrate_box([small, small], [large, mean[1]])
+
+    assert_almost_equal(prob1, 0.5, decimal=1)
+    assert_almost_equal(prob2, 0.5, decimal=1)
+    assert_almost_equal(gkde.integrate_kde(gkde),
+                        (kdepdf**2).sum()*(intervall**2), decimal=2)
+    assert_almost_equal(gkde.integrate_gaussian(mean, covariance),
+                        (kdepdf*normpdf).sum()*(intervall**2), decimal=2)
 
 
 def test_kde_bandwidth_method():
@@ -74,10 +112,12 @@ class _kde_subclass1(stats.gaussian_kde):
         self.covariance_factor = self.scotts_factor
         self._compute_covariance()
 
+
 class _kde_subclass2(stats.gaussian_kde):
     def __init__(self, dataset):
         self.covariance_factor = self.scotts_factor
         super(_kde_subclass2, self).__init__(dataset)
+
 
 class _kde_subclass3(stats.gaussian_kde):
     def __init__(self, dataset, covariance):
@@ -89,12 +129,14 @@ class _kde_subclass3(stats.gaussian_kde):
         self._norm_factor = np.sqrt(np.linalg.det(2*np.pi * self.covariance)) \
                                    * self.n
 
+
 class _kde_subclass4(stats.gaussian_kde):
     def covariance_factor(self):
         return 0.5 * self.silverman_factor()
 
+
 def test_gaussian_kde_subclassing():
-    x1 = np.array([-7, -5, 1, 4, 5], dtype=np.float)
+    x1 = np.array([-7, -5, 1, 4, 5], dtype=float)
     xs = np.linspace(-10, 10, num=50)
 
     # gaussian_kde itself
@@ -132,7 +174,7 @@ def test_gaussian_kde_subclassing():
 
 
 def test_gaussian_kde_covariance_caching():
-    x1 = np.array([-7, -5, 1, 4, 5], dtype=np.float)
+    x1 = np.array([-7, -5, 1, 4, 5], dtype=float)
     xs = np.linspace(-10, 10, num=5)
     # These expected values are from scipy 0.10, before some changes to
     # gaussian_kde.  They were not compared with any external reference.
@@ -152,7 +194,7 @@ def test_gaussian_kde_monkeypatch():
     specifically the linked ML thread "Width of the Gaussian in stats.kde".
     If it is necessary to break this later on, that is to be discussed on ML.
     """
-    x1 = np.array([-7, -5, 1, 4, 5], dtype=np.float)
+    x1 = np.array([-7, -5, 1, 4, 5], dtype=float)
     xs = np.linspace(-10, 10, num=50)
 
     # The old monkeypatched version to get at Silverman's Rule.
@@ -175,3 +217,24 @@ def test_kde_integer_input():
     y_expected = [0.13480721, 0.18222869, 0.19514935, 0.18222869, 0.13480721]
     assert_array_almost_equal(kde(x1), y_expected, decimal=6)
 
+
+def test_pdf_logpdf():
+    np.random.seed(1)
+    n_basesample = 50
+    xn = np.random.randn(n_basesample)
+
+    # Default
+    gkde = stats.gaussian_kde(xn)
+
+    xs = np.linspace(-15, 12, 25)
+    pdf = gkde.evaluate(xs)
+    pdf2 = gkde.pdf(xs)
+    assert_almost_equal(pdf, pdf2, decimal=12)
+
+    logpdf = np.log(pdf)
+    logpdf2 = gkde.logpdf(xs)
+    assert_almost_equal(logpdf, logpdf2, decimal=12)
+
+
+if __name__ == "__main__":
+    run_module_suite()

@@ -59,6 +59,7 @@ tree objects.
    ClusterNode
    leaves_list
    to_tree
+   cut_tree
 
 These are predicates for checking the validity of linkage and
 inconsistency matrices as well as for checking isomorphism of two
@@ -169,24 +170,24 @@ from __future__ import division, print_function, absolute_import
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import types
 import warnings
+import bisect
+from collections import deque
 
 import numpy as np
-from . import _hierarchy_wrap
+from . import _hierarchy
 import scipy.spatial.distance as distance
 
-from scipy.lib.six import string_types
-from scipy.lib.six.moves import xrange
+from scipy._lib.six import string_types
+from scipy._lib.six import xrange
 
-_cpy_non_euclid_methods = {'single': 0, 'complete': 1, 'average': 2,
-                           'weighted': 6}
-_cpy_euclid_methods = {'centroid': 3, 'median': 4, 'ward': 5}
-_cpy_linkage_methods = set(_cpy_non_euclid_methods.keys()).union(
-    set(_cpy_euclid_methods.keys()))
+_LINKAGE_METHODS = {'single': 0, 'complete': 1, 'average': 2, 'centroid': 3,
+                    'median': 4, 'ward': 5, 'weighted': 6}
+_EUCLIDEAN_METHODS = ('centroid', 'median', 'ward')
+
 
 __all__ = ['ClusterNode', 'average', 'centroid', 'complete', 'cophenet',
-           'correspond', 'dendrogram', 'fcluster', 'fclusterdata',
+           'correspond', 'cut_tree', 'dendrogram', 'fcluster', 'fclusterdata',
            'from_mlab_linkage', 'inconsistent', 'is_isomorphic',
            'is_monotonic', 'is_valid_im', 'is_valid_linkage', 'leaders',
            'leaves_list', 'linkage', 'maxRstat', 'maxdists', 'maxinconsts',
@@ -357,7 +358,7 @@ def centroid(y):
 
     Parameters
     ----------
-    Q : ndarray
+    y : ndarray
         A condensed or redundant distance matrix. A condensed
         distance matrix is a flat array containing the upper
         triangular of the distance matrix. This is the form that
@@ -403,7 +404,7 @@ def median(y):
 
     Parameters
     ----------
-    Q : ndarray
+    y : ndarray
         A condensed or redundant distance matrix. A condensed
         distance matrix is a flat array containing the upper
         triangular of the distance matrix. This is the form that
@@ -445,7 +446,7 @@ def ward(y):
 
     Parameters
     ----------
-    Q : ndarray
+    y : ndarray
         A condensed or redundant distance matrix. A condensed
         distance matrix is a flat array containing the upper
         triangular of the distance matrix. This is the form that
@@ -476,7 +477,7 @@ def linkage(y, method='single', metric='euclidean'):
     in the distance matrix. The behavior of this function is very
     similar to the MATLAB linkage function.
 
-    A 4 by :math:`(n-1)` matrix ``Z`` is returned. At the
+    An :math:`(n-1)` by 4  matrix ``Z`` is returned. At the
     :math:`i`-th iteration, clusters with indices ``Z[i, 0]`` and
     ``Z[i, 1]`` are combined to form cluster :math:`n + i`. A
     cluster with an index less than :math:`n` corresponds to one of
@@ -540,7 +541,7 @@ def linkage(y, method='single', metric='euclidean'):
         for all points :math:`i` and :math:`j` where :math:`|u|`
         and :math:`|v|` are the cardinalities of clusters :math:`u`
         and :math:`v`, respectively. This is also called the UPGMA
-        algorithm. This is called UPGMA.
+        algorithm.
 
       * method='weighted' assigns
 
@@ -565,7 +566,7 @@ def linkage(y, method='single', metric='euclidean'):
         :math:`v` in the forest. This is also known as the UPGMC
         algorithm.
 
-      * method='median' assigns math:`d(s,t)` like the ``centroid``
+      * method='median' assigns :math:`d(s,t)` like the ``centroid``
         method. When two clusters :math:`s` and :math:`t` are combined
         into a new cluster :math:`u`, the average of centroids s and t
         give the new centroid :math:`u`. This is also known as the
@@ -580,7 +581,7 @@ def linkage(y, method='single', metric='euclidean'):
                                {T}d(v,s)^2
                         + \\frac{|v|+|t|}
                                {T}d(v,t)^2
-                        + \\frac{|v|}
+                        - \\frac{|v|}
                                {T}d(s,t)^2}
 
         where :math:`u` is the newly joined cluster consisting of
@@ -605,55 +606,65 @@ def linkage(y, method='single', metric='euclidean'):
     method : str, optional
         The linkage algorithm to use. See the ``Linkage Methods`` section below
         for full descriptions.
-    metric : str, optional
-        The distance metric to use. See the ``distance.pdist`` function for a
-        list of valid distance metrics.
+    metric : str or function, optional
+        The distance metric to use in the case that y is a collection of
+        observation vectors; ignored otherwise. See the ``distance.pdist``
+        function for a list of valid distance metrics. A custom distance
+        function can also be used. See the ``distance.pdist`` function for
+        details.
 
     Returns
     -------
     Z : ndarray
         The hierarchical clustering encoded as a linkage matrix.
 
+    Notes
+    -----
+    1. For method 'single' an optimized algorithm called SLINK is implemented,
+       which has :math:`O(n^2)` time complexity.
+       For methods 'complete', 'average', 'weighted' and 'ward' an algorithm
+       called nearest-neighbors chain is implemented, which too has time
+       complexity :math:`O(n^2)`.
+       For other methods a naive algorithm is implemented with :math:`O(n^3)`
+       time complexity.
+       All algorithms use :math:`O(n^2)` memory.
+       Refer to [1]_ for details about the algorithms.
+    2. Methods 'centroid', 'median' and 'ward' are correctly defined only if
+       Euclidean pairwise metric is used. If `y` is passed as precomputed
+       pairwise distances, then it is a user responsibility to assure that
+       these distances are in fact Euclidean, otherwise the produced result
+       will be incorrect.
+
+    References
+    ----------
+    .. [1] Daniel Mullner, "Modern hierarchical, agglomerative clustering
+           algorithms", `arXiv:1109.2378v1 <http://arxiv.org/abs/1109.2378v1>`_
+           , 2011.
     """
-    if not isinstance(method, str):
-        raise TypeError("Argument 'method' must be a string.")
+    if method not in _LINKAGE_METHODS:
+        raise ValueError("Invalid method: {0}".format(method))
 
     y = _convert_to_double(np.asarray(y, order='c'))
 
-    s = y.shape
-    if len(s) == 1:
+    if y.ndim == 1:
         distance.is_valid_y(y, throw=True, name='y')
-        d = distance.num_obs_y(y)
-        if method not in _cpy_non_euclid_methods.keys():
-            raise ValueError("Valid methods when the raw observations are "
-                             "omitted are 'single', 'complete', 'weighted', "
-                             "and 'average'.")
-        # Since the C code does not support striding using strides.
         [y] = _copy_arrays_if_base_present([y])
+    elif y.ndim == 2:
+        if method in _EUCLIDEAN_METHODS and metric != 'euclidean':
+            raise ValueError("Method '{0}' requires the distance metric "
+                             "to be Euclidean".format(method))
+        y = distance.pdist(y, metric)
+    else:
+        raise ValueError("`y` must be 1 or 2 dimensional.")
 
-        Z = np.zeros((d - 1, 4))
-        _hierarchy_wrap.linkage_wrap(y, Z, int(d), \
-                                   int(_cpy_non_euclid_methods[method]))
-    elif len(s) == 2:
-        X = y
-        n = s[0]
-        m = s[1]
-        if method not in _cpy_linkage_methods:
-            raise ValueError('Invalid method: %s' % method)
-        if method in _cpy_non_euclid_methods.keys():
-            dm = distance.pdist(X, metric)
-            Z = np.zeros((n - 1, 4))
-            _hierarchy_wrap.linkage_wrap(dm, Z, n, \
-                                       int(_cpy_non_euclid_methods[method]))
-        elif method in _cpy_euclid_methods.keys():
-            if metric != 'euclidean':
-                raise ValueError(('Method %s requires the distance metric to '
-                                 'be euclidean') % s)
-            dm = distance.pdist(X, metric)
-            Z = np.zeros((n - 1, 4))
-            _hierarchy_wrap.linkage_euclid_wrap(dm, Z, X, m, n,
-                                              int(_cpy_euclid_methods[method]))
-    return Z
+    n = int(distance.num_obs_y(y))
+    method_code = _LINKAGE_METHODS[method]
+    if method == 'single':
+        return _hierarchy.slink(y, n)
+    elif method in ['complete', 'average', 'weighted', 'ward']:
+        return _hierarchy.nn_chain(y, n, method_code)
+    else:
+        return _hierarchy.linkage(y, n, method_code)
 
 
 class ClusterNode:
@@ -692,6 +703,24 @@ class ClusterNode:
             self.count = count
         else:
             self.count = left.count + right.count
+
+    def __lt__(self, node):
+        if not isinstance(node, ClusterNode):
+            raise ValueError("Can't compare ClusterNode "
+                             "to type {}".format(type(node)))
+        return self.dist < node.dist
+
+    def __gt__(self, node):
+        if not isinstance(node, ClusterNode):
+            raise ValueError("Can't compare ClusterNode "
+                             "to type {}".format(type(node)))
+        return self.dist > node.dist
+
+    def __eq__(self, node):
+        if not isinstance(node, ClusterNode):
+            raise ValueError("Can't compare ClusterNode "
+                             "to type {}".format(type(node)))
+        return self.dist == node.dist
 
     def get_id(self):
         """
@@ -796,8 +825,8 @@ class ClusterNode:
         n = self.count
 
         curNode = [None] * (2 * n)
-        lvisited = np.zeros((2 * n,), dtype=bool)
-        rvisited = np.zeros((2 * n,), dtype=bool)
+        lvisited = set()
+        rvisited = set()
         curNode[0] = self
         k = 0
         preorder = []
@@ -808,13 +837,13 @@ class ClusterNode:
                 preorder.append(func(nd))
                 k = k - 1
             else:
-                if not lvisited[ndid]:
+                if ndid not in lvisited:
                     curNode[k + 1] = nd.left
-                    lvisited[ndid] = True
+                    lvisited.add(ndid)
                     k = k + 1
-                elif not rvisited[ndid]:
+                elif ndid not in rvisited:
                     curNode[k + 1] = nd.right
-                    rvisited[ndid] = True
+                    rvisited.add(ndid)
                     k = k + 1
                 # If we've visited the left and right of this non-leaf
                 # node already, go up in the tree.
@@ -823,8 +852,118 @@ class ClusterNode:
 
         return preorder
 
+
 _cnode_bare = ClusterNode(0)
 _cnode_type = type(ClusterNode)
+
+
+def _order_cluster_tree(Z):
+    """
+    Returns clustering nodes in bottom-up order by distance.
+
+    Parameters
+    ----------
+    Z : scipy.cluster.linkage array
+        The linkage matrix.
+
+    Returns
+    -------
+    nodes : list
+        A list of ClusterNode objects.
+    """
+    q = deque()
+    tree = to_tree(Z)
+    q.append(tree)
+    nodes = []
+
+    while q:
+        node = q.popleft()
+        if not node.is_leaf():
+            bisect.insort_left(nodes, node)
+            q.append(node.get_right())
+            q.append(node.get_left())
+    return nodes
+
+
+def cut_tree(Z, n_clusters=None, height=None):
+    """
+    Given a linkage matrix Z, return the cut tree.
+
+    Parameters
+    ----------
+    Z : scipy.cluster.linkage array
+        The linkage matrix.
+    n_clusters : array_like, optional
+        Number of clusters in the tree at the cut point.
+    height : array_like, optional
+        The height at which to cut the tree.  Only possible for ultrametric
+        trees.
+
+    Returns
+    -------
+    cutree : array
+        An array indicating group membership at each agglomeration step.  I.e.,
+        for a full cut tree, in the first column each data point is in its own
+        cluster.  At the next step, two nodes are merged.  Finally all singleton
+        and non-singleton clusters are in one group.  If `n_clusters` or
+        `height` is given, the columns correspond to the columns of `n_clusters` or
+        `height`.
+
+    Examples
+    --------
+    >>> from scipy import cluster
+    >>> np.random.seed(23)
+    >>> X = np.random.randn(50, 4)
+    >>> Z = cluster.hierarchy.ward(X)
+    >>> cutree = cluster.hierarchy.cut_tree(Z, n_clusters=[5, 10])
+    >>> cutree[:10]
+    array([[0, 0],
+           [1, 1],
+           [2, 2],
+           [3, 3],
+           [3, 4],
+           [2, 2],
+           [0, 0],
+           [1, 5],
+           [3, 6],
+           [4, 7]])
+
+    """
+    nobs = num_obs_linkage(Z)
+    nodes = _order_cluster_tree(Z)
+
+    if height is not None and n_clusters is not None:
+        raise ValueError("At least one of either height or n_clusters "
+                         "must be None")
+    elif height is None and n_clusters is None:  # return the full cut tree
+        cols_idx = np.arange(nobs)
+    elif height is not None:
+        heights = np.array([x.dist for x in nodes])
+        cols_idx = np.searchsorted(heights, height)
+    else:
+        cols_idx = nobs - np.searchsorted(np.arange(nobs), n_clusters)
+
+    try:
+        n_cols = len(cols_idx)
+    except TypeError:  # scalar
+        n_cols = 1
+        cols_idx = np.array([cols_idx])
+
+    groups = np.zeros((n_cols, nobs), dtype=int)
+    last_group = np.arange(nobs)
+    if 0 in cols_idx:
+        groups[0] = last_group
+
+    for i, node in enumerate(nodes):
+        idx = node.pre_order()
+        this_group = last_group.copy()
+        this_group[idx] = last_group[idx].min()
+        this_group[this_group > last_group[idx].max()] -= 1
+        if i + 1 in cols_idx:
+            groups[np.where(i + 1 == cols_idx)[0]] = this_group
+        last_group = this_group
+
+    return groups.T
 
 
 def to_tree(Z, rd=False):
@@ -849,9 +988,8 @@ def to_tree(Z, rd=False):
     Z : ndarray
         The linkage matrix in proper form (see the ``linkage``
         function documentation).
-
     rd : bool, optional
-        When ``False``, a reference to the root ClusterNode object is
+        When False, a reference to the root ClusterNode object is
         returned.  Otherwise, a tuple (r,d) is returned. ``r`` is a
         reference to the root node while ``d`` is a dictionary
         mapping cluster ids to ClusterNode references. If a cluster id is
@@ -865,13 +1003,10 @@ def to_tree(Z, rd=False):
         The pre-order traversal.
 
     """
-
     Z = np.asarray(Z, order='c')
-
     is_valid_linkage(Z, throw=True, name='Z')
 
-    # The number of original objects is equal to the number of rows minus
-    # 1.
+    # Number of original objects is equal to the number of rows minus 1.
     n = Z.shape[0] + 1
 
     # Create a list full of None's to store the node objects
@@ -894,7 +1029,7 @@ def to_tree(Z, rd=False):
             raise ValueError(('Corrupt matrix Z. Index to derivative cluster '
                               'is used before it is formed. See row %d, '
                               'column 1') % fj)
-        nd = ClusterNode(i + n, d[fi], d[fj],  Z[i, 2])
+        nd = ClusterNode(i + n, d[fi], d[fj], Z[i, 2])
         #          ^ id   ^ left ^ right ^ dist
         if Z[i, 3] != nd.count:
             raise ValueError(('Corrupt matrix Z. The count Z[%d,3] is '
@@ -908,8 +1043,8 @@ def to_tree(Z, rd=False):
 
 
 def _convert_to_bool(X):
-    if X.dtype != np.bool:
-        X = np.bool_(X)
+    if X.dtype != bool:
+        X = X.astype(bool)
     if not X.flags.contiguous:
         X = X.copy()
     return X
@@ -917,7 +1052,7 @@ def _convert_to_bool(X):
 
 def _convert_to_double(X):
     if X.dtype != np.double:
-        X = np.double(X)
+        X = X.astype(np.double)
     if not X.flags.contiguous:
         X = X.copy()
     return X
@@ -939,8 +1074,7 @@ def cophenet(Z, Y=None):
     ----------
     Z : ndarray
         The hierarchical clustering encoded as an array
-        (see ``linkage`` function).
-
+        (see `linkage` function).
     Y : ndarray (optional)
         Calculates the cophenetic correlation coefficient ``c`` of a
         hierarchical clustering defined by the linkage matrix `Z`
@@ -958,40 +1092,36 @@ def cophenet(Z, Y=None):
         original observations :math:`i` and :math:`j`.
 
     """
-
     Z = np.asarray(Z, order='c')
     is_valid_linkage(Z, throw=True, name='Z')
     Zs = Z.shape
     n = Zs[0] + 1
 
-    zz = np.zeros((n * (n - 1) / 2,), dtype=np.double)
+    zz = np.zeros((n * (n-1)) // 2, dtype=np.double)
     # Since the C code does not support striding using strides.
     # The dimensions are used instead.
     Z = _convert_to_double(Z)
 
-    _hierarchy_wrap.cophenetic_distances_wrap(Z, zz, int(n))
+    _hierarchy.cophenetic_distances(Z, zz, int(n))
     if Y is None:
         return zz
 
     Y = np.asarray(Y, order='c')
-    Ys = Y.shape
     distance.is_valid_y(Y, throw=True, name='Y')
 
     z = zz.mean()
     y = Y.mean()
     Yy = Y - y
     Zz = zz - z
-    #print Yy.shape, Zz.shape
     numerator = (Yy * Zz)
-    denomA = Yy ** 2
-    denomB = Zz ** 2
+    denomA = Yy**2
+    denomB = Zz**2
     c = numerator.sum() / np.sqrt((denomA.sum() * denomB.sum()))
-    #print c, numerator.sum()
     return (c, zz)
 
 
 def inconsistent(Z, d=2):
-    """
+    r"""
     Calculates inconsistency statistics on a linkage.
 
     Note: This function behaves similarly to the MATLAB(TM)
@@ -1000,26 +1130,24 @@ def inconsistent(Z, d=2):
     Parameters
     ----------
     Z : ndarray
-        The :math:`(n-1)` by 4 matrix encoding the linkage
-        (hierarchical clustering).  See ``linkage`` documentation
-        for more information on its form.
+        The :math:`(n-1)` by 4 matrix encoding the linkage (hierarchical
+        clustering).  See `linkage` documentation for more information on its
+        form.
     d : int, optional
-        The number of links up to `d` levels below each
-        non-singleton cluster.
+        The number of links up to `d` levels below each non-singleton cluster.
 
     Returns
     -------
     R : ndarray
-        A :math:`(n-1)` by 5 matrix where the ``i``'th row
-        contains the link statistics for the non-singleton cluster
-        ``i``. The link statistics are computed over the link
-        heights for links :math:`d` levels below the cluster
-        ``i``. ``R[i,0]`` and ``R[i,1]`` are the mean and standard
-        deviation of the link heights, respectively; ``R[i,2]`` is
-        the number of links included in the calculation; and
-        ``R[i,3]`` is the inconsistency coefficient,
+        A :math:`(n-1)` by 5 matrix where the ``i``'th row contains the link
+        statistics for the non-singleton cluster ``i``. The link statistics are
+        computed over the link heights for links :math:`d` levels below the
+        cluster ``i``. ``R[i,0]`` and ``R[i,1]`` are the mean and standard
+        deviation of the link heights, respectively; ``R[i,2]`` is the number
+        of links included in the calculation; and ``R[i,3]`` is the
+        inconsistency coefficient,
 
-        .. math:: \\frac{\\mathtt{Z[i,2]}-\\mathtt{R[i,0]}} {R[i,1]}
+        .. math:: \frac{\mathtt{Z[i,2]} - \mathtt{R[i,0]}} {R[i,1]}
 
     """
     Z = np.asarray(Z, order='c')
@@ -1029,8 +1157,6 @@ def inconsistent(Z, d=2):
     if (not d == np.floor(d)) or d < 0:
         raise ValueError('The second argument d must be a nonnegative '
                          'integer value.')
-#    if d == 0:
-#        d = 1
 
     # Since the C code does not support striding using strides.
     # The dimensions are used instead.
@@ -1039,7 +1165,7 @@ def inconsistent(Z, d=2):
     n = Zs[0] + 1
     R = np.zeros((n - 1, 4), dtype=np.double)
 
-    _hierarchy_wrap.inconsistent_wrap(Z, R, int(n), int(d))
+    _hierarchy.inconsistent(Z, R, int(n), int(d))
     return R
 
 
@@ -1088,9 +1214,10 @@ def from_mlab_linkage(Z):
     Zpart = Z.copy()
     if Zpart[:, 0:2].min() != 1.0 and Zpart[:, 0:2].max() != 2 * Zs[0]:
         raise ValueError('The format of the indices is not 1..N')
+
     Zpart[:, 0:2] -= 1.0
     CS = np.zeros((Zs[0],), dtype=np.double)
-    _hierarchy_wrap.calculate_cluster_sizes_wrap(Zpart, CS, int(Zs[0]) + 1)
+    _hierarchy.calculate_cluster_sizes(Zpart, CS, int(Zs[0]) + 1)
     return np.hstack([Zpart, CS.reshape(Zs[0], 1)])
 
 
@@ -1132,7 +1259,7 @@ def to_mlab_linkage(Z):
 
 def is_monotonic(Z):
     """
-    Returns ``True`` if the linkage passed is monotonic.
+    Returns True if the linkage passed is monotonic.
 
     The linkage is monotonic if for every cluster :math:`s` and :math:`t`
     joined, the distance between them is no less than the distance
@@ -1168,10 +1295,10 @@ def is_valid_im(R, warning=False, throw=False, name=None):
     R : ndarray
         The inconsistency matrix to check for validity.
     warning : bool, optional
-         When ``True``, issues a Python warning if the linkage
+         When True, issues a Python warning if the linkage
          matrix passed is invalid.
     throw : bool, optional
-         When ``True``, throws a Python exception if the linkage
+         When True, throws a Python exception if the linkage
          matrix passed is invalid.
     name : str, optional
          This string refers to the variable name of the invalid
@@ -1185,69 +1312,39 @@ def is_valid_im(R, warning=False, throw=False, name=None):
     """
     R = np.asarray(R, order='c')
     valid = True
+    name_str = "%r " % name if name else ''
     try:
         if type(R) != np.ndarray:
-            if name:
-                raise TypeError(('Variable \'%s\' passed as inconsistency '
-                                'matrix is not a numpy array.') % name)
-            else:
-                raise TypeError('Variable passed as inconsistency matrix '
-                                'is not a numpy array.')
+            raise TypeError('Variable %spassed as inconsistency matrix is not '
+                            'a numpy array.' % name_str)
         if R.dtype != np.double:
-            if name:
-                raise TypeError(('Inconsistency matrix \'%s\' must contain '
-                                 'doubles (double).') % name)
-            else:
-                raise TypeError('Inconsistency matrix must contain doubles '
-                                '(double).')
+            raise TypeError('Inconsistency matrix %smust contain doubles '
+                            '(double).' % name_str)
         if len(R.shape) != 2:
-            if name:
-                raise ValueError(('Inconsistency matrix \'%s\' must have '
-                                  'shape=2 (i.e. be two-dimensional).') % name)
-            else:
-                raise ValueError('Inconsistency matrix must have shape=2 '
-                                 '(i.e. be two-dimensional).')
+            raise ValueError('Inconsistency matrix %smust have shape=2 (i.e. '
+                             'be two-dimensional).' % name_str)
         if R.shape[1] != 4:
-            if name:
-                raise ValueError(('Inconsistency matrix \'%s\' must have 4 '
-                                  'columns.') % name)
-            else:
-                raise ValueError('Inconsistency matrix must have 4 columns.')
+            raise ValueError('Inconsistency matrix %smust have 4 columns.' %
+                             name_str)
         if R.shape[0] < 1:
-            if name:
-                raise ValueError(('Inconsistency matrix \'%s\' must have at '
-                                  'least one row.') % name)
-            else:
-                raise ValueError('Inconsistency matrix must have at least '
-                                 'one row.')
+            raise ValueError('Inconsistency matrix %smust have at least one '
+                             'row.' % name_str)
         if (R[:, 0] < 0).any():
-            if name:
-                raise ValueError(('Inconsistency matrix \'%s\' contains '
-                                  'negative link height means.') % name)
-            else:
-                raise ValueError('Inconsistency matrix contains negative '
-                                 'link height means.')
+            raise ValueError('Inconsistency matrix %scontains negative link '
+                             'height means.' % name_str)
         if (R[:, 1] < 0).any():
-            if name:
-                raise ValueError(('Inconsistency matrix \'%s\' contains '
-                                  'negative link height standard '
-                                  'deviations.') % name)
-            else:
-                raise ValueError('Inconsistency matrix contains negative '
-                                 'link height standard deviations.')
+            raise ValueError('Inconsistency matrix %scontains negative link '
+                             'height standard deviations.' % name_str)
         if (R[:, 2] < 0).any():
-            if name:
-                raise ValueError(('Inconsistency matrix \'%s\' contains '
-                                  'negative link counts.') % name)
-            else:
-                raise ValueError('Inconsistency matrix contains negative '
-                                 'link counts.')
+            raise ValueError('Inconsistency matrix %scontains negative link '
+                             'counts.' % name_str)
     except Exception as e:
         if throw:
             raise
         if warning:
             _warning(str(e))
         valid = False
+
     return valid
 
 
@@ -1255,24 +1352,28 @@ def is_valid_linkage(Z, warning=False, throw=False, name=None):
     """
     Checks the validity of a linkage matrix.
 
-    A linkage matrix is valid if it is a two dimensional
-    ndarray (type double) with :math:`n`
-    rows and 4 columns.  The first two columns must contain indices
-    between 0 and :math:`2n-1`. For a given row ``i``,
-    :math:`0 \\leq \\mathtt{Z[i,0]} \\leq i+n-1`
-    and :math:`0 \\leq Z[i,1] \\leq i+n-1`
-    (i.e. a cluster cannot join another cluster unless the cluster
-    being joined has been generated.)
+    A linkage matrix is valid if it is a two dimensional array (type double)
+    with :math:`n` rows and 4 columns.  The first two columns must contain
+    indices between 0 and :math:`2n-1`. For a given row ``i``, the following
+    two expressions have to hold:
+
+    .. math::
+
+        0 \\leq \\mathtt{Z[i,0]} \\leq i+n-1
+        0 \\leq Z[i,1] \\leq i+n-1
+
+    I.e. a cluster cannot join another cluster unless the cluster being joined
+    has been generated.
 
     Parameters
     ----------
     Z : array_like
         Linkage matrix.
     warning : bool, optional
-        When ``True``, issues a Python warning if the linkage
+        When True, issues a Python warning if the linkage
         matrix passed is invalid.
     throw : bool, optional
-        When ``True``, throws a Python exception if the linkage
+        When True, throws a Python exception if the linkage
         matrix passed is invalid.
     name : str, optional
            This string refers to the variable name of the invalid
@@ -1281,87 +1382,50 @@ def is_valid_linkage(Z, warning=False, throw=False, name=None):
     Returns
     -------
     b : bool
-        True iff the inconsistency matrix is valid.
+        True if the inconsistency matrix is valid.
 
     """
     Z = np.asarray(Z, order='c')
     valid = True
+    name_str = "%r " % name if name else ''
     try:
         if type(Z) != np.ndarray:
-            if name:
-                raise TypeError(('\'%s\' passed as a linkage is not a valid '
-                                 'array.') % name)
-            else:
-                raise TypeError('Variable is not a valid array.')
+            raise TypeError('Passed linkage argument %sis not a valid array.' %
+                            name_str)
         if Z.dtype != np.double:
-            if name:
-                raise TypeError('Linkage matrix \'%s\' must contain doubles.'
-                                % name)
-            else:
-                raise TypeError('Linkage matrix must contain doubles.')
+            raise TypeError('Linkage matrix %smust contain doubles.' % name_str)
         if len(Z.shape) != 2:
-            if name:
-                raise ValueError(('Linkage matrix \'%s\' must have shape=2 '
-                                  '(i.e. be two-dimensional).') % name)
-            else:
-                raise ValueError('Linkage matrix must have shape=2 '
-                                 '(i.e. be two-dimensional).')
+            raise ValueError('Linkage matrix %smust have shape=2 (i.e. be '
+                             'two-dimensional).' % name_str)
         if Z.shape[1] != 4:
-            if name:
-                raise ValueError('Linkage matrix \'%s\' must have 4 columns.'
-                                 % name)
-            else:
-                raise ValueError('Linkage matrix must have 4 columns.')
+            raise ValueError('Linkage matrix %smust have 4 columns.' % name_str)
         if Z.shape[0] == 0:
             raise ValueError('Linkage must be computed on at least two '
                              'observations.')
         n = Z.shape[0]
         if n > 1:
-            if ((Z[:, 0] < 0).any() or
-                (Z[:, 1] < 0).any()):
-                if name:
-                    raise ValueError(('Linkage \'%s\' contains negative '
-                                      'indices.') % name)
-                else:
-                    raise ValueError('Linkage contains negative indices.')
+            if ((Z[:, 0] < 0).any() or (Z[:, 1] < 0).any()):
+                raise ValueError('Linkage %scontains negative indices.' %
+                                 name_str)
             if (Z[:, 2] < 0).any():
-                if name:
-                    raise ValueError(('Linkage \'%s\' contains negative '
-                                      'distances.') % name)
-                else:
-                    raise ValueError('Linkage contains negative distances.')
+                raise ValueError('Linkage %scontains negative distances.' %
+                                 name_str)
             if (Z[:, 3] < 0).any():
-                if name:
-                    raise ValueError('Linkage \'%s\' contains negative counts.'
-                                     % name)
-                else:
-                    raise ValueError('Linkage contains negative counts.')
+                raise ValueError('Linkage %scontains negative counts.' %
+                                 name_str)
         if _check_hierarchy_uses_cluster_before_formed(Z):
-            if name:
-                raise ValueError(('Linkage \'%s\' uses non-singleton cluster '
-                                  'before its formed.') % name)
-            else:
-                raise ValueError("Linkage uses non-singleton cluster before "
-                                 "it's formed.")
+            raise ValueError('Linkage %suses non-singleton cluster before '
+                             'it is formed.' % name_str)
         if _check_hierarchy_uses_cluster_more_than_once(Z):
-            if name:
-                raise ValueError(('Linkage \'%s\' uses the same cluster more '
-                                  'than once.') % name)
-            else:
-                raise ValueError('Linkage uses the same cluster more than '
-                                 'once.')
-#         if _check_hierarchy_not_all_clusters_used(Z):
-#             if name:
-#                 raise ValueError('Linkage \'%s\' does not use all clusters.'
-#                                  % name)
-#             else:
-#                 raise ValueError('Linkage does not use all clusters.')
+            raise ValueError('Linkage %suses the same cluster more than once.'
+                             % name_str)
     except Exception as e:
         if throw:
             raise
         if warning:
             _warning(str(e))
         valid = False
+
     return valid
 
 
@@ -1484,11 +1548,10 @@ def fcluster(Z, t, criterion='inconsistent', depth=2, R=None, monocrit=None):
 
               For example, to threshold on the maximum mean distance
               as computed in the inconsistency matrix R with a
-              threshold of 0.8 do:
+              threshold of 0.8 do::
 
-                MR = maxRstat(Z, R, 3)
-
-                cluster(Z, t=0.8, criterion='monocrit', monocrit=MR)
+                  MR = maxRstat(Z, R, 3)
+                  cluster(Z, t=0.8, criterion='monocrit', monocrit=MR)
 
           ``maxclust_monocrit`` : Forms a flat cluster from a
               non-singleton cluster node ``c`` when ``monocrit[i] <=
@@ -1497,11 +1560,10 @@ def fcluster(Z, t, criterion='inconsistent', depth=2, R=None, monocrit=None):
               flat clusters are formed. monocrit must be
               monotonic. For example, to minimize the threshold t on
               maximum inconsistency values so that no more than 3 flat
-              clusters are formed, do:
+              clusters are formed, do::
 
-                MI = maxinconsts(Z, R)
-
-                cluster(Z, t=3, criterion='maxclust_monocrit', monocrit=MI)
+                  MI = maxinconsts(Z, R)
+                  cluster(Z, t=3, criterion='maxclust_monocrit', monocrit=MI)
 
     depth : int, optional
         The maximum depth to perform the inconsistency calculation.
@@ -1514,7 +1576,7 @@ def fcluster(Z, t, criterion='inconsistent', depth=2, R=None, monocrit=None):
         statistics upon which non-singleton i is thresholded. The
         monocrit vector must be monotonic, i.e. given a node c with
         index i, for all node indices j corresponding to nodes
-        below c, `monocrit[i] >= monocrit[j]`.
+        below c, ``monocrit[i] >= monocrit[j]``.
 
     Returns
     -------
@@ -1542,25 +1604,24 @@ def fcluster(Z, t, criterion='inconsistent', depth=2, R=None, monocrit=None):
             # Since the C code does not support striding using strides.
             # The dimensions are used instead.
             [R] = _copy_arrays_if_base_present([R])
-        _hierarchy_wrap.cluster_in_wrap(Z, R, T, float(t), int(n))
+        _hierarchy.cluster_in(Z, R, T, float(t), int(n))
     elif criterion == 'distance':
-        _hierarchy_wrap.cluster_dist_wrap(Z, T, float(t), int(n))
+        _hierarchy.cluster_dist(Z, T, float(t), int(n))
     elif criterion == 'maxclust':
-        _hierarchy_wrap.cluster_maxclust_dist_wrap(Z, T, int(n), int(t))
+        _hierarchy.cluster_maxclust_dist(Z, T, int(n), int(t))
     elif criterion == 'monocrit':
         [monocrit] = _copy_arrays_if_base_present([monocrit])
-        _hierarchy_wrap.cluster_monocrit_wrap(Z, monocrit, T, float(t), int(n))
+        _hierarchy.cluster_monocrit(Z, monocrit, T, float(t), int(n))
     elif criterion == 'maxclust_monocrit':
         [monocrit] = _copy_arrays_if_base_present([monocrit])
-        _hierarchy_wrap.cluster_maxclust_monocrit_wrap(Z, monocrit, T,
-                                                     int(n), int(t))
+        _hierarchy.cluster_maxclust_monocrit(Z, monocrit, T, int(n), int(t))
     else:
         raise ValueError('Invalid cluster formation criterion: %s'
                          % str(criterion))
     return T
 
 
-def fclusterdata(X, t, criterion='inconsistent', \
+def fclusterdata(X, t, criterion='inconsistent',
                  metric='euclidean', depth=2, method='single', R=None):
     """
     Cluster observation data using a given metric.
@@ -1651,7 +1712,7 @@ def leaves_list(Z):
     n = Z.shape[0] + 1
     ML = np.zeros((n,), dtype='i')
     [Z] = _copy_arrays_if_base_present([Z])
-    _hierarchy_wrap.prelist_wrap(Z, ML, int(n))
+    _hierarchy.prelist(Z, ML, int(n))
     return ML
 
 
@@ -1669,6 +1730,7 @@ _dtextsortedkeys.sort()
 _drotationsortedkeys = list(_drotation.keys())
 _drotationsortedkeys.sort()
 
+
 def _remove_dups(L):
     """
     Removes duplicates AND preserves the original order of the elements.
@@ -1682,134 +1744,115 @@ def _remove_dups(L):
             L2.append(i)
     return L2
 
+
 def _get_tick_text_size(p):
     for k in _dtextsortedkeys:
         if p <= k:
             return _dtextsizes[k]
+
 
 def _get_tick_rotation(p):
     for k in _drotationsortedkeys:
         if p <= k:
             return _drotation[k]
 
+
 def _plot_dendrogram(icoords, dcoords, ivl, p, n, mh, orientation,
                      no_labels, color_list, leaf_font_size=None,
-                     leaf_rotation=None, contraction_marks=None):
+                     leaf_rotation=None, contraction_marks=None,
+                     ax=None, above_threshold_color='b'):
     # Import matplotlib here so that it's not imported unless dendrograms
     # are plotted. Raise an informative error if importing fails.
     try:
-        import matplotlib.pylab
+        # if an axis is provided, don't use pylab at all
+        if ax is None:
+            import matplotlib.pylab
         import matplotlib.patches
         import matplotlib.collections
     except ImportError:
-        raise ImportError("You must install the matplotlib library to plot the dendrogram. Use no_plot=True to calculate the dendrogram without plotting.")
+        raise ImportError("You must install the matplotlib library to plot "
+                          "the dendrogram. Use no_plot=True to calculate the "
+                          "dendrogram without plotting.")
 
-    axis = matplotlib.pylab.gca()
+    if ax is None:
+        ax = matplotlib.pylab.gca()
+        # if we're using pylab, we want to trigger a draw at the end
+        trigger_redraw = True
+    else:
+        trigger_redraw = False
+
     # Independent variable plot width
     ivw = len(ivl) * 10
-    # Depenendent variable plot height
+    # Dependent variable plot height
     dvw = mh + mh * 0.05
-    ivticks = np.arange(5, len(ivl) * 10 + 5, 10)
-    if orientation == 'top':
-        axis.set_ylim([0, dvw])
-        axis.set_xlim([0, ivw])
+
+    iv_ticks = np.arange(5, len(ivl) * 10 + 5, 10)
+    if orientation in ('top', 'bottom'):
+        if orientation == 'top':
+            ax.set_ylim([0, dvw])
+            ax.set_xlim([0, ivw])
+        else:
+            ax.set_ylim([dvw, 0])
+            ax.set_xlim([0, ivw])
+
         xlines = icoords
         ylines = dcoords
         if no_labels:
-            axis.set_xticks([])
-            axis.set_xticklabels([])
+            ax.set_xticks([])
+            ax.set_xticklabels([])
         else:
-            axis.set_xticks(ivticks)
-            axis.set_xticklabels(ivl)
-        axis.xaxis.set_ticks_position('bottom')
-        lbls = axis.get_xticklabels()
-        if leaf_rotation:
-            matplotlib.pylab.setp(lbls, 'rotation', leaf_rotation)
+            ax.set_xticks(iv_ticks)
+
+            if orientation == 'top':
+                ax.xaxis.set_ticks_position('bottom')
+            else:
+                ax.xaxis.set_ticks_position('top')
+
+            # Make the tick marks invisible because they cover up the links
+            for line in ax.get_xticklines():
+                line.set_visible(False)
+
+            leaf_rot = float(_get_tick_rotation(len(ivl))) if (
+                                    leaf_rotation is None) else leaf_rotation
+            leaf_font = float(_get_tick_text_size(len(ivl))) if (
+                                    leaf_font_size is None) else leaf_font_size
+            ax.set_xticklabels(ivl, rotation=leaf_rot, size=leaf_font)
+
+    elif orientation in ('left', 'right'):
+        if orientation == 'left':
+            ax.set_xlim([dvw, 0])
+            ax.set_ylim([0, ivw])
         else:
-            matplotlib.pylab.setp(lbls, 'rotation',
-                                  float(_get_tick_rotation(len(ivl))))
-        if leaf_font_size:
-            matplotlib.pylab.setp(lbls, 'size', leaf_font_size)
-        else:
-            matplotlib.pylab.setp(lbls, 'size',
-                                  float(_get_tick_text_size(len(ivl))))
-#        txt.set_fontsize()
-#        txt.set_rotation(45)
-        # Make the tick marks invisible because they cover up the links
-        for line in axis.get_xticklines():
-            line.set_visible(False)
-    elif orientation == 'bottom':
-        axis.set_ylim([dvw, 0])
-        axis.set_xlim([0, ivw])
-        xlines = icoords
-        ylines = dcoords
-        if no_labels:
-            axis.set_xticks([])
-            axis.set_xticklabels([])
-        else:
-            axis.set_xticks(ivticks)
-            axis.set_xticklabels(ivl)
-        lbls = axis.get_xticklabels()
-        if leaf_rotation:
-            matplotlib.pylab.setp(lbls, 'rotation', leaf_rotation)
-        else:
-            matplotlib.pylab.setp(lbls, 'rotation',
-                                  float(_get_tick_rotation(p)))
-        if leaf_font_size:
-            matplotlib.pylab.setp(lbls, 'size', leaf_font_size)
-        else:
-            matplotlib.pylab.setp(lbls, 'size',
-                                  float(_get_tick_text_size(p)))
-        axis.xaxis.set_ticks_position('top')
-        # Make the tick marks invisible because they cover up the links
-        for line in axis.get_xticklines():
-            line.set_visible(False)
-    elif orientation == 'left':
-        axis.set_xlim([0, dvw])
-        axis.set_ylim([0, ivw])
+            ax.set_xlim([0, dvw])
+            ax.set_ylim([0, ivw])
+
         xlines = dcoords
         ylines = icoords
         if no_labels:
-            axis.set_yticks([])
-            axis.set_yticklabels([])
+            ax.set_yticks([])
+            ax.set_yticklabels([])
         else:
-            axis.set_yticks(ivticks)
-            axis.set_yticklabels(ivl)
+            ax.set_yticks(iv_ticks)
 
-        lbls = axis.get_yticklabels()
-        if leaf_rotation:
-            matplotlib.pylab.setp(lbls, 'rotation', leaf_rotation)
-        if leaf_font_size:
-            matplotlib.pylab.setp(lbls, 'size', leaf_font_size)
-        axis.yaxis.set_ticks_position('left')
-        # Make the tick marks invisible because they cover up the
-        # links
-        for line in axis.get_yticklines():
-            line.set_visible(False)
-    elif orientation == 'right':
-        axis.set_xlim([dvw, 0])
-        axis.set_ylim([0, ivw])
-        xlines = dcoords
-        ylines = icoords
-        if no_labels:
-            axis.set_yticks([])
-            axis.set_yticklabels([])
-        else:
-            axis.set_yticks(ivticks)
-            axis.set_yticklabels(ivl)
-        lbls = axis.get_yticklabels()
-        if leaf_rotation:
-            matplotlib.pylab.setp(lbls, 'rotation', leaf_rotation)
-        if leaf_font_size:
-            matplotlib.pylab.setp(lbls, 'size', leaf_font_size)
-        axis.yaxis.set_ticks_position('right')
-        # Make the tick marks invisible because they cover up the links
-        for line in axis.get_yticklines():
-            line.set_visible(False)
+            if orientation == 'left':
+                ax.yaxis.set_ticks_position('right')
+            else:
+                ax.yaxis.set_ticks_position('left')
 
-    # Let's use collections instead. This way there is a separate legend
-    # item for each tree grouping, rather than stupidly one for each line
-    # segment.
+            # Make the tick marks invisible because they cover up the links
+            for line in ax.get_yticklines():
+                line.set_visible(False)
+
+            leaf_font = float(_get_tick_text_size(len(ivl))) if (
+                                    leaf_font_size is None) else leaf_font_size
+
+            if leaf_rotation is not None:
+                ax.set_yticklabels(ivl, rotation=leaf_rotation, size=leaf_font)
+            else:
+                ax.set_yticklabels(ivl, size=leaf_font)
+
+    # Let's use collections instead. This way there is a separate legend item
+    # for each tree grouping, rather than stupidly one for each line segment.
     colors_used = _remove_dups(color_list)
     color_to_lines = {}
     for color in colors_used:
@@ -1824,61 +1867,93 @@ def _plot_dendrogram(icoords, dcoords, ivl, p, n, mh, orientation,
                                                      colors=(color,))
         colors_to_collections[color] = coll
 
-    # Add all the non-blue link groupings, i.e. those groupings below the
-    # color threshold.
-
+    # Add all the groupings below the color threshold.
     for color in colors_used:
-        if color != 'b':
-            axis.add_collection(colors_to_collections[color])
-    # If there is a blue grouping (i.e., links above the color threshold),
-    # it should go last.
-    if 'b' in colors_to_collections:
-        axis.add_collection(colors_to_collections['b'])
+        if color != above_threshold_color:
+            ax.add_collection(colors_to_collections[color])
+    # If there's a grouping of links above the color threshold, it goes last.
+    if above_threshold_color in colors_to_collections:
+        ax.add_collection(colors_to_collections[above_threshold_color])
 
     if contraction_marks is not None:
-        #xs=[x for (x, y) in contraction_marks]
-        #ys=[y for (x, y) in contraction_marks]
-        if orientation in ('left', 'right'):
-            for (x, y) in contraction_marks:
-                e = matplotlib.patches.Ellipse((y, x),
-                                               width=dvw / 100, height=1.0)
-                axis.add_artist(e)
-                e.set_clip_box(axis.bbox)
-                e.set_alpha(0.5)
-                e.set_facecolor('k')
-        if orientation in ('top', 'bottom'):
-            for (x, y) in contraction_marks:
-                e = matplotlib.patches.Ellipse((x, y),
-                                             width=1.0, height=dvw / 100)
-                axis.add_artist(e)
-                e.set_clip_box(axis.bbox)
-                e.set_alpha(0.5)
-                e.set_facecolor('k')
+        Ellipse = matplotlib.patches.Ellipse
+        for (x, y) in contraction_marks:
+            if orientation in ('left', 'right'):
+                e = Ellipse((y, x), width=dvw / 100, height=1.0)
+            else:
+                e = Ellipse((x, y), width=1.0, height=dvw / 100)
+            ax.add_artist(e)
+            e.set_clip_box(ax.bbox)
+            e.set_alpha(0.5)
+            e.set_facecolor('k')
 
-            #matplotlib.pylab.plot(xs, ys, 'go', markeredgecolor='k',
-            #                      markersize=3)
+    if trigger_redraw:
+        matplotlib.pylab.draw_if_interactive()
 
-            #matplotlib.pylab.plot(ys, xs, 'go', markeredgecolor='k',
-            #                      markersize=3)
-    matplotlib.pylab.draw_if_interactive()
 
 _link_line_colors = ['g', 'r', 'c', 'm', 'y', 'k']
 
 
 def set_link_color_palette(palette):
     """
-    Set list of matplotlib color codes for dendrogram color_threshold.
+    Set list of matplotlib color codes for use by dendrogram.
+
+    Note that this palette is global (i.e. setting it once changes the colors
+    for all subsequent calls to `dendrogram`) and that it affects only the
+    the colors below ``color_threshold``.
+
+    Note that `dendrogram` also accepts a custom coloring function through its
+    ``link_color_func`` keyword, which is more flexible and non-global.
 
     Parameters
     ----------
-    palette : list
-        A list of matplotlib color codes. The order of
-        the color codes is the order in which the colors are cycled
-        through when color thresholding in the dendrogram.
+    palette : list of str or None
+        A list of matplotlib color codes.  The order of the color codes is the
+        order in which the colors are cycled through when color thresholding in
+        the dendrogram.
+
+        If ``None``, resets the palette to its default (which is
+        ``['g', 'r', 'c', 'm', 'y', 'k']``).
+
+    Returns
+    -------
+    None
+
+    See Also
+    --------
+    dendrogram
+
+    Notes
+    -----
+    Ability to reset the palette with ``None`` added in Scipy 0.17.0.
+
+    Examples
+    --------
+    >>> from scipy.cluster import hierarchy
+    >>> ytdist = np.array([662., 877., 255., 412., 996., 295., 468., 268., 400.,
+    ...                    754., 564., 138., 219., 869., 669.])
+    >>> Z = hierarchy.linkage(ytdist, 'single')
+    >>> dn = hierarchy.dendrogram(Z, no_plot=True)
+    >>> dn['color_list']
+    ['g', 'b', 'b', 'b', 'b']
+    >>> hierarchy.set_link_color_palette(['c', 'm', 'y', 'k'])
+    >>> dn = hierarchy.dendrogram(Z, no_plot=True)
+    >>> dn['color_list']
+    ['c', 'b', 'b', 'b', 'b']
+    >>> dn = hierarchy.dendrogram(Z, no_plot=True, color_threshold=267,
+    ...                           above_threshold_color='k')
+    >>> dn['color_list']
+    ['c', 'm', 'm', 'k', 'k']
+
+    Now reset the color palette to its default:
+
+    >>> hierarchy.set_link_color_palette(None)
 
     """
-
-    if type(palette) not in (list, tuple):
+    if palette is None:
+        # reset to its default
+        palette = ['g', 'r', 'c', 'm', 'y', 'k']
+    elif type(palette) not in (list, tuple):
         raise TypeError("palette must be a list or tuple")
     _ptypes = [isinstance(p, string_types) for p in palette]
 
@@ -1893,10 +1968,10 @@ def set_link_color_palette(palette):
 def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
                get_leaves=True, orientation='top', labels=None,
                count_sort=False, distance_sort=False, show_leaf_counts=True,
-               no_plot=False, no_labels=False, color_list=None,
-               leaf_font_size=None, leaf_rotation=None, leaf_label_func=None,
-               no_leaves=False, show_contracted=False,
-               link_color_func=None):
+               no_plot=False, no_labels=False, leaf_font_size=None,
+               leaf_rotation=None, leaf_label_func=None,
+               show_contracted=False, link_color_func=None, ax=None,
+               above_threshold_color='b'):
     """
     Plots the hierarchical clustering as a dendrogram.
 
@@ -1922,19 +1997,21 @@ def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
         large. Truncation is used to condense the dendrogram. There
         are several modes:
 
-        None/'none': no truncation is performed (Default)
+        ``None/'none'``
+          No truncation is performed (Default).
 
-        'lastp': the last ``p`` non-singleton formed in the linkage
-          are the only non-leaf nodes in the linkage; they correspond
-          to to rows ``Z[n-p-2:end]`` in ``Z``. All other
-          non-singleton clusters are contracted into leaf nodes.
+        ``'lastp'``
+          The last ``p`` non-singleton formed in the linkage are the only
+          non-leaf nodes in the linkage; they correspond to rows
+          ``Z[n-p-2:end]`` in ``Z``. All other non-singleton clusters are
+          contracted into leaf nodes.
 
-        'mlab': This corresponds to MATLAB(TM) behavior. (not
-          implemented yet)
+        ``'mlab'``
+          This corresponds to MATLAB(TM) behavior. (not implemented yet)
 
-        'level'/'mtica': no more than ``p`` levels of the
-          dendrogram tree are displayed. This corresponds to
-          Mathematica(TM) behavior.
+        ``'level'/'mtica'``
+          No more than ``p`` levels of the dendrogram tree are displayed.
+          This corresponds to Mathematica(TM) behavior.
 
     color_threshold : double, optional
         For brevity, let :math:`t` be the ``color_threshold``.
@@ -1943,7 +2020,7 @@ def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
         the cut threshold :math:`t`. All links connecting nodes with
         distances greater than or equal to the threshold are colored
         blue. If :math:`t` is less than or equal to zero, all nodes
-        are colored blue. If ``color_threshold`` is ``None`` or
+        are colored blue. If ``color_threshold`` is None or
         'default', corresponding with MATLAB(TM) behavior, the
         threshold is set to ``0.7*max(Z[:,2])``.
     get_leaves : bool, optional
@@ -1955,70 +2032,75 @@ def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
         The direction to plot the dendrogram, which can be any
         of the following strings:
 
-        'top' plots the root at the top, and plot descendent
-          links going downwards. (default).
+        ``'top'``
+          Plots the root at the top, and plot descendent links going downwards.
+          (default).
 
-        'bottom'- plots the root at the bottom, and plot descendent
-          links going upwards.
+        ``'bottom'``
+          Plots the root at the bottom, and plot descendent links going
+          upwards.
 
-        'left'- plots the root at the left, and plot descendent
-          links going right.
+        ``'left'``
+          Plots the root at the left, and plot descendent links going right.
 
-        'right'- plots the root at the right, and plot descendent
-          links going left.
+        ``'right'``
+          Plots the root at the right, and plot descendent links going left.
 
     labels : ndarray, optional
-        By default ``labels`` is ``None`` so the index of the
-        original observation is used to label the leaf nodes.
-        Otherwise, this is an :math:`n` -sized list (or tuple). The
-        ``labels[i]`` value is the text to put under the :math:`i` th
-        leaf node only if it corresponds to an original observation
-        and not a non-singleton cluster.
+        By default ``labels`` is None so the index of the original observation
+        is used to label the leaf nodes.  Otherwise, this is an :math:`n`
+        -sized list (or tuple). The ``labels[i]`` value is the text to put
+        under the :math:`i` th leaf node only if it corresponds to an original
+        observation and not a non-singleton cluster.
     count_sort : str or bool, optional
         For each node n, the order (visually, from left-to-right) n's
         two descendent links are plotted is determined by this
         parameter, which can be any of the following values:
 
-        False: nothing is done.
+        ``False``
+          Nothing is done.
 
-        'ascending'/True: the child with the minimum number of
-          original objects in its cluster is plotted first.
+        ``'ascending'`` or ``True``
+          The child with the minimum number of original objects in its cluster
+          is plotted first.
 
-        'descendent': the child with the maximum number of
-          original objects in its cluster is plotted first.
+        ``'descendent'``
+          The child with the maximum number of original objects in its cluster
+          is plotted first.
 
-        Note ``distance_sort`` and ``count_sort`` cannot both be
-        ``True``.
+        Note ``distance_sort`` and ``count_sort`` cannot both be True.
     distance_sort : str or bool, optional
         For each node n, the order (visually, from left-to-right) n's
         two descendent links are plotted is determined by this
         parameter, which can be any of the following values:
 
-        False: nothing is done.
+        ``False``
+          Nothing is done.
 
-        'ascending'/True: the child with the minimum distance
-          between its direct descendents is plotted first.
+        ``'ascending'`` or ``True``
+          The child with the minimum distance between its direct descendents is
+          plotted first.
 
-        'descending': the child with the maximum distance
-          between its direct descendents is plotted first.
+        ``'descending'``
+          The child with the maximum distance between its direct descendents is
+          plotted first.
 
-        Note ``distance_sort`` and ``count_sort`` cannot both be
-        ``True``.
+        Note ``distance_sort`` and ``count_sort`` cannot both be True.
     show_leaf_counts : bool, optional
-         When ``True``, leaf nodes representing :math:`k>1` original
+         When True, leaf nodes representing :math:`k>1` original
          observation are labeled with the number of observations they
          contain in parentheses.
     no_plot : bool, optional
-        When ``True``, the final rendering is not performed. This is
+        When True, the final rendering is not performed. This is
         useful if only the data structures computed for the rendering
         are needed or if matplotlib is not available.
     no_labels : bool, optional
-        When ``True``, no labels appear next to the leaf nodes in the
+        When True, no labels appear next to the leaf nodes in the
         rendering of the dendrogram.
-    leaf_label_rotation : double, optional
+    leaf_rotation : double, optional
         Specifies the angle (in degrees) to rotate the leaf
-        labels. When unspecified, the rotation based on the number of
-        nodes in the dendrogram. (Default=0)
+        labels. When unspecified, the rotation is based on the number of
+        nodes in the dendrogram (default is 0).
     leaf_font_size : int, optional
         Specifies the font size (in points) of the leaf labels. When
         unspecified, the size based on the number of nodes in the
@@ -2035,35 +2117,41 @@ def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
 
         For example, to label singletons with their node id and
         non-singletons with their id, count, and inconsistency
-        coefficient, simply do:
+        coefficient, simply do::
 
-        >>> # First define the leaf label function.
-        >>> def llf(id):
-        ...       if id < n:
-        ...           return str(id)
-        ...       else:
-        >>>           return '[%d %d %1.2f]' % (id, count, R[n-id,3])
-        >>>
-        >>>  # The text for the leaf nodes is going to be big so force
-        >>>  # a rotation of 90 degrees.
-        >>>  dendrogram(Z, leaf_label_func=llf, leaf_rotation=90)
+            # First define the leaf label function.
+            def llf(id):
+                if id < n:
+                    return str(id)
+                else:
+                    return '[%d %d %1.2f]' % (id, count, R[n-id,3])
+            # The text for the leaf nodes is going to be big so force
+            # a rotation of 90 degrees.
+            dendrogram(Z, leaf_label_func=llf, leaf_rotation=90)
 
-    show_contracted : bool
-        When ``True`` the heights of non-singleton nodes contracted
+    show_contracted : bool, optional
+        When True the heights of non-singleton nodes contracted
         into a leaf node are plotted as crosses along the link
         connecting that leaf node.  This really is only useful when
         truncation is used (see ``truncate_mode`` parameter).
-    link_color_func : lambda/function
-        When a callable function,
-        link_color_function is called with each non-singleton id
-        corresponding to each U-shaped link it will paint. The
-        function is expected to return the color to paint the link,
-        encoded as a matplotlib color string code. For example:
+    link_color_func : callable, optional
+        If given, `link_color_function` is called with each non-singleton id
+        corresponding to each U-shaped link it will paint. The function is
+        expected to return the color to paint the link, encoded as a matplotlib
+        color string code. For example::
 
-        >>> dendrogram(Z, link_color_func=lambda k: colors[k])
+            dendrogram(Z, link_color_func=lambda k: colors[k])
 
         colors the direct links below each untruncated non-singleton node
         ``k`` using ``colors[k]``.
+    ax : matplotlib Axes instance, optional
+        If None and `no_plot` is not True, the dendrogram will be plotted
+        on the current axes.  Otherwise if `no_plot` is not True the
+        dendrogram will be plotted on the given ``Axes`` instance. This can be
+        useful if the dendrogram is part of a more complex figure.
+    above_threshold_color : str, optional
+        This matplotlib color string sets the color of the links above the
+        color_threshold. The default is 'b'.
 
     Returns
     -------
@@ -2071,28 +2159,57 @@ def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
         A dictionary of data structures computed to render the
         dendrogram. Its has the following keys:
 
-           'icoords': a list of lists ``[I1, I2, ..., Ip]`` where
-             ``Ik`` is a list of 4 independent variable coordinates
-             corresponding to the line that represents the k'th link
-             painted.
+        ``'color_list'``
+          A list of color names. The k'th element represents the color of the
+          k'th link.
 
-           'dcoords': a list of lists ``[I2, I2, ..., Ip]`` where
-             ``Ik`` is a list of 4 independent variable coordinates
-             corresponding to the line that represents the k'th link
-             painted.
+        ``'icoord'`` and ``'dcoord'``
+          Each of them is a list of lists. Let ``icoord = [I1, I2, ..., Ip]``
+          where ``Ik = [xk1, xk2, xk3, xk4]`` and ``dcoord = [D1, D2, ..., Dp]``
+          where ``Dk = [yk1, yk2, yk3, yk4]``, then the k'th link painted is
+          ``(xk1, yk1)`` - ``(xk2, yk2)`` - ``(xk3, yk3)`` - ``(xk4, yk4)``.
 
-           'ivl': a list of labels corresponding to the leaf nodes.
+        ``'ivl'``
+          A list of labels corresponding to the leaf nodes.
 
-           'leaves': for each i, ``H[i] == j``, cluster node
-             ``j`` appears in position ``i`` in the left-to-right
-             traversal of the leaves, where :math:`j < 2n-1`
-             and :math:`i < n`. If ``j`` is less than ``n``, the
-             ``i`` th leaf node corresponds to an original observation.
-             Otherwise, it corresponds to a non-singleton cluster.
+        ``'leaves'``
+          For each i, ``H[i] == j``, cluster node ``j`` appears in position
+          ``i`` in the left-to-right traversal of the leaves, where
+          :math:`j < 2n-1` and :math:`i < n`. If ``j`` is less than ``n``, the
+          ``i``-th leaf node corresponds to an original observation.
+          Otherwise, it corresponds to a non-singleton cluster.
+
+    See Also
+    --------
+    linkage, set_link_color_palette
+
+    Examples
+    --------
+    >>> from scipy.cluster import hierarchy
+    >>> import matplotlib.pyplot as plt
+
+    A very basic example:
+
+    >>> ytdist = np.array([662., 877., 255., 412., 996., 295., 468., 268.,
+    ...                    400., 754., 564., 138., 219., 869., 669.])
+    >>> Z = hierarchy.linkage(ytdist, 'single')
+    >>> plt.figure()
+    >>> dn = hierarchy.dendrogram(Z)
+
+    Now plot in given axes, improve the color scheme and use both vertical and
+    horizontal orientations:
+
+    >>> hierarchy.set_link_color_palette(['m', 'c', 'y', 'k'])
+    >>> fig, axes = plt.subplots(1, 2, figsize=(8, 3))
+    >>> dn1 = hierarchy.dendrogram(Z, ax=axes[0], above_threshold_color='y',
+    ...                            orientation='top')
+    >>> dn2 = hierarchy.dendrogram(Z, ax=axes[1], above_threshold_color='#bcbddc',
+    ...                            orientation='right')
+    >>> hierarchy.set_link_color_palette(None)  # reset to default after use
+    >>> plt.show()
 
     """
-
-    # Features under consideration.
+    # This feature was thought about but never implemented (still useful?):
     #
     #         ... = dendrogram(..., leaves_order=None)
     #
@@ -2102,6 +2219,10 @@ def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
     #         None orders leaf nodes based on the order they appear in the
     #         pre-order traversal.
     Z = np.asarray(Z, order='c')
+
+    if orientation not in ["top", "left", "bottom", "right"]:
+        raise ValueError("orientation must be one of 'top', 'left', "
+                         "'bottom', or 'right'")
 
     is_valid_linkage(Z, throw=True, name='Z')
     Zs = Z.shape
@@ -2121,30 +2242,29 @@ def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
     if truncate_mode == 'mtica' or truncate_mode == 'level':
         if p <= 0:
             p = np.inf
+
     if get_leaves:
         lvs = []
     else:
         lvs = None
+
     icoord_list = []
     dcoord_list = []
     color_list = []
     current_color = [0]
     currently_below_threshold = [False]
-    if no_leaves:
-        ivl = None
-    else:
-        ivl = []
-    if color_threshold is None or \
-       (isinstance(color_threshold, string_types) and
-                           color_threshold == 'default'):
+    ivl = []  # list of leaves
+
+    if color_threshold is None or (isinstance(color_threshold, string_types) and
+                                   color_threshold == 'default'):
         color_threshold = max(Z[:, 2]) * 0.7
+
     R = {'icoord': icoord_list, 'dcoord': dcoord_list, 'ivl': ivl,
          'leaves': lvs, 'color_list': color_list}
-    props = {'cbt': False, 'cc': 0}
-    if show_contracted:
-        contraction_marks = []
-    else:
-        contraction_marks = None
+
+    # Empty list will be filled in _dendrogram_calculate_info
+    contraction_marks = [] if show_contracted else None
+
     _dendrogram_calculate_info(
         Z=Z, p=p,
         truncate_mode=truncate_mode,
@@ -2155,21 +2275,30 @@ def dendrogram(Z, p=30, truncate_mode=None, color_threshold=None,
         count_sort=count_sort,
         distance_sort=distance_sort,
         show_leaf_counts=show_leaf_counts,
-        i=2 * n - 2, iv=0.0, ivl=ivl, n=n,
+        i=2*n - 2,
+        iv=0.0,
+        ivl=ivl,
+        n=n,
         icoord_list=icoord_list,
-        dcoord_list=dcoord_list, lvs=lvs,
+        dcoord_list=dcoord_list,
+        lvs=lvs,
         current_color=current_color,
         color_list=color_list,
         currently_below_threshold=currently_below_threshold,
         leaf_label_func=leaf_label_func,
         contraction_marks=contraction_marks,
-        link_color_func=link_color_func)
+        link_color_func=link_color_func,
+        above_threshold_color=above_threshold_color)
+
     if not no_plot:
         mh = max(Z[:, 2])
         _plot_dendrogram(icoord_list, dcoord_list, ivl, p, n, mh, orientation,
-                         no_labels, color_list, leaf_font_size=leaf_font_size,
+                         no_labels, color_list,
+                         leaf_font_size=leaf_font_size,
                          leaf_rotation=leaf_rotation,
-                         contraction_marks=contraction_marks)
+                         contraction_marks=contraction_marks,
+                         ax=ax,
+                         above_threshold_color=above_threshold_color)
 
     return R
 
@@ -2219,29 +2348,30 @@ def _append_nonsingleton_leaf_node(Z, p, n, level, lvs, ivl, leaf_label_func,
 
 
 def _append_contraction_marks(Z, iv, i, n, contraction_marks):
-    _append_contraction_marks_sub(Z, iv, Z[i - n, 0], n, contraction_marks)
-    _append_contraction_marks_sub(Z, iv, Z[i - n, 1], n, contraction_marks)
+    _append_contraction_marks_sub(Z, iv, int(Z[i - n, 0]), n, contraction_marks)
+    _append_contraction_marks_sub(Z, iv, int(Z[i - n, 1]), n, contraction_marks)
 
 
 def _append_contraction_marks_sub(Z, iv, i, n, contraction_marks):
     if i >= n:
         contraction_marks.append((iv, Z[i - n, 2]))
-        _append_contraction_marks_sub(Z, iv, Z[i - n, 0], n, contraction_marks)
-        _append_contraction_marks_sub(Z, iv, Z[i - n, 1], n, contraction_marks)
+        _append_contraction_marks_sub(Z, iv, int(Z[i - n, 0]), n, contraction_marks)
+        _append_contraction_marks_sub(Z, iv, int(Z[i - n, 1]), n, contraction_marks)
 
 
-def _dendrogram_calculate_info(Z, p, truncate_mode, \
-                               color_threshold=np.inf, get_leaves=True, \
-                               orientation='top', labels=None, \
-                               count_sort=False, distance_sort=False, \
-                               show_leaf_counts=False, i=-1, iv=0.0, \
-                               ivl=[], n=0, icoord_list=[], dcoord_list=[], \
-                               lvs=None, mhr=False, \
-                               current_color=[], color_list=[], \
-                               currently_below_threshold=[], \
+def _dendrogram_calculate_info(Z, p, truncate_mode,
+                               color_threshold=np.inf, get_leaves=True,
+                               orientation='top', labels=None,
+                               count_sort=False, distance_sort=False,
+                               show_leaf_counts=False, i=-1, iv=0.0,
+                               ivl=[], n=0, icoord_list=[], dcoord_list=[],
+                               lvs=None, mhr=False,
+                               current_color=[], color_list=[],
+                               currently_below_threshold=[],
                                leaf_label_func=None, level=0,
                                contraction_marks=None,
-                               link_color_func=None):
+                               link_color_func=None,
+                               above_threshold_color='b'):
     """
     Calculates the endpoints of the links as well as the labels for the
     the dendrogram rooted at the node with index i. iv is the independent
@@ -2252,7 +2382,7 @@ def _dendrogram_calculate_info(Z, p, truncate_mode, \
     ivl is a list to store the labels of the leaf nodes. The leaf_label_func
     is called whenever ivl != None, labels == None, and
     leaf_label_func != None. When ivl != None and labels != None, the
-    labels list is used only for labeling the the leaf nodes. When
+    labels list is used only for labeling the leaf nodes. When
     ivl == None, no labels are generated for leaf nodes.
 
     When get_leaves==True, a list of leaves is built as they are visited
@@ -2275,7 +2405,7 @@ def _dendrogram_calculate_info(Z, p, truncate_mode, \
 
       * h is the height of the subtree in dependent variable units
 
-      * md is the max(Z[*,2]) for all nodes * below and including
+      * md is the ``max(Z[*,2]``) for all nodes ``*`` below and including
         the target node.
 
     """
@@ -2287,9 +2417,9 @@ def _dendrogram_calculate_info(Z, p, truncate_mode, \
 
     if truncate_mode == 'lastp':
         # If the node is a leaf node but corresponds to a non-single cluster,
-        # it's label is either the empty string or the number of original
+        # its label is either the empty string or the number of original
         # observations belonging to cluster i.
-        if i < 2 * n - p and i >= n:
+        if 2 * n - p > i >= n:
             d = Z[i - n, 2]
             _append_nonsingleton_leaf_node(Z, p, n, level, lvs, ivl,
                                            leaf_label_func, i, labels,
@@ -2392,22 +2522,6 @@ def _dendrogram_calculate_info(Z, p, truncate_mode, \
         ua = aa
         ub = ab
 
-    # The distance of the cluster to draw to the left (ua) is uad
-    # and its count is uan. Likewise, the cluster to draw to the
-    # right has distance ubd and count ubn.
-    if ua < n:
-        uad = 0.0
-        uan = 1
-    else:
-        uad = Z[ua - n, 2]
-        uan = Z[ua - n, 3]
-    if ub < n:
-        ubd = 0.0
-        ubn = 1
-    else:
-        ubd = Z[ub - n, 2]
-        ubn = Z[ub - n, 3]
-
     # Updated iv variable and the amount of space used.
     (uiva, uwa, uah, uamd) = \
         _dendrogram_calculate_info(
@@ -2428,11 +2542,12 @@ def _dendrogram_calculate_info(Z, p, truncate_mode, \
             currently_below_threshold=currently_below_threshold,
             leaf_label_func=leaf_label_func,
             level=level + 1, contraction_marks=contraction_marks,
-            link_color_func=link_color_func)
+            link_color_func=link_color_func,
+            above_threshold_color=above_threshold_color)
 
     h = Z[i - n, 2]
     if h >= color_threshold or color_threshold <= 0:
-        c = 'b'
+        c = above_threshold_color
 
         if currently_below_threshold[0]:
             current_color[0] = (current_color[0] + 1) % len(_link_line_colors)
@@ -2460,11 +2575,8 @@ def _dendrogram_calculate_info(Z, p, truncate_mode, \
             currently_below_threshold=currently_below_threshold,
             leaf_label_func=leaf_label_func,
             level=level + 1, contraction_marks=contraction_marks,
-            link_color_func=link_color_func)
-
-    # The height of clusters a and b
-    ah = uad
-    bh = ubd
+            link_color_func=link_color_func,
+            above_threshold_color=above_threshold_color)
 
     max_dist = max(uamd, ubmd, h)
 
@@ -2478,6 +2590,7 @@ def _dendrogram_calculate_info(Z, p, truncate_mode, \
         color_list.append(v)
     else:
         color_list.append(c)
+
     return (((uiva + uivb) / 2), uwa + uwb, h, max_dist)
 
 
@@ -2519,7 +2632,7 @@ def is_isomorphic(T1, T2):
     n = T1S[0]
     d = {}
     for i in xrange(0, n):
-        if T1[i] in list(d.keys()):
+        if T1[i] in d:
             if d[T1[i]] != T2[i]:
                 return False
         else:
@@ -2553,7 +2666,7 @@ def maxdists(Z):
     n = Z.shape[0] + 1
     MD = np.zeros((n - 1,))
     [Z] = _copy_arrays_if_base_present([Z])
-    _hierarchy_wrap.get_max_dist_for_each_cluster_wrap(Z, MD, int(n))
+    _hierarchy.get_max_dist_for_each_cluster(Z, MD, int(n))
     return MD
 
 
@@ -2587,7 +2700,7 @@ def maxinconsts(Z, R):
                          "have a different number of rows.")
     MI = np.zeros((n - 1,))
     [Z, R] = _copy_arrays_if_base_present([Z, R])
-    _hierarchy_wrap.get_max_Rfield_for_each_cluster_wrap(Z, R, MI, int(n), 3)
+    _hierarchy.get_max_Rfield_for_each_cluster(Z, R, MI, int(n), 3)
     return MI
 
 
@@ -2599,8 +2712,8 @@ def maxRstat(Z, R, i):
     Parameters
     ----------
     Z : array_like
-        The hierarchical clustering encoded as a matrix. See
-        ``linkage`` for more information.
+        The hierarchical clustering encoded as a matrix. See `linkage` for more
+        information.
     R : array_like
         The inconsistency matrix.
     i : int
@@ -2632,7 +2745,7 @@ def maxRstat(Z, R, i):
     n = Z.shape[0] + 1
     MR = np.zeros((n - 1,))
     [Z, R] = _copy_arrays_if_base_present([Z, R])
-    _hierarchy_wrap.get_max_Rfield_for_each_cluster_wrap(Z, R, MR, int(n), i)
+    _hierarchy.get_max_Rfield_for_each_cluster(Z, R, MR, int(n), i)
     return MR
 
 
@@ -2701,45 +2814,8 @@ def leaders(Z, T):
     M = np.zeros((kk,), dtype='i')
     n = Z.shape[0] + 1
     [Z, T] = _copy_arrays_if_base_present([Z, T])
-    s = _hierarchy_wrap.leaders_wrap(Z, T, L, M, int(kk), int(n))
+    s = _hierarchy.leaders(Z, T, L, M, int(kk), int(n))
     if s >= 0:
         raise ValueError(('T is not a valid assignment vector. Error found '
                           'when examining linkage node %d (< 2n-1).') % s)
     return (L, M)
-
-
-# These are test functions to help me test the leaders function.
-
-def _leaders_test(Z, T):
-    tr = to_tree(Z)
-    _leaders_test_recurs_mark(tr, T)
-    return tr
-
-
-def _leader_identify(tr, T):
-    if tr.is_leaf():
-        return T[tr.id]
-    else:
-        left = tr.get_left()
-        right = tr.get_right()
-        lfid = _leader_identify(left, T)
-        rfid = _leader_identify(right, T)
-        print('ndid: %d lid: %d lfid: %d rid: %d rfid: %d' \
-              % (tr.get_id(), left.get_id(), lfid, right.get_id(), rfid))
-        if lfid != rfid:
-            if lfid != -1:
-                print('leader: %d with tag %d' % (left.id, lfid))
-            if rfid != -1:
-                print('leader: %d with tag %d' % (right.id, rfid))
-            return -1
-        else:
-            return lfid
-
-
-def _leaders_test_recurs_mark(tr, T):
-    if tr.is_leaf():
-        tr.asgn = T[tr.id]
-    else:
-        tr.asgn = -1
-        _leaders_test_recurs_mark(tr.left, T)
-        _leaders_test_recurs_mark(tr.right, T)

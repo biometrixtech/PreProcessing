@@ -35,6 +35,8 @@ import numpy
 from . import _ni_support
 from . import _nd_image
 
+import warnings
+
 __all__ = ['spline_filter1d', 'spline_filter', 'geometric_transform',
            'map_coordinates', 'affine_transform', 'shift', 'zoom', 'rotate']
 
@@ -42,6 +44,7 @@ __all__ = ['spline_filter1d', 'spline_filter', 'geometric_transform',
 def _extend_mode_to_code(mode):
     mode = _ni_support._extend_mode_to_code(mode)
     return mode
+
 
 def spline_filter1d(input, order=3, axis=-1, output=numpy.float64):
     """
@@ -84,7 +87,7 @@ def spline_filter1d(input, order=3, axis=-1, output=numpy.float64):
     return return_value
 
 
-def spline_filter(input, order=3, output = numpy.float64):
+def spline_filter(input, order=3, output=numpy.float64):
     """
     Multi-dimensional spline filter.
 
@@ -111,11 +114,28 @@ def spline_filter(input, order=3, output = numpy.float64):
     output, return_value = _ni_support._get_output(output, input)
     if order not in [0, 1] and input.ndim > 0:
         for axis in range(input.ndim):
-            spline_filter1d(input, order, axis, output = output)
+            spline_filter1d(input, order, axis, output=output)
             input = output
     else:
         output[...] = input[...]
     return return_value
+
+
+def _geometric_transform(input, mapping, coordinates, matrix, offset, output,
+                         order, mode, cval, extra_arguments, extra_keywords):
+    """
+    Wrapper around _nd_image.geometric_transform to work around
+    endianness issues
+    """
+    _nd_image.geometric_transform(
+        input, mapping, coordinates, matrix, offset, output,
+        order, mode, cval, extra_arguments, extra_keywords)
+
+    if output is not None and not output.dtype.isnative:
+        output.byteswap(True)
+
+    return output
+
 
 def geometric_transform(input, mapping, output_shape=None,
                         output=None, order=3,
@@ -137,7 +157,7 @@ def geometric_transform(input, mapping, output_shape=None,
         A callable object that accepts a tuple of length equal to the output
         array rank, and returns the corresponding input coordinates as a tuple
         of length equal to the input array rank.
-    output_shape : tuple of ints
+    output_shape : tuple of ints, optional
         Shape tuple.
     output : ndarray or dtype, optional
         The array in which to place the output, or the dtype of the returned
@@ -174,11 +194,12 @@ def geometric_transform(input, mapping, output_shape=None,
 
     Examples
     --------
+    >>> from scipy import ndimage
     >>> a = np.arange(12.).reshape((4, 3))
     >>> def shift_func(output_coords):
     ...     return (output_coords[0] - 0.5, output_coords[1] - 0.5)
     ...
-    >>> sp.ndimage.geometric_transform(a, shift_func)
+    >>> ndimage.geometric_transform(a, shift_func)
     array([[ 0.   ,  0.   ,  0.   ],
            [ 0.   ,  1.362,  2.738],
            [ 0.   ,  4.812,  6.187],
@@ -196,13 +217,13 @@ def geometric_transform(input, mapping, output_shape=None,
         raise RuntimeError('input and output rank must be > 0')
     mode = _extend_mode_to_code(mode)
     if prefilter and order > 1:
-        filtered = spline_filter(input, order, output = numpy.float64)
+        filtered = spline_filter(input, order, output=numpy.float64)
     else:
         filtered = input
     output, return_value = _ni_support._get_output(output, input,
                                                    shape=output_shape)
-    _nd_image.geometric_transform(filtered, mapping, None, None, None,
-               output, order, mode, cval, extra_arguments, extra_keywords)
+    _geometric_transform(filtered, mapping, None, None, None, output,
+                         order, mode, cval, extra_arguments, extra_keywords)
     return return_value
 
 
@@ -266,7 +287,7 @@ def map_coordinates(input, coordinates, output=None, order=3,
            [  6.,   7.,   8.],
            [  9.,  10.,  11.]])
     >>> ndimage.map_coordinates(a, [[0.5, 2], [0.5, 1]], order=1)
-    [ 2.  7.]
+    array([ 2.,  7.])
 
     Above, the interpolated value of a[0.5, 0.5] gives output[0], while
     a[2, 1] is output[1].
@@ -277,7 +298,7 @@ def map_coordinates(input, coordinates, output=None, order=3,
     >>> ndimage.map_coordinates(a, inds, order=1, mode='nearest')
     array([ 2.,  8.])
     >>> ndimage.map_coordinates(a, inds, order=1, cval=0, output=bool)
-    array([ True, False], dtype=bool
+    array([ True, False], dtype=bool)
 
     """
     if order < 0 or order > 5:
@@ -295,13 +316,13 @@ def map_coordinates(input, coordinates, output=None, order=3,
         raise RuntimeError('invalid shape for coordinate array')
     mode = _extend_mode_to_code(mode)
     if prefilter and order > 1:
-        filtered = spline_filter(input, order, output = numpy.float64)
+        filtered = spline_filter(input, order, output=numpy.float64)
     else:
         filtered = input
     output, return_value = _ni_support._get_output(output, input,
                                                    shape=output_shape)
-    _nd_image.geometric_transform(filtered, None, coordinates, None, None,
-               output, order, mode, cval, None, None)
+    _geometric_transform(filtered, None, coordinates, None, None,
+                         output, order, mode, cval, None, None)
     return return_value
 
 
@@ -317,6 +338,20 @@ def affine_transform(input, matrix, offset=0.0, output_shape=None,
     determined by spline interpolation of the requested order. Points
     outside the boundaries of the input are filled according to the given
     mode.
+
+    Given an output image pixel index vector ``o``, the pixel value
+    is determined from the input image at position ``np.dot(matrix,o) + offset``.
+
+    A diagonal matrix can be specified by supplying a one-dimensional
+    array-like to the matrix parameter, in which case a more efficient
+    algorithm is applied.
+
+    .. versionchanged:: 0.18.0
+        Previously, the exact interpretation of the affine transformation
+        depended on whether the matrix was supplied as a one-dimensional or
+        two-dimensional array. If a one-dimensional array was supplied
+        to the matrix parameter, the output pixel value at index ``o``
+        was determined from the input image at position ``matrix * (o + offset)``.
 
     Parameters
     ----------
@@ -370,12 +405,12 @@ def affine_transform(input, matrix, offset=0.0, output_shape=None,
         raise RuntimeError('input and output rank must be > 0')
     mode = _extend_mode_to_code(mode)
     if prefilter and order > 1:
-        filtered = spline_filter(input, order, output = numpy.float64)
+        filtered = spline_filter(input, order, output=numpy.float64)
     else:
         filtered = input
     output, return_value = _ni_support._get_output(output, input,
                                                    shape=output_shape)
-    matrix = numpy.asarray(matrix, dtype = numpy.float64)
+    matrix = numpy.asarray(matrix, dtype=numpy.float64)
     if matrix.ndim not in [1, 2] or matrix.shape[0] < 1:
         raise RuntimeError('no proper affine matrix provided')
     if matrix.shape[0] != input.ndim:
@@ -385,17 +420,22 @@ def affine_transform(input, matrix, offset=0.0, output_shape=None,
     if not matrix.flags.contiguous:
         matrix = matrix.copy()
     offset = _ni_support._normalize_sequence(offset, input.ndim)
-    offset = numpy.asarray(offset, dtype = numpy.float64)
+    offset = numpy.asarray(offset, dtype=numpy.float64)
     if offset.ndim != 1 or offset.shape[0] < 1:
         raise RuntimeError('no proper offset provided')
     if not offset.flags.contiguous:
         offset = offset.copy()
     if matrix.ndim == 1:
-        _nd_image.zoom_shift(filtered, matrix, offset, output, order,
+        warnings.warn(
+            "The behaviour of affine_transform with a one-dimensional "
+            "array supplied for the matrix parameter has changed in "
+            "scipy 0.18.0."
+        )
+        _nd_image.zoom_shift(filtered, matrix, offset/matrix, output, order,
                              mode, cval)
     else:
-        _nd_image.geometric_transform(filtered, None, None, matrix, offset,
-                            output, order, mode, cval, None, None)
+        _geometric_transform(filtered, None, None, matrix, offset,
+                             output, order, mode, cval, None, None)
     return return_value
 
 
@@ -450,13 +490,13 @@ def shift(input, shift, output=None, order=3, mode='constant', cval=0.0,
         raise RuntimeError('input and output rank must be > 0')
     mode = _extend_mode_to_code(mode)
     if prefilter and order > 1:
-        filtered = spline_filter(input, order, output = numpy.float64)
+        filtered = spline_filter(input, order, output=numpy.float64)
     else:
         filtered = input
     output, return_value = _ni_support._get_output(output, input)
     shift = _ni_support._normalize_sequence(shift, input.ndim)
     shift = [-ii for ii in shift]
-    shift = numpy.asarray(shift, dtype = numpy.float64)
+    shift = numpy.asarray(shift, dtype=numpy.float64)
     if not shift.flags.contiguous:
         shift = shift.copy()
     _nd_image.zoom_shift(filtered, None, shift, output, order, mode, cval)
@@ -512,25 +552,35 @@ def zoom(input, zoom, output=None, order=3, mode='constant', cval=0.0,
         raise RuntimeError('input and output rank must be > 0')
     mode = _extend_mode_to_code(mode)
     if prefilter and order > 1:
-        filtered = spline_filter(input, order, output = numpy.float64)
+        filtered = spline_filter(input, order, output=numpy.float64)
     else:
         filtered = input
     zoom = _ni_support._normalize_sequence(zoom, input.ndim)
-    output_shape = tuple([int(ii * jj) for ii, jj in zip(input.shape, zoom)])
+    output_shape = tuple(
+            [int(round(ii * jj)) for ii, jj in zip(input.shape, zoom)])
+
+    output_shape_old = tuple(
+            [int(ii * jj) for ii, jj in zip(input.shape, zoom)])
+    if output_shape != output_shape_old:
+        warnings.warn(
+                "From scipy 0.13.0, the output shape of zoom() is calculated "
+                "with round() instead of int() - for these inputs the size of "
+                "the returned array has changed.", UserWarning)
 
     zoom_div = numpy.array(output_shape, float) - 1
     zoom = (numpy.array(input.shape) - 1) / zoom_div
 
-    # Zooming to non-finite values in unpredictable, so just choose
+    # Zooming to non-finite values is unpredictable, so just choose
     # zoom factor 1 instead
     zoom[~numpy.isfinite(zoom)] = 1
 
     output, return_value = _ni_support._get_output(output, input,
                                                    shape=output_shape)
-    zoom = numpy.asarray(zoom, dtype = numpy.float64)
+    zoom = numpy.asarray(zoom, dtype=numpy.float64)
     zoom = numpy.ascontiguousarray(zoom)
     _nd_image.zoom_shift(filtered, zoom, None, output, order, mode, cval)
     return return_value
+
 
 def _minmax(coor, minc, maxc):
     if coor[0] < minc[0]:
@@ -542,6 +592,7 @@ def _minmax(coor, minc, maxc):
     if coor[1] > maxc[1]:
         maxc[1] = coor[1]
     return minc, maxc
+
 
 def rotate(input, angle, axes=(1, 0), reshape=True,
            output=None, order=3,
@@ -607,12 +658,12 @@ def rotate(input, angle, axes=(1, 0), reshape=True,
     m21 = -math.sin(angle)
     m22 = math.cos(angle)
     matrix = numpy.array([[m11, m12],
-                             [m21, m22]], dtype = numpy.float64)
+                             [m21, m22]], dtype=numpy.float64)
     iy = input.shape[axes[0]]
     ix = input.shape[axes[1]]
     if reshape:
-        mtrx = numpy.array([[ m11, -m21],
-                               [-m12,  m22]], dtype = numpy.float64)
+        mtrx = numpy.array([[m11, -m21],
+                               [-m12, m22]], dtype=numpy.float64)
         minc = [0, 0]
         maxc = [0, 0]
         coor = numpy.dot(mtrx, [0, ix])
@@ -626,11 +677,11 @@ def rotate(input, angle, axes=(1, 0), reshape=True,
     else:
         oy = input.shape[axes[0]]
         ox = input.shape[axes[1]]
-    offset = numpy.zeros((2,), dtype = numpy.float64)
+    offset = numpy.zeros((2,), dtype=numpy.float64)
     offset[0] = float(oy) / 2.0 - 0.5
     offset[1] = float(ox) / 2.0 - 0.5
     offset = numpy.dot(matrix, offset)
-    tmp = numpy.zeros((2,), dtype = numpy.float64)
+    tmp = numpy.zeros((2,), dtype=numpy.float64)
     tmp[0] = float(iy) / 2.0 - 0.5
     tmp[1] = float(ix) / 2.0 - 0.5
     offset = tmp - offset

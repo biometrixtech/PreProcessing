@@ -8,6 +8,10 @@ MATLAB is a registered trademark of the Mathworks inc.
 from __future__ import division, print_function, absolute_import
 
 import sys
+import operator
+
+from scipy._lib.six import reduce
+
 import numpy as np
 
 if sys.version_info[0] >= 3:
@@ -19,11 +23,18 @@ from scipy.misc import doccer
 
 from . import byteordercodes as boc
 
-class MatReadError(Exception): pass
 
-class MatWriteError(Exception): pass
+class MatReadError(Exception):
+    pass
 
-class MatReadWarning(UserWarning): pass
+
+class MatWriteError(Exception):
+    pass
+
+
+class MatReadWarning(UserWarning):
+    pass
+
 
 doc_dict = \
     {'file_arg':
@@ -70,7 +81,7 @@ matlab_compatible : bool, optional
          '''do_compression : bool, optional
    Whether to compress matrices on write. Default is False.''',
      'oned_as':
-         '''oned_as : {'column', 'row'}, optional
+         '''oned_as : {'row', 'column'}, optional
    If 'column', write 1-D numpy arrays as column vectors.
    If 'row', write 1D numpy arrays as row vectors.''',
      'unicode_strings':
@@ -195,20 +206,26 @@ def get_matfile_version(fileobj):
     minor_version : int
         minor MATLAB file format version
 
+    Raises
+    ------
+    MatReadError
+        If the file is empty.
+    ValueError
+        The matfile version is unknown.
+
     Notes
     -----
     Has the side effect of setting the file read pointer to 0
-
     """
     # Mat4 files have a zero somewhere in first 4 bytes
     fileobj.seek(0)
-    mopt_bytes = np.ndarray(shape=(4,),
-                           dtype=np.uint8,
-                           buffer = fileobj.read(4))
-    if 0 in mopt_bytes:
+    mopt_bytes = fileobj.read(4)
+    if len(mopt_bytes) == 0:
+        raise MatReadError("Mat file appears to be empty")
+    mopt_ints = np.ndarray(shape=(4,), dtype=np.uint8, buffer=mopt_bytes)
+    if 0 in mopt_ints:
         fileobj.seek(0)
         return (0,0)
-
     # For 5 format or 7.3 format we need to read an integer in the
     # header. Bytes 124 through 128 contain a version integer and an
     # endian test string
@@ -221,9 +238,7 @@ def get_matfile_version(fileobj):
     ret = (maj_val, min_val)
     if maj_val in (1, 2):
         return ret
-    else:
-        raise ValueError('Unknown mat file type, version %s, %s'
-                         % ret)
+    raise ValueError('Unknown mat file type, version %s, %s' % ret)
 
 
 def matdims(arr, oned_as='column'):
@@ -287,12 +302,12 @@ def matdims(arr, oned_as='column'):
     ValueError: 1D option "bizarre" is strange
 
     """
-    if arr.size == 0: # empty
-        return (0,) * np.max([arr.ndim, 2])
     shape = arr.shape
-    if shape == (): # scalar
+    if shape == ():  # scalar
         return (1,1)
-    if len(shape) == 1: # 1D
+    if reduce(operator.mul, shape) == 0:  # zero elememts
+        return (0,) * np.max([arr.ndim, 2])
+    if len(shape) == 1:  # 1D
         if oned_as == 'column':
             return shape + (1,)
         elif oned_as == 'row':
@@ -334,7 +349,8 @@ class MatFileReader(object):
                  squeeze_me=False,
                  chars_as_strings=True,
                  matlab_compatible=False,
-                 struct_as_record=True
+                 struct_as_record=True,
+                 verify_compressed_data_integrity=True
                  ):
         '''
         Initializer for mat file reader
@@ -358,6 +374,7 @@ class MatFileReader(object):
             self.squeeze_me = squeeze_me
             self.chars_as_strings = chars_as_strings
             self.mat_dtype = mat_dtype
+        self.verify_compressed_data_integrity = verify_compressed_data_integrity
 
     def set_matlab_compatible(self):
         ''' Sets options to return arrays as MATLAB loads them '''

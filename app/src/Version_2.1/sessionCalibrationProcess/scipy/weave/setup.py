@@ -1,7 +1,8 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python
 from __future__ import absolute_import, print_function
 
 from os.path import join
+
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -16,10 +17,10 @@ def configuration(parent_package='',top_path=None):
 if __name__ == '__main__':
     from numpy.distutils.core import setup
     from .weave_version import weave_version
-    setup(version = weave_version,
-          description = "Tools for inlining C/C++ in Python",
-          author = "Eric Jones",
-          author_email = "eric@enthought.com",
-          licence = "SciPy License (BSD Style)",
-          url = 'http://www.scipy.org',
+    setup(version=weave_version,
+          description="Tools for inlining C/C++ in Python",
+          author="Eric Jones",
+          author_email="eric@enthought.com",
+          licence="SciPy License (BSD Style)",
+          url='https://www.scipy.org',
           **configuration(top_path='').todict())

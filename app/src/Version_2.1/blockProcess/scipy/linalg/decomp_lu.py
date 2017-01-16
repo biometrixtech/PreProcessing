@@ -29,11 +29,11 @@ def lu_factor(a, overwrite_a=False, check_finite=True):
     ----------
     a : (M, M) array_like
         Matrix to decompose
-    overwrite_a : boolean
+    overwrite_a : bool, optional
         Whether to overwrite data in A (may increase performance)
-    check_finite : boolean, optional
-        Whether to check the input matrixes contain only finite numbers.
-        Disabling may give a performance gain, but may result to problems
+    check_finite : bool, optional
+        Whether to check that the input matrix contains only finite numbers.
+        Disabling may give a performance gain, but may result in problems
         (crashes, non-termination) if the inputs do contain infinities or NaNs.
 
     Returns
@@ -81,7 +81,7 @@ def lu_solve(lu_and_piv, b, trans=0, overwrite_b=False, check_finite=True):
         Factorization of the coefficient matrix a, as given by lu_factor
     b : array
         Right-hand side
-    trans : {0, 1, 2}
+    trans : {0, 1, 2}, optional
         Type of system to solve:
 
         =====  =========
@@ -91,9 +91,11 @@ def lu_solve(lu_and_piv, b, trans=0, overwrite_b=False, check_finite=True):
         1      a^T x = b
         2      a^H x = b
         =====  =========
-    check_finite : boolean, optional
-        Whether to check the input matrixes contain only finite numbers.
-        Disabling may give a performance gain, but may result to problems
+    overwrite_b : bool, optional
+        Whether to overwrite data in b (may increase performance)
+    check_finite : bool, optional
+        Whether to check that the input matrices contain only finite numbers.
+        Disabling may give a performance gain, but may result in problems
         (crashes, non-termination) if the inputs do contain infinities or NaNs.
 
     Returns
@@ -125,7 +127,7 @@ def lu_solve(lu_and_piv, b, trans=0, overwrite_b=False, check_finite=True):
 
 def lu(a, permute_l=False, overwrite_a=False, check_finite=True):
     """
-    Compute pivoted LU decompostion of a matrix.
+    Compute pivoted LU decomposition of a matrix.
 
     The decomposition is::
 
@@ -138,13 +140,13 @@ def lu(a, permute_l=False, overwrite_a=False, check_finite=True):
     ----------
     a : (M, N) array_like
         Array to decompose
-    permute_l : bool
+    permute_l : bool, optional
         Perform the multiplication P*L  (Default: do not permute)
-    overwrite_a : bool
+    overwrite_a : bool, optional
         Whether to overwrite data in a (may improve performance)
-    check_finite : boolean, optional
-        Whether to check the input matrixes contain only finite numbers.
-        Disabling may give a performance gain, but may result to problems
+    check_finite : bool, optional
+        Whether to check that the input matrix contains only finite numbers.
+        Disabling may give a performance gain, but may result in problems
         (crashes, non-termination) if the inputs do contain infinities or NaNs.
 
     Returns

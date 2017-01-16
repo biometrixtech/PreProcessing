@@ -1,11 +1,12 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from scipy.sparse import csr_matrix, isspmatrix, isspmatrix_csc, isspmatrix_csr
+from scipy.sparse import csr_matrix, isspmatrix, isspmatrix_csc
 from ._tools import csgraph_to_dense, csgraph_from_dense,\
     csgraph_masked_from_dense, csgraph_from_masked
 
 DTYPE = np.float64
+
 
 def validate_graph(csgraph, directed, dtype=DTYPE,
                    csr_output=True, dense_output=True,
@@ -26,7 +27,7 @@ def validate_graph(csgraph, directed, dtype=DTYPE,
             csgraph = csr_matrix(csgraph, dtype=DTYPE, copy=copy_if_sparse)
         else:
             csgraph = csgraph_to_dense(csgraph, null_value=null_value_out)
-    elif np.ma.is_masked(csgraph):
+    elif np.ma.isMaskedArray(csgraph):
         if dense_output:
             mask = csgraph.mask
             csgraph = np.array(csgraph.data, dtype=DTYPE, copy=copy_if_dense)
