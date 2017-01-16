@@ -86,21 +86,23 @@ def run_session(sensor_data, file_name, aws=True):
     sdata.dtype.names = columns_session
     # SUBSET DATA
     subset_data = ppp.subset_data(old_data=sdata)
+    del sdata
     if len(subset_data) == 0:
         _logger("No overlapping samples after time sync", aws, info=False)
         return "Fail!"
     # Record percentage and ranges of magn_values for diagonostic purposes
-    _record_magn(subset_data, file_name, aws, s3)
+#    _record_magn(subset_data, file_name, aws, s3)
 
     # read transformation offset values from DB/local Memory
     offsets_read = _read_offsets(cur, session_event_id, aws)
-    
+    _logger("OFFSETS READ", aws)
     if len(subset_data) == 0:
         _logger("No samples left after subsetting!", aws, info=False)
         return "Fail!"
 
     columns = subset_data.dtype.names
     data = do.RawFrame(subset_data, columns)
+    del subset_data
 #    data = sdata.view(np.recarray)
     data = cp.handle_processed(data)
     data = _add_ids_rawdata(data, ids_from_db)
@@ -115,20 +117,16 @@ def run_session(sensor_data, file_name, aws=True):
         if mass is None:
             mass = 60
 #            raise ValueError("User's mass does not exist in DB!")
-            
 
     # PRE-PRE-PROCESSING
     # Check for duplicate epoch time
     duplicate_epoch_time = ppp.check_duplicate_epochtime(data.epoch_time)
     if duplicate_epoch_time:
         _logger('Duplicate epoch time.', aws, info=False)
-
     # check for missing values
     data = ppp.handling_missing_data(data)
-
     # determine the real quartenion
     data = _real_quaternions(data, aws)
-
     # convert epoch time to date time and determine milliseconds elapsed
     data.time_stamp, data.ms_elapsed = \
         ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
@@ -248,7 +246,7 @@ def run_session(sensor_data, file_name, aws=True):
     # save sensor data before subsetting
     sensor_data = ct.create_sensor_data(len(data.LaX), data)
     _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write, aws)
-
+    del sensor_data
 #    data = _subset_data(data, neutral_data)
 #    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!', aws)
 
@@ -368,10 +366,11 @@ def run_session(sensor_data, file_name, aws=True):
 #%%
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
-    
+    _logger("Table Created", aws)
     # write table to s3
     _write_table_s3(movement_data, file_name, s3, cont_write_final, aws)
 
+    _logger("Data in S3", aws)
     # write table to DB
     result = _write_table_db(movement_data, cur, conn, aws)
 
@@ -467,9 +466,14 @@ def _read_ids(cur, aws, file_name):
         team_id = ids[4]
         if team_id is None:
             team_id = dummy_uuid
-        session_type = ids[5]
+#        session_type = ids[5]
+        session_type = 1
         if session_type is None:
             session_type = 1
+#        elif session_type == 'practice':
+#            session_type = 1
+#        elif session_type == 'return to play':
+#            session_type = 2
 
     return (session_event_id, training_session_log_id, user_id, team_regimen_id,
             team_id, session_type)
@@ -707,17 +711,25 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
     """write final table to s3
     """
     movement_data_pd = pd.DataFrame(movement_data)
+    _logger("changed to pandas", aws)
     try:
+        _logger("started", aws)
         fileobj = cStringIO.StringIO()
+        _logger("fileobj created", aws)
         movement_data_pd.to_csv(fileobj, index=False)
+        _logger("written to fileobj", aws)
         fileobj.seek(0)
         s3.Bucket(cont).put_object(Key=file_name, Body=fileobj)
-    except:
+    except boto3.exceptions as error:
         if aws:
-            logger.warning("Cannot write movement talbe to s3")
+            _logger("Cannot write table to s3", aws, info=False)
+            raise error
         else:
             print "Cannot write file to s3 writing locally!"
             movement_data_pd.to_csv("scoring_" + file_name, index=False)
+    else:
+        del movement_data_pd
+        del fileobj
 #%%
 def _write_table_db(movement_data, cur, conn, aws):
     """Update the movement table with all the scores
