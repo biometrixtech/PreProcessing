@@ -38,9 +38,9 @@ def run_scoring(sensor_data, file_name, aws=True):
     """Creates object attributes according to block analysis process.
 
     Args:
-        raw data object with attributes of:
-            epoch_time, corrupt_magn, missing_type, LaX, LaY, LaZ, LqX, LqY,
-            LqZ, HaX, HaY, HaZ, HqX, HqY, HqZ, RaX, RaY, RaZ, RqX, RqY, RqZ
+        sensor_data: Processed data that's output of sessionProcess.
+        file_name: sensor_data_filename associated with the data in DB
+        aws: Boolean indicator for aws/local run
 
     Returns:
         result: string signifying success or failure.
@@ -69,7 +69,7 @@ def run_scoring(sensor_data, file_name, aws=True):
                                             data.ms_elapsed, data.phase_lf,
                                             data.phase_rf)
 
-    _logger('DONE WITH CONTROL SCORES!', aws)
+    _logger('DONE WITH CONTROL SCORES!')
 
     # SCORING
     # Symmetry, Consistency, Destructive/Constructive Multiplier and
@@ -84,8 +84,8 @@ def run_scoring(sensor_data, file_name, aws=True):
         hist_data = cStringIO.StringIO(body)
         user_hist = pd.read_csv(hist_data)
     except Exception as error:
-        if aws:
-            _logger("Cannot read historical user data from s3!", aws, False)
+        if AWS:
+            _logger("Cannot read historical user data from s3!", info=False)
             raise error
         else:
             try:
@@ -93,7 +93,7 @@ def run_scoring(sensor_data, file_name, aws=True):
             except:
                 raise IOError("User history not found in s3/local directory")
     
-    _logger("user history captured", aws)
+    _logger("user history captured")
 
     data.consistency, data.hip_consistency, \
         data.ankle_consistency, data.consistency_lf, \
@@ -104,13 +104,16 @@ def run_scoring(sensor_data, file_name, aws=True):
         data.session_duration, data.block_mech_stress_elapsed, \
         data.session_mech_stress_elapsed = score(data, user_hist)
     del user_hist
+    _logger("DONE WITH SCORING!")
     # combine into movement data table
     movement_data = ct.create_movement_data(len(data.LaX), data)
     del data
     # write to s3 container
-    _write_table_s3(movement_data, file_name, s3, cont_write, aws)
+    _write_table_s3(movement_data, file_name, s3, cont_write)
+    _logger("DONE WRITING TO S3")
     # write table to DB
-    result = _write_table_db(movement_data, cur, conn, aws)
+    result = _write_table_db(movement_data, cur, conn)
+    _logger("DONE WITH SCORING PROCESS")
 
     return result
 
@@ -135,8 +138,8 @@ def _connect_db_s3():
         return conn, cur, s3
 
 
-def _logger(message, aws, info=True):
-    if aws:
+def _logger(message, info=True):
+    if AWS:
         if info:
             logger.info(message)
         else:
@@ -145,13 +148,12 @@ def _logger(message, aws, info=True):
         print message
 
 
-def _write_table_db(movement_data, cur, conn, aws):
+def _write_table_db(movement_data, cur, conn):
     """Update the movement table with all the scores
     Args:
         movement_data: numpy recarray with complete data
         cur: cursor pointing to the current db connection
         conn: db connection
-        aws: boolean to indicate aws vs local
     Returns:
         result: string signifying success
     """
@@ -177,7 +179,7 @@ def _write_table_db(movement_data, cur, conn, aws):
         conn.commit()
         conn.close()
     except Exception as error:
-        if aws:
+        if AWS:
             logger.warning("Cannot write movement data to DB!")
             raise error
         else:
@@ -187,7 +189,7 @@ def _write_table_db(movement_data, cur, conn, aws):
         return "Success!"
 
 
-def _write_table_s3(movement_data, file_name, s3, cont, aws):
+def _write_table_s3(movement_data, file_name, s3, cont):
     """write final table to s3. In case of local run, if it can't be written to
     s3, it'll be written locally
     """
@@ -199,7 +201,7 @@ def _write_table_s3(movement_data, file_name, s3, cont, aws):
         fileobj.seek(0)
         s3.Bucket(cont).put_object(Key="movement_" + file_name, Body=fileobj)
     except:
-        if aws:
+        if AWS:
             del fileobj
             logger.warning("Cannot write movement table to s3")
         else:
