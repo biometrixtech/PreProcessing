@@ -28,6 +28,7 @@ from scoring import score
 import createTables as ct
 import dataObject as do
 import scoringProcessQueries as queries
+from columnNames import column_scoring_out
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -45,6 +46,10 @@ def run_scoring(sensor_data, file_name, aws=True):
         result: string signifying success or failure.
         Note: In case of completion for local run, returns movement table.
     """
+    global AWS
+    global COLUMN_SCORING_OUT
+    AWS = aws
+    COLUMN_SCORING_OUT = column_scoring_out
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_read = 'biometrix-scoringcontainer'
 
@@ -156,12 +161,12 @@ def _write_table_db(movement_data, cur, conn, aws):
         # create a temporary table with the schema of movement table
         cur.execute(queries.quer_create)
         movement_data_pd.to_csv(fileobj_db, index=False, header=False,
-                                na_rep='NaN')
+                                na_rep='NaN', columns=COLUMN_SCORING_OUT)
         del movement_data_pd
         # copy data to the empty temp table
         fileobj_db.seek(0)
         cur.copy_from(file=fileobj_db, table='temp_mov', sep=',',
-                      columns=movement_data.dtype.names)
+                      columns=COLUMN_SCORING_OUT)
         del fileobj_db
         # copy relevant columns from temp table to movement table
         cur.execute(queries.quer_update)

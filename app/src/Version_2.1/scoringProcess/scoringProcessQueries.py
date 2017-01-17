@@ -26,9 +26,7 @@ quer_update = """UPDATE movement
         destr_multiplier = temp_mov.destr_multiplier,
         dest_mech_stress = temp_mov.dest_mech_stress,
         const_mech_stress = temp_mov.const_mech_stress,
-        block_duration = temp_mov.block_duration,
         session_duration = temp_mov.session_duration,
-        block_mech_stress_elapsed = temp_mov.block_mech_stress_elapsed,
         session_mech_stress_elapsed = temp_mov.session_mech_stress_elapsed
     from temp_mov
     where movement.user_id = temp_mov.user_id and

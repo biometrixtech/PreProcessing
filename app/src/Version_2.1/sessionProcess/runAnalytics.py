@@ -30,13 +30,13 @@ import coordinateFrameTransformation as coord
 from mechStressTraining import prepare_data
 import movementAttrib as matrib
 import balanceCME as cmed
-import quatConvs as qc
+#import quatConvs as qc
 import impactCME as impact
 import createTables as ct
 import sessionProcessQueries as queries
 import checkProcessed as cp
 import rateofForceAbsorption as fa
-from columnNames import columns_session
+from columnNames import columns_session, column_session_out
 
 
 logger = logging.getLogger()
@@ -60,7 +60,9 @@ def run_session(sensor_data, file_name, aws=True):
     """
 #%%
     global AWS
+    global COLUMN_SESSION_OUT
     AWS = aws
+    COLUMN_SESSION_OUT = column_session_out
     # Define containers to read from and write to
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_write_final = 'biometrix-scoringcontainer'
@@ -755,10 +757,10 @@ def _write_table_db(movement_data, cur, conn):
     fileobj_db = cStringIO.StringIO()
     try:
         movement_data_pd.to_csv(fileobj_db, index=False, header=False,
-                                na_rep='NaN')
+                                na_rep='NaN', columns=COLUMN_SESSION_OUT)
         fileobj_db.seek(0)
         cur.copy_from(file=fileobj_db, table='movement', sep=',',
-                      columns=movement_data.dtype.names)
+                      columns=COLUMN_SESSION_OUT)
         conn.commit()
         conn.close()
     except Exception as error:
