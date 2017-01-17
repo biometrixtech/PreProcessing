@@ -102,6 +102,7 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
         corrupt_magn[i] for i in range(len(q_w))])
     else:
         logger.warning('Error when creating corrupt type column.')
+        corrupt_type = corrupt_magn
 #    if 'N' in indicator_col[np.where(np.isnan(q_w))[0]]:
 #        raise ValueError('Real quaternion cannot be comupted. Cannot \
 #        take square root of a negative number.')
