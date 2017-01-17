@@ -447,6 +447,7 @@ def _read_ids(cur, file_name):
             logger.warning("Error reading ids!")
             raise error
         else:
+            print "Couldn't read ids, assigning dummy"
             session_event_id = dummy_uuid
             training_session_log_id = dummy_uuid
             user_id = dummy_uuid
@@ -459,6 +460,7 @@ def _read_ids(cur, file_name):
             logger.warning("sensor_data_filename not found in DB!")
             raise IndexError
         else:
+            print "sensor_data_filename not found in DB! assigning dummy uuid"
             session_event_id = dummy_uuid
             training_session_log_id = dummy_uuid
             user_id = dummy_uuid
@@ -549,22 +551,22 @@ def _add_ids_rawdata(data, ids):
     team_id = ids[4]
     session_type = ids[5]
     # set ID information
-    dummy_uuid = '00000000-0000-0000-0000-000000000000'
+#    dummy_uuid = '00000000-0000-0000-0000-000000000000'
     length = len(data.LaX)
     setattr(data, 'team_id', np.array([team_id]*length).reshape(-1, 1))
     setattr(data, 'user_id', np.array([user_id]*length).reshape(-1, 1))
     setattr(data, 'team_regimen_id',
             np.array([team_regimen_id]*length).reshape(-1, 1))
-    setattr(data, 'block_id', np.array([dummy_uuid]*length).reshape(-1, 1))
+    setattr(data, 'block_id', np.array(['None']*length).reshape(-1, 1))
     setattr(data, 'block_event_id',
-            np.array([dummy_uuid]*length).reshape(-1, 1))
+            np.array(['None']*length).reshape(-1, 1))
     setattr(data, 'training_session_log_id',
             np.array([training_session_log_id]*length).reshape(-1, 1))
     setattr(data, 'session_event_id',
             np.array([session_event_id]*length).reshape(-1, 1))
     setattr(data, 'session_type',
             np.array([session_type]*length).reshape(-1, 1))
-    setattr(data, 'exercise_id', np.array([dummy_uuid]*length).reshape(-1, 1))
+    setattr(data, 'exercise_id', np.array(['None']*length).reshape(-1, 1))
 
     # Save raw values in different attributes to later populate table
     # left
@@ -754,7 +756,7 @@ def _write_table_db(movement_data, cur, conn):
         result: string signifying success
     """
     movement_data_pd = pd.DataFrame(movement_data)
-#    movement_data_pd = movement_data_pd.replace('00000000-0000-0000-0000-000000000000', 'NaN')
+    movement_data_pd = movement_data_pd.replace('None', 'NaN')
     fileobj_db = cStringIO.StringIO()
     try:
         movement_data_pd.to_csv(fileobj_db, index=False, header=False,

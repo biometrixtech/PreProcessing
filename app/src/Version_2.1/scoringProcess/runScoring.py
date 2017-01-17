@@ -156,6 +156,7 @@ def _write_table_db(movement_data, cur, conn, aws):
         result: string signifying success
     """
     movement_data_pd = pd.DataFrame(movement_data)
+    movement_data_pd = movement_data_pd.replace('None', 'NaN')
     fileobj_db = cStringIO.StringIO()
     try:
         # create a temporary table with the schema of movement table
