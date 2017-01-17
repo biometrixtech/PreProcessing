@@ -109,7 +109,7 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
     # appending the real and imaginary quaternions arrays to a single array
     all_quaternions = np.hstack([q_w, q_i, q_j, q_k])
 
-    return all_quaternions, corrupt_type
+    return all_quaternions, corrupt_type.reshape(-1, 1)
     
     
 def _computation_imaginary_quat(i_quat, check_qw=True):
