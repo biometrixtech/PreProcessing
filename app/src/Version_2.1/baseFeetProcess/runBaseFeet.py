@@ -121,7 +121,14 @@ def record_base_feet(sensor_data, file_name, aws=True):
                                   missing_or_corrupt='corrupt')
     # check if length of subset data is >= required amount (1.5 sec)
     if len(subset_data) < min_data_thresh:
-        return "Fail!"
+        #update special_anatomical_calibration_events
+        try:
+            cur.execute(quer_fail, (1, "", False, file_name))
+            conn.commit()
+        except psycopg2.Error as error:
+            _logger("Cannot write to DB after failure!", aws, False)
+        finally:
+            return "Fail!"
         
     # Record percentage and ranges of magn_values for diagonostic purposes
     _record_magn(subset_data, file_name, aws, S3)
