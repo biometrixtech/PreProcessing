@@ -102,7 +102,7 @@ def run_scoring(sensor_data, file_name, aws=True):
         data.destr_multiplier, data.dest_mech_stress, \
         data.const_mech_stress, data.block_duration, \
         data.session_duration, data.block_mech_stress_elapsed, \
-        data.session_mech_stress_elapsed = score(data, user_hist)
+        data.session_mech_stress_elapsed = score(data, data)
     del user_hist
     _logger("DONE WITH SCORING!")
     # combine into movement data table
