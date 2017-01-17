@@ -467,20 +467,20 @@ def _read_ids(cur, file_name):
             session_type = 1
     else:
         session_event_id = ids[0]
-        if session_event_id is None:
-            session_event_id = dummy_uuid
+#        if session_event_id is None:
+#            session_event_id = dummy_uuid
         training_session_log_id = ids[1]
-        if training_session_log_id is None:
-            training_session_log_id = dummy_uuid
+#        if training_session_log_id is None:
+#            training_session_log_id = dummy_uuid
         user_id = ids[2]
-        if user_id is None:
-            user_id = dummy_uuid
+#        if user_id is None:
+#            user_id = dummy_uuid
         team_regimen_id = ids[3]
-        if team_regimen_id is None:
-            team_regimen_id = dummy_uuid
+#        if team_regimen_id is None:
+#            team_regimen_id = dummy_uuid
         team_id = ids[4]
-        if team_id is None:
-            team_id = dummy_uuid
+#        if team_id is None:
+#            team_id = dummy_uuid
         session_type = ids[5]
         if session_type == 'practice':
             session_type = 1
@@ -754,12 +754,13 @@ def _write_table_db(movement_data, cur, conn):
         result: string signifying success
     """
     movement_data_pd = pd.DataFrame(movement_data)
+#    movement_data_pd = movement_data_pd.replace('00000000-0000-0000-0000-000000000000', 'NaN')
     fileobj_db = cStringIO.StringIO()
     try:
         movement_data_pd.to_csv(fileobj_db, index=False, header=False,
                                 na_rep='NaN', columns=COLUMN_SESSION_OUT)
         fileobj_db.seek(0)
-        cur.copy_from(file=fileobj_db, table='movement', sep=',',
+        cur.copy_from(file=fileobj_db, table='movement', sep=',', null='NaN',
                       columns=COLUMN_SESSION_OUT)
         conn.commit()
         conn.close()

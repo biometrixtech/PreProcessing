@@ -165,7 +165,7 @@ def _write_table_db(movement_data, cur, conn, aws):
         del movement_data_pd
         # copy data to the empty temp table
         fileobj_db.seek(0)
-        cur.copy_from(file=fileobj_db, table='temp_mov', sep=',',
+        cur.copy_from(file=fileobj_db, table='temp_mov', sep=',', null='NaN',
                       columns=COLUMN_SCORING_OUT)
         del fileobj_db
         # copy relevant columns from temp table to movement table
