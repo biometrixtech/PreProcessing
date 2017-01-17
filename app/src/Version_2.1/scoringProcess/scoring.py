@@ -152,17 +152,18 @@ def _create_distribution(data):
         Interpolation mapping function for each Movement Quality feature
     """
     mS = np.array(np.abs(data.mech_stress))
+    mS_scaled = np.array(mS/np.mean(mS))
     tA = np.array(np.abs(data.total_accel))
-    fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(tA*mS)))
-    fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(tA*mS)))
+    fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(tA*mS_scaled)))
+    fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(tA*mS_scaled)))
 #    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
-    fn_aRL = _con_fun(np.array(data.ankle_rot_lf/(tA*mS)), True)
-    fn_aRR = _con_fun(np.array(data.ankle_rot_rf/(tA*mS)), True)
-    fn_lPL = _con_fun(np.array(data.land_pattern_lf/(tA*mS)))
-    fn_lPR = _con_fun(np.array(data.land_pattern_rf/(tA*mS)))
-    fn_lT = _con_fun(np.array(data.land_time/(tA*mS)))
-    fn_fPL = _con_fun(np.array(data.foot_position_lf/(tA*mS)))
-    fn_fPR = _con_fun(np.array(data.foot_position_rf/(tA*mS)))
+    fn_aRL = _con_fun(np.array(data.ankle_rot_lf/(tA*mS_scaled)), True)
+    fn_aRR = _con_fun(np.array(data.ankle_rot_rf/(tA*mS_scaled)), True)
+    fn_lPL = _con_fun(np.array(data.land_pattern_lf/(tA*mS_scaled)))
+    fn_lPR = _con_fun(np.array(data.land_pattern_rf/(tA*mS_scaled)))
+    fn_lT = _con_fun(np.array(data.land_time/(tA*mS_scaled)))
+    fn_fPL = _con_fun(np.array(data.foot_position_lf/(tA*mS_scaled)))
+    fn_fPR = _con_fun(np.array(data.foot_position_rf/(tA*mS_scaled)))
 #    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
 
     return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT, fn_fPL, fn_fPR
