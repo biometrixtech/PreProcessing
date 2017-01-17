@@ -98,7 +98,7 @@ def run_session(sensor_data, file_name, aws=True):
         _logger("No overlapping samples after time sync", info=False)
         return "Fail!"
     # Record percentage and ranges of magn_values for diagonostic purposes
-#    _record_magn(subset_data, file_name, s3)
+    _record_magn(subset_data, file_name, s3)
 
     # read transformation offset values from DB/local Memory
     offsets_read = _read_offsets(cur, session_event_id)
@@ -137,7 +137,7 @@ def run_session(sensor_data, file_name, aws=True):
     # convert epoch time to date time and determine milliseconds elapsed
     data.time_stamp, data.ms_elapsed = \
         ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
-    sampl_freq = int(1000./data.ms_elapsed[1])
+    sampl_freq = 100
     _logger('DONE WITH PRE-PRE-PROCESSING!')
 #%%
     # COORDINATE FRAME TRANSFORMATION
