@@ -42,7 +42,7 @@ column_session_out = ['team_id', 'user_id', 'team_regimen_id',
                       'RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ', 'RqW', 'RqX', 'RqY', 'RqZ']
 
 
-column_scoring_out = ['user_id', 'session_event_id', 'obs_master_index',
+column_scoring_out = ['user_id', 'session_event_id', 'obs_index',
                        'const_mech_stress', 'dest_mech_stress',
                        'session_duration','session_mech_stress_elapsed',
                        'destr_multiplier',
