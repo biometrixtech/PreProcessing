@@ -29,18 +29,21 @@ def control_score(LeX, HeX, ReX, ms_elapsed, phase_lf, phase_rf):
     Pandas 0.19 has a feature to get rolling calculation based on time window
     rather than number of points which will make calculations more efficient.
     """
-    N = int(120/ms_elapsed[1]) + 1
-    LeX[np.array([i not in [0, 1, 4] for i in phase_lf])] = np.nan
-    ReX[np.array([i not in [0, 2, 5] for i in phase_rf])] = np.nan
-    HeX[phase_lf == 3] = np.nan
+    N = int(120/10.) + 1
+    LeX_copy = np.array(LeX)
+    ReX_copy = np.array(ReX)
+    HeX_copy = np.array(HeX)
+    LeX_copy[np.array([i not in [0, 1, 4] for i in phase_lf])] = np.nan
+    ReX_copy[np.array([i not in [0, 2, 5] for i in phase_rf])] = np.nan
+    HeX_copy[phase_lf == 3] = np.nan
     
-    LeX = pd.Series(LeX.reshape(-1,))
-    HeX = pd.Series(HeX.reshape(-1,))
-    ReX = pd.Series(ReX.reshape(-1,))
+    LeX_pd = pd.Series(LeX_copy.reshape(-1,))
+    HeX_pd = pd.Series(HeX_copy.reshape(-1,))
+    ReX_pd = pd.Series(ReX_copy.reshape(-1,))
 
-    score_raw_l = LeX.rolling(min_periods=N, window=N, center=True).std()
-    score_raw_h = HeX.rolling(min_periods=N, window=N, center=True).std()
-    score_raw_r = ReX.rolling(min_periods=N, window=N, center=True).std()
+    score_raw_l = LeX_pd.rolling(min_periods=N, window=N, center=True).std()
+    score_raw_h = HeX_pd.rolling(min_periods=N, window=N, center=True).std()
+    score_raw_r = ReX_pd.rolling(min_periods=N, window=N, center=True).std()
 
     #TODO(Dipesh) Need to update the bounds based on data
     upper = .25 # upper bound for what sd is considered 0 score
