@@ -132,7 +132,6 @@ def run_session(sensor_data, file_name, aws=True):
         _logger('Duplicate epoch time.', info=False)
     # check for missing values
     data = ppp.handling_missing_data(data)
-    sys.exit()
     # determine the real quartenion
     data = _real_quaternions(data)
     # convert epoch time to date time and determine milliseconds elapsed
