@@ -151,6 +151,7 @@ def _create_distribution(data):
     Returns:
         Interpolation mapping function for each Movement Quality feature
     """
+    print sum(np.isnan(data.mech_stress))
     mS = np.array(np.abs(data.mech_stress))
     mS_scaled = np.array(mS/np.mean(mS))
     tA = np.array(np.abs(data.total_accel))
@@ -189,9 +190,9 @@ def _con_fun(dist, double=False):
         # TODO(Dipesh): adjust limits with more data
         ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
         ratio = sq_dev/(len(dist)*var)
-        control_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
+        consistency_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
         #extrapolation is done for values outside the range
-        fn = UnivariateSpline(dist_sorted, control_score)
+        fn = UnivariateSpline(dist_sorted, consistency_score)
     elif double is True:
         # If we expect the feature to have multiple modes, it's split into two
         # separate distribution using gaussian mixture model and scored
