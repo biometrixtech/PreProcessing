@@ -50,7 +50,7 @@ def score(data, user_hist):
         will be nan's.
     """
     mS = np.abs(np.array(data.mech_stress)).reshape(-1, )
-    mS_scaled = np.array(mS/np.mean(mS))
+    mS_scaled = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel)).reshape(-1, )
 
     #divide each feature value by (totalAccel*mechStress) to control
@@ -151,9 +151,8 @@ def _create_distribution(data):
     Returns:
         Interpolation mapping function for each Movement Quality feature
     """
-    print sum(np.isnan(data.mech_stress))
     mS = np.array(np.abs(data.mech_stress))
-    mS_scaled = np.array(mS/np.mean(mS))
+    mS_scaled = np.array(mS/np.nanmean(mS))
     tA = np.array(np.abs(data.total_accel))
     fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(tA*mS_scaled)))
     fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(tA*mS_scaled)))
