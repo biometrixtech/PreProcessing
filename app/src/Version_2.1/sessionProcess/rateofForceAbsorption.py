@@ -70,10 +70,14 @@ def _bound_det(ph, lf_or_rf):
         imp_value = phase_id.rf_imp.value
         
     for i in range(len(ph)-1):
-        if ph[i] != imp_value and ph[i+1] == imp_value:
+        if i == 0 and ph[i] == imp_value:
+            start_imp.append(i)
+        elif ph[i] != imp_value and ph[i+1] == imp_value:
             start_imp.append(i+1)
         elif ph[i] == imp_value and ph[i+1] != imp_value:
             end_imp.append(i)
+        elif i+1 == len(ph)-1 and ph[i+1] == imp_value:
+            end_imp.append(i+1)
             
     return np.array(start_imp), np.array(end_imp)
     
