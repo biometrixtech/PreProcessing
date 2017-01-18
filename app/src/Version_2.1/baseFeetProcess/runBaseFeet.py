@@ -56,7 +56,8 @@ def record_base_feet(sensor_data, file_name, aws=True):
         feet_processed_sensor_data_filename = (%s),
         user_success = (%s),
         updated_at = now(),
-        processed_at = now()
+        processed_at = now(),
+        failure_type = 0
         where feet_sensor_data_filename=(%s);"""
 
     quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
@@ -106,6 +107,10 @@ def record_base_feet(sensor_data, file_name, aws=True):
     data = cp.handle_processed(data)
     # subset for done (done=2)
     subset_data = ppp.subset_data(old_data=data, subset_value=2)
+
+    # Record percentage and ranges of magn_values for diagonostic purposes
+    _record_magn(subset_data, file_name, aws, S3)
+
     if len(subset_data) == 0:
         _logger("No overlapping samples after time sync", aws, info=False)
         return "Fail!"
@@ -129,9 +134,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
             _logger("Cannot write to DB after failure!", aws, False)
         finally:
             return "Fail!"
-        
-    # Record percentage and ranges of magn_values for diagonostic purposes
-    _record_magn(subset_data, file_name, aws, S3)
+
 
     out_file = "processed_" + file_name
     index = subset_data['index']

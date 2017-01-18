@@ -99,7 +99,8 @@ def run_calibration(sensor_data, file_name, aws=True):
                     rf_n_transform = (%s),
                     rf_bf_transform = (%s),
                     updated_at = now(),
-                    processed_at = now()
+                    processed_at = now(),
+                    failure_type = 0
                     where sensor_data_filename  = (%s);"""
 
     quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
