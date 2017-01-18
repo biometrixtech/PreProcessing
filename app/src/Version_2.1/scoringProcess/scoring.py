@@ -240,17 +240,20 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     score_lPL = fn_lPL(lPL)
     score_lPR = fn_lPR(lPR)
 
+    score_fPL = fn_fPL(fPL)
+    score_fPR = fn_fPR(fPR)
+
     score_lT = fn_lT(lT)
 
     #Combine scores for left ankle
-    cons_scores_l = np.vstack([score_aRL, score_lPL])
+    cons_scores_l = np.vstack([score_aRL, score_lPL, score_fPL])
     #interpolation function is set to extrapolate which might
     #result in negative scores.
     cons_scores_l[cons_scores_l > 100] = 100 #set scores higher than 100 to 100
     cons_scores_l[cons_scores_l <= 0] = 0 #set negative scores to 0
 
     #Combine score for right ankle
-    cons_scores_r = np.vstack([score_aRR, score_lPR])
+    cons_scores_r = np.vstack([score_aRR, score_lPR, score_fPR])
     cons_scores_r[cons_scores_r > 100] = 100
     cons_scores_r[cons_scores_r <= 0] = 0
 
@@ -264,9 +267,10 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     #If all the rows for either left or right features are blank or we have at
     #most 2 non-empty rows, we cannot score so, nan's are returned as score for
     #all rows
+    ##Symmetry for ankle rotation
     if all(np.isnan(aRL)) or all(np.isnan(aRR)):
         ankle_rot_score = np.zeros(len(aRL))*np.nan
-    elif len(aRL[np.isfinite(aRL)]) < 3 or len(aRL[np.isfinite(aRL)]) < 3:
+    elif len(aRL[np.isfinite(aRL)]) < 3 or len(aRR[np.isfinite(aRR)]) < 3:
         ankle_rot_score = np.zeros(len(aRL))*np.nan
     else:
         l_fn_rot, r_fn_rot = _symmetry_score(aRL, aRR)
@@ -284,6 +288,32 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         score_pat_r = r_fn_pat(lPR)
         scores_pat = np.vstack([score_pat_l, score_pat_r])
         ankle_pat_score = np.nanmean(scores_pat, 0)
+
+    ##Symmetry for foot position
+    if all(np.isnan(fPL)) or all(np.isnan(fPR)):
+        ankle_rot_score = np.zeros(len(fPL))*np.nan
+    elif len(fPL[np.isfinite(fPL)]) < 3 or len(fPR[np.isfinite(fPR)]) < 3:
+        ankle_rot_score = np.zeros(len(fPL))*np.nan
+    else:
+        l_fn_pos, r_fn_pos = _symmetry_score(fPL, fPR)
+        score_pos_l = l_fn_rot(fPL)
+        score_pos_r = r_fn_rot(fPR)
+        scores_pos = np.vstack([score_pos_l, score_pos_r])
+        foot_pos_score = np.nanmean(scores_pos, 0)
+
+    # Symmetry score for landing pattern
+    if all(np.isnan(lPL)) or all(np.isnan(lPR)):
+        ankle_pat_score = np.zeros(len(lPL))*np.nan
+    elif len(lPL[np.isfinite(lPL)]) < 3 or len(lPR[np.isfinite(lPR)]) < 3:
+        ankle_pat_score = np.zeros(len(lPL))*np.nan
+    else:
+        l_fn_pat, r_fn_pat = _symmetry_score(lPL, lPR)
+        score_pat_l = l_fn_pat(lPL)
+        score_pat_r = r_fn_pat(lPR)
+        scores_pat = np.vstack([score_pat_l, score_pat_r])
+        ankle_pat_score = np.nanmean(scores_pat, 0)
+
+    # symmetry score for landing time
     #subset landing time data to create two distributions to compare
     #change negative values to positive so both dist are in same range
     lTL = np.array(np.abs(lT[lT <= 0]))
@@ -303,8 +333,10 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         score_tim_r = r_fn_tim(right)
         scores_tim = np.vstack([score_tim_l, score_tim_r])
         ankle_tim_score = np.nanmean(scores_tim, 0)
-    ankle_scores = np.vstack([ankle_rot_score, ankle_pat_score,
-                              ankle_tim_score])
+
+    # Aggregate symmetry scores for all four movement features
+    ankle_scores = np.vstack([ankle_rot_score, foot_pos_score,
+                              ankle_pat_score, ankle_tim_score])
     ankle_symmetry = np.nanmean(ankle_scores, 0)
 
     return consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry
