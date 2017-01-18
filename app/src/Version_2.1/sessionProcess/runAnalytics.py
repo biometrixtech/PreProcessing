@@ -364,7 +364,8 @@ def run_session(sensor_data, file_name, aws=True):
     data.mech_stress = mstress_fit.predict(ms_data).reshape(-1, 1)
     #Insert nan for mech_stress where data needed to predict was missing
     if len(nan_row) != 0:
-        data.mech_stress = np.insert(data.mech_stress, nan_row, np.nan, axis=0)
+        for i in nan_row:
+            data.mech_stress = np.insert(data.mech_stress, i, np.nan, axis=0)
     del ms_data, nan_row, mstress_fit
     _logger('DONE WITH MECH STRESS!')
 #%%
