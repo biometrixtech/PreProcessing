@@ -106,7 +106,7 @@ def run_scoring(sensor_data, file_name, aws=True):
     del user_hist
     _logger("DONE WITH SCORING!")
     # combine into movement data table
-    movement_data = ct.create_movement_data(len(data.LaX), data)
+    movement_data = ct.create_movement_table(len(data.LaX), data)
     del data
     # write to s3 container
     _write_table_s3(movement_data, file_name, s3, cont_write)
