@@ -52,7 +52,7 @@ def check_duplicate_epochtime(epoch_time):
     epoch_time_duplicate = False
     epoch_time_unique, epoch_time_unique_ind = np.unique(epoch_time,
                                                          return_counts=True)
-    if 2 in epoch_time_unique_ind:
+    if np.any(epoch_time_unique_ind>1):
         epoch_time_duplicate = True
         return epoch_time_duplicate
     else:
