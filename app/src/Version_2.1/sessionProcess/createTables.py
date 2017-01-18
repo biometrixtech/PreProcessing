@@ -6,7 +6,7 @@ Created on Thu Oct 20 17:32:47 2016
 """
 import numpy as np
 
-def create_movement_data(N, data):
+def create_scoring_table(N, data):
     
     """Create a structured array to store movement data
     Args:
