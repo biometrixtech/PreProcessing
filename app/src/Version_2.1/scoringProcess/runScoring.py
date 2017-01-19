@@ -77,23 +77,23 @@ def run_scoring(sensor_data, file_name, aws=True):
     # At this point we need to load the historical data for the subject
 
     # read historical data
-    try:
-        obj = s3.Bucket(cont_read).Object('user_hist.csv')
-        fileobj = obj.get()
-        body = fileobj["Body"].read()
-        hist_data = cStringIO.StringIO(body)
-        user_hist = pd.read_csv(hist_data)
-    except Exception as error:
-        if AWS:
-            _logger("Cannot read historical user data from s3!", info=False)
-            raise error
-        else:
-            try:
-                user_hist = pd.read_csv("user_hist.csv")
-            except:
-                raise IOError("User history not found in s3/local directory")
-    
-    _logger("user history captured")
+#    try:
+#        obj = s3.Bucket(cont_read).Object('user_hist.csv')
+#        fileobj = obj.get()
+#        body = fileobj["Body"].read()
+#        hist_data = cStringIO.StringIO(body)
+#        user_hist = pd.read_csv(hist_data)
+#    except Exception as error:
+#        if AWS:
+#            _logger("Cannot read historical user data from s3!", info=False)
+#            raise error
+#        else:
+#            try:
+#                user_hist = pd.read_csv("user_hist.csv")
+#            except:
+#                raise IOError("User history not found in s3/local directory")
+#    
+#    _logger("user history captured")
 
     data.consistency, data.hip_consistency, \
         data.ankle_consistency, data.consistency_lf, \
@@ -103,7 +103,7 @@ def run_scoring(sensor_data, file_name, aws=True):
         data.const_mech_stress, data.block_duration, \
         data.session_duration, data.block_mech_stress_elapsed, \
         data.session_mech_stress_elapsed = score(data, data)
-    del user_hist
+#    del user_hist
     _logger("DONE WITH SCORING!")
     # combine into movement data table
     movement_data = ct.create_movement_table(len(data.LaX), data)

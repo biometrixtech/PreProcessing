@@ -278,29 +278,22 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         score_rot_r = r_fn_rot(aRR)
         scores_rot = np.vstack([score_rot_l, score_rot_r])
         ankle_rot_score = np.nanmean(scores_rot, 0)
-    if all(np.isnan(lPL)) or all(np.isnan(lPR)):
-        ankle_pat_score = np.zeros(len(lPL))*np.nan
-    elif len(lPL[np.isfinite(lPL)]) < 3 or len(lPR[np.isfinite(lPR)]) < 3:
-        ankle_pat_score = np.zeros(len(lPL))*np.nan
-    else:
-        l_fn_pat, r_fn_pat = _symmetry_score(lPL, lPR)
-        score_pat_l = l_fn_pat(lPL)
-        score_pat_r = r_fn_pat(lPR)
-        scores_pat = np.vstack([score_pat_l, score_pat_r])
-        ankle_pat_score = np.nanmean(scores_pat, 0)
+        ankle_rot_score[ankle_rot_score > 100] = 100
+        ankle_rot_score[ankle_rot_score <= 0] = 0
 
     ##Symmetry for foot position
     if all(np.isnan(fPL)) or all(np.isnan(fPR)):
-        ankle_rot_score = np.zeros(len(fPL))*np.nan
+        foot_pos_score = np.zeros(len(fPL))*np.nan
     elif len(fPL[np.isfinite(fPL)]) < 3 or len(fPR[np.isfinite(fPR)]) < 3:
-        ankle_rot_score = np.zeros(len(fPL))*np.nan
+        foot_pos_score = np.zeros(len(fPL))*np.nan
     else:
         l_fn_pos, r_fn_pos = _symmetry_score(fPL, fPR)
-        score_pos_l = l_fn_rot(fPL)
-        score_pos_r = r_fn_rot(fPR)
+        score_pos_l = l_fn_pos(fPL)
+        score_pos_r = r_fn_pos(fPR)
         scores_pos = np.vstack([score_pos_l, score_pos_r])
         foot_pos_score = np.nanmean(scores_pos, 0)
-
+        foot_pos_score[foot_pos_score > 100] = 100
+        foot_pos_score[foot_pos_score <= 0] = 0
     # Symmetry score for landing pattern
     if all(np.isnan(lPL)) or all(np.isnan(lPR)):
         ankle_pat_score = np.zeros(len(lPL))*np.nan
@@ -312,7 +305,8 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         score_pat_r = r_fn_pat(lPR)
         scores_pat = np.vstack([score_pat_l, score_pat_r])
         ankle_pat_score = np.nanmean(scores_pat, 0)
-
+        ankle_pat_score[ankle_pat_score > 100] = 100
+        ankle_pat_score[ankle_pat_score <= 0] = 0
     # symmetry score for landing time
     #subset landing time data to create two distributions to compare
     #change negative values to positive so both dist are in same range
@@ -333,6 +327,8 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         score_tim_r = r_fn_tim(right)
         scores_tim = np.vstack([score_tim_l, score_tim_r])
         ankle_tim_score = np.nanmean(scores_tim, 0)
+        ankle_tim_score[ankle_tim_score > 100] = 100
+        ankle_tim_score[ankle_tim_score <= 0] = 0
 
     # Aggregate symmetry scores for all four movement features
     ankle_scores = np.vstack([ankle_rot_score, foot_pos_score,
@@ -378,9 +374,10 @@ def _hip(hDL, hDR, fn_hDL, fn_hDR):
         score_drop_r = r_fn_drop(hDR)
         scores_drop = np.vstack([score_drop_l, score_drop_r])
         hip_drop_score = np.nanmean(scores_drop, 0)
+        hip_drop_score[hip_drop_score > 100] = 100
+        hip_drop_score[hip_drop_score <= 0] = 0
 
     hip_symmetry = hip_drop_score
-
     return hip_consistency, hip_symmetry
 
 
@@ -409,7 +406,7 @@ def _symmetry_score(dist_l, dist_r):
     #Calculate density estimate for left data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    sample_left = np.linspace(min(dist_l1), max(dist_l1), 2000).reshape(-1, 1)
+    sample_left = np.linspace(min(dist_l1), max(dist_l1), 3000).reshape(-1, 1)
     den_distL_kdeL = np.exp(kernel_density_l.score_samples(sample_left))
     den_distL_kdeR = np.exp(kernel_density_r.score_samples(sample_left))
     dens_left = np.vstack([den_distL_kdeL, den_distL_kdeR])
@@ -420,7 +417,7 @@ def _symmetry_score(dist_l, dist_r):
     #Calculate density estimate for right data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    sample_right = np.linspace(min(dist_r1), max(dist_r1), 2000).reshape(-1, 1)
+    sample_right = np.linspace(min(dist_r1), max(dist_r1), 3000).reshape(-1, 1)
     den_distR_kdeL = np.exp(kernel_density_l.score_samples(sample_right))
     den_distR_kdeR = np.exp(kernel_density_r.score_samples(sample_right))
     dens_right = np.vstack([den_distR_kdeL, den_distR_kdeR])
