@@ -361,7 +361,7 @@ def run_session(sensor_data, file_name, aws=True):
     ms_data, nan_row = prepare_data(data, False)
    
     # calculate mechanical stress
-    data.mech_stress = mstress_fit.predict(ms_data).reshape(-1, 1)
+    data.mech_stress = np.abs(mstress_fit.predict(ms_data).reshape(-1, 1))
     #Insert nan for mech_stress where data needed to predict was missing
     if len(nan_row) != 0:
         for i in nan_row:
