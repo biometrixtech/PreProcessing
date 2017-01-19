@@ -79,6 +79,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                 hip_roll_transform = (%s),
                 lf_roll_transform = (%s),
                 rf_roll_transform = (%s),
+                expired = (%),
                 updated_at = now()
                 where id  = (select base_anatomical_calibration_event_id from
                             session_anatomical_calibration_events where
@@ -476,6 +477,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                                                  hip_r_transform,
                                                  lf_r_transform,
                                                  rf_r_transform,
+                                                 False,
                                                  file_name))
                     conn.commit()
                 except psycopg2.Error as error:
