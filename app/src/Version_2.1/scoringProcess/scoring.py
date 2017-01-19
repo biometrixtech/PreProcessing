@@ -97,7 +97,7 @@ def score(data, user_hist):
     symmetry = np.nanmean(overall_symmetry_scores, 0)
 
     ##Calculate the destructive mechStress multiplier
-    destr_multiplier = (1 - symmetry/100)**2 + (1 - control/100)**2
+    destr_multiplier = ((1 - symmetry/100)**2 + (1 - control/100)**2)/2
 
     dest_mech_stress = np.array(mS)*np.array(destr_multiplier)
     const_mech_stress = mS - dest_mech_stress
