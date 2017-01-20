@@ -79,7 +79,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                 hip_roll_transform = (%s),
                 lf_roll_transform = (%s),
                 rf_roll_transform = (%s),
-                expired = (%),
+                expired = (%s),
                 updated_at = now()
                 where id  = (select base_anatomical_calibration_event_id from
                             session_anatomical_calibration_events where
