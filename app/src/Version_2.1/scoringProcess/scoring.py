@@ -263,6 +263,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     consistency_rf = np.nanmean(cons_scores_r, 0)
     ankle_cons_scores = np.vstack([cons_scores_l, cons_scores_r, score_lT])
     ankle_consistency = np.nanmean(ankle_cons_scores, 0)
+    logger.info("ankle consistency completed")
     #Calculate symmetry scores for ankle features
     #If all the rows for either left or right features are blank or we have at
     #most 2 non-empty rows, we cannot score so, nan's are returned as score for
@@ -280,7 +281,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         ankle_rot_score = np.nanmean(scores_rot, 0)
         ankle_rot_score[ankle_rot_score > 100] = 100
         ankle_rot_score[ankle_rot_score <= 0] = 0
-
+    logger.info("ankle rotation symmetry complete")
     ##Symmetry for foot position
     if all(np.isnan(fPL)) or all(np.isnan(fPR)):
         foot_pos_score = np.zeros(len(fPL))*np.nan
@@ -294,6 +295,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         foot_pos_score = np.nanmean(scores_pos, 0)
         foot_pos_score[foot_pos_score > 100] = 100
         foot_pos_score[foot_pos_score <= 0] = 0
+    logger.info("foot position symmetry complete")
     # Symmetry score for landing pattern
     if all(np.isnan(lPL)) or all(np.isnan(lPR)):
         ankle_pat_score = np.zeros(len(lPL))*np.nan
@@ -307,6 +309,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         ankle_pat_score = np.nanmean(scores_pat, 0)
         ankle_pat_score[ankle_pat_score > 100] = 100
         ankle_pat_score[ankle_pat_score <= 0] = 0
+    logger.info("landing pattern symmetry complete")
     # symmetry score for landing time
     #subset landing time data to create two distributions to compare
     #change negative values to positive so both dist are in same range
@@ -329,7 +332,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         ankle_tim_score = np.nanmean(scores_tim, 0)
         ankle_tim_score[ankle_tim_score > 100] = 100
         ankle_tim_score[ankle_tim_score <= 0] = 0
-
+    logger.info("landing time symmetry complete")
     # Aggregate symmetry scores for all four movement features
     ankle_scores = np.vstack([ankle_rot_score, foot_pos_score,
                               ankle_pat_score, ankle_tim_score])
@@ -406,7 +409,7 @@ def _symmetry_score(dist_l, dist_r):
     #Calculate density estimate for left data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    len_l = min(len(dist_l1, 2000))
+    len_l = min(len(dist_l1), 2000)
     sample_left = np.linspace(min(dist_l1), max(dist_l1), len_l).reshape(-1, 1)
     den_distL_kdeL = np.exp(kernel_density_l.score_samples(sample_left))
     den_distL_kdeR = np.exp(kernel_density_r.score_samples(sample_left))
@@ -418,7 +421,7 @@ def _symmetry_score(dist_l, dist_r):
     #Calculate density estimate for right data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    len_r = min(len(dist_r1, 2000))
+    len_r = min(len(dist_r1), 2000)
     sample_right = np.linspace(min(dist_r1), max(dist_r1), len_r).reshape(-1, 1)
     den_distR_kdeL = np.exp(kernel_density_l.score_samples(sample_right))
     den_distR_kdeR = np.exp(kernel_density_r.score_samples(sample_right))
