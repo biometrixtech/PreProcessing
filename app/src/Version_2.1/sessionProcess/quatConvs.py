@@ -153,6 +153,7 @@ def euler_to_quat(euler_data):
             q[row, :] = V[row, :, max_eig[row]]
     q = np.vstack([q[:, 3], q[:, 0], q[:, 1], q[:, 2]]).T
     if missing_data:
-        q = np.insert(q, nan_row, [np.nan]*4, axis=0)
+        for i in nan_row:
+            q = np.insert(q, i, [np.nan]*4, axis=0)
     
     return q
