@@ -51,7 +51,7 @@ def run_scoring(sensor_data, file_name, aws=True):
     AWS = aws
     COLUMN_SCORING_OUT = column_scoring_out
     cont_write = 'biometrix-sessionprocessedcontainer'
-    cont_read = 'biometrix-scoringcontainer'
+#    cont_read = 'biometrix-scoringcontainer'
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
@@ -106,17 +106,32 @@ def run_scoring(sensor_data, file_name, aws=True):
 #    del user_hist
     _logger("DONE WITH SCORING!")
     # combine into movement data table
-    movement_data = ct.create_movement_table(len(data.LaX), data)
+    movement_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
+                                       'user_id': data.user_id.reshape(-1, ),
+                                       'team_regimen_id': data.team_regimen_id.reshape(-1, ),
+                                       'training_session_log_id': data.training_session_log_id.reshape(-1, ),
+                                       'session_event_id': data.session_event_id.reshape(-1, ),
+                                       'session_type': data.session_type.reshape(-1, ),
+                                       'corrupt_type': data.corrupt_type.reshape(-1, ).astype(int)})
+
+    for var in COLUMN_SCORING_OUT[2:]:
+        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=movement_data.index)
+        frames = [movement_data, frame]
+        movement_data = pd.concat(frames, axis=1)
+        del frame, frames, data.__dict__[var]
+
+#    movement_data = ct.create_movement_table(len(data.LaX), data)
+    _logger("table created")
     del data
     # write to s3 container
     _write_table_s3(movement_data, file_name, s3, cont_write)
     _logger("DONE WRITING TO S3")
     # write table to DB
-#    result = _write_table_db(movement_data, cur, conn)
-    _logger("DONE WITH SCORING PROCESS")
+    result = _write_table_db(movement_data, cur, conn)
+    _logger("DONE writing to DB")
 
 #    return result
-    return "Success!"
+    return result
 
 
 def _connect_db_s3():

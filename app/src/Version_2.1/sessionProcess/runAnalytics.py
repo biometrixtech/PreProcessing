@@ -392,7 +392,6 @@ def run_session(sensor_data, file_name, aws=True):
     hip_neutral = neutral_data[:, 4:8]
     rf_neutral = neutral_data[:, 8:]
     del neutral_data
-    _logger("got here")
 
     # calculate movement attributes
     data.contra_hip_drop_lf, data.contra_hip_drop_rf, data.ankle_rot_lf,\
@@ -486,8 +485,24 @@ def run_session(sensor_data, file_name, aws=True):
     _logger('DONE WITH RATE OF FORCE ABSORPTION!')
 #%%
     # combine into movement data table
-#    scoring_data = ct.create_scoring_table(len(data.LaX), data)
     data = _add_ids(data, ids_from_db)
+    length = len(data.LaX)
+    setattr(data, 'exercise_weight', np.array(['']*length).reshape(-1, 1))
+    setattr(data, 'activity_id', np.array(['']*length).reshape(-1, 1))
+    data.missing_type_lf = data.missing_type_lf.astype(int)
+    data.missing_type_h = data.missing_type_h.astype(int)
+    data.missing_type_rf = data.missing_type_rf.astype(int)
+    data.epoch_time = data.epoch_time.astype(long)
+    data.ms_elapsed = data.ms_elapsed.astype(int)
+    data.single_leg_stationary = data.single_leg_stationary.astype(int)
+    data.single_leg_dynamic = data.single_leg_dynamic.astype(int)
+    data.double_leg = data.double_leg.astype(int)
+    data.feet_eliminated = data.feet_eliminated.astype(int)
+    data.rot_binary = data.rot_binary.astype(int)
+    data.lat_binary = data.lat_binary.astype(int)
+    data.vert_binary = data.vert_binary.astype(int)
+    data.horz_binary = data.horz_binary.astype(int)
+    data.stationary_binary = data.stationary_binary.astype(int)
 #    N = len(data.LaX)
 #    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     scoring_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
@@ -506,176 +521,20 @@ def run_session(sensor_data, file_name, aws=True):
         del data.__dict__[attrib]
     _logger("completed first frame")
     gc.collect()
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    frame2 = pd.DataFrame(data={'missing_type_lf': data.missing_type_lf.reshape(-1, ).astype(int),
-                              'missing_type_h': data.missing_type_h.reshape(-1, ).astype(int),
-                              'missing_type_rf': data.missing_type_rf.reshape(-1, ).astype(int),
-                              'obs_index': data.obs_index.reshape(-1, ),
-                              'obs_master_index': data.obs_master_index.reshape(-1, ),
-                              'time_stamp': data.time_stamp.reshape(-1, ),
-                              'epoch_time': data.epoch_time.reshape(-1, ).astype(long),
-                              'ms_elapsed': data.ms_elapsed.reshape(-1, ).astype(int),
-                              'phase_lf': data.phase_lf.reshape(-1, ),
-                              'phase_rf': data.phase_rf.reshape(-1, ),
-                              'mech_stress': data.mech_stress.reshape(-1, )})
-    attrib_del = ['missing_type_lf', 'missing_type_h', 'missing_type_rf',
-                  'obs_index', 'obs_master_index', 'time_stamp', 'epoch_time', 'ms_elapsed',
-                  'phase_lf', 'phase_rf', 'mech_stress']
-    for attrib in attrib_del:
-        del data.__dict__[attrib]
-    frames = [scoring_data, frame2]
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    scoring_data = pd.concat(frames, axis=1)
-    del frame2, frames
-    gc.collect()
-    _logger("completed second frame")
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    frame3 = pd.DataFrame(data={'rate_force_absorption_lf': data.rate_force_absorption_lf.reshape(-1, ),
-                              'rate_force_absorption_rf': data.rate_force_absorption_rf.reshape(-1, ),
-                              'total_accel': data.total_accel.reshape(-1, )})
-    attrib_del = ['rate_force_absorption_lf', 'rate_force_absorption_rf', 'total_accel', 'not_standing', 'single_leg', 'standing']
-    for attrib in attrib_del:
-        del data.__dict__[attrib]
-    frames = [scoring_data, frame3]
-    scoring_data = pd.concat(frames, axis=1)
-    del frame3, frames
-    gc.collect()
-    _logger("completed third frame")
-    frame4 = pd.DataFrame(data={'contra_hip_drop_lf': data.contra_hip_drop_lf.reshape(-1, ),
-                              'contra_hip_drop_rf': data.contra_hip_drop_rf.reshape(-1, ),
-                              'ankle_rot_lf': data.ankle_rot_lf.reshape(-1, ),
-                              'ankle_rot_rf': data.ankle_rot_rf.reshape(-1, ),
-                              'foot_position_lf': data.foot_position_lf.reshape(-1, ),
-                              'foot_position_rf': data.foot_position_rf.reshape(-1, ),
-                              'land_pattern_lf': data.land_pattern_lf.reshape(-1, ),
-                              'land_pattern_rf': data.land_pattern_rf.reshape(-1, ),
-                              'land_time': data.land_time.reshape(-1, ),
-                              'single_leg_stationary': data.single_leg_stationary.reshape(-1, ).astype(int),
-                              'single_leg_dynamic': data.single_leg_dynamic.reshape(-1, ).astype(int),
-                              'double_leg': data.double_leg.reshape(-1, ).astype(int),
-                              'feet_eliminated': data.feet_eliminated.reshape(-1, ).astype(int),
-                              'rot': data.rot.reshape(-1, ),
-                              'lat': data.lat.reshape(-1, ),
-                              'vert': data.vert.reshape(-1, ),
-                              'horz': data.horz.reshape(-1, ),
-                              'rot_binary': data.rot_binary.reshape(-1, ).astype(int),
-                              'lat_binary': data.lat_binary.reshape(-1, ).astype(int),
-                              'vert_binary': data.vert_binary.reshape(-1, ).astype(int),
-                              'horz_binary': data.horz_binary.reshape(-1, ).astype(int),
-                              'stationary_binary': data.stationary_binary.reshape(-1, ).astype(int)})
-    attrib_del = ['contra_hip_drop_lf', 'contra_hip_drop_rf','ankle_rot_lf','ankle_rot_rf',
-                  'foot_position_lf','foot_position_rf','land_pattern_lf','land_pattern_rf',
-                  'land_time','single_leg_stationary','single_leg_dynamic','double_leg',
-                  'feet_eliminated','rot','lat','vert','horz','rot_binary','lat_binary',
-                  'vert_binary','horz_binary','stationary_binary']
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    for attrib in attrib_del:
-        del data.__dict__[attrib]
-    _logger("completed fourth frame")
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    frames = [scoring_data, frame4]
-    scoring_data = pd.concat(frames, axis=1)
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    del frame4, frames
-    gc.collect()
-    frame5 = pd.DataFrame(data={'LaX': data.LaX.reshape(-1, ),
-                              'LaY': data.LaY.reshape(-1, ),
-                              'LaZ': data.LaZ.reshape(-1, ),
-                              'LeX': data.LeX.reshape(-1, ),
-                              'LeY': data.LeY.reshape(-1, ),
-                              'LeZ': data.LeZ.reshape(-1, ),
-                              'LqW': data.LqW.reshape(-1, ),
-                              'LqX': data.LqX.reshape(-1, ),
-                              'LqY': data.LqY.reshape(-1, ),
-                              'LqZ': data.LqZ.reshape(-1, )})
-    attrib_del = ['LaX','LaY','LaZ','LeX','LeY','LeZ','LqW','LqX','LqY','LqZ']
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    for attrib in attrib_del:
-        del data.__dict__[attrib]
-    frames = [scoring_data, frame5]
-    scoring_data = pd.concat(frames, axis=1)
-    del frame5, frames
-    gc.collect()
-    frame6 = pd.DataFrame(data={'HaX': data.HaX.reshape(-1, ),
-                              'HaY': data.HaY.reshape(-1, ),
-                              'HaZ': data.HaZ.reshape(-1, ),
-                              'HeX': data.HeX.reshape(-1, ),
-                              'HeY': data.HeY.reshape(-1, ),
-                              'HeZ': data.HeZ.reshape(-1, ),
-                              'HqW': data.HqW.reshape(-1, ),
-                              'HqX': data.HqX.reshape(-1, ),
-                              'HqY': data.HqY.reshape(-1, ),
-                              'HqZ': data.HqZ.reshape(-1, )})
-    attrib_del = ['HaX','HaY','HaZ','HeX','HeY','HeZ','HqW','HqX','HqY','HqZ']
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    for attrib in attrib_del:
-        del data.__dict__[attrib]
-    frames = [scoring_data, frame6]
-    scoring_data = pd.concat(frames, axis=1)
-    del frame6, frames
-    gc.collect()
-    frame7 = pd.DataFrame(data={'RaX': data.RaX.reshape(-1, ),
-                                'RaY': data.RaY.reshape(-1, ),
-                               'RaZ': data.RaZ.reshape(-1, ),
-                               'ReX': data.ReX.reshape(-1, ),
-                               'ReY': data.ReY.reshape(-1, ),
-                               'ReZ': data.ReZ.reshape(-1, ),
-                               'RqW': data.RqW.reshape(-1, ),
-                               'RqX': data.RqX.reshape(-1, ),
-                               'RqY': data.RqY.reshape(-1, ),
-                               'RqZ': data.RqZ.reshape(-1, )})
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    for var in COLUMN_SESSION_OUT[7:]:
+        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=scoring_data.index)
+        frames = [scoring_data, frame]
+        scoring_data = pd.concat(frames, axis=1)
+        del frame, frames, data.__dict__[var]
     del data
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    frames = [scoring_data, frame7]
-    scoring_data = pd.concat(frames, axis=1)
-    del frame7, frames
     _logger("Table Created")
 
 
     # write table to DB
     scoring_data = scoring_data.replace('None', '')
-#    scoring_data = scoring_data.replace('', 'NaN')
-#    fileobj_db = cStringIO.StringIO()
-#    try:
-#        scoring_data.to_csv(fileobj_db, index=False, header=False,
-#                            na_rep='', columns=COLUMN_SESSION_OUT)
-#        #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-#        _logger("scoring_data in fileobj")
-#        fileobj_db.seek(0)
-#        cur.copy_from(file=fileobj_db, table='movement', sep=',', null='NaN',
-#                      columns=COLUMN_SESSION_OUT)
-#        _logger("scoring data in DB")
-#        #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-#        conn.commit()
-#        conn.close()
-#    except Exception as error:
-#        if AWS:
-#            _logger("Cannot write movement data to DB!")
-#            raise error
-#        else:
-#            raise error
-#            _logger("Cannot write movement data to DB!")
-#    else:
-#        result = "Success!"
 
-    # write table to s3
-#    scoring_data_pd = pd.DataFrame(scoring_data)
-#    del scoring_data
     _multipartupload_movement_data(scoring_data, file_name, s3, cont_write_final, cur, conn)
     conn.close()
-#    try:
-#        fileobj = cStringIO.StringIO()
-#        scoring_data.to_csv(fileobj, index=False, compression='gzip')
-#        fileobj.seek(0)
-#        s3.Bucket(cont_write_final).put_object(Key=file_name, Body=fileobj)
-#    except boto3.exceptions as error:
-#        if AWS:
-#            _logger("Cannot write table to s3", info=False)
-#            raise error
-#        else:
-#            _logger("Cannot write file to s3 writing locally!")
-##    _write_table_s3(movement_data, file_name, s3, cont_write_final)
 
     _logger("Data in S3")
 #    result = _write_table_db(movement_data, cur, conn)
