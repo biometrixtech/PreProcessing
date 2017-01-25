@@ -28,7 +28,7 @@ from scoring import score
 import createTables as ct
 import dataObject as do
 import scoringProcessQueries as queries
-from columnNames import column_scoring_out
+from columnNames import column_scoring_out, column_session_out
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -59,7 +59,7 @@ def run_scoring(sensor_data, file_name, aws=True):
     # Create a RawFrame object with initial data
 #    sdata = np.genfromtxt(sensor_data, delimiter=',', names=True)
 #    columns = sdata.dtype.names
-    sdata = pd.read_csv(sensor_data)
+    sdata = pd.read_csv(sensor_data, header=None, names=column_session_out)
     columns = sdata.columns
     data = do.RawFrame(sdata, columns)
     del sdata
@@ -112,10 +112,11 @@ def run_scoring(sensor_data, file_name, aws=True):
     _write_table_s3(movement_data, file_name, s3, cont_write)
     _logger("DONE WRITING TO S3")
     # write table to DB
-    result = _write_table_db(movement_data, cur, conn)
+#    result = _write_table_db(movement_data, cur, conn)
     _logger("DONE WITH SCORING PROCESS")
 
-    return result
+#    return result
+    return "Success!"
 
 
 def _connect_db_s3():
