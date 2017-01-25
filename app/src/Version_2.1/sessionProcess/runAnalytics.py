@@ -20,19 +20,22 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras
 import boto3
-
+import gc
+#import resource
+import math
+from itertools import islice, count
 
 import prePreProcessing as ppp
 import dataObject as do
 import phaseDetection as phase
-import IAD
+#import IAD
 import coordinateFrameTransformation as coord
 from mechStressTraining import prepare_data
 import movementAttrib as matrib
 import balanceCME as cmed
 #import quatConvs as qc
 import impactCME as impact
-import createTables as ct
+#import createTables as ct
 import sessionProcessQueries as queries
 import checkProcessed as cp
 import rateofForceAbsorption as fa
@@ -63,6 +66,13 @@ def run_session(sensor_data, file_name, aws=True):
     global COLUMN_SESSION_OUT
     AWS = aws
     COLUMN_SESSION_OUT = column_session_out
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+#    soft, hard = resource.getrlimit(resource.RLIMIT_DATA)
+#    resource.setrlimit(resource.RLIMIT_DATA, (28000, 56000))
+#    _logger(soft)
+#    _logger(hard)
+    #resource.setrlimit(resource.RLIMIT_STACK, (5000, 10000))
+
     # Define containers to read from and write to
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_write_final = 'biometrix-scoringcontainer'
@@ -90,6 +100,7 @@ def run_session(sensor_data, file_name, aws=True):
     if len(sdata) == 0:
         _logger("Sensor data is empty!", info=False)
         return "Fail!"
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     sdata.dtype.names = columns_session
     # SUBSET DATA
     subset_data = ppp.subset_data(old_data=sdata)
@@ -98,7 +109,7 @@ def run_session(sensor_data, file_name, aws=True):
         _logger("No overlapping samples after time sync", info=False)
         return "Fail!"
     # Record percentage and ranges of magn_values for diagonostic purposes
-    _record_magn(subset_data, file_name, s3)
+#    _record_magn(subset_data, file_name, s3)
 
     # read transformation offset values from DB/local Memory
     offsets_read = _read_offsets(cur, session_event_id)
@@ -109,11 +120,13 @@ def run_session(sensor_data, file_name, aws=True):
 
     columns = subset_data.dtype.names
     data = do.RawFrame(subset_data, columns)
+    setattr(data, 'obs_master_index',
+            np.array(range(len(data.LaX))).reshape(-1, 1) + 1)
     del subset_data
 #    data = sdata.view(np.recarray)
     data = cp.handle_processed(data)
-    data = _add_ids_rawdata(data, ids_from_db)
-    user_id = data.user_id[0][0]
+#    data = _add_rawdata(data)
+    user_id = ids_from_db[2]
     try:
         cur.execute(queries.quer_read_mass, (user_id,))
         mass = cur.fetchall()[0][0]
@@ -139,6 +152,7 @@ def run_session(sensor_data, file_name, aws=True):
         ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
     sampl_freq = 100
     _logger('DONE WITH PRE-PRE-PROCESSING!')
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 #%%
     # COORDINATE FRAME TRANSFORMATION
 
@@ -173,7 +187,6 @@ def run_session(sensor_data, file_name, aws=True):
             coord.transform_data(data, hip_bf_transform, lf_bf_transform,
                                  rf_bf_transform, lf_n_transform,
                                  rf_n_transform, hip_n_transform)
-
     # transform neutral orientations for each point in time to ndarray
     neutral_data = np.array(neutral_data)
 
@@ -210,7 +223,10 @@ def run_session(sensor_data, file_name, aws=True):
     data.RqX = _transformed_data[:, 28].reshape(-1, 1)
     data.RqY = _transformed_data[:, 29].reshape(-1, 1)
     data.RqZ = _transformed_data[:, 30].reshape(-1, 1)
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del _transformed_data
+    gc.collect()
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH COORDINATE FRAME TRANSFORMATION!')
 #%%
     # PHASE DETECTION
@@ -249,12 +265,89 @@ def run_session(sensor_data, file_name, aws=True):
 #                                       len(data.LaX)).reshape(-1, 1)
 #
 #    _logger('DONE WITH IAD!')
-#%%
-    # save sensor data before subsetting
-    sensor_data = ct.create_sensor_data(len(data.LaX), data)
-    _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write)
-    _logger("Raw data written to s3")
-    del sensor_data
+##%%
+#    # save sensor data before subsetting
+##    sensor_data = ct.create_sensor_data(len(data.LaX), data)
+#    # Define attributes to be stored
+#    data_pd = pd.DataFrame(data={'team_id': data.team_id.reshape(-1,),
+#                                 'user_id': data.user_id.reshape(-1,),
+#                                 'team_regimen_id': data.team_regimen_id.reshape(-1,),
+#                                 'block_id': data.block_id.reshape(-1,),
+#                                 'block_event_id': data.block_event_id.reshape(-1,),
+#                                 'training_session_log_id': data.training_session_log_id.reshape(-1,),
+#                                 'session_event_id': data.session_event_id.reshape(-1,),
+#                                 'session_type': data.session_type.reshape(-1,),
+#                                 'obs_index': data.obs_master_index.reshape(-1,),
+#                                 'obs_master_index': data.obs_master_index.reshape(-1,),
+#                                 'time_stamp': data.time_stamp.reshape(-1,),
+#                                 'epoch_time': data.epoch_time.reshape(-1,),
+#                                 'ms_elapsed': data.ms_elapsed.reshape(-1,),
+#                                 'phase_lf': data.phase_lf.reshape(-1,),
+#                                 'phase_rf': data.phase_rf.reshape(-1,),
+#                                 'activity_id': data.activity_id.reshape(-1,),
+#                                 'LaX': data.LaX.reshape(-1,),
+#                                 'LaY': data.LaY.reshape(-1,),
+#                                 'LaZ': data.LaZ.reshape(-1,),
+#                                 'LqW': data.LqW.reshape(-1,),
+#                                 'LqX': data.LqX.reshape(-1,),
+#                                 'LqY': data.LqY.reshape(-1,),
+#                                 'LqZ': data.LqZ.reshape(-1,),
+#                                 'HaX': data.HaX.reshape(-1,),
+#                                 'HaY': data.HaY.reshape(-1,),
+#                                 'HaZ': data.HaZ.reshape(-1,),
+#                                 'HqW': data.HqW.reshape(-1,),
+#                                 'HqX': data.HqX.reshape(-1,),
+#                                 'HqY': data.HqY.reshape(-1,),
+#                                 'HqZ': data.HqZ.reshape(-1,),
+#                                 'RaX': data.RaX.reshape(-1,),
+#                                 'RaY': data.RaY.reshape(-1,),
+#                                 'RaZ': data.RaZ.reshape(-1,),
+#                                 'RqW': data.RqW.reshape(-1,),
+#                                 'RqX': data.RqX.reshape(-1,),
+#                                 'RqY': data.RqY.reshape(-1,),
+#                                 'RqZ': data.RqZ.reshape(-1,),
+#                                 'raw_LaX': data.raw_LaX.reshape(-1,),
+#                                 'raw_LaY': data.raw_LaY.reshape(-1,),
+#                                 'raw_LaZ': data.raw_LaZ.reshape(-1,),
+#                                 'raw_LqX': data.raw_LqX.reshape(-1,),
+#                                 'raw_LqY': data.raw_LqY.reshape(-1,),
+#                                 'raw_LqZ': data.raw_LqZ.reshape(-1,),
+#                                 'raw_HaX': data.raw_HaX.reshape(-1,),
+#                                 'raw_HaY': data.raw_HaY.reshape(-1,),
+#                                 'raw_HaZ': data.raw_HaZ.reshape(-1,),
+#                                 'raw_HqX': data.raw_HqX.reshape(-1,),
+#                                 'raw_HqY': data.raw_HqY.reshape(-1,),
+#                                 'raw_HqZ': data.raw_HqZ.reshape(-1,),
+#                                 'raw_RaX': data.raw_RaX.reshape(-1,),
+#                                 'raw_RaY': data.raw_RaY.reshape(-1,),
+#                                 'raw_RaZ': data.raw_RaZ.reshape(-1,),
+#                                 'raw_RqX': data.raw_RqX.reshape(-1,),
+#                                 'raw_RqY': data.raw_RqY.reshape(-1,),
+#                                 'raw_RqZ': data.raw_RqZ.reshape(-1,)})
+#
+#    _logger("data table created")
+##%%
+##    data_pd = pd.DataFrame(sensor_data)
+#    _logger("converted to pandas")
+##    del sensor_data
+#    try:
+#        fileobj = cStringIO.StringIO()
+#        _logger("fileobj created")
+#        data_pd.to_csv(fileobj, index=False, compression='gzip')
+#        _logger(sys.getsizeof(fileobj))
+#        del data_pd
+#        fileobj.seek(0)
+#        s3.Bucket(cont_write).put_object(Key='processed_'+file_name, Body=fileobj)
+#        del fileobj
+#    except boto3.exceptions as error:
+#        if AWS:
+#            _logger("Cannot write table to s3", info=False)
+#            raise error
+#        else:
+#            _logger("Cannot write file to s3 writing locally!")
+##
+##    _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write)
+#    _logger("Raw data written to s3")
 #    data = _subset_data(data, neutral_data)
 #    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!')
 
@@ -282,7 +375,9 @@ def run_session(sensor_data, file_name, aws=True):
     data.single_leg_stationary, data.single_leg_dynamic \
         = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
                                        data.single_leg, sampl_freq)
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del hip_acc, hip_eul
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
 #%%
     # MOVEMENT QUALITY FEATURES
@@ -296,6 +391,7 @@ def run_session(sensor_data, file_name, aws=True):
     lf_neutral = neutral_data[:, :4]
     hip_neutral = neutral_data[:, 4:8]
     rf_neutral = neutral_data[:, 8:]
+    _logger("got here")
 
     # calculate movement attributes
     data.contra_hip_drop_lf, data.contra_hip_drop_rf, data.ankle_rot_lf,\
@@ -304,7 +400,10 @@ def run_session(sensor_data, file_name, aws=True):
                                       hip_neutral, rf_neutral, data.phase_lf,\
                                       data.phase_rf)
     del lf_quat, hip_quat, rf_quat
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del neutral_data, lf_neutral, hip_neutral, rf_neutral
+    gc.collect()
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH BALANCE CME!')
 #%%
     # IMPACT CME
@@ -328,13 +427,14 @@ def run_session(sensor_data, file_name, aws=True):
         data.land_time = land_time.reshape(-1, 1)
         data.land_pattern_rf = land_pattern[:, 0].reshape(-1, 1)
         data.land_pattern_lf = land_pattern[:, 1].reshape(-1, 1)
+        del n_landpattern, land_time, land_pattern
     else:
         data.land_time = np.zeros((len(data.LaX), 1))*np.nan
         data.land_pattern_lf = np.zeros((len(data.LaX), 1))*np.nan
         data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
-
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del n_landtime, ltime_index, lf_rf_imp_indicator
-    del n_landpattern, land_time, land_pattern
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH IMPACT CME!')
 
 
@@ -348,6 +448,9 @@ def run_session(sensor_data, file_name, aws=True):
 
         # we're reading the first model on the list, there are multiple
         mstress_fit = pickle.loads(ms_body)
+        del ms_body
+        del ms_fileobj
+        del ms_obj
     except Exception as error:
         if AWS:
             _logger("Cannot load MS model from s3!", info=False)
@@ -370,7 +473,7 @@ def run_session(sensor_data, file_name, aws=True):
     _logger('DONE WITH MECH STRESS!')
 #%%
     # RATE OF FORCE ABSORPTION
-    mass = 50
+#    mass = 50
     rofa_lf, rofa_rf = fa.det_rofa(l_ph=data.phase_lf, r_ph=data.phase_rf,
                                    laccz=data.LaZ, raccz=data.RaZ,
                                    user_mass=mass, hz=sampl_freq) 
@@ -378,22 +481,207 @@ def run_session(sensor_data, file_name, aws=True):
     data.rate_force_absorption_rf = rofa_rf
 
     del rofa_lf, rofa_rf
+    gc.collect()
     _logger('DONE WITH RATE OF FORCE ABSORPTION!')
 #%%
     # combine into movement data table
-    movement_data = ct.create_scoring_table(len(data.LaX), data)
+#    scoring_data = ct.create_scoring_table(len(data.LaX), data)
+    data = _add_ids(data, ids_from_db)
+#    N = len(data.LaX)
+#    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    scoring_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
+                                      'user_id': data.user_id.reshape(-1, ),
+                                      'team_regimen_id': data.team_regimen_id.reshape(-1, ),
+                                      'training_session_log_id': data.training_session_log_id.reshape(-1, ),
+                                      'session_event_id': data.session_event_id.reshape(-1, ),
+                                      'session_type': data.session_type.reshape(-1, ),
+                                      'corrupt_type': data.corrupt_type.reshape(-1, ).astype(int)})
+    attrib_del = ['team_id', 'user_id', 'team_regimen_id', 'block_id', 'block_event_id', 'training_session_log_id',
+                  'session_event_id', 'session_type', 'exercise_id', 'corrupt_type', 'columns', 'corrupt_magn',
+                  'corrupt_magn_h', 'corrupt_magn_lf', 'corrupt_magn_rf', 'epoch_time_h', 'epoch_time_lf',
+                  'epoch_time_rf', 'missing_data_indicator']
+#    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    for attrib in attrib_del:
+        del data.__dict__[attrib]
+    _logger("completed first frame")
+    gc.collect()
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    frame2 = pd.DataFrame(data={'missing_type_lf': data.missing_type_lf.reshape(-1, ).astype(int),
+                              'missing_type_h': data.missing_type_h.reshape(-1, ).astype(int),
+                              'missing_type_rf': data.missing_type_rf.reshape(-1, ).astype(int),
+                              'obs_index': data.obs_index.reshape(-1, ),
+                              'obs_master_index': data.obs_master_index.reshape(-1, ),
+                              'time_stamp': data.time_stamp.reshape(-1, ),
+                              'epoch_time': data.epoch_time.reshape(-1, ).astype(long),
+                              'ms_elapsed': data.ms_elapsed.reshape(-1, ).astype(int),
+                              'phase_lf': data.phase_lf.reshape(-1, ),
+                              'phase_rf': data.phase_rf.reshape(-1, ),
+                              'mech_stress': data.mech_stress.reshape(-1, )})
+    attrib_del = ['missing_type_lf', 'missing_type_h', 'missing_type_rf',
+                  'obs_index', 'obs_master_index', 'time_stamp', 'epoch_time', 'ms_elapsed',
+                  'phase_lf', 'phase_rf', 'mech_stress']
+    for attrib in attrib_del:
+        del data.__dict__[attrib]
+    frames = [scoring_data, frame2]
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    scoring_data = pd.concat(frames, axis=1)
+    del frame2, frames
+    gc.collect()
+    _logger("completed second frame")
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    frame3 = pd.DataFrame(data={'rate_force_absorption_lf': data.rate_force_absorption_lf.reshape(-1, ),
+                              'rate_force_absorption_rf': data.rate_force_absorption_rf.reshape(-1, ),
+                              'total_accel': data.total_accel.reshape(-1, )})
+    attrib_del = ['rate_force_absorption_lf', 'rate_force_absorption_rf', 'total_accel', 'not_standing', 'single_leg', 'standing']
+    for attrib in attrib_del:
+        del data.__dict__[attrib]
+    frames = [scoring_data, frame3]
+    scoring_data = pd.concat(frames, axis=1)
+    del frame3, frames
+    gc.collect()
+    _logger("completed third frame")
+    frame4 = pd.DataFrame(data={'contra_hip_drop_lf': data.contra_hip_drop_lf.reshape(-1, ),
+                              'contra_hip_drop_rf': data.contra_hip_drop_rf.reshape(-1, ),
+                              'ankle_rot_lf': data.ankle_rot_lf.reshape(-1, ),
+                              'ankle_rot_rf': data.ankle_rot_rf.reshape(-1, ),
+                              'foot_position_lf': data.foot_position_lf.reshape(-1, ),
+                              'foot_position_rf': data.foot_position_rf.reshape(-1, ),
+                              'land_pattern_lf': data.land_pattern_lf.reshape(-1, ),
+                              'land_pattern_rf': data.land_pattern_rf.reshape(-1, ),
+                              'land_time': data.land_time.reshape(-1, ),
+                              'single_leg_stationary': data.single_leg_stationary.reshape(-1, ).astype(int),
+                              'single_leg_dynamic': data.single_leg_dynamic.reshape(-1, ).astype(int),
+                              'double_leg': data.double_leg.reshape(-1, ).astype(int),
+                              'feet_eliminated': data.feet_eliminated.reshape(-1, ).astype(int),
+                              'rot': data.rot.reshape(-1, ),
+                              'lat': data.lat.reshape(-1, ),
+                              'vert': data.vert.reshape(-1, ),
+                              'horz': data.horz.reshape(-1, ),
+                              'rot_binary': data.rot_binary.reshape(-1, ).astype(int),
+                              'lat_binary': data.lat_binary.reshape(-1, ).astype(int),
+                              'vert_binary': data.vert_binary.reshape(-1, ).astype(int),
+                              'horz_binary': data.horz_binary.reshape(-1, ).astype(int),
+                              'stationary_binary': data.stationary_binary.reshape(-1, ).astype(int)})
+    attrib_del = ['contra_hip_drop_lf', 'contra_hip_drop_rf','ankle_rot_lf','ankle_rot_rf',
+                  'foot_position_lf','foot_position_rf','land_pattern_lf','land_pattern_rf',
+                  'land_time','single_leg_stationary','single_leg_dynamic','double_leg',
+                  'feet_eliminated','rot','lat','vert','horz','rot_binary','lat_binary',
+                  'vert_binary','horz_binary','stationary_binary']
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    for attrib in attrib_del:
+        del data.__dict__[attrib]
+    _logger("completed fourth frame")
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    frames = [scoring_data, frame4]
+    scoring_data = pd.concat(frames, axis=1)
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    del frame4, frames
+    gc.collect()
+    frame5 = pd.DataFrame(data={'LaX': data.LaX.reshape(-1, ),
+                              'LaY': data.LaY.reshape(-1, ),
+                              'LaZ': data.LaZ.reshape(-1, ),
+                              'LeX': data.LeX.reshape(-1, ),
+                              'LeY': data.LeY.reshape(-1, ),
+                              'LeZ': data.LeZ.reshape(-1, ),
+                              'LqW': data.LqW.reshape(-1, ),
+                              'LqX': data.LqX.reshape(-1, ),
+                              'LqY': data.LqY.reshape(-1, ),
+                              'LqZ': data.LqZ.reshape(-1, )})
+    attrib_del = ['LaX','LaY','LaZ','LeX','LeY','LeZ','LqW','LqX','LqY','LqZ']
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    for attrib in attrib_del:
+        del data.__dict__[attrib]
+    frames = [scoring_data, frame5]
+    scoring_data = pd.concat(frames, axis=1)
+    del frame5, frames
+    gc.collect()
+    frame6 = pd.DataFrame(data={'HaX': data.HaX.reshape(-1, ),
+                              'HaY': data.HaY.reshape(-1, ),
+                              'HaZ': data.HaZ.reshape(-1, ),
+                              'HeX': data.HeX.reshape(-1, ),
+                              'HeY': data.HeY.reshape(-1, ),
+                              'HeZ': data.HeZ.reshape(-1, ),
+                              'HqW': data.HqW.reshape(-1, ),
+                              'HqX': data.HqX.reshape(-1, ),
+                              'HqY': data.HqY.reshape(-1, ),
+                              'HqZ': data.HqZ.reshape(-1, )})
+    attrib_del = ['HaX','HaY','HaZ','HeX','HeY','HeZ','HqW','HqX','HqY','HqZ']
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    for attrib in attrib_del:
+        del data.__dict__[attrib]
+    frames = [scoring_data, frame6]
+    scoring_data = pd.concat(frames, axis=1)
+    del frame6, frames
+    gc.collect()
+    frame7 = pd.DataFrame(data={'RaX': data.RaX.reshape(-1, ),
+                                'RaY': data.RaY.reshape(-1, ),
+                               'RaZ': data.RaZ.reshape(-1, ),
+                               'ReX': data.ReX.reshape(-1, ),
+                               'ReY': data.ReY.reshape(-1, ),
+                               'ReZ': data.ReZ.reshape(-1, ),
+                               'RqW': data.RqW.reshape(-1, ),
+                               'RqX': data.RqX.reshape(-1, ),
+                               'RqY': data.RqY.reshape(-1, ),
+                               'RqZ': data.RqZ.reshape(-1, )})
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del data
+    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    frames = [scoring_data, frame7]
+    scoring_data = pd.concat(frames, axis=1)
+    del frame7, frames
     _logger("Table Created")
+
+
+    # write table to DB
+    scoring_data = scoring_data.replace('None', '')
+#    scoring_data = scoring_data.replace('', 'NaN')
+#    fileobj_db = cStringIO.StringIO()
+#    try:
+#        scoring_data.to_csv(fileobj_db, index=False, header=False,
+#                            na_rep='', columns=COLUMN_SESSION_OUT)
+#        #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+#        _logger("scoring_data in fileobj")
+#        fileobj_db.seek(0)
+#        cur.copy_from(file=fileobj_db, table='movement', sep=',', null='NaN',
+#                      columns=COLUMN_SESSION_OUT)
+#        _logger("scoring data in DB")
+#        #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+#        conn.commit()
+#        conn.close()
+#    except Exception as error:
+#        if AWS:
+#            _logger("Cannot write movement data to DB!")
+#            raise error
+#        else:
+#            raise error
+#            _logger("Cannot write movement data to DB!")
+#    else:
+#        result = "Success!"
+
     # write table to s3
-    _write_table_s3(movement_data, file_name, s3, cont_write_final)
+#    scoring_data_pd = pd.DataFrame(scoring_data)
+#    del scoring_data
+    _multipartupload_movement_data(scoring_data, file_name, s3, cont_write_final, cur, conn)
+    conn.close()
+#    try:
+#        fileobj = cStringIO.StringIO()
+#        scoring_data.to_csv(fileobj, index=False, compression='gzip')
+#        fileobj.seek(0)
+#        s3.Bucket(cont_write_final).put_object(Key=file_name, Body=fileobj)
+#    except boto3.exceptions as error:
+#        if AWS:
+#            _logger("Cannot write table to s3", info=False)
+#            raise error
+#        else:
+#            _logger("Cannot write file to s3 writing locally!")
+##    _write_table_s3(movement_data, file_name, s3, cont_write_final)
 
     _logger("Data in S3")
-    # write table to DB
-    result = _write_table_db(movement_data, cur, conn)
+#    result = _write_table_db(movement_data, cur, conn)
 
     _logger('Done with everything!')
 
-    return result
+    return "success!"
 
 #%%
 def _logger(message, info=True):
@@ -543,7 +831,7 @@ def _read_offsets(cur, session_event_id):
     return offsets_read
 
 #%%
-def _add_ids_rawdata(data, ids):
+def _add_ids(data, ids):
     # retrieve ids
     session_event_id = ids[0]
     training_session_log_id = ids[1]
@@ -568,7 +856,10 @@ def _add_ids_rawdata(data, ids):
     setattr(data, 'session_type',
             np.array([session_type]*length).reshape(-1, 1))
     setattr(data, 'exercise_id', np.array(['None']*length).reshape(-1, 1))
+    return data
 
+#%% 
+def _add_rawdata(data):
     # Save raw values in different attributes to later populate table
     # left
     setattr(data, 'raw_LaX', data.LaX)
@@ -591,8 +882,6 @@ def _add_ids_rawdata(data, ids):
     setattr(data, 'raw_RqX', data.RqX)
     setattr(data, 'raw_RqY', data.RqY)
     setattr(data, 'raw_RqZ', data.RqZ)
-    setattr(data, 'obs_master_index',
-            np.array(range(len(data.raw_LaX))).reshape(-1, 1) + 1)
 
     return data
 
@@ -725,14 +1014,16 @@ def _subset_data(data, neutral_data):
     
     return data
 #%%
-def _write_table_s3(movement_data, file_name, s3, cont):
+def _write_table_s3(data_table, file_name, s3, cont):
     """write final table to s3
     """
-    movement_data_pd = pd.DataFrame(movement_data)
+    data_pd = pd.DataFrame(data_table)
+    del data_table
     try:
         fileobj = cStringIO.StringIO()
-        movement_data_pd.to_csv(fileobj, index=False)
-        del movement_data_pd
+        data_pd.to_csv(fileobj, index=False, compression='gzip')
+        _logger(sys.getsizeof(fileobj))
+        del data_pd
         fileobj.seek(0)
         s3.Bucket(cont).put_object(Key=file_name, Body=fileobj)
     except boto3.exceptions as error:
@@ -741,7 +1032,6 @@ def _write_table_s3(movement_data, file_name, s3, cont):
             raise error
         else:
             print "Cannot write file to s3 writing locally!"
-            movement_data_pd = pd.DataFrame(movement_data)
             movement_data_pd.to_csv("scoring_" + file_name, index=False)
             del movement_data_pd
     else:
@@ -844,8 +1134,54 @@ def _record_magn(data, file_name, S3):
                             minimum_h, maximum_h, minimum_rf, maximum_rf))
 
 
+def _multipartupload_movement_data(movement_data, file_name_s3, s3, cont, cur, conn):
+
+    # Create a multipart upload request
+    print 
+    s3 = boto3.client('s3')
+    mp = s3.create_multipart_upload(Bucket=cont, Key=file_name_s3)
+    
+    # Use only a set of columns each time to write to fileobj
+    rows_set_size = 30000  # number of rows durin each batch upload (change if needed)
+    number_of_rows = len(movement_data)
+    rows_set_count = int(math.ceil(number_of_rows/float(rows_set_size)))
+#    _logger('number of parts to be uploaded' + str(rows_set_count))
+    _logger(str(rows_set_count)+ 'number of parts to be uploaded')
+    
+    # Initialize counter to the count number of parts uploaded in the loop below
+    counter = 0
+    # Send the file parts, using FileChunkIO to create a file-like object
+    for i in islice(count(), 0, number_of_rows,  rows_set_size):
+        counter = counter + 1
+        movement_data_subset = movement_data.iloc[i:i+rows_set_size]
+        print len(movement_data_subset), ': length of subset'
+        fileobj = cStringIO.StringIO()
+        if counter == 1:
+            movement_data_subset.to_csv(fileobj, index=False, header=False,
+                                        na_rep='', columns=COLUMN_SESSION_OUT)
+        else:
+            movement_data_subset.to_csv(fileobj, index=False, header=False,
+                                        na_rep='', columns=COLUMN_SESSION_OUT)
+        del movement_data_subset
+        fileobj.seek(0)
+        cur.copy_from(file=fileobj, table='movement', sep=',', null='',
+                      columns=COLUMN_SESSION_OUT)
+        conn.commit()
+        fileobj.seek(0)
+        part = s3.upload_part(Bucket=cont, Key=file_name_s3, PartNumber=counter,
+                              UploadId=mp['UploadId'], Body=fileobj)
+        if counter == 1:
+            Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
+        else:
+            Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
+        del fileobj
+        _logger(str(counter)+ ': this is the counter')
+    part_info = {'Parts': Parts}
+    s3.complete_multipart_upload(Bucket=cont, Key=file_name_s3, UploadId=mp['UploadId'],
+                                 MultipartUpload=part_info) 
+
 #%%
 if __name__ == "__main__":
-    sensor_data = 'dipesh_merged_II.csv'
-    file_name = 'fakefilename'
+    sensor_data = 'C:\\Users\\dipesh\\Desktop\\biometrix\\aws\\bdb02f8d-e51a-4ad5-9f04-8f4a60591bcc.csv'
+    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
     result = run_session(sensor_data, file_name, aws=False)
