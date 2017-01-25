@@ -391,6 +391,7 @@ def run_session(sensor_data, file_name, aws=True):
     lf_neutral = neutral_data[:, :4]
     hip_neutral = neutral_data[:, 4:8]
     rf_neutral = neutral_data[:, 8:]
+    del neutral_data
     _logger("got here")
 
     # calculate movement attributes
@@ -401,7 +402,7 @@ def run_session(sensor_data, file_name, aws=True):
                                       data.phase_rf)
     del lf_quat, hip_quat, rf_quat
     #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    del neutral_data, lf_neutral, hip_neutral, rf_neutral
+    del lf_neutral, hip_neutral, rf_neutral
     gc.collect()
     #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH BALANCE CME!')
