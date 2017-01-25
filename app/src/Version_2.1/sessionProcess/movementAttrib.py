@@ -152,7 +152,7 @@ def standing_or_not(hip_eul, hz):
 
     # make copy of relevant data
     hip_y = np.copy(hip_eul)
-    hip_y = hip_y[:,1][:]
+    hip_y = hip_y[:,1][:].reshape(-1, 1)
 
     # set threshold for standing
     _standing_thresh = np.pi/4
@@ -367,7 +367,8 @@ def _num_runs(arr, num):
     """
 
     # Create an array that is 1 where a=num, and pad each end with an extra 0.
-    iszero = np.concatenate(([0], np.equal(arr, num), [0]))
+    
+    iszero = np.concatenate(([0], np.equal(arr.reshape(-1,), num), [0]))
     absdiff = np.abs(np.diff(iszero))
 
     # Runs start and end where absdiff is 1.
