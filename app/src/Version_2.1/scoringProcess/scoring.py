@@ -51,21 +51,24 @@ def score(data, user_hist):
     """
     mS = np.abs(np.array(data.mech_stress)).reshape(-1, )
     mS_scaled = np.array(mS/np.nanmean(mS))
+    logger.info(min(mS_scaled))
     tA = np.abs(np.array(data.total_accel)).reshape(-1, )
 
     #divide each feature value by (totalAccel*mechStress) to control
     #for these performance variables
     # TODO (Dipesh) need to find better control
-    hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(mS_scaled*tA)
-    hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(mS_scaled*tA)
+#    scale = mS_scaled*tA
+    scale = np.sqrt(tA)
+    hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(scale)
+    hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(scale)
 #    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
-    aRL = np.array(data.ankle_rot_lf).reshape(-1, )/(mS_scaled*tA)
-    aRR = np.array(data.ankle_rot_rf).reshape(-1, )/(mS_scaled*tA)
-    lPL = np.array(data.land_pattern_lf).reshape(-1, )/(mS_scaled*tA)
-    lPR = np.array(data.land_pattern_rf).reshape(-1, )/(mS_scaled*tA)
-    lT = np.array(data.land_time).reshape(-1, )/(mS_scaled*tA)
-    fPL = np.array(data.foot_position_lf).reshape(-1,)/(mS_scaled*tA)
-    fPR = np.array(data.foot_position_rf).reshape(-1,)/(mS_scaled*tA)
+    aRL = np.array(data.ankle_rot_lf).reshape(-1, )/(scale)
+    aRR = np.array(data.ankle_rot_rf).reshape(-1, )/(scale)
+    lPL = np.array(data.land_pattern_lf).reshape(-1, )/(scale)
+    lPR = np.array(data.land_pattern_rf).reshape(-1, )/(scale)
+    lT = np.array(data.land_time).reshape(-1, )/(scale)
+    fPL = np.array(data.foot_position_lf).reshape(-1,)/(scale)
+    fPR = np.array(data.foot_position_rf).reshape(-1,)/(scale)
 
     control = np.array(data.control).reshape(-1, )
     #Create mapping functions for consistency using historical user data
@@ -394,22 +397,27 @@ def _symmetry_score(dist_l, dist_r):
     """
     dist_left = np.sort(dist_l[np.isfinite(dist_l)])
     dist_right = np.sort(dist_r[np.isfinite(dist_r)])
-    dist_l1 = dist_left.reshape(-1,1)
-    dist_r1 = dist_right.reshape(-1,1)
+
+    # Use sample of points in scoring if above threshold
+    sample_size = min([len(dist_left), len(dist_right), 100000])
+    dist_l1 = np.random.choice(dist_left, size=sample_size,
+                               replace=False).reshape(-1, 1)
+    dist_r1 = np.random.choice(dist_right, size=sample_size,
+                               replace=False).reshape(-1, 1)
     #Bandwith needs to be adjusted with the data length and sd of data
     #using constant for now
     band_left = 1.06*np.std(dist_l1)*(len(dist_l1))**(-.2)
     band_right = 1.06*np.std(dist_r1)*(len(dist_r1))**(-.2)
 #    band_left = .05
 #    band_right = .05
-    kernel_density_l = kde(kernel='gaussian', bandwidth=band_left, rtol=5E-3,
+    kernel_density_l = kde(kernel='gaussian', bandwidth=band_left, rtol=1E-3,
                            atol=1E-3).fit(dist_l1)
-    kernel_density_r = kde(kernel='gaussian', bandwidth=band_right, rtol=5E-3,
+    kernel_density_r = kde(kernel='gaussian', bandwidth=band_right, rtol=1E-3,
                            atol=1E-3).fit(dist_r1)
     #Calculate density estimate for left data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    len_l = min(len(dist_l1), 1000)
+    len_l = min(len(dist_l1), 2000)
     sample_left = np.linspace(min(dist_l1), max(dist_l1), len_l).reshape(-1, 1)
     den_distL_kdeL = np.exp(kernel_density_l.score_samples(sample_left))
     den_distL_kdeR = np.exp(kernel_density_r.score_samples(sample_left))
@@ -421,7 +429,7 @@ def _symmetry_score(dist_l, dist_r):
     #Calculate density estimate for right data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    len_r = min(len(dist_r1), 1000)
+    len_r = min(len(dist_r1), 2000)
     sample_right = np.linspace(min(dist_r1), max(dist_r1), len_r).reshape(-1, 1)
     den_distR_kdeL = np.exp(kernel_density_l.score_samples(sample_right))
     den_distR_kdeR = np.exp(kernel_density_r.score_samples(sample_right))
