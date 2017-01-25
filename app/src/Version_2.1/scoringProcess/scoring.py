@@ -402,14 +402,14 @@ def _symmetry_score(dist_l, dist_r):
     band_right = 1.06*np.std(dist_r1)*(len(dist_r1))**(-.2)
 #    band_left = .05
 #    band_right = .05
-    kernel_density_l = kde(kernel='gaussian', bandwidth=band_left, rtol=1E-3,
+    kernel_density_l = kde(kernel='gaussian', bandwidth=band_left, rtol=5E-3,
                            atol=1E-3).fit(dist_l1)
-    kernel_density_r = kde(kernel='gaussian', bandwidth=band_right, rtol=1E-3,
+    kernel_density_r = kde(kernel='gaussian', bandwidth=band_right, rtol=5E-3,
                            atol=1E-3).fit(dist_r1)
     #Calculate density estimate for left data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    len_l = min(len(dist_l1), 2000)
+    len_l = min(len(dist_l1), 1000)
     sample_left = np.linspace(min(dist_l1), max(dist_l1), len_l).reshape(-1, 1)
     den_distL_kdeL = np.exp(kernel_density_l.score_samples(sample_left))
     den_distL_kdeR = np.exp(kernel_density_r.score_samples(sample_left))
@@ -421,7 +421,7 @@ def _symmetry_score(dist_l, dist_r):
     #Calculate density estimate for right data under both distribution
     #and calculate score based on difference and create a dictionary for
     #mapping
-    len_r = min(len(dist_r1), 2000)
+    len_r = min(len(dist_r1), 1000)
     sample_right = np.linspace(min(dist_r1), max(dist_r1), len_r).reshape(-1, 1)
     den_distR_kdeL = np.exp(kernel_density_l.score_samples(sample_right))
     den_distR_kdeR = np.exp(kernel_density_r.score_samples(sample_right))
