@@ -7,6 +7,7 @@ Created on Wed Oct 12 11:16:55 2016
 
 from __future__ import division
 import logging
+import sys
 
 import numpy as np
 from scipy.interpolate import UnivariateSpline
@@ -51,14 +52,13 @@ def score(data, user_hist):
     """
     mS = np.abs(np.array(data.mech_stress)).reshape(-1, )
     mS_scaled = np.array(mS/np.nanmean(mS))
-    logger.info(min(mS_scaled))
     tA = np.abs(np.array(data.total_accel)).reshape(-1, )
 
     #divide each feature value by (totalAccel*mechStress) to control
     #for these performance variables
     # TODO (Dipesh) need to find better control
 #    scale = mS_scaled*tA
-    scale = np.sqrt(tA)
+    scale = np.sqrt(tA*mS_scaled)
     hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(scale)
     hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(scale)
 #    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
@@ -154,19 +154,21 @@ def _create_distribution(data):
     Returns:
         Interpolation mapping function for each Movement Quality feature
     """
-    mS = np.array(np.abs(data.mech_stress))
+    mS = np.abs(np.array(data.mech_stress))
     mS_scaled = np.array(mS/np.nanmean(mS))
-    tA = np.array(np.abs(data.total_accel))
-    fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(tA*mS_scaled)))
-    fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(tA*mS_scaled)))
+    tA = np.abs(np.array(data.total_accel))
+
+    scale = np.sqrt(tA*mS_scaled)
+    fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(scale)))
+    fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(scale)))
 #    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
-    fn_aRL = _con_fun(np.array(data.ankle_rot_lf/(tA*mS_scaled)), True)
-    fn_aRR = _con_fun(np.array(data.ankle_rot_rf/(tA*mS_scaled)), True)
-    fn_lPL = _con_fun(np.array(data.land_pattern_lf/(tA*mS_scaled)))
-    fn_lPR = _con_fun(np.array(data.land_pattern_rf/(tA*mS_scaled)))
-    fn_lT = _con_fun(np.array(data.land_time/(tA*mS_scaled)))
-    fn_fPL = _con_fun(np.array(data.foot_position_lf/(tA*mS_scaled)))
-    fn_fPR = _con_fun(np.array(data.foot_position_rf/(tA*mS_scaled)))
+    fn_aRL = _con_fun(np.array(data.ankle_rot_lf/(scale)), True)
+    fn_aRR = _con_fun(np.array(data.ankle_rot_rf/(scale)), True)
+    fn_lPL = _con_fun(np.array(data.land_pattern_lf/(scale)))
+    fn_lPR = _con_fun(np.array(data.land_pattern_rf/(scale)))
+    fn_lT = _con_fun(np.array(data.land_time/(scale)))
+    fn_fPL = _con_fun(np.array(data.foot_position_lf/(scale)))
+    fn_fPR = _con_fun(np.array(data.foot_position_rf/(scale)))
 #    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
 
     return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT, fn_fPL, fn_fPR

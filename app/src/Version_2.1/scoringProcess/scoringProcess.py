@@ -39,5 +39,5 @@ def lambda_handler(event, context):
 
     except Exception as e:
         logger.info(e)
-        logger.info('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+        logger.info('Error completing scoring process. See details below!')
         raise e
