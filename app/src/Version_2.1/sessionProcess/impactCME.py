@@ -22,7 +22,7 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
     Args:
         imp_rf: right foot phase
         imp_lf: left foot phase
-        epoch_time: an array, epoch time from sensor
+        sampl_rate: int, sampling rate of sensor
 
     Returns:
         diff: array, time difference between right and left feet impacts
@@ -35,6 +35,9 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
     # of the impact phases of the right foot
     lf_start = _imp_start_time(imp_time=imp_lf)  # obtaining the first instant 
     # of the impact phases of the left foot
+    
+    # delete phase variables
+    del imp_rf, imp_lf
 
     # initialize variables
     diff = []  # initialize list to store the difference in impact times
@@ -67,7 +70,7 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
                     diff.append(0.0)
                     ltime_index.append(int(i[1]))
                     lf_rf_imp_indicator.append('n')
-#    print ltime_index            
+          
     return np.array(diff).reshape(-1, 1), \
     np.array(ltime_index).reshape(-1, 1), \
     np.array(lf_rf_imp_indicator).reshape(-1, 1)
@@ -136,6 +139,7 @@ def landing_pattern(rf_euly, lf_euly, land_time_index, l_r_imp_ind, sampl_rate,
         elif j == 'n':
             out_pattern.append([np.rad2deg(rf_euly[int(i)]),
                                 np.rad2deg(lf_euly[int(i)])])
+
     return np.array(out_pattern).reshape(-1, 2)
 
 
@@ -147,7 +151,8 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
     Args:
         land_pattern: pitch angle on impact
         land_time: time difference between left and right feet impacts
-        n: length of the sensor data read from a s3 bucket
+        data_length: array, length of the sensor data read from s3 bucket
+        landtime_index: array, indexes when landtime is not NaN
         
     Returns:
         final_landtime: array, time difference between right and left feet
@@ -180,6 +185,9 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
             count = count + 1
         else:
             lf_quick_pattern.append(np.nan)
+            
+    # delete variables that are not required for computation after this point
+    del land_pattern
      
     # ensure land time variable is the same length as the
     # sensor data
@@ -190,11 +198,17 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
             count = count + 1
         else:
             final_landtime.append(np.nan)
+            
+    # delete variables that are not equired for computation after this point
+    del land_time, landtime_index
     
     # merge right foot and left foot land patterns into a single variable
     final_landpattern = []
     for i, j in zip(lf_quick_pattern, rf_quick_pattern):
         final_landpattern.append([j, i])
+        
+    # delete variables that are not required for computation after this point
+    del lf_quick_pattern, rf_quick_pattern
         
     if len(final_landpattern) != len(final_landtime):
         logger.warning('Length of land pattern and land time are not equal.')
