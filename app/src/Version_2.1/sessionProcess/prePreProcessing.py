@@ -32,6 +32,8 @@ def subset_data(old_data):
     old_data = old_data[old_data['missing_type_lf'] != done]
     old_data = old_data[old_data['missing_type_h'] != done]
     new_data = old_data[old_data['missing_type_rf'] != done]
+    
+    del old_data  # no use, after assiging it to a new variable
         
     return new_data
     
@@ -52,6 +54,9 @@ def check_duplicate_epochtime(epoch_time):
     epoch_time_duplicate = False
     epoch_time_unique, epoch_time_unique_ind = np.unique(epoch_time,
                                                          return_counts=True)
+                                                         
+    del epoch_time_unique  # not used in further computations
+    
     if np.any(epoch_time_unique_ind>1):
         epoch_time_duplicate = True
         return epoch_time_duplicate
@@ -94,7 +99,9 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
                                                                 # quaternion
     q_w = np.sqrt(1 - qi_calc_qw - qj_calc_qw - qk_calc_qw)  # real quaternion
 
-    del quat_array
+    # delete variables that are not used in further computations
+    del quat_array, qi_calc_qw, qj_calc_qw, qk_calc_qw
+    
     # check if NaN exists in the real quaternion array
     indicator_col = indicator_col.reshape(-1,)
     if len(indicator_col) == len(corrupt_magn) == len(q_w):
@@ -107,9 +114,13 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
 #    if 'N' in indicator_col[np.where(np.isnan(q_w))[0]]:
 #        raise ValueError('Real quaternion cannot be comupted. Cannot \
 #        take square root of a negative number.')
+        
+    del corrupt_magn, indicator_col  # not used in further computations
 
     # appending the real and imaginary quaternions arrays to a single array
     all_quaternions = np.hstack([q_w, q_i, q_j, q_k])
+    
+    del q_w, q_i, q_j, q_k  # all_quaternions has all of them
 
     return all_quaternions, corrupt_type.reshape(-1, 1)
     
@@ -209,6 +220,7 @@ def handling_missing_data(obj_data):
             > MISSING_DATA_THRESH)[0][i], 0]:r_l[np.where(r_l[:, 1]-r_l[:, 0] \
             > MISSING_DATA_THRESH)[0][i], 1]] = 'L'  # adding 'L' if the
             # threshold is surpassed
+    del r_l  # not used in further computations
 
     # Checking if the number of consecutive missing values for the hip sensor
     # data is greater than the threshold
@@ -221,6 +233,7 @@ def handling_missing_data(obj_data):
             > MISSING_DATA_THRESH)[0][i], 0]:r_h[np.where(r_h[:, 1]-r_h[:, 0] \
             > MISSING_DATA_THRESH)[0][i], 1]] = 'H'  # adding 'H' if the
             # threshold is surpassed
+    del r_h  # not used in further computations
 
     # Checking if the number of consecutive missing values for the right foot
     # sensor data is greater than the threshold
@@ -233,6 +246,7 @@ def handling_missing_data(obj_data):
             > MISSING_DATA_THRESH)[0][i], 0]:r_r[np.where(r_r[:, 1]-r_r[:, 0] \
             > MISSING_DATA_THRESH)[0][i], 1]] = 'R'  # adding 'R' if the
             # threshold is surpassed
+    del r_r  # not used in further computations
 
     # all columns from the sensor data
     var = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ',
@@ -254,18 +268,20 @@ def handling_missing_data(obj_data):
         no_nan_index = np.isfinite(col_data).reshape(-1, )
         dummy_data = col_data[no_nan_index]
         dummy_epochtime = epoch_time[no_nan_index]
+        del no_nan_index  # not used in further computations
         interp = interpolate.splrep(dummy_epochtime, dummy_data, k=3, s=0)
+        del dummy_data, dummy_epochtime  # not used in further computations
 
         # spline interpolation function
         if ran.shape[0] != 0:
-
             for j in range(len(ran)):
-
                 if ran[j, 1] - ran[j, 0] <= MISSING_DATA_THRESH:
                     y_new = interpolate.splev(epoch_time[ran[j, 0]:ran[j, 1]],
                                               interp,
                                               der=0)  # Imputing missing values
                     col_data[ran[j, 0]:ran[j, 1]] = y_new
+        
+        del interp  # delete interpolation function, may have a huge overhead
 
         setattr(obj_data, i, col_data)
 
@@ -331,8 +347,11 @@ def _zero_runs(col_dat, miss_type, intentional_missing_data):
 
     # determine where column data is NaN
     isnan = np.array(np.isnan(col_dat).astype(int)).reshape(-1, 1)
+    del col_dat  # not used in further computations
     isnan = isnan[miss_type != intentional_missing_data]  # subsetting for when
     # missing value is an intentional blank
+    del miss_type  # not used in further computations
+    
     if isnan[0] == 1:
         t_b = 1
     else:
@@ -342,6 +361,7 @@ def _zero_runs(col_dat, miss_type, intentional_missing_data):
     absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
     if isnan[-1] == 1:
         absdiff = np.concatenate([absdiff, [1]], 0)
+    del isnan  # not used in further computations
 
     # determine the number of consecutive NaNs
     ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
