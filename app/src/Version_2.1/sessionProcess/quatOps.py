@@ -42,11 +42,12 @@ def quat_prod(q1, q2):
     s2 = q2[:, 0]
     v1 = q1[:, 1:4]
     v2 = q2[:, 1:4]
+    del q1, q2
 
     # calculate product quaternion's elements
     s3 = s1*s2 - np.sum(v1*v2, axis=1)
     v3 = v2*s1[:, np.newaxis] + v1*s2[:, np.newaxis] + np.cross(v1, v2)
-    prod = np.hstack((s3.reshape(len(q1), 1), v3))
+    prod = np.hstack((s3.reshape(len(s1), 1), v3))
 
     return prod
     
@@ -132,6 +133,7 @@ def vect_rot(v, q):
     # Prepare values for rotation
     # Convert 3D matrix to "quaternion" form
     V = np.hstack((np.zeros((len(v), 1)), v))
+    del v
     q = quat_norm(q) # Normalize the rotation quaternion
 
     # rotate vector as rot_vect = QVQ^(-1) and extract 3D values
@@ -166,7 +168,7 @@ def quat_avg(data):
     
     # Average data along columns
     avg_quat = np.nanmean(data, 0).reshape(1, -1)
-    
+    del data
     # Normalize the single quaternion produced
     avg_quat = quat_norm(avg_quat)
     

@@ -101,8 +101,9 @@ def run_session(sensor_data, file_name, aws=True):
     _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     # read sensor data as ndarray
     try:
-        sdata = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
-                              names=True)
+        sdata = pd.read_csv(sensor_data)
+#        sdata = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
+#                              names=True)
         del sensor_data
     except IndexError as error:
         _logger("Sensor data doesn't have column names!", info=False)
@@ -112,7 +113,7 @@ def run_session(sensor_data, file_name, aws=True):
         return "Fail!"
     _logger("DATA LOADED!")
     _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    sdata.dtype.names = columns_session
+    sdata.columns = columns_session
     # SUBSET DATA
     subset_data = ppp.subset_data(old_data=sdata)
     del sdata
@@ -129,7 +130,7 @@ def run_session(sensor_data, file_name, aws=True):
         _logger("No samples left after subsetting!", info=False)
         return "Fail!"
 
-    columns = subset_data.dtype.names
+    columns = columns_session
     data = do.RawFrame(subset_data, columns)
     setattr(data, 'obs_master_index',
             np.array(range(len(data.LaX))).reshape(-1, 1) + 1)
@@ -1067,5 +1068,5 @@ def _multipartupload_data(data_table, file_name_s3, cont, cur, conn, DB=True):
 #%%
 if __name__ == "__main__":
     sensor_data = 'C:\\Users\\dipesh\\Desktop\\biometrix\\aws\\c4ed8189-6e1d-47c3-9cc5-446329b10796'
-    file_name = 'd64a248d-9c95-4dbc-a89d-47a630a90ed9'
+    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
     result = run_session(sensor_data, file_name, aws=False)

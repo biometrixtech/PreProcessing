@@ -51,13 +51,22 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     # divide data
     hip_quat_db = np.hstack([data.HqW, data.HqX, data.HqY,
                              data.HqZ]).reshape(-1, 4)
+    del data.__dict__['HqW'],data.__dict__['HqX'],data.__dict__['HqY']
+    del data.__dict__['HqZ']
     lf_quat_db = np.hstack([data.LqW, data.LqX, data.LqY,
                             data.LqZ]).reshape(-1, 4)
+    del data.__dict__['LqW'],data.__dict__['LqX'],data.__dict__['LqY']
+    del data.__dict__['LqZ']
     rf_quat_db = np.hstack([data.RqW, data.RqX, data.RqY,
                             data.RqZ]).reshape(-1, 4)
+    del data.__dict__['RqW'],data.__dict__['RqX'],data.__dict__['RqY']
+    del data.__dict__['RqZ']
     hip_acc = np.hstack([data.HaX, data.HaY, data.HaZ]).reshape(-1, 3)
+    del data.__dict__['HaX'],data.__dict__['HaY'],data.__dict__['HaZ']
     lf_acc = np.hstack([data.LaX, data.LaY, data.LaZ]).reshape(-1, 3)
+    del data.__dict__['LaX'],data.__dict__['LaY'],data.__dict__['LaZ']
     rf_acc = np.hstack([data.RaX, data.RaY, data.RaZ]).reshape(-1, 3)
+    del data.__dict__['RaX'],data.__dict__['RaY'],data.__dict__['RaZ']
     epoch_time = np.array(data.epoch_time).reshape(-1, 1)
     
     del data  # not used in further computations
@@ -98,7 +107,37 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
                                       
     # delete variables that are not used in further computations
     del lf_quat, rf_quat, hip_acc, lf_acc, rf_acc                              
+
+    # consolidate transformed data
+    epoch_time_pd = pd.DataFrame(epoch_time)
+    del epoch_time  # not used in further computations
     
+    lf_aif_acc_pd = pd.DataFrame(lf_aif_acc)
+    lf_bf_eul_pd = pd.DataFrame(lf_bf_eul)
+    lf_bf_quat_pd = pd.DataFrame(lf_bf_quat)
+    del lf_aif_acc, lf_bf_eul, lf_bf_quat  # not used in further computations
+    
+    hip_aif_acc_pd = pd.DataFrame(hip_aif_acc)
+    hip_bf_eul_pd = pd.DataFrame(hip_bf_eul)
+    hip_bf_quat_pd = pd.DataFrame(hip_bf_quat)
+    del hip_aif_acc, hip_bf_eul, hip_bf_quat  # not used in further computations
+
+    rf_aif_acc_pd = pd.DataFrame(rf_aif_acc)
+    rf_bf_eul_pd = pd.DataFrame(rf_bf_eul)
+    rf_bf_quat_pd = pd.DataFrame(rf_bf_quat)
+    del rf_aif_acc, rf_bf_eul, rf_bf_quat  # not used in further computations
+    
+    frames_transformed = [epoch_time_pd, lf_aif_acc_pd, lf_bf_eul_pd,
+                          lf_bf_quat_pd, hip_aif_acc_pd, hip_bf_eul_pd,
+                          hip_bf_quat_pd, rf_aif_acc_pd, rf_bf_eul_pd,
+                          rf_bf_quat_pd]
+    transformed_pd = pd.concat(frames_transformed, axis=1)
+    del frames_transformed  # not used in further computations
+    transformed_data = transformed_pd.values
+    del transformed_pd  # not used in further computations
+    
+    
+
     # convert body frame quaternions to respective "neutral" orientations
     #for comparison in balanceCME, operated through runAnalytics
     lf_n_transform = qc.quat_to_euler(lf_n_transform)
@@ -138,34 +177,6 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     hip_neutral = qc.euler_to_quat(hip_neutral)
     lf_neutral = qc.euler_to_quat(lf_neutral)
     rf_neutral = qc.euler_to_quat(rf_neutral)
-    
-    # consolidate transformed data
-    epoch_time_pd = pd.DataFrame(epoch_time)
-    del epoch_time  # not used in further computations
-    
-    lf_aif_acc_pd = pd.DataFrame(lf_aif_acc)
-    lf_bf_eul_pd = pd.DataFrame(lf_bf_eul)
-    lf_bf_quat_pd = pd.DataFrame(lf_bf_quat)
-    del lf_aif_acc, lf_bf_eul, lf_bf_quat  # not used in further computations
-    
-    hip_aif_acc_pd = pd.DataFrame(hip_aif_acc)
-    hip_bf_eul_pd = pd.DataFrame(hip_bf_eul)
-    hip_bf_quat_pd = pd.DataFrame(hip_bf_quat)
-    del hip_aif_acc, hip_bf_eul, hip_bf_quat  # not used in further computations
-
-    rf_aif_acc_pd = pd.DataFrame(rf_aif_acc)
-    rf_bf_eul_pd = pd.DataFrame(rf_bf_eul)
-    rf_bf_quat_pd = pd.DataFrame(rf_bf_quat)
-    del rf_aif_acc, rf_bf_eul, rf_bf_quat  # not used in further computations
-    
-    frames_transformed = [epoch_time_pd, lf_aif_acc_pd, lf_bf_eul_pd,
-                          lf_bf_quat_pd, hip_aif_acc_pd, hip_bf_eul_pd,
-                          hip_bf_quat_pd, rf_aif_acc_pd, rf_bf_eul_pd,
-                          rf_bf_quat_pd]
-    transformed_pd = pd.concat(frames_transformed, axis=1)
-    del frames_transformed  # not used in further computations
-    transformed_data = transformed_pd.values
-    del transformed_pd  # not used in further computations
     
     # consolidate neutral data
     lf_neutral_pd = pd.DataFrame(lf_neutral)
