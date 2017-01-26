@@ -44,21 +44,25 @@ def combine_phase(laccz, raccz, hz):
     lf_imp = _impact_detect(start_move=lf_sm, end_move=lf_em, 
                             az=laccz, hz=hz)  # starting and ending
     # point of the impact phase for the left foot
+    del lf_sm, lf_em, laccz  # no use in further computations
     rf_imp = _impact_detect(start_move=rf_sm, end_move=rf_em, 
                             az=raccz, hz=hz)  # starting and ending
     # points of the impact phase for the right foot
+    del rf_sm, rf_em, raccz  # no use in further computations
 
     if len(lf_imp) > 0:  # condition to check whether impacts exist in the
     # left foot data
         for i, j in zip(lf_imp[:, 0], lf_imp[:, 1]):
             lf_ph[i:j+1] = [phase_id.lf_imp.value]*int(j-i+1)  # decide impact
             # phase for the left foot
+    del lf_imp  # no use in further computation
     
     if len(rf_imp) > 0:  # condition to check whether impacts exist in the
     # right foot data
         for x, y in zip(rf_imp[:, 0], rf_imp[:, 1]):
             rf_ph[x:y+1] = [phase_id.rf_imp.value]*int(y-x+1)  # decide impact
             # phase for the right foot
+    del rf_imp  # no use in further computation
             
     rf_ph = np.array(rf_ph)
     lf_ph = np.array(lf_ph)
@@ -82,7 +86,9 @@ def _body_phase(raz, laz, hz):
     """
     
     r = _phase_detect(acc=raz, hz=hz)  # run phase detect on right foot
+    del raz  # delete raz, no use in further computations
     l = _phase_detect(acc=laz, hz=hz)  # run phase detect on left foot
+    del laz  # delete laz, no use in further computations
     
     phase = []  # store body phase decisions
     for i in range(len(r)):
@@ -126,12 +132,21 @@ def _phase_detect(acc, hz):
         # (minimum number of data points required for the set of data points 
         # to be considered as "balance phase")
             for k in range(bal_win):
-                dummy_balphase.append(i+k)       
-        
+                dummy_balphase.append(i+k) 
+                
+    # length of acceleration array
+    len_acc = len(acc)
+                
+    # delete variables that are of no use in further compuations
+    del acc
+                        
     # determine the unique indexes in the dummy list
     start_bal = []    
     start_bal = np.unique(dummy_balphase)
     start_bal = start_bal.tolist()  # convert from numpy array to list
+    
+    # delete variables that are of no use in further compuations
+    del dummy_balphase
 
     # eliminate false movement phases 
     min_thresh_mov = int(0.024*hz)  # threshold for minimum number of samples 
@@ -145,7 +160,7 @@ def _phase_detect(acc, hz):
     
     # create balance phase array
     bal_phase = []
-    bal_phase = [1]*len(acc)  # 1=movement phase
+    bal_phase = [1]*len_acc  # 1=movement phase
 
     for i in start_bal:
         bal_phase[i] = 0  # 0=balance phase
