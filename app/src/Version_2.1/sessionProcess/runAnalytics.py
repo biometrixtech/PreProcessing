@@ -11,7 +11,7 @@ Input data called from 'biometrix-blockcontainer'
 
 Output data collected in BlockEvent Table.
 """
-import sys
+#import sys
 import pickle
 import cStringIO
 import logging
@@ -21,7 +21,7 @@ import psycopg2
 import psycopg2.extras
 import boto3
 import gc
-#import resource
+import resource
 import math
 from itertools import islice, count
 
@@ -66,7 +66,8 @@ def run_session(sensor_data, file_name, aws=True):
     global COLUMN_SESSION_OUT
     AWS = aws
     COLUMN_SESSION_OUT = column_session_out
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    _logger("STARTED PROCESSING!")
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 #    soft, hard = resource.getrlimit(resource.RLIMIT_DATA)
 #    resource.setrlimit(resource.RLIMIT_DATA, (28000, 56000))
 #    _logger(soft)
@@ -74,15 +75,17 @@ def run_session(sensor_data, file_name, aws=True):
     #resource.setrlimit(resource.RLIMIT_STACK, (5000, 10000))
 
     # Define containers to read from and write to
-    cont_write = 'biometrix-sessionprocessedcontainer'
+#    cont_write = 'biometrix-sessionprocessedcontainer'
     cont_write_final = 'biometrix-scoringcontainer'
 
     # Define container that holds models
     cont_models = 'biometrix-globalmodels'
-    
+
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)    
     # establish connection to both database and s3 resource
     conn, cur, s3 = _connect_db_s3()
-    
+
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)    
     # read session_event_id and other relevant ids
     try:
         ids_from_db = _read_ids(cur, file_name)
@@ -95,17 +98,20 @@ def run_session(sensor_data, file_name, aws=True):
     session_event_id = ids_from_db[0]
     session_type = ids_from_db[5]
 
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     # read sensor data as ndarray
     try:
         sdata = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
                               names=True)
+        del sensor_data
     except IndexError as error:
         _logger("Sensor data doesn't have column names!", info=False)
         return "Fail!"
     if len(sdata) == 0:
         _logger("Sensor data is empty!", info=False)
         return "Fail!"
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    _logger("DATA LOADED!")
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     sdata.dtype.names = columns_session
     # SUBSET DATA
     subset_data = ppp.subset_data(old_data=sdata)
@@ -156,7 +162,7 @@ def run_session(sensor_data, file_name, aws=True):
         ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
     sampl_freq = 100
     _logger('DONE WITH PRE-PRE-PROCESSING!')
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 #%%
     # COORDINATE FRAME TRANSFORMATION
 
@@ -227,17 +233,17 @@ def run_session(sensor_data, file_name, aws=True):
     data.RqX = _transformed_data[:, 28].reshape(-1, 1)
     data.RqY = _transformed_data[:, 29].reshape(-1, 1)
     data.RqZ = _transformed_data[:, 30].reshape(-1, 1)
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del _transformed_data
     gc.collect()
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH COORDINATE FRAME TRANSFORMATION!')
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 #%%
     # PHASE DETECTION
     data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ,
                                                        sampl_freq)
 
     _logger('DONE WITH PHASE DETECTION!')
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
 #%%
     # INTELLIGENT ACTIVITY DETECTION (IAD)
@@ -273,7 +279,7 @@ def run_session(sensor_data, file_name, aws=True):
     attrib_del = ['columns', 'corrupt_magn', 'corrupt_magn_h',
                   'corrupt_magn_lf', 'corrupt_magn_rf', 'epoch_time_h',
                   'epoch_time_lf', 'epoch_time_rf', 'missing_data_indicator']
-#    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+#    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     for attrib in attrib_del:
         del data.__dict__[attrib]
 #    # save sensor data before subsetting
@@ -362,10 +368,9 @@ def run_session(sensor_data, file_name, aws=True):
     data.single_leg_stationary, data.single_leg_dynamic \
         = matrib.stationary_or_dynamic(data.phase_lf, data.phase_rf,
                                        data.single_leg, sampl_freq)
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del hip_acc, hip_eul
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 #%%
     # MOVEMENT QUALITY FEATURES
 
@@ -387,11 +392,10 @@ def run_session(sensor_data, file_name, aws=True):
                                       hip_neutral, rf_neutral, data.phase_lf,\
                                       data.phase_rf)
     del lf_quat, hip_quat, rf_quat
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del lf_neutral, hip_neutral, rf_neutral
     gc.collect()
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH BALANCE CME!')
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 #%%
     # IMPACT CME
     # define dictionary for msElapsed
@@ -419,10 +423,9 @@ def run_session(sensor_data, file_name, aws=True):
         data.land_time = np.zeros((len(data.LaX), 1))*np.nan
         data.land_pattern_lf = np.zeros((len(data.LaX), 1))*np.nan
         data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     del n_landtime, ltime_index, lf_rf_imp_indicator
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     _logger('DONE WITH IMPACT CME!')
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
 
 #%%
@@ -493,7 +496,6 @@ def run_session(sensor_data, file_name, aws=True):
     data.horz_binary = data.horz_binary.astype(int)
     data.stationary_binary = data.stationary_binary.astype(int)
 #    N = len(data.LaX)
-#    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     scoring_data = pd.DataFrame(data={'team_id': np.array([team_id]*length),
                                       'user_id': np.array([user_id]*length),
                                       'team_regimen_id': np.array([team_regimen_id]*length),
@@ -509,21 +511,23 @@ def run_session(sensor_data, file_name, aws=True):
         del frame, frames, data.__dict__[var]
     del data
     _logger("Table Created")
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
 #%% Write to S3 and DB
 
-    # write table to DB
+#     write table to DB
     scoring_data = scoring_data.replace('None', '')
     try:
-        _multipartupload_data(scoring_data, file_name, s3,
-                                       cont_write_final, cur, conn)
+        _multipartupload_data(scoring_data, file_name,
+                              cont=cont_write_final, cur=cur, conn=conn)
         conn.close()
     except:
         raise IOError("Cannot write to S3 or DB")
 
-    _logger("Data in S3 and DB")
+    _logger("Data in S3 and DB!")
+    _logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
-    return "success!"
+    return "Success!"
 
 #%%
 def _logger(message, info=True):
@@ -862,7 +866,7 @@ def _subset_data(data, neutral_data):
     data.activity_id = data.activity_id[data.activity_id == 1]
     
     return data
-##%%
+#%%
 #def _write_table_s3(data_table, file_name, s3, cont):
 #    """write final table to s3
 #    """
@@ -885,7 +889,7 @@ def _subset_data(data, neutral_data):
 #            del movement_data_pd
 #    else:
 #        del fileobj
-##%%
+#%%
 #def _write_table_db(movement_data, cur, conn):
 #    """Update the movement table with all the scores
 #    Args:
@@ -983,8 +987,7 @@ def _record_magn(data, file_name, S3):
                             minimum_h, maximum_h, minimum_rf, maximum_rf))
 
 
-def _multipartupload_data(data_table, file_name_s3, s3,
-                          cont, cur, conn, DB=True):
+def _multipartupload_data(data_table, file_name_s3, cont, cur, conn, DB=True):
 
     # Create a multipart upload request
     s3 = boto3.client('s3')
@@ -999,39 +1002,70 @@ def _multipartupload_data(data_table, file_name_s3, s3,
     
     # Initialize counter to the count number of parts uploaded in the loop below
     counter = 0
+#    part = s3.upload_part(Bucket=cont, Key=file_name_s3, PartNumber=counter,
+#                          UploadId=mp['UploadId'], Body=str(column_session_out).strip('[]'))    
+#    Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
+
     # Send the file parts, using FileChunkIO to create a file-like object
     for i in islice(count(), 0, number_of_rows,  rows_set_size):
         counter = counter + 1
-        movement_data_subset = data_table.iloc[i:i+rows_set_size]
-        _logger('length of subset: '+str(len(movement_data_subset)))
-        fileobj = cStringIO.StringIO()
+        data_subset = data_table.iloc[i:i+rows_set_size]
+        _logger('length of subset: '+str(len(data_subset)))
         if counter == 1:
-            movement_data_subset.to_csv(fileobj, index=False, header=False,
-                                        na_rep='', columns=COLUMN_SESSION_OUT)
+            if DB:
+                fileobj = cStringIO.StringIO()
+                data_subset.to_csv(fileobj, index=False, na_rep='',
+                                   header=False, columns=COLUMN_SESSION_OUT)
+                fileobj.seek(0)
+                cur.copy_from(file=fileobj, table='movement', sep=',', null='',
+                              columns=COLUMN_SESSION_OUT)
+                conn.commit()
+                del fileobj
+                fileobj = cStringIO.StringIO()
+                data_subset.to_csv(fileobj, index=False, na_rep='',
+                                   columns=COLUMN_SESSION_OUT)
+                del data_subset
+                fileobj.seek(0)
+                part = s3.upload_part(Bucket=cont, Key=file_name_s3,
+                                      PartNumber=counter,
+                                      UploadId=mp['UploadId'], Body=fileobj)
+                Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
+                del fileobj
+            else:
+                fileobj = cStringIO.StringIO()
+                data_subset.to_csv(fileobj, index=False, na_rep='',
+                               columns=COLUMN_SESSION_OUT)
+                del data_subset
+                fileobj.seek(0)
+                part = s3.upload_part(Bucket=cont, Key=file_name_s3,
+                                      PartNumber=counter,
+                                      UploadId=mp['UploadId'], Body=fileobj)
+                Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
+                del fileobj
         else:
-            movement_data_subset.to_csv(fileobj, index=False, header=False,
+            fileobj = cStringIO.StringIO()
+            data_subset.to_csv(fileobj, index=False, header=False,
                                         na_rep='', columns=COLUMN_SESSION_OUT)
-        del movement_data_subset
-        if DB:
+            del data_subset
+            if DB:
+                fileobj.seek(0)
+                cur.copy_from(file=fileobj, table='movement', sep=',', null='',
+                              columns=COLUMN_SESSION_OUT)
+                conn.commit()
             fileobj.seek(0)
-            cur.copy_from(file=fileobj, table='movement', sep=',', null='',
-                          columns=COLUMN_SESSION_OUT)
-            conn.commit()
-        fileobj.seek(0)
-        part = s3.upload_part(Bucket=cont, Key=file_name_s3, PartNumber=counter,
-                              UploadId=mp['UploadId'], Body=fileobj)
-        if counter == 1:
-            Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
-        else:
+            part = s3.upload_part(Bucket=cont, Key=file_name_s3,
+                                  PartNumber=counter,
+                                  UploadId=mp['UploadId'], Body=fileobj)
             Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
-        del fileobj
-        _logger(str(counter)+ ': this is the counter')
+            del fileobj
+        _logger('Completed uploading part: '+str(counter))
     part_info = {'Parts': Parts}
-    s3.complete_multipart_upload(Bucket=cont, Key=file_name_s3, UploadId=mp['UploadId'],
+    s3.complete_multipart_upload(Bucket=cont, Key=file_name_s3,
+                                 UploadId=mp['UploadId'],
                                  MultipartUpload=part_info)
 
 #%%
 if __name__ == "__main__":
-    sensor_data = 'C:\\Users\\dipesh\\Desktop\\biometrix\\aws\\bdb02f8d-e51a-4ad5-9f04-8f4a60591bcc.csv'
-    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
+    sensor_data = 'C:\\Users\\dipesh\\Desktop\\biometrix\\aws\\c4ed8189-6e1d-47c3-9cc5-446329b10796'
+    file_name = 'd64a248d-9c95-4dbc-a89d-47a630a90ed9'
     result = run_session(sensor_data, file_name, aws=False)
