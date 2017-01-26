@@ -62,6 +62,7 @@ def prepare_data(data, train=True):
     if train:
         data_pd['total_load'] = np.array(data.LFz) + np.array(data.RFz)
         Y = data_pd['total_load'].values
+        del data_pd  # not used in further computations
         if missing_data:
             Y = np.delete(Y, (nan_row), axis=0)
         return X, Y
