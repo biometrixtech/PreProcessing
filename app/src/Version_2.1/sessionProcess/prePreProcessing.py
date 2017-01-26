@@ -94,6 +94,7 @@ def calc_quaternions(quat_array, indicator_col, corrupt_magn):
                                                                 # quaternion
     q_w = np.sqrt(1 - qi_calc_qw - qj_calc_qw - qk_calc_qw)  # real quaternion
 
+    del quat_array
     # check if NaN exists in the real quaternion array
     indicator_col = indicator_col.reshape(-1,)
     if len(indicator_col) == len(corrupt_magn) == len(q_w):
