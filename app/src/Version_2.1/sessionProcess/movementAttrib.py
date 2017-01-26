@@ -73,51 +73,62 @@ def plane_analysis(hip_acc, hip_eul, ms_elapsed):
     """
     
     # create storage for variables
-    lat = np.empty((len(hip_acc), 1))
-    vert = np.empty((len(hip_acc), 1))
-    horz = np.empty((len(hip_acc), 1))
+    len_hip_acc = len(hip_acc)
+    sampling_rate = 1000/ms_elapsed
+    del ms_elapsed  # not used in further computations
+    lat = np.empty((len_hip_acc, 1))
+    vert = np.empty((len_hip_acc, 1))
+    horz = np.empty((len_hip_acc, 1))
     _ang_vel = np.zeros_like(hip_eul)
     _ang_acc = np.zeros_like(hip_eul)
     _rot_mag = np.zeros((len(hip_eul), 1))
     rot = np.empty((len(hip_eul), 1))
-    lat_binary = np.zeros((len(hip_acc), 1))
-    vert_binary = np.zeros((len(hip_acc), 1))
-    horz_binary = np.zeros((len(hip_acc), 1))
-    rot_binary = np.zeros((len(hip_acc), 1))
-    stationary_binary = np.zeros((len(hip_acc), 1))
+    lat_binary = np.zeros((len_hip_acc, 1))
+    vert_binary = np.zeros((len_hip_acc, 1))
+    horz_binary = np.zeros((len_hip_acc, 1))
+    rot_binary = np.zeros((len_hip_acc, 1))
+    stationary_binary = np.zeros((len_hip_acc, 1))
     
     # define 'radius' of body to relate angular acceleration to linear accel
     RADIUS = 0.1524 # 6 inches conv. to meters
     
     # find magnitude of linear acceleration
-    accel_mag = total_accel(hip_acc).reshape((len(hip_acc), 1))
+    accel_mag = total_accel(hip_acc).reshape((len_hip_acc, 1))
     
     # calculate angular velocity
     _pos_diff = np.vstack((np.array([[0, 0, 0]]), np.diff(hip_eul, axis=0)))
+    del hip_eul  # not used in further computations
     _pos_diff = np.nan_to_num(_pos_diff)
-    _ang_vel = _pos_diff*(1000/ms_elapsed)
+    _ang_vel = _pos_diff*sampling_rate
+    del _pos_diff  # not used in further computations
     _ang_vel = np.nan_to_num(_ang_vel)
         
     # calculate angular acceleration
     _vel_diff = np.vstack((np.array([[0, 0, 0]]), np.diff(_ang_vel, axis=0)))
+    del _ang_vel  # not used in further computations
     _vel_diff = np.nan_to_num(_vel_diff)
-    _ang_acc = _vel_diff*(1000/ms_elapsed)
+    _ang_acc = _vel_diff*sampling_rate
+    del _vel_diff  # not used in further computations
     _ang_acc = np.nan_to_num(_ang_acc)
 
     # calculate magnitude of angular acceleration
     _rot_mag = np.sqrt(_ang_acc[:, 0]**2 + _ang_acc[:, 1]**2 +
                _ang_acc[:, 2]**2)
+    del _ang_acc  # not used in further computations
         
     # relate angular acceleration to tangential linear acceleration
     rot = RADIUS/_rot_mag
     rot[(_rot_mag==0)] = 0.0
+    del _rot_mag  # not used in further computations
     rot = rot.reshape(-1, 1)
 
     # Characterize proportion of motion of each type
     motion_proportion = hip_acc/accel_mag
+    del hip_acc  # not used in further computations
     lat = motion_proportion[:, 0].reshape(-1, 1)
     vert = motion_proportion[:, 1].reshape(-1, 1)
     horz = motion_proportion[:, 2].reshape(-1, 1)
+    del motion_proportion  # not used in further computations
 
     # give binaries value according to instantaneous percentages of each
         # plane of motion
@@ -152,6 +163,7 @@ def standing_or_not(hip_eul, hz):
 
     # make copy of relevant data
     hip_y = np.copy(hip_eul)
+    del hip_eul  # not used in further computations
     hip_y = hip_y[:,1][:].reshape(-1, 1)
 
     # set threshold for standing
@@ -167,10 +179,12 @@ def standing_or_not(hip_eul, hz):
 
     # isolate periods of standing which are significant in length, then mark=2
     sig_diff_1s = one_indices[np.where(diff_1s>_standing_win), :]
+    del one_indices, diff_1s  # not used in further computations
     sig_diff_1s = sig_diff_1s.reshape(len(sig_diff_1s[0]), 2)
 
     for i in range(len(sig_diff_1s)):
         hip_y[sig_diff_1s[i][0]:sig_diff_1s[i][1]] = 2
+    del sig_diff_1s  # not used in further computations
 
     # reset binary array to only record periods of significant standing
     hip_y[np.where(hip_y != 2)] = 0
@@ -181,12 +195,14 @@ def standing_or_not(hip_eul, hz):
     diff_0s = zero_indices[:, 1] - zero_indices[:, 0]
 
     sig_diff_0s = zero_indices[np.where(diff_0s<4*_standing_win), :]
+    del zero_indices, diff_0s  # not used in further computations
     sig_diff_0s = sig_diff_0s.reshape(len(sig_diff_0s[0]), 2)
 
     for i in range(len(sig_diff_0s)):
         hip_y[sig_diff_0s[i][0]:sig_diff_0s[i][1]] = 1
 
     standing = hip_y
+    del sig_diff_0s, hip_y  # not used in further computations
     
     # define not_standing as the points in time where subject is not standing
     not_standing = [1]*len(standing)
@@ -223,16 +239,23 @@ def double_or_single_leg(lf_ph, rf_ph, stand, hz):
     rf_phase = np.copy(rf_ph.reshape(-1,))
     standing = np.copy(stand.reshape(-1,))
     
+    # delete variables that are not being used in further computations
+    del lf_ph, rf_ph, stand
+    
     # isolate only phases for acceleration measured standing
     _lf_phase_iso_stand = (lf_phase + 1)*standing
     _lf_phase_iso_stand = _lf_phase_iso_stand.astype(int) - 1
     _rf_phase_iso_stand = (rf_phase + 1)*standing
     _rf_phase_iso_stand = _rf_phase_iso_stand.astype(int) - 1
+    del _rf_phase_iso_stand  # not used in further computations
     
     # create storage for variables
     double_leg = np.zeros((len(lf_phase), 1))
     single_leg = np.zeros((len(lf_phase), 1))
     feet_eliminated = np.zeros((len(lf_phase), 1))
+    
+    # delete variables that are not being used in further computations
+    del lf_phase, rf_phase
     
     # define window to be classified as particular stance
     _double_win = int(0.5 * hz)
@@ -245,22 +268,27 @@ def double_or_single_leg(lf_ph, rf_ph, stand, hz):
     # isolate periods of phase = 0 which are significant in length, save as
         # double leg standing
     sig_diff_0s = zero_indices[np.where(diff_0s>_double_win), :]
+    del zero_indices, diff_0s  # not used in further computations
     sig_diff_0s = sig_diff_0s.reshape(len(sig_diff_0s[0]), 2)
 
     for i in range(len(sig_diff_0s)):
         double_leg[sig_diff_0s[i][0]:sig_diff_0s[i][1]] = 1
+    del sig_diff_0s  # not used in further computations
 
     # find lengths of stretches where phase = 3 is true
     three_indices = _num_runs(_lf_phase_iso_stand, 3)
+    del _lf_phase_iso_stand  # not used in further computations
     diff_3s = three_indices[:, 1] - three_indices[:, 0]
 
     # isolate periods of phase = 0 which are significant in length, save as
         # feet eliminated
     sig_diff_3s = three_indices[np.where(diff_3s>_feet_elim_win), :]
+    del three_indices, diff_3s  # not used in further computations
     sig_diff_3s = sig_diff_3s.reshape(len(sig_diff_3s[0]), 2)
 
     for i in range(len(sig_diff_3s)):
         feet_eliminated[sig_diff_3s[i][0]:sig_diff_3s[i][1]] = 1
+    del sig_diff_3s  # not used in further computations
 
     # where double leg standing and feet_eliminated are false, assume
         # single leg standing
@@ -295,6 +323,9 @@ def stationary_or_dynamic(lf_ph, rf_ph, sing_leg, hz):
     rf_phase = np.copy(rf_ph.reshape(-1,))
     single_leg = np.copy(sing_leg.reshape(-1,))
     
+    # delete variables that are not being used in further computations
+    del lf_ph, rf_ph, sing_leg
+    
     # isolate only phases for single leg standing
     _lf_phase_iso_sing = (lf_phase + 1)*single_leg
     _lf_phase_iso_sing = _lf_phase_iso_sing.astype(int) - 1
@@ -304,6 +335,9 @@ def stationary_or_dynamic(lf_ph, rf_ph, sing_leg, hz):
     # create storage for variables
     stationary = np.zeros((len(lf_phase), 1))
     dynamic = np.ones((len(lf_phase), 1))
+    
+    # delete variables that are not being used in further computations
+    del lf_phase, rf_phase, _rf_phase_iso_sing
     
     # define minimum window for "standing still"
     _stationary_win=int(0.75 * hz)
@@ -315,10 +349,12 @@ def stationary_or_dynamic(lf_ph, rf_ph, sing_leg, hz):
     # isolate periods of right foot single leg standing which are significant
         # in length, save as stationary
     sig_diff_1s = one_indices[np.where(diff_1s>_stationary_win), :]
+    del one_indices, diff_1s  # not used in further computations
     sig_diff_1s = sig_diff_1s.reshape(len(sig_diff_1s[0]), 2)
 
     for i in range(len(sig_diff_1s)):
         stationary[sig_diff_1s[i][0]:sig_diff_1s[i][1]] = 1
+    del sig_diff_1s  # not used in further computations
 
     # find lengths of stretches where left foot single leg standing is true
     two_indices = _num_runs(_lf_phase_iso_sing, 2)
@@ -327,15 +363,17 @@ def stationary_or_dynamic(lf_ph, rf_ph, sing_leg, hz):
     # isolate periods of left foot single leg standing which are significant
         # in length, save as stationary
     sig_diff_2s = two_indices[np.where(diff_2s>_stationary_win), :]
+    del two_indices, diff_2s  # not used in further computations
     sig_diff_2s = sig_diff_2s.reshape(len(sig_diff_2s[0]), 2)
 
     for i in range(len(sig_diff_2s)):
         stationary[sig_diff_2s[i][0]:sig_diff_2s[i][1]] = 1
+    del sig_diff_2s  # not used in further computations
 
     # dynamic single leg stance is false where stationary is true or single
         # leg standing is false
     dynamic[(stationary==1)] = 0
-    dynamic[(sing_leg==0)] = 0
+    dynamic[(single_leg==0)] = 0
 
     return stationary, dynamic.reshape(-1, 1) # singleLegStat and singleLegDyn
 
@@ -369,7 +407,9 @@ def _num_runs(arr, num):
     # Create an array that is 1 where a=num, and pad each end with an extra 0.
     
     iszero = np.concatenate(([0], np.equal(arr.reshape(-1,), num), [0]))
+    del arr, num  # not used in further computations
     absdiff = np.abs(np.diff(iszero))
+    del iszero  # not used in further computations
 
     # Runs start and end where absdiff is 1.
     ranges = np.where(absdiff == 1)[0].reshape(-1, 2)

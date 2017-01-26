@@ -53,6 +53,10 @@ def quat_to_euler(q):
     phi = np.arctan2(d, e)
     theta = -np.arcsin(c)
     psi = np.arctan2(b, a)
+    
+    # delete variables that are not used further in computations
+    del a, b, d, e    
+    
     if any(c > .999999999):
         q1 = q[c > .999999999]
         psi[c > .999999999] = 0
@@ -101,6 +105,8 @@ def euler_to_quat(euler_data):
     psi = euler_data[:, 0]
     theta = euler_data[:, 1]
     phi = euler_data[:, 2]
+    del euler_data  # not used in further computations
+    
     # calculate intermediate values with Euler angle
     a = np.cos(phi)*np.cos(theta)
     b = -np.sin(phi)*np.cos(psi)+np.cos(phi)*np.sin(theta)*np.sin(psi)
@@ -111,6 +117,9 @@ def euler_to_quat(euler_data):
     g = -np.sin(theta)
     h = np.cos(theta)*np.sin(psi)
     k = np.cos(theta)*np.cos(psi)
+    
+    # delete variables that are not used in further computations
+    del psi, theta, phi
 
     # use intermediate values to calculate elements of quaternion matrix
     A = (a-e-k)/3
@@ -129,6 +138,9 @@ def euler_to_quat(euler_data):
     N = (g-c)/3
     O = (b-d)/3
     P = (a+e+k)/3
+    
+    # delete variables that are not used in further computations
+    del a, b, c, d, e, f, g, h, k
 
     # construct the quaternion matrix
     Q = np.array([[A, B, C, D],
@@ -136,11 +148,15 @@ def euler_to_quat(euler_data):
                   [I, J, K, L],
                   [M, N, O, P]])
     Q = Q.swapaxes(0, 2)
+    
+    # delete variables that are not used in further computations
+    del A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P
 
     # find the maximum eigenvalue of the quaternion matrix
     [D, V] = np.linalg.eig(Q)
 
     max_eig = np.argmax(D, 1)
+    del D, Q
     # find the eigenvector containing the largest eigenvalue and extract the
         # quaternion from its components.
     q = np.zeros((len(max_eig), 4))
