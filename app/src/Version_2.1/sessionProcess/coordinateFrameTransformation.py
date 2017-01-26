@@ -60,11 +60,15 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     rf_acc = np.hstack([data.RaX, data.RaY, data.RaZ]).reshape(-1, 3)
     epoch_time = np.array(data.epoch_time).reshape(-1, 1)
     
+    del data  # not used in further computations
     
     # normalize sensor quaternion data
     hip_quat = qo.quat_norm(hip_quat_db)
+    del hip_quat_db  # not used in further computations
     lf_quat = qo.quat_norm(lf_quat_db)
+    del lf_quat_db  # not used in further computations
     rf_quat = qo.quat_norm(rf_quat_db)
+    del rf_quat_db  # not used in further computations
 
     length = len(hip_quat)
 
@@ -91,6 +95,9 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
             at.acceleration_transform(hip_quat, lf_quat, rf_quat, hip_acc,
                                       lf_acc, rf_acc, hip_bf_eul, lf_bf_eul,
                                       rf_bf_eul)
+                                      
+    # delete variables that are not used in further computations
+    del lf_quat, rf_quat, hip_acc, lf_acc, rf_acc                              
     
     # convert body frame quaternions to respective "neutral" orientations
     #for comparison in balanceCME, operated through runAnalytics
@@ -113,14 +120,20 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
 
     # calculate adjusted sensor frame
     hip_asf = qo.quat_prod(hip_quat, hip_asf_transform)
+    del hip_quat  # not used in further computations
 
     hip_aif_comp = qc.quat_to_euler(hip_asf)[:, 2].reshape(-1, 1)
+    del hip_asf  # not used in further computations
 
     # construct neutral hip data
     hip_neutral = np.hstack((hip_n_roll, hip_n_pitch, hip_aif_comp))
+    del hip_n_roll, hip_n_pitch, hip_aif_comp  # not used in further computations
     
     lf_neutral = np.hstack((lf_n_roll, lf_n_pitch, lf_n_yaw))
     rf_neutral = np.hstack((rf_n_roll, rf_n_pitch, rf_n_yaw))
+    
+    # delete variables that are not used in further computations
+    del lf_n_roll, lf_n_pitch, lf_n_yaw, rf_n_roll, rf_n_pitch, rf_n_yaw
 
     hip_neutral = qc.euler_to_quat(hip_neutral)
     lf_neutral = qc.euler_to_quat(lf_neutral)
@@ -128,33 +141,43 @@ def transform_data(data, hip_bf_transform, lf_bf_transform, rf_bf_transform,
     
     # consolidate transformed data
     epoch_time_pd = pd.DataFrame(epoch_time)
+    del epoch_time  # not used in further computations
+    
     lf_aif_acc_pd = pd.DataFrame(lf_aif_acc)
     lf_bf_eul_pd = pd.DataFrame(lf_bf_eul)
     lf_bf_quat_pd = pd.DataFrame(lf_bf_quat)
+    del lf_aif_acc, lf_bf_eul, lf_bf_quat  # not used in further computations
     
     hip_aif_acc_pd = pd.DataFrame(hip_aif_acc)
     hip_bf_eul_pd = pd.DataFrame(hip_bf_eul)
     hip_bf_quat_pd = pd.DataFrame(hip_bf_quat)
+    del hip_aif_acc, hip_bf_eul, hip_bf_quat  # not used in further computations
 
     rf_aif_acc_pd = pd.DataFrame(rf_aif_acc)
     rf_bf_eul_pd = pd.DataFrame(rf_bf_eul)
     rf_bf_quat_pd = pd.DataFrame(rf_bf_quat)
+    del rf_aif_acc, rf_bf_eul, rf_bf_quat  # not used in further computations
     
     frames_transformed = [epoch_time_pd, lf_aif_acc_pd, lf_bf_eul_pd,
                           lf_bf_quat_pd, hip_aif_acc_pd, hip_bf_eul_pd,
                           hip_bf_quat_pd, rf_aif_acc_pd, rf_bf_eul_pd,
                           rf_bf_quat_pd]
     transformed_pd = pd.concat(frames_transformed, axis=1)
+    del frames_transformed  # not used in further computations
     transformed_data = transformed_pd.values
+    del transformed_pd  # not used in further computations
     
     # consolidate neutral data
     lf_neutral_pd = pd.DataFrame(lf_neutral)
     hip_neutral_pd = pd.DataFrame(hip_neutral)
     rf_neutral_pd = pd.DataFrame(rf_neutral)
+    del lf_neutral, hip_neutral, rf_neutral  # not used in further computations
     
     frames_neutral = [lf_neutral_pd, hip_neutral_pd, rf_neutral_pd]
     neutral_pd = pd.concat(frames_neutral, axis=1)
+    del frames_neutral  # not used in further computations
     neutral_data = neutral_pd.values
+    del neutral_pd  # values are assigned ot neutral_data, deleting copy
     
     return transformed_data, neutral_data
 
