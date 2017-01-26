@@ -88,7 +88,12 @@ def run_session(sensor_data, file_name, aws=True):
         ids_from_db = _read_ids(cur, file_name)
     except IndexError:
         return "Fail!"
+    team_id = ids_from_db[4]
+    user_id = ids_from_db[2]
+    team_regimen_id = ids_from_db[3]
+    training_session_log_id = ids_from_db[1]
     session_event_id = ids_from_db[0]
+    session_type = ids_from_db[5]
 
     # read sensor data as ndarray
     try:
@@ -126,7 +131,6 @@ def run_session(sensor_data, file_name, aws=True):
 #    data = sdata.view(np.recarray)
     data = cp.handle_processed(data)
 #    data = _add_rawdata(data)
-    user_id = ids_from_db[2]
     try:
         cur.execute(queries.quer_read_mass, (user_id,))
         mass = cur.fetchall()[0][0]
@@ -265,18 +269,25 @@ def run_session(sensor_data, file_name, aws=True):
 #                                       len(data.LaX)).reshape(-1, 1)
 #
 #    _logger('DONE WITH IAD!')
-##%%
+#%%
+    attrib_del = ['columns', 'corrupt_magn', 'corrupt_magn_h',
+                  'corrupt_magn_lf', 'corrupt_magn_rf', 'epoch_time_h',
+                  'epoch_time_lf', 'epoch_time_rf', 'missing_data_indicator']
+#    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    for attrib in attrib_del:
+        del data.__dict__[attrib]
 #    # save sensor data before subsetting
 ##    sensor_data = ct.create_sensor_data(len(data.LaX), data)
 #    # Define attributes to be stored
-#    data_pd = pd.DataFrame(data={'team_id': data.team_id.reshape(-1,),
-#                                 'user_id': data.user_id.reshape(-1,),
-#                                 'team_regimen_id': data.team_regimen_id.reshape(-1,),
-#                                 'block_id': data.block_id.reshape(-1,),
-#                                 'block_event_id': data.block_event_id.reshape(-1,),
-#                                 'training_session_log_id': data.training_session_log_id.reshape(-1,),
-#                                 'session_event_id': data.session_event_id.reshape(-1,),
-#                                 'session_type': data.session_type.reshape(-1,),
+#    length = len(data.LaX)
+#    data_pd = pd.DataFrame(data={'team_id': np.array([team_id]*length),
+#                                 'user_id': np.array([user_id]*length),
+#                                 'team_regimen_id': np.array([team_regimen_id]*length),
+#                                 'block_id': np.array(['']*length),
+#                                 'block_event_id': np.array(['']*length),
+#                                 'training_session_log_id': np.array([training_session_log_id]*length),
+#                                 'session_event_id': np.array([session_event_id]*length),
+#                                 'session_type': np.array([session_type]*length),
 #                                 'obs_index': data.obs_master_index.reshape(-1,),
 #                                 'obs_master_index': data.obs_master_index.reshape(-1,),
 #                                 'time_stamp': data.time_stamp.reshape(-1,),
@@ -284,7 +295,7 @@ def run_session(sensor_data, file_name, aws=True):
 #                                 'ms_elapsed': data.ms_elapsed.reshape(-1,),
 #                                 'phase_lf': data.phase_lf.reshape(-1,),
 #                                 'phase_rf': data.phase_rf.reshape(-1,),
-#                                 'activity_id': data.activity_id.reshape(-1,),
+#                                 'activity_id': np.array(['']*length),
 #                                 'LaX': data.LaX.reshape(-1,),
 #                                 'LaY': data.LaY.reshape(-1,),
 #                                 'LaZ': data.LaZ.reshape(-1,),
@@ -305,49 +316,25 @@ def run_session(sensor_data, file_name, aws=True):
 #                                 'RqW': data.RqW.reshape(-1,),
 #                                 'RqX': data.RqX.reshape(-1,),
 #                                 'RqY': data.RqY.reshape(-1,),
-#                                 'RqZ': data.RqZ.reshape(-1,),
-#                                 'raw_LaX': data.raw_LaX.reshape(-1,),
-#                                 'raw_LaY': data.raw_LaY.reshape(-1,),
-#                                 'raw_LaZ': data.raw_LaZ.reshape(-1,),
-#                                 'raw_LqX': data.raw_LqX.reshape(-1,),
-#                                 'raw_LqY': data.raw_LqY.reshape(-1,),
-#                                 'raw_LqZ': data.raw_LqZ.reshape(-1,),
-#                                 'raw_HaX': data.raw_HaX.reshape(-1,),
-#                                 'raw_HaY': data.raw_HaY.reshape(-1,),
-#                                 'raw_HaZ': data.raw_HaZ.reshape(-1,),
-#                                 'raw_HqX': data.raw_HqX.reshape(-1,),
-#                                 'raw_HqY': data.raw_HqY.reshape(-1,),
-#                                 'raw_HqZ': data.raw_HqZ.reshape(-1,),
-#                                 'raw_RaX': data.raw_RaX.reshape(-1,),
-#                                 'raw_RaY': data.raw_RaY.reshape(-1,),
-#                                 'raw_RaZ': data.raw_RaZ.reshape(-1,),
-#                                 'raw_RqX': data.raw_RqX.reshape(-1,),
-#                                 'raw_RqY': data.raw_RqY.reshape(-1,),
-#                                 'raw_RqZ': data.raw_RqZ.reshape(-1,)})
+#                                 'RqZ': data.RqZ.reshape(-1,)})
 #
-#    _logger("data table created")
-##%%
-##    data_pd = pd.DataFrame(sensor_data)
-#    _logger("converted to pandas")
-##    del sensor_data
-#    try:
-#        fileobj = cStringIO.StringIO()
-#        _logger("fileobj created")
-#        data_pd.to_csv(fileobj, index=False, compression='gzip')
-#        _logger(sys.getsizeof(fileobj))
-#        del data_pd
-#        fileobj.seek(0)
-#        s3.Bucket(cont_write).put_object(Key='processed_'+file_name, Body=fileobj)
-#        del fileobj
-#    except boto3.exceptions as error:
-#        if AWS:
-#            _logger("Cannot write table to s3", info=False)
-#            raise error
-#        else:
-#            _logger("Cannot write file to s3 writing locally!")
-##
-##    _write_table_s3(sensor_data, 'processed_'+file_name, s3, cont_write)
+#    attrib = ['raw_LaX', 'raw_LaY', 'raw_LaZ', 'raw_LqX', 'raw_LqY', 'raw_LqZ',
+#              'raw_HaX', 'raw_HaY', 'raw_HaZ', 'raw_HqX', 'raw_HqY', 'raw_HqZ',
+#              'raw_RaX', 'raw_RaY', 'raw_RaZ', 'raw_RqX', 'raw_RqY', 'raw_RqZ']
+#
+#    for var in attrib:
+#        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )},
+#                                   index=data_pd.index)
+#        frames = [data_pd, frame]
+#        data_pd = pd.concat(frames, axis=1)
+#        del frame, frames, data.__dict__[var]
+#
+#    _logger("Raw sensor data table created")
+#%%
+#    _multipartupload_data(data_pd, "processed_"+file_name, s3,
+#                          cont=cont_write, cur=cur, conn=conn, DB=False)    
 #    _logger("Raw data written to s3")
+#    del data_pd
 #    data = _subset_data(data, neutral_data)
 #    _logger('DONE SUBSETTING DATA FOR ACTIVITY ID = 1!')
 
@@ -485,10 +472,12 @@ def run_session(sensor_data, file_name, aws=True):
     _logger('DONE WITH RATE OF FORCE ABSORPTION!')
 #%%
     # combine into movement data table
-    data = _add_ids(data, ids_from_db)
+#    data = _add_ids(data, ids_from_db)
     length = len(data.LaX)
+
     setattr(data, 'exercise_weight', np.array(['']*length).reshape(-1, 1))
     setattr(data, 'activity_id', np.array(['']*length).reshape(-1, 1))
+    data.corrupt_type = data.corrupt_type.astype(int)
     data.missing_type_lf = data.missing_type_lf.astype(int)
     data.missing_type_h = data.missing_type_h.astype(int)
     data.missing_type_rf = data.missing_type_rf.astype(int)
@@ -505,23 +494,15 @@ def run_session(sensor_data, file_name, aws=True):
     data.stationary_binary = data.stationary_binary.astype(int)
 #    N = len(data.LaX)
 #    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    scoring_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
-                                      'user_id': data.user_id.reshape(-1, ),
-                                      'team_regimen_id': data.team_regimen_id.reshape(-1, ),
-                                      'training_session_log_id': data.training_session_log_id.reshape(-1, ),
-                                      'session_event_id': data.session_event_id.reshape(-1, ),
-                                      'session_type': data.session_type.reshape(-1, ),
-                                      'corrupt_type': data.corrupt_type.reshape(-1, ).astype(int)})
-    attrib_del = ['team_id', 'user_id', 'team_regimen_id', 'block_id', 'block_event_id', 'training_session_log_id',
-                  'session_event_id', 'session_type', 'exercise_id', 'corrupt_type', 'columns', 'corrupt_magn',
-                  'corrupt_magn_h', 'corrupt_magn_lf', 'corrupt_magn_rf', 'epoch_time_h', 'epoch_time_lf',
-                  'epoch_time_rf', 'missing_data_indicator']
-#    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    for attrib in attrib_del:
-        del data.__dict__[attrib]
-    _logger("completed first frame")
+    scoring_data = pd.DataFrame(data={'team_id': np.array([team_id]*length),
+                                      'user_id': np.array([user_id]*length),
+                                      'team_regimen_id': np.array([team_regimen_id]*length),
+                                      'training_session_log_id': np.array([training_session_log_id]*length),
+                                      'session_event_id': np.array([session_event_id]*length),
+                                      'session_type': np.array([session_type]*length)})
+#    _logger("completed first frame")
     gc.collect()
-    for var in COLUMN_SESSION_OUT[7:]:
+    for var in COLUMN_SESSION_OUT[6:]:
         frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=scoring_data.index)
         frames = [scoring_data, frame]
         scoring_data = pd.concat(frames, axis=1)
@@ -529,17 +510,18 @@ def run_session(sensor_data, file_name, aws=True):
     del data
     _logger("Table Created")
 
+#%% Write to S3 and DB
 
     # write table to DB
     scoring_data = scoring_data.replace('None', '')
+    try:
+        _multipartupload_data(scoring_data, file_name, s3,
+                                       cont_write_final, cur, conn)
+        conn.close()
+    except:
+        raise IOError("Cannot write to S3 or DB")
 
-    _multipartupload_movement_data(scoring_data, file_name, s3, cont_write_final, cur, conn)
-    conn.close()
-
-    _logger("Data in S3")
-#    result = _write_table_db(movement_data, cur, conn)
-
-    _logger('Done with everything!')
+    _logger("Data in S3 and DB")
 
     return "success!"
 
@@ -691,32 +673,32 @@ def _read_offsets(cur, session_event_id):
     return offsets_read
 
 #%%
-def _add_ids(data, ids):
-    # retrieve ids
-    session_event_id = ids[0]
-    training_session_log_id = ids[1]
-    user_id = ids[2]
-    team_regimen_id = ids[3]
-    team_id = ids[4]
-    session_type = ids[5]
-    # set ID information
-#    dummy_uuid = '00000000-0000-0000-0000-000000000000'
-    length = len(data.LaX)
-    setattr(data, 'team_id', np.array([team_id]*length).reshape(-1, 1))
-    setattr(data, 'user_id', np.array([user_id]*length).reshape(-1, 1))
-    setattr(data, 'team_regimen_id',
-            np.array([team_regimen_id]*length).reshape(-1, 1))
-    setattr(data, 'block_id', np.array(['None']*length).reshape(-1, 1))
-    setattr(data, 'block_event_id',
-            np.array(['None']*length).reshape(-1, 1))
-    setattr(data, 'training_session_log_id',
-            np.array([training_session_log_id]*length).reshape(-1, 1))
-    setattr(data, 'session_event_id',
-            np.array([session_event_id]*length).reshape(-1, 1))
-    setattr(data, 'session_type',
-            np.array([session_type]*length).reshape(-1, 1))
-    setattr(data, 'exercise_id', np.array(['None']*length).reshape(-1, 1))
-    return data
+#def _add_ids(data, ids):
+#    # retrieve ids
+#    session_event_id = ids[0]
+#    training_session_log_id = ids[1]
+#    user_id = ids[2]
+#    team_regimen_id = ids[3]
+#    team_id = ids[4]
+#    session_type = ids[5]
+#    # set ID information
+##    dummy_uuid = '00000000-0000-0000-0000-000000000000'
+#    length = len(data.LaX)
+#    setattr(data, 'team_id', np.array([team_id]*length).reshape(-1, 1))
+#    setattr(data, 'user_id', np.array([user_id]*length).reshape(-1, 1))
+#    setattr(data, 'team_regimen_id',
+#            np.array([team_regimen_id]*length).reshape(-1, 1))
+##    setattr(data, 'block_id', np.array(['None']*length).reshape(-1, 1))
+##    setattr(data, 'block_event_id',
+##            np.array(['None']*length).reshape(-1, 1))
+#    setattr(data, 'training_session_log_id',
+#            np.array([training_session_log_id]*length).reshape(-1, 1))
+#    setattr(data, 'session_event_id',
+#            np.array([session_event_id]*length).reshape(-1, 1))
+#    setattr(data, 'session_type',
+#            np.array([session_type]*length).reshape(-1, 1))
+##    setattr(data, 'exercise_id', np.array(['None']*length).reshape(-1, 1))
+#    return data
 
 #%% 
 def _add_rawdata(data):
@@ -757,6 +739,7 @@ def _real_quaternions(data):
     _lq_wxyz, corrupt_type_l =\
                     ppp.calc_quaternions(_lq_xyz, data.missing_data_indicator,
                                          data.corrupt_magn)
+    del _lq_xyz
     #check for type conversion error in left foot quaternion data
     if 2 in corrupt_type_l:
         _logger('Error! Type conversion error: LF quat', info=False)
@@ -764,24 +747,28 @@ def _real_quaternions(data):
     data.LqX = _lq_wxyz[:, 1].reshape(-1, 1)
     data.LqY = _lq_wxyz[:, 2].reshape(-1, 1)
     data.LqZ = _lq_wxyz[:, 3].reshape(-1, 1)
+    del _lq_wxyz
     # hip
     _hq_xyz = np.hstack([data.HqX, data.HqY, data.HqZ])
     _hq_wxyz, corrupt_type_h =\
                     ppp.calc_quaternions(_hq_xyz, data.missing_data_indicator,
                                          data.corrupt_magn)
     #check for type conversion error in hip quaternion data
+    del _hq_xyz
     if 2 in corrupt_type_h:
         _logger('Error! Type conversion error: Hip quat', info=False)
     setattr(data, 'HqW', _hq_wxyz[:, 0].reshape(-1, 1))
     data.HqX = _hq_wxyz[:, 1].reshape(-1, 1)
     data.HqY = _hq_wxyz[:, 2].reshape(-1, 1)
     data.HqZ = _hq_wxyz[:, 3].reshape(-1, 1)
+    del _hq_wxyz
     # right
     _rq_xyz = np.hstack([data.RqX, data.RqY, data.RqZ])
     _rq_wxyz, corrupt_type_r =\
                     ppp.calc_quaternions(_rq_xyz,
                                          data.missing_data_indicator,
                                          data.corrupt_magn)
+    del _rq_xyz
     #check for type conversion error in right foot quaternion data
     if 2 in corrupt_type_r:
         _logger('Error! Type conversion error: RF quat', info=False)
@@ -789,7 +776,9 @@ def _real_quaternions(data):
     data.RqX = _rq_wxyz[:, 1].reshape(-1, 1)
     data.RqY = _rq_wxyz[:, 2].reshape(-1, 1)
     data.RqZ = _rq_wxyz[:, 3].reshape(-1, 1)
+    del _rq_wxyz
     corrupt_types = np.hstack([corrupt_type_l, corrupt_type_h, corrupt_type_r])
+    del corrupt_type_l, corrupt_type_h, corrupt_type_r
     corrupt_type = np.max(corrupt_types, axis=1)
     setattr(data, 'corrupt_type', corrupt_type.reshape(-1, 1))
 
@@ -873,60 +862,60 @@ def _subset_data(data, neutral_data):
     data.activity_id = data.activity_id[data.activity_id == 1]
     
     return data
-#%%
-def _write_table_s3(data_table, file_name, s3, cont):
-    """write final table to s3
-    """
-    data_pd = pd.DataFrame(data_table)
-    del data_table
-    try:
-        fileobj = cStringIO.StringIO()
-        data_pd.to_csv(fileobj, index=False, compression='gzip')
-        _logger(sys.getsizeof(fileobj))
-        del data_pd
-        fileobj.seek(0)
-        s3.Bucket(cont).put_object(Key=file_name, Body=fileobj)
-    except boto3.exceptions as error:
-        if AWS:
-            _logger("Cannot write table to s3", info=False)
-            raise error
-        else:
-            print "Cannot write file to s3 writing locally!"
-            movement_data_pd.to_csv("scoring_" + file_name, index=False)
-            del movement_data_pd
-    else:
-        del fileobj
-#%%
-def _write_table_db(movement_data, cur, conn):
-    """Update the movement table with all the scores
-    Args:
-        movement_data: numpy recarray with complete data
-        cur: cursor pointing to the current db connection
-        conn: db connection
-    Returns:
-        result: string signifying success
-    """
-    movement_data_pd = pd.DataFrame(movement_data)
-    movement_data_pd = movement_data_pd.replace('None', 'NaN')
-    fileobj_db = cStringIO.StringIO()
-    try:
-        movement_data_pd.to_csv(fileobj_db, index=False, header=False,
-                                na_rep='NaN', columns=COLUMN_SESSION_OUT)
-        fileobj_db.seek(0)
-        cur.copy_from(file=fileobj_db, table='movement', sep=',', null='NaN',
-                      columns=COLUMN_SESSION_OUT)
-        conn.commit()
-        conn.close()
-    except Exception as error:
-        if AWS:
-            logger.warning("Cannot write movement data to DB!")
-            raise error
-        else:
-            print "Cannot write movement data to DB!"
+##%%
+#def _write_table_s3(data_table, file_name, s3, cont):
+#    """write final table to s3
+#    """
+#    data_pd = pd.DataFrame(data_table)
+#    del data_table
+#    try:
+#        fileobj = cStringIO.StringIO()
+#        data_pd.to_csv(fileobj, index=False, compression='gzip')
+#        _logger(sys.getsizeof(fileobj))
+#        del data_pd
+#        fileobj.seek(0)
+#        s3.Bucket(cont).put_object(Key=file_name, Body=fileobj)
+#    except boto3.exceptions as error:
+#        if AWS:
+#            _logger("Cannot write table to s3", info=False)
 #            raise error
-            return "Success!"
-    else:
-        return "Success!"
+#        else:
+#            print "Cannot write file to s3 writing locally!"
+#            movement_data_pd.to_csv("scoring_" + file_name, index=False)
+#            del movement_data_pd
+#    else:
+#        del fileobj
+##%%
+#def _write_table_db(movement_data, cur, conn):
+#    """Update the movement table with all the scores
+#    Args:
+#        movement_data: numpy recarray with complete data
+#        cur: cursor pointing to the current db connection
+#        conn: db connection
+#    Returns:
+#        result: string signifying success
+#    """
+#    movement_data_pd = pd.DataFrame(movement_data)
+#    movement_data_pd = movement_data_pd.replace('None', 'NaN')
+#    fileobj_db = cStringIO.StringIO()
+#    try:
+#        movement_data_pd.to_csv(fileobj_db, index=False, header=False,
+#                                na_rep='NaN', columns=COLUMN_SESSION_OUT)
+#        fileobj_db.seek(0)
+#        cur.copy_from(file=fileobj_db, table='movement', sep=',', null='NaN',
+#                      columns=COLUMN_SESSION_OUT)
+#        conn.commit()
+#        conn.close()
+#    except Exception as error:
+#        if AWS:
+#            logger.warning("Cannot write movement data to DB!")
+#            raise error
+#        else:
+#            print "Cannot write movement data to DB!"
+##            raise error
+#            return "Success!"
+#    else:
+#        return "Success!"
 
 def _record_magn(data, file_name, S3):
     import csv
@@ -994,27 +983,27 @@ def _record_magn(data, file_name, S3):
                             minimum_h, maximum_h, minimum_rf, maximum_rf))
 
 
-def _multipartupload_movement_data(movement_data, file_name_s3, s3, cont, cur, conn):
+def _multipartupload_data(data_table, file_name_s3, s3,
+                          cont, cur, conn, DB=True):
 
     # Create a multipart upload request
-    print 
     s3 = boto3.client('s3')
     mp = s3.create_multipart_upload(Bucket=cont, Key=file_name_s3)
     
     # Use only a set of columns each time to write to fileobj
-    rows_set_size = 30000  # number of rows durin each batch upload (change if needed)
-    number_of_rows = len(movement_data)
+    rows_set_size = 50000  # number of rows durin each batch upload (change if needed)
+    number_of_rows = len(data_table)
     rows_set_count = int(math.ceil(number_of_rows/float(rows_set_size)))
 #    _logger('number of parts to be uploaded' + str(rows_set_count))
-    _logger(str(rows_set_count)+ 'number of parts to be uploaded')
+    _logger('number of parts to be uploaded: '+ str(rows_set_count))
     
     # Initialize counter to the count number of parts uploaded in the loop below
     counter = 0
     # Send the file parts, using FileChunkIO to create a file-like object
     for i in islice(count(), 0, number_of_rows,  rows_set_size):
         counter = counter + 1
-        movement_data_subset = movement_data.iloc[i:i+rows_set_size]
-        print len(movement_data_subset), ': length of subset'
+        movement_data_subset = data_table.iloc[i:i+rows_set_size]
+        _logger('length of subset: '+str(len(movement_data_subset)))
         fileobj = cStringIO.StringIO()
         if counter == 1:
             movement_data_subset.to_csv(fileobj, index=False, header=False,
@@ -1023,10 +1012,11 @@ def _multipartupload_movement_data(movement_data, file_name_s3, s3, cont, cur, c
             movement_data_subset.to_csv(fileobj, index=False, header=False,
                                         na_rep='', columns=COLUMN_SESSION_OUT)
         del movement_data_subset
-        fileobj.seek(0)
-        cur.copy_from(file=fileobj, table='movement', sep=',', null='',
-                      columns=COLUMN_SESSION_OUT)
-        conn.commit()
+        if DB:
+            fileobj.seek(0)
+            cur.copy_from(file=fileobj, table='movement', sep=',', null='',
+                          columns=COLUMN_SESSION_OUT)
+            conn.commit()
         fileobj.seek(0)
         part = s3.upload_part(Bucket=cont, Key=file_name_s3, PartNumber=counter,
                               UploadId=mp['UploadId'], Body=fileobj)
@@ -1038,7 +1028,7 @@ def _multipartupload_movement_data(movement_data, file_name_s3, s3, cont, cur, c
         _logger(str(counter)+ ': this is the counter')
     part_info = {'Parts': Parts}
     s3.complete_multipart_upload(Bucket=cont, Key=file_name_s3, UploadId=mp['UploadId'],
-                                 MultipartUpload=part_info) 
+                                 MultipartUpload=part_info)
 
 #%%
 if __name__ == "__main__":

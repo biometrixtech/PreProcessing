@@ -22,10 +22,12 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras
 import boto3
+import math
+from itertools import islice, count
 
 from controlScore import control_score
 from scoring import score
-import createTables as ct
+#import createTables as ct
 import dataObject as do
 import scoringProcessQueries as queries
 from columnNames import column_scoring_out, column_session_out
@@ -123,15 +125,18 @@ def run_scoring(sensor_data, file_name, aws=True):
 #    movement_data = ct.create_movement_table(len(data.LaX), data)
     _logger("table created")
     del data
+    # write to s3 and db in parts
+    file_name = "movement_"+file_name
+    _multipartupload_data(movement_data, file_name, cont_write, cur, conn)
     # write to s3 container
-    _write_table_s3(movement_data, file_name, s3, cont_write)
-    _logger("DONE WRITING TO S3")
+#    _write_table_s3(movement_data, file_name, s3, cont_write)
+    _logger("DONE WRITING TO S3 and DB")
     # write table to DB
-    result = _write_table_db(movement_data, cur, conn)
-    _logger("DONE writing to DB")
+#    result = _write_table_db(movement_data, cur, conn)
+#    _logger("DONE writing to DB")
 
 #    return result
-    return result
+    return "Success!"
 
 
 def _connect_db_s3():
@@ -164,46 +169,46 @@ def _logger(message, info=True):
         print message
 
 
-def _write_table_db(movement_data, cur, conn):
-    """Update the movement table with all the scores
-    Args:
-        movement_data: numpy recarray with complete data
-        cur: cursor pointing to the current db connection
-        conn: db connection
-    Returns:
-        result: string signifying success
-    """
-    movement_data_pd = pd.DataFrame(movement_data)
-    movement_data_pd = movement_data_pd.replace('None', 'NaN')
-    fileobj_db = cStringIO.StringIO()
-    try:
-        # create a temporary table with the schema of movement table
-        cur.execute(queries.quer_create)
-        movement_data_pd.to_csv(fileobj_db, index=False, header=False,
-                                na_rep='NaN', columns=COLUMN_SCORING_OUT)
-        del movement_data_pd
-        # copy data to the empty temp table
-        fileobj_db.seek(0)
-        cur.copy_from(file=fileobj_db, table='temp_mov', sep=',', null='NaN',
-                      columns=COLUMN_SCORING_OUT)
-        del fileobj_db
-        # copy relevant columns from temp table to movement table
-        cur.execute(queries.quer_update)
-        conn.commit()
-        # drop temp table
-        cur.execute(queries.quer_drop)
-        conn.commit()
-        conn.close()
-    except Exception as error:
-        if AWS:
-            logger.warning("Cannot write movement data to DB!")
-            raise error
-        else:
-            print "Cannot write movement data to DB!"
-            return "Success!"
-    else:
-        return "Success!"
-
+#def _write_table_db(movement_data, cur, conn):
+#    """Update the movement table with all the scores
+#    Args:
+#        movement_data: numpy recarray with complete data
+#        cur: cursor pointing to the current db connection
+#        conn: db connection
+#    Returns:
+#        result: string signifying success
+#    """
+#    movement_data_pd = pd.DataFrame(movement_data)
+#    movement_data_pd = movement_data_pd.replace('None', 'NaN')
+#    fileobj_db = cStringIO.StringIO()
+#    try:
+#        # create a temporary table with the schema of movement table
+#        cur.execute(queries.quer_create)
+#        movement_data_pd.to_csv(fileobj_db, index=False, header=False,
+#                                na_rep='NaN', columns=COLUMN_SCORING_OUT)
+#        del movement_data_pd
+#        # copy data to the empty temp table
+#        fileobj_db.seek(0)
+#        cur.copy_from(file=fileobj_db, table='temp_mov', sep=',', null='NaN',
+#                      columns=COLUMN_SCORING_OUT)
+#        del fileobj_db
+#        # copy relevant columns from temp table to movement table
+#        cur.execute(queries.quer_update)
+#        conn.commit()
+#        # drop temp table
+#        cur.execute(queries.quer_drop)
+#        conn.commit()
+#        conn.close()
+#    except Exception as error:
+#        if AWS:
+#            logger.warning("Cannot write movement data to DB!")
+#            raise error
+#        else:
+#            print "Cannot write movement data to DB!"
+#            return "Success!"
+#    else:
+#        return "Success!"
+#
 
 def _write_table_s3(movement_data, file_name, s3, cont):
     """write final table to s3. In case of local run, if it can't be written to
@@ -227,9 +232,67 @@ def _write_table_s3(movement_data, file_name, s3, cont):
             del movement_data_pd
 
 
+def _multipartupload_data(movement_data, file_name, cont, cur, conn):
+
+    # Create a multipart upload request
+    s3 = boto3.client('s3')
+    mp = s3.create_multipart_upload(Bucket=cont, Key=file_name)
+
+    # Use only a set of rows each time to write to fileobj
+    rows_set_size = 50000  # number of rows durin each batch upload
+    number_of_rows = len(movement_data)
+    rows_set_count = int(math.ceil(number_of_rows/float(rows_set_size)))
+#    _logger('number of parts to be uploaded' + str(rows_set_count))
+    _logger(str(rows_set_count)+ 'number of parts to be uploaded')
+    
+    # Initialize counter to the count number of parts uploaded in the loop below
+    counter = 0
+    # Send the file parts, using FileChunkIO to create a file-like object
+    for i in islice(count(), 0, number_of_rows,  rows_set_size):
+        counter = counter + 1
+        movement_data_subset = movement_data.iloc[i:i+rows_set_size]
+#        print len(movement_data_subset), ': length of subset'
+        fileobj = cStringIO.StringIO()
+        if counter == 1:
+            movement_data_subset.to_csv(fileobj, index=False, header=False,
+                                        na_rep='', columns=COLUMN_SCORING_OUT)
+        else:
+            movement_data_subset.to_csv(fileobj, index=False, header=False,
+                                        na_rep='', columns=COLUMN_SCORING_OUT)
+        del movement_data_subset
+
+        # Upload current part to DB
+        cur.execute(queries.quer_create)
+        # copy data to the empty temp table
+        fileobj.seek(0)
+        cur.copy_from(file=fileobj, table='temp_mov', sep=',', null='',
+                      columns=COLUMN_SCORING_OUT)
+        # copy relevant columns from temp table to movement table
+        cur.execute(queries.quer_update)
+        conn.commit()
+        # drop temp table
+        cur.execute(queries.quer_drop)
+        conn.commit()
+
+        # Upload current part to s3
+        fileobj.seek(0)
+        part = s3.upload_part(Bucket=cont, Key=file_name, PartNumber=counter,
+                              UploadId=mp['UploadId'], Body=fileobj)
+        if counter == 1:
+            Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
+        else:
+            Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
+        del fileobj
+#        _logger(str(counter)+ ': this is the counter')
+    part_info = {'Parts': Parts}
+    s3.complete_multipart_upload(Bucket=cont, Key=file_name,
+                                 UploadId=mp['UploadId'],
+                                 MultipartUpload=part_info)
+
+
 if __name__ == "__main__":
-    file_name = '9f08e748-ceeb-42bf-a00a-29e465358def'
-    data = '9f08e748-ceeb-42bf-a00a-29e465358def'
+    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
+    data = '7803f828-bd32-4e97-860c-34a995f08a9e'
     out_data = run_scoring(data, file_name, aws=False)
 #    sdata = pd.read_csv(data)
     pass
