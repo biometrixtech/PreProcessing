@@ -29,7 +29,9 @@ def det_rofa(l_ph, r_ph, laccz, raccz, user_mass, hz):
     
     # determine the start and end of impact phase for left & right feet
     lf_start_imp, lf_end_imp = _bound_det(ph=l_ph, lf_or_rf='lf')
+    del l_ph  # not used in further computations
     rf_start_imp, rf_end_imp = _bound_det(ph=r_ph, lf_or_rf='rf')
+    del r_ph  # not used in further computations
     
     # determine rate of force absorption for left & right feet
     if len(lf_start_imp) != 0:
@@ -37,12 +39,18 @@ def det_rofa(l_ph, r_ph, laccz, raccz, user_mass, hz):
                                   e_imp=lf_end_imp, mass=user_mass, hz=hz)
     else:
         lf_rofa = np.zeros((len(laccz), 1))*np.nan
+        
+    # delete variables that are not used in further computations
+    del lf_start_imp, lf_end_imp, laccz
 
     if len(rf_start_imp) != 0:
         rf_rofa = _det_lf_rf_rofa(accz=abs(raccz), s_imp=rf_start_imp, 
                                   e_imp=rf_end_imp, mass=user_mass, hz=hz) 
     else:
         rf_rofa = np.zeros((len(raccz), 1))*np.nan
+        
+    # delete variables that are not used in further computations
+    del rf_start_imp, rf_end_imp, raccz
     
     return lf_rofa, rf_rofa
     
@@ -102,6 +110,7 @@ def _det_lf_rf_rofa(accz, s_imp, e_imp, mass, hz):
     for i, j in zip(s_imp, e_imp):
         num = np.max(accz[i:j])  # maximum force during impact
         length_subset_acc = len(accz[i:i+np.argmax(accz[i:j])])
+        del accz  # not used in further computations
         if length_subset_acc != 0:
             denom = float(length_subset_acc)/hz  # time
             # taken from start of an impact to peak force
