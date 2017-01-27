@@ -5,9 +5,10 @@ import urllib
 import boto3
 import logging
 import cStringIO
-import zipfile as zf
+#import zipfile as zf
 
-import runAnalytics as ra
+#import runAnalytics as ra
+import input_data_in_batches as idb
 
 
 logger = logging.getLogger()
@@ -33,7 +34,7 @@ def lambda_handler(event, context):
         logger.info('Read Content')        
         content = cStringIO.StringIO(body)
         logger.info('Converted Content')
-        result = ra.run_session(content, key)
+        result = idb.send_batches_of_data(content, key)
         logger.info('outcome:' + result)
         return 'success'
 #        zipped = zf.ZipFile(content)
@@ -52,5 +53,5 @@ def lambda_handler(event, context):
 
     except Exception as e:
         logger.info(e)
-        logger.info('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+        logger.info('Process did not complete successfully! See error below!')
         raise e
