@@ -175,12 +175,8 @@ def _cont_rot_CME(data, state, states, neutral):
     diff_eul = qc.quat_to_euler(diff_quat)
     del diff_quat
     comparison = (180/np.pi)*diff_eul
-#    print comparison
-    for i in range(len(comparison)):
-        if state[i] not in states:
-            comparison[i] = np.array([np.nan, np.nan, np.nan])
-        else:
-            pass
+    comparison[(np.in1d(state, states) == False)] = np.array([np.nan,
+                                                              np.nan, np.nan])
 
     return comparison
             
