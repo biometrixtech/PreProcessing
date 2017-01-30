@@ -120,25 +120,32 @@ def _phase_detect(acc, hz):
     thresh = 2.0  # threshold to detect balance phase
     bal_win = int(0.08*hz)  # sampling window to determine balance phase
     dummy_balphase = []  # dummy variable to store indexes of balance phase
+    
+    abs_acc = abs(acc)  # creating an array of absolute acceleration values
+    len_acc = len(acc)  # length of acceleration value
+    
+#    dummy_balphase1 = [range(i, i+bal_win) for i in range(len_acc-bal_win) \
+#    if len(np.where(abs_acc[i:i+bal_win] <= thresh)[0]) == bal_win]
+#    dummy_balphase = [val for sublist in dummy_balphase1 for val in sublist]
 
-    for i in range(len(acc) - bal_win):
-        count = 0
-        for j in range(bal_win):
-            if abs(acc[i+j]) <= thresh:  # checking whether each data point 
-            # in the sampling window is lesser than or equal to the thresh
-                count = count + 1
-        if count == bal_win:  # checking if the number of data points that 
+    for i in range(len_acc-bal_win):
+#        count = 0
+#        for j in range(bal_win):
+#            if abs(acc[i+j]) <= thresh:  # checking whether each data point 
+#            # in the sampling window is lesser than or equal to the thresh
+#                count = count + 1
+        if len(np.where(abs_acc[i:i+bal_win] <= thresh)[0]) == bal_win:  
+#        if count == bal_win:
+        # checking if the number of data points that 
         # are considered as "balance phase" equal the sampling window 
         # (minimum number of data points required for the set of data points 
         # to be considered as "balance phase")
-            for k in range(bal_win):
-                dummy_balphase.append(i+k) 
-                
-    # length of acceleration array
-    len_acc = len(acc)
-                
+#            for k in range(bal_win):
+#                dummy_balphase.append(i+k) 
+            dummy_balphase += range(i, i+bal_win)
+                                
     # delete variables that are of no use in further compuations
-    del acc
+    del acc, abs_acc
                         
     # determine the unique indexes in the dummy list
     start_bal = []    
@@ -154,18 +161,19 @@ def _phase_detect(acc, hz):
 
     for i in range(len(start_bal) - 1):
         diff = start_bal[i+1] - start_bal[i]
-        if diff > 1 and diff <= min_thresh_mov:
+        if 1 < diff <= min_thresh_mov:
             for j in range(1, diff+1):
                 start_bal.insert(i+j, start_bal[i]+j)
     
     # create balance phase array
-    bal_phase = []
-    bal_phase = [1]*len_acc  # 1=movement phase
-
-    for i in start_bal:
-        bal_phase[i] = 0  # 0=balance phase
+#    bal_phase = []
+    bal_phase = np.ones(len_acc)  # 1=movement phase
+    bal_phase[start_bal] = 0  # 0=balance phase
     
-    return np.array(bal_phase)
+#    for i in start_bal:
+#        bal_phase[i] = 0  # 0=balance phase
+    
+    return bal_phase
  
    
 def _bound_det_lf(p):
@@ -364,34 +372,34 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import time
     
-    file_name = '250to125_bodyframe_Subject5_LESS.csv'
+    file_name = '250to125_Ivonna_Combined_Sensor_Transformed_Data.csv'
     
 #    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/' + file_name
-    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/250to125/' + file_name
+#    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/Datasets/250to125/' + file_name
 #    file_name = 'movement_data_ankur_IV_combined.csv'
 #    datapath = '/Users/ankurmanikandan/Documents/BioMetrix/data files/12132016/Calibration/' + file_name
 
-    data = np.genfromtxt(datapath, names=True, delimiter=',', dtype=float)
+    data = np.genfromtxt(file_name, names=True, delimiter=',', dtype=float)
             
     sampl_rate = 125
     
     start_time = time.time()
-    lf_phase, rf_phase = combine_phase(laccz = data['LAccZ'], 
-                                       raccz = data['RAccZ'], 
+    lf_phase, rf_phase = combine_phase(laccz = data['LaZ'], 
+                                       raccz = data['RaZ'], 
                                        hz = sampl_rate)
 #    lf_phase = _phase_detect(data['LaZ'], sampl_rate)
     print time.time() - start_time
         
     #Plotting
     
-    plt.figure(1)
-    plt.title('with Phases: Left foot')
-    plt.plot(lf_phase)
-    plt.plot(data['LAccZ'])
-    plt.show()
-    
-    plt.figure(2)
-    plt.title('with Phases: Right foot')
-    plt.plot(rf_phase)
-    plt.plot(data['RAccZ'])
-    plt.show()
+#    plt.figure(1)
+#    plt.title('with Phases: Left foot')
+#    plt.plot(lf_phase)
+#    plt.plot(data['LaZ'])
+#    plt.show()
+#    
+#    plt.figure(2)
+#    plt.title('with Phases: Right foot')
+#    plt.plot(rf_phase)
+#    plt.plot(data['RaZ'])
+#    plt.show()
