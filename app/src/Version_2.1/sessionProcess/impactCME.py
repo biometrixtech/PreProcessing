@@ -31,9 +31,9 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
         the ground first
     """
         
-    rf_start = _imp_start_time(imp_time=imp_rf)  # obtaining the first instant 
+    rf_start = _zero_runs(imp_time=imp_rf, rf_or_lf='rf')  # obtaining the first instant 
     # of the impact phases of the right foot
-    lf_start = _imp_start_time(imp_time=imp_lf)  # obtaining the first instant 
+    lf_start = _zero_runs(imp_time=imp_lf, rf_or_lf='lf')  # obtaining the first instant 
     # of the impact phases of the left foot
     
     # delete phase variables
@@ -76,34 +76,74 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
     np.array(lf_rf_imp_indicator).reshape(-1, 1)
     
     
-def _imp_start_time(imp_time):
-    """Determine the beginning of each impact.
+#def _imp_start_time(imp_time):
+#    """Determine the beginning of each impact.
+#    
+#    Args:
+#        imp_time: right/left foot phase
+#        
+#    Returns:
+#        first_instance_imp: a list containing the first instance of impact for
+#        right/left foot
+#    """
+#    
+#    first_instance_imp = []  # initializing a list
+#    count = 0  # initializing a count variable
+#    for i in enumerate(imp_time):
+#        if imp_time[i[0]] == phase_id.lf_imp.value \
+#        or imp_time[i[0]] == phase_id.rf_imp.value:  # checking if an impact
+#        # phase exists (4 for left foot; 5 for right foot)
+#            if count < 1:
+#                first_instance_imp.append(i[0])  # appending the first instance
+#                # of an impact phase
+#                count = count + 1
+#        elif imp_time[i[0]] == phase_id.rflf_ground.value \
+#        or imp_time[i[0]] == phase_id.lf_ground.value \
+#        or imp_time[i[0]] == phase_id.rf_ground.value \
+#        or imp_time[i[0]] == phase_id.rflf_offground.value:
+#            count = 0
+#                        
+#    return first_instance_imp
     
+    
+def _zero_runs(imp_time, rf_or_lf):
+
+    """
+    Determine the beginning of each impact.
     Args:
-        imp_time: right/left foot phase
-        
+        imp_time: array, right/left foot phase
+        rf_or_lf: string, indicator for right/left foot
     Returns:
-        first_instance_imp: a list containing the first instance of impact for
-        right/left foot
+        ranges: array, first instance of impact for right/left foot
     """
     
-    first_instance_imp = []  # initializing a list
-    count = 0  # initializing a count variable
-    for i in enumerate(imp_time):
-        if imp_time[i[0]] == phase_id.lf_imp.value \
-        or imp_time[i[0]] == phase_id.rf_imp.value:  # checking if an impact
-        # phase exists (4 for left foot; 5 for right foot)
-            if count < 1:
-                first_instance_imp.append(i[0])  # appending the first instance
-                # of an impact phase
-                count = count + 1
-        elif imp_time[i[0]] == phase_id.rflf_ground.value \
-        or imp_time[i[0]] == phase_id.lf_ground.value \
-        or imp_time[i[0]] == phase_id.rf_ground.value \
-        or imp_time[i[0]] == phase_id.rflf_offground.value:
-            count = 0
-                        
-    return first_instance_imp
+    if 'r' in rf_or_lf:
+        imp_value = phase_id.rf_imp.value
+    elif 'l' in rf_or_lf:
+        imp_value = phase_id.lf_imp.value
+
+    # determine where column data is NaN
+    isnan = np.array(np.array(imp_time==imp_value).astype(int)).reshape(-1, 1)
+    del imp_time  # not used in further computations
+#    isnan = isnan[miss_type != intentional_missing_data]  # subsetting for when
+    # missing value is an intentional blank
+#    del miss_type  # not used in further computations
+    
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+        
+    # mark where column data changes to and from NaN
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        absdiff = np.concatenate([absdiff, [1]], 0)
+    del isnan  # not used in further computations
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+
+    return ranges[:,0]
 
 
 def landing_pattern(rf_euly, lf_euly, land_time_index, l_r_imp_ind, sampl_rate,
@@ -220,24 +260,35 @@ if __name__ == '__main__':
     
     import matplotlib.pyplot as plt
     from phaseDetection import combine_phase
+    import time
     
-    datafile = '250to125_Ivonna_Combined_Sensor_Transformed_Data.csv'
-    data = np.genfromtxt(datafile, names=True, dtype=float, delimiter=',')
+    file_name = '250to125_Ivonna_Combined_Sensor_Transformed_Data.csv'
+    data = np.genfromtxt(file_name, names=True, delimiter=',', dtype=float)
     
     hz = 125
     
     lf_ph, rf_ph = combine_phase(data['LaZ'], data['RaZ'], hz)
     
-    diff, ltime_index, lf_rf_imp_indicator = sync_time(rf_ph, lf_ph, hz)
+    start_time = time.time()
+    n_landtime, ltime_index, lf_rf_imp_indicator = sync_time(rf_ph, lf_ph, hz)
     
-    plt.figure(1)
-    plt.title('left foot')
-    plt.plot(data['LaZ'])
-    plt.plot(lf_ph)
-    plt.show()
+    n_landpattern = landing_pattern(data['RaZ'], data['LaZ'],
+                                    land_time_index=ltime_index,
+                                    l_r_imp_ind=lf_rf_imp_indicator,
+                                    sampl_rate=hz, land_time=n_landtime)
+    land_time, land_pattern = continuous_values(n_landpattern, n_landtime,
+                                                len(data), ltime_index)
+
+    print time.time() - start_time
     
-    plt.figure(2)
-    plt.title('right foot')
-    plt.plot(data['RaZ'])
-    plt.plot(rf_ph)
-    plt.show()
+#    plt.figure(1)
+#    plt.title('left foot')
+#    plt.plot(data['LaZ'])
+#    plt.plot(lf_ph)
+#    plt.show()
+#    
+#    plt.figure(2)
+#    plt.title('right foot')
+#    plt.plot(data['RaZ'])
+#    plt.plot(rf_ph)
+#    plt.show()
