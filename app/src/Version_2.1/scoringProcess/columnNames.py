@@ -27,7 +27,6 @@ column_session1_out = ['team_id', 'user_id', 'team_regimen_id',
                        'missing_type_h', 'missing_type_rf', 'exercise_weight',
                        'obs_index', 'obs_master_index',
                        'time_stamp', 'epoch_time', 'ms_elapsed',
-                       'phase_lf', 'phase_rf', 'activity_id',
                        'LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ', 'LqW', 'LqX', 'LqY', 'LqZ',
                        'HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ', 'HqW', 'HqX', 'HqY', 'HqZ',
                        'RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ', 'RqW', 'RqX', 'RqY', 'RqZ',
@@ -46,9 +45,19 @@ column_session1_to_DB = ['team_id', 'user_id', 'team_regimen_id',
                          'HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ', 'HqW', 'HqX', 'HqY', 'HqZ',
                          'RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ', 'RqW', 'RqX', 'RqY', 'RqZ']
 
+column_session1_to_s3 = ['team_id', 'user_id', 'session_event_id',
+                         'session_type', 'exercise_weight',
+                         'obs_index', 'obs_master_index', 'ms_elapsed',
+                         'LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ', 'LqW', 'LqX', 'LqY', 'LqZ',
+                         'HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ', 'HqW', 'HqX', 'HqY', 'HqZ',
+                         'RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ', 'RqW', 'RqX', 'RqY', 'RqZ',
+                         'LqW_n', 'LqX_n', 'LqY_n', 'LqZ_n',
+                         'HqW_n', 'HqX_n', 'HqY_n', 'HqZ_n',
+                         'RqW_n', 'RqX_n', 'RqY_n', 'RqZ_n']
+
 column_session2_out = ['team_id', 'user_id', 'session_event_id',
                        'session_type', 'obs_index', 'obs_master_index','ms_elapsed',
-                       'phase_lf', 'phase_rf',
+                       'phase_lf', 'phase_rf', 'activity_id',
                        'mech_stress', 'total_accel',
                        'rate_force_absorption_lf', 'rate_force_absorption_rf',
                        'contra_hip_drop_lf', 'contra_hip_drop_rf',
@@ -60,6 +69,7 @@ column_session2_out = ['team_id', 'user_id', 'session_event_id',
                        'LeX','HeX','ReX']
 
 column_session2_to_DB = ['user_id', 'session_event_id', 'obs_index', 'obs_master_index',
+                       'phase_lf', 'phase_rf', 'activity_id',
                          'rate_force_absorption_lf', 'rate_force_absorption_rf',
                          'single_leg_stationary', 'single_leg_dynamic', 'double_leg', 'feet_eliminated',
                          'rot', 'lat', 'vert', 'horz', 'rot_binary', 'lat_binary','vert_binary', 'horz_binary', 'stationary_binary']

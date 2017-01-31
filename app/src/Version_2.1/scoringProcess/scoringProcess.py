@@ -5,7 +5,6 @@ import urllib
 import boto3
 import logging
 import cStringIO
-import zipfile as zf
 
 import runScoring as rs
 
@@ -28,11 +27,8 @@ def lambda_handler(event, context):
         obj = s3r.Bucket(bucket).Object(key)
         logger.info('Obtained Key')        
         fileobj = obj.get()
-        logger.info('Got Fileobj')        
-        body = fileobj["Body"].read()
-        logger.info('Read Content')        
-        content = cStringIO.StringIO(body)
-        logger.info('Converted Content')       
+        logger.info('Got Fileobj')
+        content = fileobj['Body']
         result = rs.run_scoring(content, key)
         logger.info('outcome:' + result)
         return 'success'

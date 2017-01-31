@@ -124,7 +124,12 @@ def run_scoring(sensor_data, file_name, aws=True):
     del data
     # write to s3 and db in parts
     file_name = "movement_"+file_name
-    _multipartupload_data(movement_data, file_name, cont_write, cur, conn)
+    try:
+        _multipartupload_data(movement_data, file_name, cont_write, cur, conn)
+        conn.close()
+    except Exception as error:
+        conn.close()
+        error
     # write to s3 container
 #    _write_table_s3(movement_data, file_name, s3, cont_write)
     _logger("DONE WRITING TO S3 and DB")
@@ -236,7 +241,7 @@ def _multipartupload_data(movement_data, file_name, cont, cur, conn, DB=True):
     mp = s3.create_multipart_upload(Bucket=cont, Key=file_name)
 
     # Use only a set of rows each time to write to fileobj
-    rows_set_size = 50000  # number of rows durin each batch upload
+    rows_set_size = 200000  # number of rows durin each batch upload
     number_of_rows = len(movement_data)
     rows_set_count = int(math.ceil(number_of_rows/float(rows_set_size)))
 #    _logger('number of parts to be uploaded' + str(rows_set_count))
@@ -252,37 +257,62 @@ def _multipartupload_data(movement_data, file_name, cont, cur, conn, DB=True):
 #        print len(movement_data_subset), ': length of subset'
         fileobj = cStringIO.StringIO()
         if counter == 1:
-            movement_data_subset.to_csv(fileobj, index=False, header=False,
-                                        na_rep='', columns=COLUMN_SCORING_OUT)
-        else:
-            movement_data_subset.to_csv(fileobj, index=False, header=False,
-                                        na_rep='', columns=COLUMN_SCORING_OUT)
-        del movement_data_subset
+            if DB:
+                # Write first part to DB
+                fileobj = cStringIO.StringIO()
+                movement_data_subset.to_csv(fileobj, index=False, header=False,
+                                            na_rep='', columns=COLUMN_SCORING_OUT)
+                cur.execute(queries.quer_create)
+                # copy data to the empty temp table
+                fileobj.seek(0)
+                cur.copy_from(file=fileobj, table='temp_mov', sep=',', null='',
+                              columns=COLUMN_SCORING_OUT)
+                # copy relevant columns from temp table to movement table
+                cur.execute(queries.quer_update)
+                conn.commit()
+                # drop temp table
+                cur.execute(queries.quer_drop)
+                conn.commit()
+                del fileobj
 
-        if DB:
-            # Upload current part to DB
-            cur.execute(queries.quer_create)
-            # copy data to the empty temp table
+            # Write first part to s3
+            fileobj = cStringIO.StringIO()
+            movement_data_subset.to_csv(fileobj, index=False, na_rep='',
+                                        columns=COLUMN_SCORING_OUT)
+            del movement_data_subset
             fileobj.seek(0)
-            cur.copy_from(file=fileobj, table='temp_mov', sep=',', null='',
-                          columns=COLUMN_SCORING_OUT)
-            # copy relevant columns from temp table to movement table
-            cur.execute(queries.quer_update)
-            conn.commit()
-            # drop temp table
-            cur.execute(queries.quer_drop)
-            conn.commit()
-
-        # Upload current part to s3
-        fileobj.seek(0)
-        part = s3.upload_part(Bucket=cont, Key=file_name, PartNumber=counter,
-                              UploadId=mp['UploadId'], Body=fileobj)
-        if counter == 1:
+            part = s3.upload_part(Bucket=cont, Key=file_name,
+                                  PartNumber=counter,
+                                  UploadId=mp['UploadId'], Body=fileobj)
             Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
+            del fileobj
+    
         else:
+            fileobj = cStringIO.StringIO()
+            movement_data_subset.to_csv(fileobj, index=False, header=False,
+                                        na_rep='', columns=COLUMN_SCORING_OUT)
+            del movement_data_subset
+            if DB:
+                # Write to DB
+                cur.execute(queries.quer_create)
+                # copy data to the empty temp table
+                fileobj.seek(0)
+                cur.copy_from(file=fileobj, table='temp_mov', sep=',', null='',
+                              columns=COLUMN_SCORING_OUT)
+                # copy relevant columns from temp table to movement table
+                cur.execute(queries.quer_update)
+                conn.commit()
+                # drop temp table
+                cur.execute(queries.quer_drop)
+                conn.commit()
+            # Write to s3
+            fileobj.seek(0)
+            part = s3.upload_part(Bucket=cont, Key=file_name,
+                                  PartNumber=counter,
+                                  UploadId=mp['UploadId'], Body=fileobj)
             Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
-        del fileobj
-        _logger('Completed uploading part: '+str(counter))
+
+            del fileobj
     part_info = {'Parts': Parts}
     s3.complete_multipart_upload(Bucket=cont, Key=file_name,
                                  UploadId=mp['UploadId'],
@@ -290,8 +320,8 @@ def _multipartupload_data(movement_data, file_name, cont, cur, conn, DB=True):
 
 
 if __name__ == "__main__":
+    data = 'C:\\Users\\dipesh\\Desktop\\biometrix\\aws\\7803f828-bd32-4e97-860c-34a995f08a9e_3'
     file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
-    data = '7803f828-bd32-4e97-860c-34a995f08a9e'
     out_data = run_scoring(data, file_name, aws=False)
 #    sdata = pd.read_csv(data)
     pass
