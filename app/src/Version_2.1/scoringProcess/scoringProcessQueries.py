@@ -10,7 +10,18 @@ quer_create = "CREATE TEMP TABLE temp_mov AS SELECT * FROM movement LIMIT 0"
 
 # Query to copy data over from temp table to movement table
 quer_update = """UPDATE movement
-    set control = temp_mov.control,
+    set mech_stress = temp_mov.mech_stress,
+        total_accel = temp_mov.total_accel,
+        contra_hip_drop_lf = temp_mov.contra_hip_drop_lf,
+        contra_hip_drop_rf = temp_mov.contra_hip_drop_rf,
+        ankle_rot_lf = temp_mov.ankle_rot_lf,
+        ankle_rot_rf = temp_mov.ankle_rot_rf,
+        foot_position_lf = temp_mov.foot_position_lf,
+        foot_position_rf = temp_mov.foot_position_rf,
+        land_pattern_lf = temp_mov.land_pattern_lf,
+        land_pattern_rf = temp_mov.land_pattern_rf,
+        land_time = temp_mov.land_time,
+        control = temp_mov.control,
         hip_control = temp_mov.hip_control,
         ankle_control = temp_mov.ankle_control,
         control_lf = temp_mov.control_lf,

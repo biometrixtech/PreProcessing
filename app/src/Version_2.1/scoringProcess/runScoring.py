@@ -30,7 +30,7 @@ from scoring import score
 #import createTables as ct
 import dataObject as do
 import scoringProcessQueries as queries
-from columnNames import column_scoring_out, column_session_out
+import columnNames as cols
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -51,7 +51,7 @@ def run_scoring(sensor_data, file_name, aws=True):
     global AWS
     global COLUMN_SCORING_OUT
     AWS = aws
-    COLUMN_SCORING_OUT = column_scoring_out
+    COLUMN_SCORING_OUT = cols.column_scoring_out
     cont_write = 'biometrix-sessionprocessedcontainer'
 #    cont_read = 'biometrix-scoringcontainer'
 
@@ -110,11 +110,8 @@ def run_scoring(sensor_data, file_name, aws=True):
     # combine into movement data table
     movement_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
                                        'user_id': data.user_id.reshape(-1, ),
-                                       'team_regimen_id': data.team_regimen_id.reshape(-1, ),
-                                       'training_session_log_id': data.training_session_log_id.reshape(-1, ),
                                        'session_event_id': data.session_event_id.reshape(-1, ),
-                                       'session_type': data.session_type.reshape(-1, ),
-                                       'corrupt_type': data.corrupt_type.reshape(-1, ).astype(int)})
+                                       'session_type': data.session_type.reshape(-1, )})
 
     for var in COLUMN_SCORING_OUT[2:]:
         frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=movement_data.index)
