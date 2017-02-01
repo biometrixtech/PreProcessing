@@ -491,10 +491,10 @@ def _process_sac(file_name, cur, conn, quer_check_status):
     
         if all_sa_rec and sa_not_sent and all_sa_up_start and all_sa_up_comp:
             """make api call here to begin session_ac_processing"""
-
-            data = {'fileName':sa_filename}
-            headers = {'Content-type':"application/json; charset=utf-8"}
-            r = requests.post(url, data=data, headers=headers)
+#
+#            data = {'fileName':sa_filename}
+#            headers = {'Content-type':"application/json; charset=utf-8"}
+            r = requests.post(url+'?fileName='+sa_filename)
             if r.status_code !=200:
                 _logger("Failed to start session calibration processing!")
             else:

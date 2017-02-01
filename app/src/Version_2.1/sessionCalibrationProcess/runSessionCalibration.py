@@ -729,10 +729,10 @@ def _process_se(file_name, cur, conn, quer_check_status):
         all_se_up_comp = se_lf_up_comp and se_rf_up_comp and se_h_up_comp
 
         if all_se_rec and se_not_sent and all_se_up_start and all_se_up_comp:
-            """make api call here to begin session_ac_processing"""
-            data = {'fileName':se_filename}
-            headers = {'Content-type':"application/json; charset=utf-8"}
-            r = requests.post(url, data=data, headers=headers)
+            """make api call here to begin session_event_processing"""
+#            data = {'fileName':se_filename}
+#            headers = {'Content-type':"application/json; charset=utf-8"}
+            r = requests.post(url+'?fileName='+se_filename)
             if r.status_code !=200:
                 _logger("Failed to start session event processing!")
             else:
