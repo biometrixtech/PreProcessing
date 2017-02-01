@@ -107,7 +107,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                     failure_type = 0
                     where sensor_data_filename  = (%s);"""
 
-    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
+#    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
     quer_check_status = """ select * 
                 from fn_get_processing_status_from_sa_event_filename((%s))"""
     # Define containers to read from and write to
@@ -280,12 +280,13 @@ def run_calibration(sensor_data, file_name, aws=True):
 
     if ind != 0:
         msg = ErrorMessageSession(ind).error_message
-        r_push_data = RPushDataSession(ind).value
+#        r_push_data = RPushDataSession(ind).value
 
         # Update special_anatomical_calibration_events
         try:
             cur.execute(quer_fail, (False, False, ind, is_base, file_name))
             conn.commit()
+            conn.close()
         except psycopg2.Error as error:
             _logger("Cannot write to DB after failure!", info=False)
             raise error
@@ -298,15 +299,15 @@ def run_calibration(sensor_data, file_name, aws=True):
         f.seek(0)
         try:
             S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-            cur.execute(quer_rpush, (user_id, msg, r_push_data))
-            conn.commit()
-            conn.close()
+#            cur.execute(quer_rpush, (user_id, msg, r_push_data))
+#            conn.commit()
+#            conn.close()
         except boto3.exceptions as error:
             _logger("Can't write to s3 after failure!", info=False)
             raise error
-        except psycopg2.Error as error:
-            _logger("Cannot write to rpush after failure!", info=False)
-            raise error
+#        except psycopg2.Error as error:
+#            _logger("Cannot write to rpush after failure!", info=False)
+#            raise error
         else:
             _logger("Failure Message: " + msg, False)
             return "Fail!"
@@ -394,11 +395,12 @@ def run_calibration(sensor_data, file_name, aws=True):
         if ind != 0:
             # rPush
             msg = ErrorMessageSession(ind).error_message
-            r_push_data = RPushDataSession(ind).value
+#            r_push_data = RPushDataSession(ind).value
             # Write to SessionAnatomicalCalibrationEvents
             try:
                 cur.execute(quer_fail, (False, False, ind, is_base, file_name))
                 conn.commit()
+                conn.close()
             except psycopg2.Error as error:
                 _logger("Cannot write to DB after failure!", info=False)
                 raise error
@@ -412,15 +414,15 @@ def run_calibration(sensor_data, file_name, aws=True):
             f.seek(0)
             try:
                 S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-                cur.execute(quer_rpush, (user_id, msg, r_push_data))
-                conn.commit()
-                conn.close()
+#                cur.execute(quer_rpush, (user_id, msg, r_push_data))
+#                conn.commit()
+#                conn.close()
             except boto3.exceptions as error:
                 _logger("Cannot write to s3 container after failure!", False)
                 raise error
-            except psycopg2.Error as error:
-                _logger("Cannot write to rpush after failure!", info=False)
-                raise error
+#            except psycopg2.Error as error:
+#                _logger("Cannot write to rpush after failure!", info=False)
+#                raise error
             else:
                 _logger("Failure Message: " + msg, False)
                 return "Fail!"
@@ -428,7 +430,7 @@ def run_calibration(sensor_data, file_name, aws=True):
         else:
             # rPush
             msg = ErrorMessageSession(ind).error_message
-            r_push_data = RPushDataSession(ind).value
+#            r_push_data = RPushDataSession(ind).value
 
             ###Write to S3
             data_calib['failure_type'] = ind
@@ -547,17 +549,18 @@ def run_calibration(sensor_data, file_name, aws=True):
                     _logger("Cannot write to DB after success!",
                             info=False)
                     raise error
-                try:
-                    cur.execute(quer_rpush, (user_id, msg, r_push_data))
-                    conn.commit()
-                    conn.close()
-
-                # rPush
-                except:
-                    _logger("Cannot write to rpush after succcess!",
-                            info=False)
-                    raise error
+#                try:
+#                    cur.execute(quer_rpush, (user_id, msg, r_push_data))
+#                    conn.commit()
+#                    conn.close()
+#
+#                # rPush
+#                except:
+#                    _logger("Cannot write to rpush after succcess!",
+#                            info=False)
+#                    raise error
                 else:
+                    conn.close()
                     _process_se(file_name, cur, conn, quer_check_status)
                     return "Success!"
 
@@ -599,15 +602,16 @@ def run_calibration(sensor_data, file_name, aws=True):
                     _logger("Cannot write to DB after success!",
                             info=False)
 
-                # rPush
-                try:
-                    cur.execute(quer_rpush, (user_id, msg, r_push_data))
-                    conn.commit()
-                    conn.close()
-                except:
-                    _logger("Cannot write to rpush after succcess!", info=False)
-                    raise error
+#                # rPush
+#                try:
+#                    cur.execute(quer_rpush, (user_id, msg, r_push_data))
+#                    conn.commit()
+#                    conn.close()
+#                except:
+#                    _logger("Cannot write to rpush after succcess!", info=False)
+#                    raise error
                 else:
+                    conn.close()
                     _process_se(file_name, cur, conn, quer_check_status)
                     return "Success!"
 

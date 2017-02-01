@@ -63,7 +63,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
         failure_type = 0
         where feet_sensor_data_filename=(%s);"""
 
-    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
+#    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
     quer_check_status = """ select * 
                 from fn_get_processing_status_from_ba_event_filename((%s))"""
     ###Connect to the database
@@ -189,11 +189,12 @@ def record_base_feet(sensor_data, file_name, aws=True):
     if ind != 0:
         # rpush
         msg = ErrorMessageBase(ind).error_message
-        r_push_data = RPushDataBase(ind).value
+#        r_push_data = RPushDataBase(ind).value
         #update special_anatomical_calibration_events
         try:
             cur.execute(quer_fail, (ind, out_file, False, file_name))
             conn.commit()
+            conn.close()
         except psycopg2.Error as error:
             _logger("Cannot write to DB after failure!", False)
             raise error
@@ -206,15 +207,15 @@ def record_base_feet(sensor_data, file_name, aws=True):
         f.seek(0)
         try:
             S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-            cur.execute(quer_rpush, (user_id, msg, r_push_data))
-            conn.commit()
-            conn.close()
+#            cur.execute(quer_rpush, (user_id, msg, r_push_data))
+#            conn.commit()
+#            conn.close()
         except boto3.exceptions as error:
             _logger("Can't write to s3 after failure!", False)
             raise error
-        except psycopg2.Error as error:
-            _logger("Cannot write to rpush after failure!", False)
-            raise error
+#        except psycopg2.Error as error:
+#            _logger("Cannot write to rpush after failure!", False)
+#            raise error
         else:
             _logger("Failure Message: " + msg, False)
             return "Fail!"
@@ -311,11 +312,12 @@ def record_base_feet(sensor_data, file_name, aws=True):
         if ind != 0:
             # rpush
             msg = ErrorMessageBase(ind).error_message
-            r_push_data = RPushDataBase(ind).value
+#            r_push_data = RPushDataBase(ind).value
             #update special_anatomical_calibration_events
             try:
                 cur.execute(quer_fail, (ind, out_file, False, file_name))
                 conn.commit()
+                conn.close()
             except psycopg2.Error as error:
                 _logger("Cannot write to DB after failure!", False)
                 raise error
@@ -328,16 +330,16 @@ def record_base_feet(sensor_data, file_name, aws=True):
             f.seek(0)
             try:
                 S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-                cur.execute(quer_rpush, (user_id, msg, r_push_data))
-                conn.commit()
-                conn.close()
+#                cur.execute(quer_rpush, (user_id, msg, r_push_data))
+#                conn.commit()
+#                conn.close()
             except boto3.exceptions as error:
                 _logger("Cannot write to s3 container after failure!", AWS,
                         False)
                 raise error
-            except psycopg2.Error as error:
-                _logger("Cannot write to rpush after failure!", False)
-                raise error
+#            except psycopg2.Error as error:
+#                _logger("Cannot write to rpush after failure!", False)
+#                raise error
             else:
                 _logger("Failure Message: " + msg, False)
                 return "Fail!"
@@ -345,7 +347,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
         else:
             # rpush
             msg = ErrorMessageBase(ind).error_message
-            r_push_data = RPushDataBase(ind).value
+#            r_push_data = RPushDataBase(ind).value
             #update special_anatomical_calibration_events
             try:
                 cur.execute(quer_success, (out_file, True, file_name))
@@ -362,15 +364,15 @@ def record_base_feet(sensor_data, file_name, aws=True):
             f.seek(0)
             try:
                 S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
-                cur.execute(quer_rpush, (user_id, msg, r_push_data))
-                conn.commit()
+#                cur.execute(quer_rpush, (user_id, msg, r_push_data))
+#                conn.commit()
 #                conn.close()
             except boto3.exceptions as error:
                 _logger("Cannot write to s3 container after success!", AWS)
                 raise error
-            except psycopg2.Error as error:
-                _logger("Cannot write to rpush after success!", AWS)
-                raise error
+#            except psycopg2.Error as error:
+#                _logger("Cannot write to rpush after success!", AWS)
+#                raise error
             else:
                 _process_sac(file_name, cur, conn, quer_check_status)
                 return "Success!"
