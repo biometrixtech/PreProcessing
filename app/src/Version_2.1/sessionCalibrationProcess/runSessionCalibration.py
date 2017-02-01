@@ -13,6 +13,7 @@ import logging
 import boto3
 import numpy as np
 import pandas as pd
+import requests
 import psycopg2
 
 import anatomicalCalibration as ac
@@ -43,6 +44,8 @@ def run_calibration(sensor_data, file_name, aws=True):
         Save transformed data to database with indicator of success/failure
         Save offset values to database
     """
+    global AWS
+    AWS = aws
     # Setup Queries based on different situations
 
     # Read relevant information from base_anatomical_calibration_events
@@ -105,7 +108,8 @@ def run_calibration(sensor_data, file_name, aws=True):
                     where sensor_data_filename  = (%s);"""
 
     quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
-
+    quer_check_status = """ select * 
+                from fn_get_processing_status_from_sa_event_filename((%s))"""
     # Define containers to read from and write to
     cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
     cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
@@ -126,15 +130,15 @@ def run_calibration(sensor_data, file_name, aws=True):
         user_id = data_read[0]
         if user_id is None:
             user_id = '00000000-0000-0000-0000-000000000000'
-            _logger("user_id associated with file not found", aws, info=False)
+            _logger("user_id associated with file not found", info=False)
     except psycopg2.Error as error:
-        _logger("Cannot connect to DB", aws, info=False)
+        _logger("Cannot connect to DB", info=False)
         raise error
     except boto3.exceptions as error:
-        _logger("Cannot connect to s3", aws, info=False)
+        _logger("Cannot connect to s3", info=False)
         raise error
     except IndexError as error:
-        _logger("sensor_data_filename not found in table", aws, info=False)
+        _logger("sensor_data_filename not found in table", info=False)
         raise error
 
     expired = data_read[1]
@@ -147,10 +151,10 @@ def run_calibration(sensor_data, file_name, aws=True):
                              names=True)
 
     except IndexError:
-        _logger("Sensor data doesn't have column names!", aws, info=False)
+        _logger("Sensor data doesn't have column names!", info=False)
         return "Fail!"
     if len(data) == 0:
-        _logger("Sensor data is empty!", aws, info=False)
+        _logger("Sensor data is empty!", info=False)
         return "Fail!"
     data.dtype.names = columns_calib
     #read from S3
@@ -161,7 +165,7 @@ def run_calibration(sensor_data, file_name, aws=True):
         body = fileobj["Body"].read()
         feet = cStringIO.StringIO(body)
     except boto3.exceptions as error:
-        _logger("Cannot read feet_sensor_data from s3!", aws, info=False)
+        _logger("Cannot read feet_sensor_data from s3!", info=False)
         raise error
 
     # Read  base feet calibration data from s3
@@ -170,10 +174,10 @@ def run_calibration(sensor_data, file_name, aws=True):
 
     except IndexError:
         _logger("Feet data doesn't have column names!",
-                aws, info=False)
+                info=False)
         raise error
     if len(feet_data) == 0:
-        _logger("Feet sensor data is empty!", aws, info=False)
+        _logger("Feet sensor data is empty!", info=False)
 
     # if not expired and feet_success is true and hip_success is true, it's
     # treated as session calibration
@@ -208,7 +212,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     # subset for 'done'
     subset_data = ppp.subset_data(old_data=data, subset_value=2)
     if len(subset_data) == 0:
-        _logger("No overlapping samples after time sync", aws, info=False)
+        _logger("No overlapping samples after time sync", info=False)
         return "Fail!"
 
     # select part of recording to be used in calculations
@@ -225,7 +229,7 @@ def run_calibration(sensor_data, file_name, aws=True):
         return "Fail!"
 
     # Record percentage and ranges of magn_values for diagonostic purposes
-    _record_magn(subset_data, file_name, aws, S3)
+    _record_magn(subset_data, file_name, S3)
 
     out_file = "processed_" + file_name
     index = subset_data['index']
@@ -242,7 +246,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     # Check for duplicate epoch time
     duplicate_index = ppp.check_duplicate_index(index)
     if duplicate_index:
-        _logger('Duplicate index.'. aws, info=False)
+        _logger('Duplicate index.'. info=False)
 
     # PRE-PRE-PROCESSING
 
@@ -264,7 +268,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 #        if np.any(np.isnan(out[missing_type != 1])):  # subsetting for when
 #        # a missing value is an intentional blank
 #            _logger('Bad data! NaNs exist even after imputing. \
-#            Column: ' + var, aws, info=False)
+#            Column: ' + var, info=False)
 #            return "Fail"
 
     # subset for missing type = 3
@@ -283,7 +287,7 @@ def run_calibration(sensor_data, file_name, aws=True):
             cur.execute(quer_fail, (False, False, ind, is_base, file_name))
             conn.commit()
         except psycopg2.Error as error:
-            _logger("Cannot write to DB after failure!", aws, info=False)
+            _logger("Cannot write to DB after failure!", info=False)
             raise error
 
         ### Write to S3
@@ -298,13 +302,13 @@ def run_calibration(sensor_data, file_name, aws=True):
             conn.commit()
             conn.close()
         except boto3.exceptions as error:
-            _logger("Can't write to s3 after failure!", aws, info=False)
+            _logger("Can't write to s3 after failure!", info=False)
             raise error
         except psycopg2.Error as error:
-            _logger("Cannot write to rpush after failure!", aws, info=False)
+            _logger("Cannot write to rpush after failure!", info=False)
             raise error
         else:
-            _logger("Failure Message: " + msg, aws, False)
+            _logger("Failure Message: " + msg, False)
             return "Fail!"
 
     else:
@@ -316,11 +320,11 @@ def run_calibration(sensor_data, file_name, aws=True):
                                                        missing_type)
         len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])                                              
         _logger('Bad data! Percentage of NaNs in LqW: ' +
-        str(len_nan_real_quat), aws, info=False)
+        str(len_nan_real_quat), info=False)
 
         # Check for type conversion error in left foot quaternion data
         if conv_error:
-            _logger('Error! Type conversion error: LF quat', aws, info=False)
+            _logger('Error! Type conversion error: LF quat', info=False)
             return "Fail!"
 
         # Hip
@@ -330,11 +334,11 @@ def run_calibration(sensor_data, file_name, aws=True):
                                                       missing_type)
         len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])                                              
         _logger('Bad data! Percentage of NaNs in HqW: ' +
-        str(len_nan_real_quat), aws, info=False)
+        str(len_nan_real_quat), info=False)
 
         # Check for type conversion error in hip quaternion data
         if conv_error:
-            _logger('Error! Type conversion error: Hip quat', aws, info=False)
+            _logger('Error! Type conversion error: Hip quat', info=False)
             return "Fail!"
 
         # Right foot
@@ -344,11 +348,11 @@ def run_calibration(sensor_data, file_name, aws=True):
                                                         missing_type)
         len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])                                              
         _logger('Bad data! Percentage of NaNs in RqW: ' +
-        str(len_nan_real_quat), aws, info=False)
+        str(len_nan_real_quat), info=False)
 
         #check for type conversion error in right foot quaternion data
         if conv_error:
-            _logger('Error! Type conversion error: RF quat', aws, info=False)
+            _logger('Error! Type conversion error: RF quat', info=False)
             return "Fail!"
 
         #Acceleration
@@ -396,7 +400,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                 cur.execute(quer_fail, (False, False, ind, is_base, file_name))
                 conn.commit()
             except psycopg2.Error as error:
-                _logger("Cannot write to DB after failure!", aws, info=False)
+                _logger("Cannot write to DB after failure!", info=False)
                 raise error
 
 
@@ -412,14 +416,13 @@ def run_calibration(sensor_data, file_name, aws=True):
                 conn.commit()
                 conn.close()
             except boto3.exceptions as error:
-                _logger("Cannot write to s3 container after failure!",
-                        aws, info=False)
+                _logger("Cannot write to s3 container after failure!", False)
                 raise error
             except psycopg2.Error as error:
-                _logger("Cannot write to rpush after failure!", aws, info=False)
+                _logger("Cannot write to rpush after failure!", info=False)
                 raise error
             else:
-                _logger("Failure Message: " + msg, aws, False)
+                _logger("Failure Message: " + msg, False)
                 return "Fail!"
 
         else:
@@ -437,7 +440,7 @@ def run_calibration(sensor_data, file_name, aws=True):
             try:
                 S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
             except boto3.exceptions as error:
-                _logger("Cannot write to s3!", aws, info=False)
+                _logger("Cannot write to s3!", info=False)
                 raise error
 
             if is_base:
@@ -449,20 +452,16 @@ def run_calibration(sensor_data, file_name, aws=True):
 
                 # check if the transform values are nan's
                 if np.any(np.isnan(hip_pitch_transform)):
-                    _logger('Hip pitch transform has missing values.',
-                            aws, info=False)
+                    _logger('Hip pitch transform has missing values', False)
                     raise ValueError('NaN in hip_pitch_transform')
                 elif np.any(np.isnan(hip_roll_transform)):
-                    _logger('Hip roll transform has missing values.',
-                                 aws, info=False)
+                    _logger('Hip roll transform has missing values', False)
                     raise ValueError('NaN in hip_roll_transform')
                 elif np.any(np.isnan(lf_roll_transform)):
-                    _logger('LF roll transform has missing values.',
-                                 aws, info=False)
+                    _logger('LF roll transform has missing values', False)
                     raise ValueError('NaN in lf_roll_transform')
                 elif np.any(np.isnan(rf_roll_transform)):
-                    _logger('RF roll transform has missing values.',
-                                 aws, info=False)
+                    _logger('RF roll transform has missing values', False)
                     raise ValueError('NaN in rf_roll_transform')
 
                 hip_p_transform = hip_pitch_transform.reshape(-1, ).tolist()
@@ -482,7 +481,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                     conn.commit()
                 except psycopg2.Error as error:
                     _logger("Cannot write base transform values to DB",
-                            aws, info=False)
+                            info=False)
                     raise error
 
                 # Run session calibration
@@ -494,34 +493,34 @@ def run_calibration(sensor_data, file_name, aws=True):
                 # Calculate neutral transforms
                 lf_n_transform, hip_n_transform, rf_n_transform =\
                 nc.run_neutral_computations(feet_data, data_calib,
-                                                  lf_bf_transform,
-                                                  hip_bf_transform,
-                                                  rf_bf_transform)
+                                            lf_bf_transform,
+                                            hip_bf_transform,
+                                            rf_bf_transform)
 
                 # Check if bodyframe and neutral transform values are nan's
                 if np.any(np.isnan(hip_bf_transform)):
                     _logger('Hip bodyframe transform has missing values.',
-                            aws, info=False)
+                            info=False)
                     raise ValueError('NaN in hip_bf_transform')
                 elif np.any(np.isnan(lf_bf_transform)):
                     _logger('LF bodyframe transform has missing values.',
-                            aws, info=False)
+                            info=False)
                     raise ValueError('NaN in lf_bf_transform')
                 elif np.any(np.isnan(rf_bf_transform)):
                     _logger('RF bodyframe transform has missing values.',
-                            aws, info=False)
+                            info=False)
                     raise ValueError('NaN in rf_bf_transform')
                 elif np.any(np.isnan(lf_n_transform)):
                     _logger('LF neutral transform has missing values.',
-                            aws, info=False)
+                            info=False)
                     raise ValueError('NaN in lf_n_transform')
                 elif np.any(np.isnan(rf_n_transform)):
                     _logger('RF neutral transform has missing values.',
-                            aws, info=False)
+                            info=False)
                     raise ValueError('NaN in rf_n_transform')
                 elif np.any(np.isnan(hip_n_transform)):
                     _logger('Hip neutral transform has missing values.',
-                            aws, info=False)
+                            info=False)
                     raise ValueError('NaN in hip_n_transform')
 
                 # Save session calibration offsets to
@@ -536,17 +535,17 @@ def run_calibration(sensor_data, file_name, aws=True):
 
                 try:
                     cur.execute(quer_session_succ, (True, True, is_base,
-                                                hip_n_transform,
-                                                hip_bf_transform,
-                                                lf_n_transform,
-                                                lf_bf_transform,
-                                                rf_n_transform,
-                                                rf_bf_transform,
-                                                file_name))
+                                                    hip_n_transform,
+                                                    hip_bf_transform,
+                                                    lf_n_transform,
+                                                    lf_bf_transform,
+                                                    rf_n_transform,
+                                                    rf_bf_transform,
+                                                    file_name))
                     conn.commit()
                 except psycopg2.Error as error:
                     _logger("Cannot write to DB after success!",
-                            aws, info=False)
+                            info=False)
                     raise error
                 try:
                     cur.execute(quer_rpush, (user_id, msg, r_push_data))
@@ -556,9 +555,10 @@ def run_calibration(sensor_data, file_name, aws=True):
                 # rPush
                 except:
                     _logger("Cannot write to rpush after succcess!",
-                            aws, info=False)
+                            info=False)
                     raise error
                 else:
+                    _process_se(file_name, cur, conn, quer_check_status)
                     return "Success!"
 
             else:
@@ -571,9 +571,9 @@ def run_calibration(sensor_data, file_name, aws=True):
                 # Calculate neutral transforms
                 lf_n_transform, hip_n_transform, rf_n_transform =\
                 nc.run_neutral_computations(feet_data, data_calib,
-                                                  lf_bf_transform,
-                                                  hip_bf_transform,
-                                                  rf_bf_transform)
+                                            lf_bf_transform,
+                                            hip_bf_transform,
+                                            rf_bf_transform)
 
                 hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
                 lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
@@ -587,17 +587,17 @@ def run_calibration(sensor_data, file_name, aws=True):
                 # along with base_calibration=False and success=True
                 try:
                     cur.execute(quer_session_succ, (True, True, is_base,
-                                                hip_n_transform,
-                                                hip_bf_transform,
-                                                lf_n_transform,
-                                                lf_bf_transform,
-                                                rf_n_transform,
-                                                rf_bf_transform,
-                                                file_name))
+                                                    hip_n_transform,
+                                                    hip_bf_transform,
+                                                    lf_n_transform,
+                                                    lf_bf_transform,
+                                                    rf_n_transform,
+                                                    rf_bf_transform,
+                                                    file_name))
                     conn.commit()
                 except psycopg2.Error as error:
                     _logger("Cannot write to DB after success!",
-                            aws, info=False)
+                            info=False)
 
                 # rPush
                 try:
@@ -605,10 +605,10 @@ def run_calibration(sensor_data, file_name, aws=True):
                     conn.commit()
                     conn.close()
                 except:
-                    _logger("Cannot write to rpush after succcess!",
-                            aws, info=False)
+                    _logger("Cannot write to rpush after succcess!", info=False)
                     raise error
                 else:
+                    _process_se(file_name, cur, conn, quer_check_status)
                     return "Success!"
 
 def _select_recording(data):
@@ -620,8 +620,8 @@ def _select_recording(data):
     return subset_data
 
 
-def _logger(message, aws, info=True):
-    if aws:
+def _logger(message, info=True):
+    if AWS:
         if info:
             logger.info(message)
         else:
@@ -630,7 +630,7 @@ def _logger(message, aws, info=True):
         print message
 
 
-def _record_magn(data, file_name, aws, S3):
+def _record_magn(data, file_name, S3):
     import csv
     corrupt_magn = data['corrupt_magn']
     percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
@@ -644,7 +644,7 @@ def _record_magn(data, file_name, aws, S3):
     for obj in S3.Bucket('biometrix-magntest').objects.all():
         files_magntest.append(obj.key)
     file_present = 'magntest_session_calib' in  files_magntest
-    if aws:
+    if AWS:
         try:
             if file_present:
                 obj = S3.Bucket('biometrix-magntest').Object('magntest_session_calib')
@@ -676,7 +676,7 @@ def _record_magn(data, file_name, aws, S3):
             S3.Bucket('biometrix-magntest').put_object(Key='magntest_session_calib',
                                                        Body=feet)
         except:
-            _logger("Cannot updage magn logs!", aws)
+            _logger("Cannot updage magn logs!", AWS)
         
     else:
         path = '..\\test_base_and_session_calibration\\magntest_session_calib.csv'
@@ -695,6 +695,51 @@ def _record_magn(data, file_name, aws, S3):
                             'min_magn_rf', 'max_magn_rf'))
                 w.writerow((file_name, percent_corrupt, minimum_lf, maximum_lf,
                             minimum_h, maximum_h, minimum_rf, maximum_rf))
+
+def _process_se(file_name, cur, conn, quer_check_status):
+    """
+    Check if API call needs to be made to process session calibration file and
+    make the call if required.
+    """
+    url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
+            "api/sessionevent/processfile"
+    try:
+        cur.execute(quer_check_status, (file_name,))
+        status_data = cur.fetchall()[0]
+    except IndexError:
+        _logger("Couldn't find associated events")
+    else:
+        se_filename = status_data[32]
+        #Check if all session_event files have been received
+        se_lf_rec = status_data[33] is not None
+        se_rf_rec = status_data[34] is not None
+        se_h_rec = status_data[35] is not None
+        all_se_rec = se_lf_rec and se_rf_rec and se_h_rec
+        #Check session_event file hasn't already been processed
+        se_not_sent = status_data[36] is None
+        #Check if upload to db has started for all sensors
+        se_lf_up_start = status_data[37] is not None
+        se_rf_up_start = status_data[38] is not None
+        se_h_up_start = status_data[39] is not None
+        all_se_up_start = se_lf_up_start and se_rf_up_start and se_h_up_start
+        #Check if upload to db has completed for all sensors
+        se_lf_up_comp = status_data[40] is not None
+        se_rf_up_comp = status_data[41] is not None
+        se_h_up_comp = status_data[42] is not None
+        all_se_up_comp = se_lf_up_comp and se_rf_up_comp and se_h_up_comp
+
+        if all_se_rec and se_not_sent and all_se_up_start and all_se_up_comp:
+            """make api call here to begin session_ac_processing"""
+            data = {'fileName':se_filename}
+            headers = {'Content-type':"application/json; charset=utf-8"}
+            r = requests.post(url, data=data, headers=headers)
+            if r.status_code !=200:
+                _logger("Failed to start session event processing!")
+            else:
+                _logger("Successfully started session event processing!")
+        else:
+            _logger("Session event file doesn't need to start processing!")
+
 
 
 if __name__ == '__main__':

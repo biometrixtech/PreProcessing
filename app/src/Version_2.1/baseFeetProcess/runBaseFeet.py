@@ -12,6 +12,7 @@ import boto3
 import numpy as np
 import pandas as pd
 import psycopg2
+import requests
 
 import prePreProcessing as ppp
 #import anatomicalCalibration as ac
@@ -38,6 +39,8 @@ def record_base_feet(sensor_data, file_name, aws=True):
         calibration step.
         Save transformed data to database with indicator of success/failure
     """
+    global AWS
+    AWS = aws
     
     # Query to read user_id linked to the given data_filename
     quer_read = """select user_id from base_anatomical_calibration_events
@@ -61,6 +64,8 @@ def record_base_feet(sensor_data, file_name, aws=True):
         where feet_sensor_data_filename=(%s);"""
 
     quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
+    quer_check_status = """ select * 
+                from fn_get_processing_status_from_ba_event_filename((%s))"""
     ###Connect to the database
     try:
         conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
@@ -77,17 +82,17 @@ def record_base_feet(sensor_data, file_name, aws=True):
         user_id = data_read[0]
         if user_id is None:
             user_id = '00000000-0000-0000-0000-000000000000'
-            _logger("user_id associated with file not found", aws, False)
+            _logger("user_id associated with file not found", False)
 #            logger.warning("user_id associated with file not found")
         
     except psycopg2.Error as error:
-        _logger("Cannot connect to DB", aws, False)
+        _logger("Cannot connect to DB", False)
         raise error
     except boto3.exceptions as error:
-        _logger("Cannot connect to s3", aws, False)
+        _logger("Cannot connect to s3", False)
         raise error
     except IndexError as error:
-        _logger("feet_sensor_data_filename not found in table", aws, False)
+        _logger("feet_sensor_data_filename not found in table", False)
         raise error
     #define container to write processed file to
     cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
@@ -97,10 +102,10 @@ def record_base_feet(sensor_data, file_name, aws=True):
         data = np.genfromtxt(sensor_data, dtype=float, delimiter=',',
                              names=True)
     except IndexError:
-        _logger("Sensor data doesn't have column names!", aws, False)
+        _logger("Sensor data doesn't have column names!", False)
         return "Fail!"
     if len(data) == 0:
-        _logger("Sensor data is empty!", aws, False)
+        _logger("Sensor data is empty!", False)
         return "Fail!"
     data.dtype.names = columns_calib
     # check if the raw quaternions have been converted already
@@ -109,10 +114,10 @@ def record_base_feet(sensor_data, file_name, aws=True):
     subset_data = ppp.subset_data(old_data=data, subset_value=2)
 
     # Record percentage and ranges of magn_values for diagonostic purposes
-    _record_magn(subset_data, file_name, aws, S3)
+    _record_magn(subset_data, file_name, S3)
 
     if len(subset_data) == 0:
-        _logger("No overlapping samples after time sync", aws, info=False)
+        _logger("No overlapping samples after time sync", info=False)
         return "Fail!"
 
     # cut out first of recording where quats are settling
@@ -131,7 +136,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
             cur.execute(quer_fail, (1, "", False, file_name))
             conn.commit()
         except psycopg2.Error as error:
-            _logger("Cannot write to DB after failure!", aws, False)
+            _logger("Cannot write to DB after failure!", False)
         finally:
             return "Fail!"
 
@@ -151,7 +156,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
     # Check for duplicate epoch time
     duplicate_index = ppp.check_duplicate_index(index)
     if duplicate_index:
-        _logger('Duplicate index.'. aws, False)
+        _logger('Duplicate index.'. False)
     
     # PRE-PRE-PROCESSING
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
@@ -172,7 +177,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
 #        if np.any(np.isnan(out[missing_type != 1])):  # subsetting for when
 #        # a missing value is an intentional blank
 #            _logger('Bad data! NaNs exist even after imputing. \
-#            Column: ' + var, aws, False)
+#            Column: ' + var, False)
 #            return "Fail!"
         
     # subset for missing type = 3
@@ -190,7 +195,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
             cur.execute(quer_fail, (ind, out_file, False, file_name))
             conn.commit()
         except psycopg2.Error as error:
-            _logger("Cannot write to DB after failure!", aws, False)
+            _logger("Cannot write to DB after failure!", False)
             raise error
 
         ### Write to S3
@@ -205,13 +210,13 @@ def record_base_feet(sensor_data, file_name, aws=True):
             conn.commit()
             conn.close()
         except boto3.exceptions as error:
-            _logger("Can't write to s3 after failure!", aws, False)
+            _logger("Can't write to s3 after failure!", False)
             raise error
         except psycopg2.Error as error:
-            _logger("Cannot write to rpush after failure!", aws, False)
+            _logger("Cannot write to rpush after failure!", False)
             raise error
         else:
-            _logger("Failure Message: " + msg, aws, False)
+            _logger("Failure Message: " + msg, False)
             return "Fail!"
 
     else:
@@ -223,11 +228,11 @@ def record_base_feet(sensor_data, file_name, aws=True):
                                                        missing_type)
         len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in LqW: ' +
-        str(len_nan_real_quat), aws, False)
+        str(len_nan_real_quat), False)
         
         #check for type conversion error in left foot quaternion data
         if conv_error:
-            _logger('Error! Type conversion error: LF quat', aws, False)
+            _logger('Error! Type conversion error: LF quat', False)
             return "Fail!"
 
         # Hip
@@ -237,11 +242,11 @@ def record_base_feet(sensor_data, file_name, aws=True):
                                                       missing_type)
         len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in HqW: ' +
-        str(len_nan_real_quat), aws, False)
+        str(len_nan_real_quat), False)
         
         #check for type conversion error in hip quaternion data
         if conv_error:
-            _logger('Error! Type conversion error: Hip quat', aws, False)
+            _logger('Error! Type conversion error: Hip quat', False)
             return "Fail!"
 
         # Right foot
@@ -251,11 +256,11 @@ def record_base_feet(sensor_data, file_name, aws=True):
                                                         missing_type)
         len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in RqW: ' +
-        str(len_nan_real_quat), aws, False)
+        str(len_nan_real_quat), False)
         
         #check for type conversion error in right foot quaternion data
         if conv_error:
-            _logger('Error! Type conversion error: RF quat', aws, False)
+            _logger('Error! Type conversion error: RF quat', False)
             return "Fail!"
             
         #Acceleration
@@ -312,7 +317,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 cur.execute(quer_fail, (ind, out_file, False, file_name))
                 conn.commit()
             except psycopg2.Error as error:
-                _logger("Cannot write to DB after failure!", aws, False)
+                _logger("Cannot write to DB after failure!", False)
                 raise error
 
             data_feet['failure_type'] = ind
@@ -327,14 +332,14 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 conn.commit()
                 conn.close()
             except boto3.exceptions as error:
-                _logger("Cannot write to s3 container after failure!", aws,
+                _logger("Cannot write to s3 container after failure!", AWS,
                         False)
                 raise error
             except psycopg2.Error as error:
-                _logger("Cannot write to rpush after failure!", aws, False)
+                _logger("Cannot write to rpush after failure!", False)
                 raise error
             else:
-                _logger("Failure Message: " + msg, aws, False)
+                _logger("Failure Message: " + msg, False)
                 return "Fail!"
 
         else:
@@ -346,7 +351,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 cur.execute(quer_success, (out_file, True, file_name))
                 conn.commit()
             except psycopg2.Error as error:
-                _logger("Cannot write to DB after success!", aws, False)
+                _logger("Cannot write to DB after success!", False)
                 raise error
 
             data_feet['failure_type'] = ind
@@ -359,14 +364,15 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
                 cur.execute(quer_rpush, (user_id, msg, r_push_data))
                 conn.commit()
-                conn.close()
+#                conn.close()
             except boto3.exceptions as error:
-                _logger("Cannot write to s3 container after success!", aws)
+                _logger("Cannot write to s3 container after success!", AWS)
                 raise error
             except psycopg2.Error as error:
-                _logger("Cannot write to rpush after success!", aws)
+                _logger("Cannot write to rpush after success!", AWS)
                 raise error
             else:
+                _process_sac(file_name, cur, conn, quer_check_status)
                 return "Success!"
 
 def _select_recording(data):
@@ -375,8 +381,8 @@ def _select_recording(data):
     subset_data = np.delete(data, beg, 0)
     return subset_data
 
-def _logger(message, aws, info=True):
-    if aws:
+def _logger(message, info=True):
+    if AWS:
         if info:
             logger.info(message)
         else:
@@ -384,7 +390,7 @@ def _logger(message, aws, info=True):
     else:
         print message
 
-def _record_magn(data, file_name, aws, S3):
+def _record_magn(data, file_name, S3):
     import csv
     corrupt_magn = data['corrupt_magn']
     percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
@@ -398,7 +404,7 @@ def _record_magn(data, file_name, aws, S3):
     for obj in S3.Bucket('biometrix-magntest').objects.all():
         files_magntest.append(obj.key)
     file_present = 'magntest_base' in  files_magntest
-    if aws:
+    if AWS:
         try:
             if file_present:
                 obj = S3.Bucket('biometrix-magntest').Object('magntest_base')
@@ -430,7 +436,7 @@ def _record_magn(data, file_name, aws, S3):
             S3.Bucket('biometrix-magntest').put_object(Key='magntest_base',
                                                        Body=feet)
         except:
-            _logger("Cannot updage magn logs!", aws)
+            _logger("Cannot updage magn logs!", AWS)
         
     else:
         path = '..\\test_base_and_session_calibration\\magntest_base.csv'
@@ -449,6 +455,52 @@ def _record_magn(data, file_name, aws, S3):
                             'min_magn_rf', 'max_magn_rf'))
                 w.writerow((file_name, percent_corrupt, minimum_lf, maximum_lf,
                             minimum_h, maximum_h, minimum_rf, maximum_rf))
+
+
+def _process_sac(file_name, cur, conn, quer_check_status):
+    """
+    Check if API call needs to be made to process session calibration file and
+    make the call if required.
+    """
+    url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
+                "api/sessionanatomical/processfile"
+    try:
+        cur.execute(quer_check_status, (file_name,))
+        status_data = cur.fetchall()[0]
+    except IndexError:
+        _logger("Couldn't find associated events")
+    else:
+        sa_filename = status_data[18]
+        #Check if all session_calib files have been received
+        sa_lf_rec = status_data[19] is not None
+        sa_rf_rec = status_data[20] is not None
+        sa_h_rec = status_data[21] is not None
+        all_sa_rec = sa_lf_rec and sa_rf_rec and sa_h_rec
+        #Check session_calib file hasn't already been processed
+        sa_not_sent = status_data[22] is None
+        #Check if upload to db has started for all sensors
+        sa_lf_up_start = status_data[23] is not None
+        sa_rf_up_start = status_data[24] is not None
+        sa_h_up_start = status_data[25] is not None
+        all_sa_up_start = sa_lf_up_start and sa_rf_up_start and sa_h_up_start
+        #Check if upload to db has completed for all sensors
+        sa_lf_up_comp = status_data[26] is not None
+        sa_rf_up_comp = status_data[27] is not None
+        sa_h_up_comp = status_data[28] is not None
+        all_sa_up_comp = sa_lf_up_comp and sa_rf_up_comp and sa_h_up_comp
+    
+        if all_sa_rec and sa_not_sent and all_sa_up_start and all_sa_up_comp:
+            """make api call here to begin session_ac_processing"""
+
+            data = {'fileName':sa_filename}
+            headers = {'Content-type':"application/json; charset=utf-8"}
+            r = requests.post(url, data=data, headers=headers)
+            if r.status_code !=200:
+                _logger("Failed to start session calibration processing!")
+            else:
+                _logger("Successfully started session calibration processing!")
+        else:
+            _logger("Session calib file doesn't need to start processing!")
 
 
 if __name__ == '__main__':
