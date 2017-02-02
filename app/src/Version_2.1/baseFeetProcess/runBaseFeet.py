@@ -5,7 +5,7 @@ Created on Tue Oct 18 15:18:54 2016
 @author: court
 """
 import cStringIO
-#import sys
+import sys
 import logging
 
 import boto3
@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import psycopg2
 import requests
+#import httplib
 
 import prePreProcessing as ppp
 #import anatomicalCalibration as ac
@@ -39,32 +40,35 @@ def record_base_feet(sensor_data, file_name, aws=True):
         calibration step.
         Save transformed data to database with indicator of success/failure
     """
+#    r=requests.get('https://en.wikipedia.org/w/api.php?action=query&titles=Main%20Page&prop=revisions&rvprop=content&format=json')
+#    _logger(r.status_code)
+#    sys.exit()
     global AWS
     AWS = aws
     
     # Query to read user_id linked to the given data_filename
     quer_read = """select user_id from base_anatomical_calibration_events
-                where feet_sensor_data_filename = (%s);"""
+                   where feet_sensor_data_filename = (%s);"""
 
     # Two update queries for when the tests pass/fail
     quer_fail = """update base_anatomical_calibration_events set
-        failure_type = (%s),
-        feet_processed_sensor_data_filename = (%s),
-        user_success = (%s),
-        updated_at = now(),
-        processed_at = now()
-        where feet_sensor_data_filename=(%s);"""
+                   failure_type = (%s),
+                   feet_processed_sensor_data_filename = (%s),
+                   user_success = (%s),
+                   updated_at = now(),
+                   processed_at = now()
+                   where feet_sensor_data_filename=(%s);"""
 
     quer_success = """update base_anatomical_calibration_events set
-        feet_processed_sensor_data_filename = (%s),
-        user_success = (%s),
-        updated_at = now(),
-        processed_at = now(),
-        failure_type = 0
-        where feet_sensor_data_filename=(%s);"""
+                      feet_processed_sensor_data_filename = (%s),
+                      user_success = (%s),
+                      updated_at = now(),
+                      processed_at = now(),
+                      failure_type = 0
+                      where feet_sensor_data_filename=(%s);"""
 
 #    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
-    quer_check_status = """ select * 
+    quer_check_status = """select * 
                 from fn_get_processing_status_from_ba_event_filename((%s))"""
     ###Connect to the database
     try:
@@ -72,10 +76,10 @@ def record_base_feet(sensor_data, file_name, aws=True):
         host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
         password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
         cur = conn.cursor()
-        
+
         # connect to S3 bucket for uploading file
         S3 = boto3.resource('s3')
-        
+
         # Read the user_id to be used for push notification
         cur.execute(quer_read, (file_name,))
         data_read = cur.fetchall()[0]
@@ -84,7 +88,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
             user_id = '00000000-0000-0000-0000-000000000000'
             _logger("user_id associated with file not found", False)
 #            logger.warning("user_id associated with file not found")
-        
+
     except psycopg2.Error as error:
         _logger("Cannot connect to DB", False)
         raise error
@@ -244,7 +248,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
         len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in HqW: ' +
         str(len_nan_real_quat), False)
-        
+
         #check for type conversion error in hip quaternion data
         if conv_error:
             _logger('Error! Type conversion error: Hip quat', False)
@@ -374,6 +378,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
 #                _logger("Cannot write to rpush after success!", AWS)
 #                raise error
             else:
+                _logger("Finished writing to s3!")
                 _process_sac(file_name, cur, conn, quer_check_status)
                 return "Success!"
 
@@ -439,7 +444,7 @@ def _record_magn(data, file_name, S3):
                                                        Body=feet)
         except:
             _logger("Cannot updage magn logs!", AWS)
-        
+
     else:
         path = '..\\test_base_and_session_calibration\\magntest_base.csv'
         try:
@@ -464,45 +469,49 @@ def _process_sac(file_name, cur, conn, quer_check_status):
     Check if API call needs to be made to process session calibration file and
     make the call if required.
     """
-    url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
-                "api/sessionanatomical/processfile"
+    url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"
     try:
         cur.execute(quer_check_status, (file_name,))
-        status_data = cur.fetchall()[0]
+        status_data_all = cur.fetchall()
+        _logger("status data retrieved")
+        status_data = status_data_all[0]
     except IndexError:
         _logger("Couldn't find associated events")
     else:
-        sa_filename = status_data[18]
-        #Check if all session_calib files have been received
-        sa_lf_rec = status_data[19] is not None
-        sa_rf_rec = status_data[20] is not None
-        sa_h_rec = status_data[21] is not None
-        all_sa_rec = sa_lf_rec and sa_rf_rec and sa_h_rec
-        #Check session_calib file hasn't already been processed
-        sa_not_sent = status_data[22] is None
-        #Check if upload to db has started for all sensors
-        sa_lf_up_start = status_data[23] is not None
-        sa_rf_up_start = status_data[24] is not None
-        sa_h_up_start = status_data[25] is not None
-        all_sa_up_start = sa_lf_up_start and sa_rf_up_start and sa_h_up_start
-        #Check if upload to db has completed for all sensors
-        sa_lf_up_comp = status_data[26] is not None
-        sa_rf_up_comp = status_data[27] is not None
-        sa_h_up_comp = status_data[28] is not None
-        all_sa_up_comp = sa_lf_up_comp and sa_rf_up_comp and sa_h_up_comp
-    
-        if all_sa_rec and sa_not_sent and all_sa_up_start and all_sa_up_comp:
-            """make api call here to begin session_ac_processing"""
-#
-#            data = {'fileName':sa_filename}
-#            headers = {'Content-type':"application/json; charset=utf-8"}
-            r = requests.post(url+'?fileName='+sa_filename)
-            if r.status_code !=200:
-                _logger("Failed to start session calibration processing!")
+        for i in range(len(status_data_all)):
+            status_data = status_data_all[i]
+            sa_filename = status_data[18]
+            _logger(sa_filename)
+            #Check if all session_calib files have been received
+            sa_lf_rec = status_data[19] is not None
+            sa_rf_rec = status_data[20] is not None
+            sa_h_rec = status_data[21] is not None
+            received = sa_lf_rec and sa_rf_rec and sa_h_rec
+            #Check session_calib file hasn't already been processed
+            not_sent = status_data[22] is None
+            #Check if upload to db has started for all sensors
+            sa_lf_up_start = status_data[23] is not None
+            sa_rf_up_start = status_data[24] is not None
+            sa_h_up_start = status_data[25] is not None
+            up_started = sa_lf_up_start and sa_rf_up_start and sa_h_up_start
+            #Check if upload to db has completed for all sensors
+            sa_lf_up_comp = status_data[26] is not None
+            sa_rf_up_comp = status_data[27] is not None
+            sa_h_up_comp = status_data[28] is not None
+            up_completed = sa_lf_up_comp and sa_rf_up_comp and sa_h_up_comp
+
+            if received and not_sent and up_started and up_completed:
+    #            data = {'fileName':sa_filename}
+    #            headers = {'Content-type':"application/json; charset=utf-8"}
+                _logger("API call started")
+                r = requests.post(url+'?fileName='+sa_filename)
+                _logger("API call completed!")
+                if r.status_code !=200:
+                    _logger("Failed to start session calib processing!")
+                else:
+                    _logger("Successfully started session calib processing!")
             else:
-                _logger("Successfully started session calibration processing!")
-        else:
-            _logger("Session calib file doesn't need to start processing!")
+                _logger("Session calib file doesn't need to start processing!")
 
 
 if __name__ == '__main__':

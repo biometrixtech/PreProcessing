@@ -246,7 +246,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     # Check for duplicate epoch time
     duplicate_index = ppp.check_duplicate_index(index)
     if duplicate_index:
-        _logger('Duplicate index.'. info=False)
+        _logger('Duplicate index.', info=False)
 
     # PRE-PRE-PROCESSING
 
@@ -319,7 +319,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                                subset_data['LqZ']]).transpose()
         left_q_wxyz, conv_error = ppp.calc_quaternions(left_q_xyz,
                                                        missing_type)
-        len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])                                              
+        len_nan_real_quat = len(np.where(np.isnan(left_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in LqW: ' +
         str(len_nan_real_quat), info=False)
 
@@ -333,7 +333,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                               subset_data['HqZ']]).transpose()
         hip_q_wxyz, conv_error = ppp.calc_quaternions(hip_q_xyz,
                                                       missing_type)
-        len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])                                              
+        len_nan_real_quat = len(np.where(np.isnan(hip_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in HqW: ' +
         str(len_nan_real_quat), info=False)
 
@@ -347,7 +347,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                                 subset_data['RqZ']]).transpose()
         right_q_wxyz, conv_error = ppp.calc_quaternions(right_q_xyz,
                                                         missing_type)
-        len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])                                              
+        len_nan_real_quat = len(np.where(np.isnan(right_q_wxyz[:, 0]))[0])
         _logger('Bad data! Percentage of NaNs in RqW: ' +
         str(len_nan_real_quat), info=False)
 
@@ -681,7 +681,7 @@ def _record_magn(data, file_name, S3):
                                                        Body=feet)
         except:
             _logger("Cannot updage magn logs!", AWS)
-        
+
     else:
         path = '..\\test_base_and_session_calibration\\magntest_session_calib.csv'
         try:
@@ -709,40 +709,43 @@ def _process_se(file_name, cur, conn, quer_check_status):
             "api/sessionevent/processfile"
     try:
         cur.execute(quer_check_status, (file_name,))
-        status_data = cur.fetchall()[0]
+        status_data_all = cur.fetchall()
+        status_data = status_data_all[0]
     except IndexError:
         _logger("Couldn't find associated events")
     else:
-        se_filename = status_data[32]
-        #Check if all session_event files have been received
-        se_lf_rec = status_data[33] is not None
-        se_rf_rec = status_data[34] is not None
-        se_h_rec = status_data[35] is not None
-        all_se_rec = se_lf_rec and se_rf_rec and se_h_rec
-        #Check session_event file hasn't already been processed
-        se_not_sent = status_data[36] is None
-        #Check if upload to db has started for all sensors
-        se_lf_up_start = status_data[37] is not None
-        se_rf_up_start = status_data[38] is not None
-        se_h_up_start = status_data[39] is not None
-        all_se_up_start = se_lf_up_start and se_rf_up_start and se_h_up_start
-        #Check if upload to db has completed for all sensors
-        se_lf_up_comp = status_data[40] is not None
-        se_rf_up_comp = status_data[41] is not None
-        se_h_up_comp = status_data[42] is not None
-        all_se_up_comp = se_lf_up_comp and se_rf_up_comp and se_h_up_comp
+        for i in range(len(status_data_all)):
+            status_data = status_data_all[i]
+            se_filename = status_data[32]
+            #Check if all session_event files have been received
+            se_lf_rec = status_data[33] is not None
+            se_rf_rec = status_data[34] is not None
+            se_h_rec = status_data[35] is not None
+            received = se_lf_rec and se_rf_rec and se_h_rec
+            #Check session_event file hasn't already been processed
+            not_sent = status_data[36] is None
+            #Check if upload to db has started for all sensors
+            se_lf_up_start = status_data[37] is not None
+            se_rf_up_start = status_data[38] is not None
+            se_h_up_start = status_data[39] is not None
+            up_started = se_lf_up_start and se_rf_up_start and se_h_up_start
+            #Check if upload to db has completed for all sensors
+            se_lf_up_comp = status_data[40] is not None
+            se_rf_up_comp = status_data[41] is not None
+            se_h_up_comp = status_data[42] is not None
+            up_completed = se_lf_up_comp and se_rf_up_comp and se_h_up_comp
 
-        if all_se_rec and se_not_sent and all_se_up_start and all_se_up_comp:
-            """make api call here to begin session_event_processing"""
-#            data = {'fileName':se_filename}
-#            headers = {'Content-type':"application/json; charset=utf-8"}
-            r = requests.post(url+'?fileName='+se_filename)
-            if r.status_code !=200:
-                _logger("Failed to start session event processing!")
+            if received and not_sent and up_started and up_completed:
+                """make api call here to begin session_event_processing"""
+    #            data = {'fileName':se_filename}
+    #            headers = {'Content-type':"application/json; charset=utf-8"}
+                r = requests.post(url+'?fileName='+se_filename)
+                if r.status_code !=200:
+                    _logger("Failed to start session event processing!")
+                else:
+                    _logger("Successfully started session event processing!")
             else:
-                _logger("Successfully started session event processing!")
-        else:
-            _logger("Session event file doesn't need to start processing!")
+                _logger("Session event file doesn't need to start processing!")
 
 
 
