@@ -5,7 +5,7 @@ Created on Tue Oct 18 15:18:54 2016
 @author: court
 """
 import cStringIO
-import sys
+#import sys
 import logging
 
 import boto3
@@ -40,9 +40,6 @@ def record_base_feet(sensor_data, file_name, aws=True):
         calibration step.
         Save transformed data to database with indicator of success/failure
     """
-#    r=requests.get('https://en.wikipedia.org/w/api.php?action=query&titles=Main%20Page&prop=revisions&rvprop=content&format=json')
-#    _logger(r.status_code)
-#    sys.exit()
     global AWS
     AWS = aws
     
@@ -469,15 +466,21 @@ def _process_sac(file_name, cur, conn, quer_check_status):
     Check if API call needs to be made to process session calibration file and
     make the call if required.
     """
-    url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"
+    if AWS:
+        url = "http://172.31.28.141/api/sessionanatomical/processfile"
+    else:
+        url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
+                "api/sessionanatomical/processfile"
     try:
         cur.execute(quer_check_status, (file_name,))
         status_data_all = cur.fetchall()
         _logger("status data retrieved")
         status_data = status_data_all[0]
     except IndexError:
+        conn.close()
         _logger("Couldn't find associated events")
     else:
+        conn.close()
         for i in range(len(status_data_all)):
             status_data = status_data_all[i]
             sa_filename = status_data[18]

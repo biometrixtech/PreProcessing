@@ -157,6 +157,7 @@ def run_calibration(sensor_data, file_name, aws=True):
         _logger("Sensor data is empty!", info=False)
         return "Fail!"
     data.dtype.names = columns_calib
+    _logger("Data Loaded")
     #read from S3
     feet_file = data_read[4]
     try:
@@ -560,8 +561,8 @@ def run_calibration(sensor_data, file_name, aws=True):
 #                            info=False)
 #                    raise error
                 else:
-                    conn.close()
                     _process_se(file_name, cur, conn, quer_check_status)
+                    conn.close()
                     return "Success!"
 
             else:
@@ -611,8 +612,8 @@ def run_calibration(sensor_data, file_name, aws=True):
 #                    _logger("Cannot write to rpush after succcess!", info=False)
 #                    raise error
                 else:
-                    conn.close()
                     _process_se(file_name, cur, conn, quer_check_status)
+                    conn.close()
                     return "Success!"
 
 def _select_recording(data):
@@ -705,15 +706,20 @@ def _process_se(file_name, cur, conn, quer_check_status):
     Check if API call needs to be made to process session calibration file and
     make the call if required.
     """
-    url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
-            "api/sessionevent/processfile"
+    if AWS:
+        url = "http://172.31.28.141/api/sessionevent/processfile"
+    else:
+        url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
+                "api/sessionevent/processfile"
     try:
         cur.execute(quer_check_status, (file_name,))
         status_data_all = cur.fetchall()
         status_data = status_data_all[0]
     except IndexError:
+        conn.close()
         _logger("Couldn't find associated events")
     else:
+        conn.close()
         for i in range(len(status_data_all)):
             status_data = status_data_all[i]
             se_filename = status_data[32]
