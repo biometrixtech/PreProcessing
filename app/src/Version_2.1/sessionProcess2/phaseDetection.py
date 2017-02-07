@@ -373,6 +373,19 @@ def _final_phases(rf_ph, lf_ph):
     
     
 def _detect_start_end_imp_phase(lph, rph):
+    '''
+    Detect the start and end indices of impact phase for left and right foot.
+    
+    Args:
+        lph = array, left foot phase
+        rph = array, right foot phase
+        
+    Returns:
+        lf_imp_start_stop: array, marker when impact phase for left foot
+        starts and ends
+        rf_imp_start_stop: array, marker when impact phase for right foot
+        starts and ends
+    '''
     
     # start and end indices of impact phase for left and right foot
     rf_range_imp = _zero_runs(col_dat=rph, imp_value=phase_id.rf_imp.value)
@@ -392,6 +405,15 @@ def _detect_start_end_imp_phase(lph, rph):
 
     
 def _zero_runs(col_dat, imp_value):
+    """
+    Determine the start and end of each impact.
+    
+    Args:
+        col_dat: array, right/left foot phase
+        imp_value: int, indicator for right/left foot impact phase
+    Returns:
+        ranges: 2d array, start and end of each impact for right/left foot
+    """
 
     # determine where column data is NaN
     isnan = np.array(np.array(col_dat==imp_value).astype(int)).reshape(-1, 1)
