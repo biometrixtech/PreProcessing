@@ -26,6 +26,7 @@ import impactCME as impact
 import rateofForceAbsorption as fa
 import columnNames as cols
 import phaseDetection as phase
+from detectImpactPhaseIntervals import detect_start_end_imp_phase
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -57,10 +58,17 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
 
 #%%
     # PHASE DETECTION
-    data.phase_lf, data.phase_rf, data.lf_impact_phase, \
-    data.rf_impact_phase = phase.combine_phase(data.LaZ, data.RaZ, sampl_freq)
+    data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ, sampl_freq)
 
     _logger('DONE WITH PHASE DETECTION!')
+    
+#%%
+    # DETECT IMPACT PHASE INTERVALS
+    data.lf_impact_phase, data.rf_impact_phase,\
+    lf_imp_range, rf_imp_range = detect_start_end_imp_phase(lph=data.phase_lf,
+                                                            rph=data.phase_rf)
+    _logger('DONE WITH DETECTING IMPACT PHASE INTERVALS')
+
 #%%
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
     # isolate hip acceleration and euler angle data
