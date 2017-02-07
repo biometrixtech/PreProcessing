@@ -374,7 +374,7 @@ def _final_phases(rf_ph, lf_ph):
     
 def _detect_start_end_imp_phase(lph, rph):
     '''
-    Detect the start and end indices of impact phase for left and right foot.
+    Detect impact phase for left and right foot.
     
     Args:
         lph = array, left foot phase
@@ -392,14 +392,14 @@ def _detect_start_end_imp_phase(lph, rph):
     lf_range_imp = _zero_runs(col_dat=lph, imp_value=phase_id.lf_imp.value)
     
     # declaring variable to store the start and end of impact phase
-    lf_imp_start_stop = np.zeros(len(lph))*np.nan
-    rf_imp_start_stop = np.zeros(len(rph))*np.nan
+    lf_imp_start_stop = np.zeros(len(lph))*False
+    rf_imp_start_stop = np.zeros(len(rph))*False
     
-    # assigning impact phase id values to mark start and stop
-    lf_imp_start_stop[lf_range_imp[:, 0]] = impact_start_stop.imp_start.value
-    lf_imp_start_stop[lf_range_imp[:, 1]-1] = impact_start_stop.imp_end.value
-    rf_imp_start_stop[rf_range_imp[:, 0]] = impact_start_stop.imp_start.value
-    rf_imp_start_stop[rf_range_imp[:, 1]-1] = impact_start_stop.imp_end.value
+    # assigning True when an impact phase appears
+    for i in range(len(lf_range_imp)):
+        lf_imp_start_stop[lf_range_imp[i, 0]:lf_range_imp[i, 1]] = True
+    for j in range(len(rf_range_imp)):
+        rf_imp_start_stop[rf_range_imp[j, 0]:rf_range_imp[j, 1]] = True
     
     return lf_imp_start_stop.reshape(-1, 1), rf_imp_start_stop.reshape(-1, 1)
 
