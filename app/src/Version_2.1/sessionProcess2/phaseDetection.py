@@ -68,14 +68,8 @@ def combine_phase(laccz, raccz, hz):
     lf_ph = np.array(lf_ph)
             
     lf_ph, rf_ph = _final_phases(rf_ph, lf_ph)
-    
-    lf_imp_start_end, rf_imp_start_end,\
-    lf_imp_range, rf_imp_range = _detect_start_end_imp_phase(lph=lf_ph,
-                                                             rph=rf_ph)
-                        
-    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1),\
-            lf_imp_start_end, rf_imp_start_end,\
-            lf_imp_range, rf_imp_range
+                            
+    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1)
     
     
 def _body_phase(raz, laz, hz):
@@ -371,70 +365,6 @@ def _final_phases(rf_ph, lf_ph):
                 rf_ph[i[0]] = phase_id.lf_ground.value
                 
     return lf_ph, rf_ph
-    
-    
-def _detect_start_end_imp_phase(lph, rph):
-    '''
-    Detect impact phase for left and right foot.
-    
-    Args:
-        lph = array, left foot phase
-        rph = array, right foot phase
-        
-    Returns:
-        lf_imp_start_stop: array, marker when impact phase for left foot
-        starts and ends
-        rf_imp_start_stop: array, marker when impact phase for right foot
-        starts and ends
-    '''
-    
-    # start and end indices of impact phase for left and right foot
-    rf_range_imp = _zero_runs(col_dat=rph, imp_value=phase_id.rf_imp.value)
-    lf_range_imp = _zero_runs(col_dat=lph, imp_value=phase_id.lf_imp.value)
-    
-    # declaring variable to store the start and end of impact phase
-    lf_imp_start_stop = np.zeros(len(lph))*False
-    rf_imp_start_stop = np.zeros(len(rph))*False
-    
-    # assigning True when an impact phase appears
-    for i in range(len(lf_range_imp)):
-        lf_imp_start_stop[lf_range_imp[i, 0]:lf_range_imp[i, 1]] = True
-    for j in range(len(rf_range_imp)):
-        rf_imp_start_stop[rf_range_imp[j, 0]:rf_range_imp[j, 1]] = True
-    
-    return lf_imp_start_stop.reshape(-1, 1), rf_imp_start_stop.reshape(-1, 1),\
-            lf_range_imp, rf_range_imp
-
-    
-def _zero_runs(col_dat, imp_value):
-    """
-    Determine the start and end of each impact.
-    
-    Args:
-        col_dat: array, right/left foot phase
-        imp_value: int, indicator for right/left foot impact phase
-    Returns:
-        ranges: 2d array, start and end of each impact for right/left foot
-    """
-
-    # determine where column data is NaN
-    isnan = np.array(np.array(col_dat==imp_value).astype(int)).reshape(-1, 1)
-    
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-    del isnan  # not used in further computations
-
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges
 
     
 if __name__ == "__main__":
