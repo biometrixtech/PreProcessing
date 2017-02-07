@@ -69,11 +69,13 @@ def combine_phase(laccz, raccz, hz):
             
     lf_ph, rf_ph = _final_phases(rf_ph, lf_ph)
     
-    lf_imp_start_end, rf_imp_start_end = _detect_start_end_imp_phase(lph=lf_ph,
-                                                                     rph=rf_ph)
+    lf_imp_start_end, rf_imp_start_end,\
+    lf_imp_range, rf_imp_range = _detect_start_end_imp_phase(lph=lf_ph,
+                                                             rph=rf_ph)
                         
     return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1),\
-            lf_imp_start_end, rf_imp_start_end
+            lf_imp_start_end, rf_imp_start_end,\
+            lf_imp_range, rf_imp_range
     
     
 def _body_phase(raz, laz, hz):
@@ -400,7 +402,8 @@ def _detect_start_end_imp_phase(lph, rph):
     for j in range(len(rf_range_imp)):
         rf_imp_start_stop[rf_range_imp[j, 0]:rf_range_imp[j, 1]] = True
     
-    return lf_imp_start_stop.reshape(-1, 1), rf_imp_start_stop.reshape(-1, 1)
+    return lf_imp_start_stop.reshape(-1, 1), rf_imp_start_stop.reshape(-1, 1),\
+            lf_range_imp, rf_range_imp
 
     
 def _zero_runs(col_dat, imp_value):
