@@ -7,8 +7,6 @@ Created on Wed Dec 21 08:01:53 2016
 
 import numpy as np
 
-from phaseID import phase_id
-
 
 def det_rofa(lf_imp, rf_imp, laccz, raccz, user_mass, hz):
     '''
