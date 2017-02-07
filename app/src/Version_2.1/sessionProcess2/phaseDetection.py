@@ -73,8 +73,8 @@ def combine_phase(laccz, raccz, hz):
     lf_imp_start_end, rf_imp_start_end = _detect_start_end_imp_phase(lph=lf_ph,
                                                                      rph=rf_ph)
                         
-    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1), 
-    lf_imp_start_end, rf_imp_start_end
+    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1),\
+            lf_imp_start_end, rf_imp_start_end
     
     
 def _body_phase(raz, laz, hz):
