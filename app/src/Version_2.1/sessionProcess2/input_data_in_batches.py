@@ -122,6 +122,8 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         del input_data_batch  # not used in further computations
         try:
             output_data_batch = output_data_batch.replace('None', '')
+            output_data_batch = output_data_batch.replace(-2147483648, '')
+            output_data_batch = output_data_batch.replace(-9223372036854775808, '')
             if counter == 1:
                 # Write to DB
                 cur.execute(queries.quer_create)
@@ -349,6 +351,6 @@ def _read_offsets(cur, session_event_id):
         
 #%%
 if __name__ == "__main__":
-    sensor_data = 'C:\\Users\\dipesh\\Desktop\\biometrix\\aws\\7803f828-bd32-4e97-860c-34a995f08a9e_1.csv'
-    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
+    sensor_data = 'c4ed8189-6e1d-47c3-9cc5-446329b10796'
+    file_name = 'c4ed8189-6e1d-47c3-9cc5-446329b10796'
     result = send_batches_of_data(sensor_data, file_name, aws=False)

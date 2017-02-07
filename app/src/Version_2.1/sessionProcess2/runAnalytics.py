@@ -178,6 +178,8 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
     data.vert_binary = data.vert_binary.astype(int)
     data.horz_binary = data.horz_binary.astype(int)
     data.stationary_binary = data.stationary_binary.astype(int)
+    data.lf_impact_phase = data.lf_impact_phase.astype(int)
+    data.rf_impact_phase = data.rf_impact_phase.astype(int)
     scoring_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
                                       'user_id': data.user_id.reshape(-1,),
                                       'session_event_id': data.session_event_id.reshape(-1,),
