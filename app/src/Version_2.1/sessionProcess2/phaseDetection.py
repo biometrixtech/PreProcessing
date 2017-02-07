@@ -70,9 +70,11 @@ def combine_phase(laccz, raccz, hz):
             
     lf_ph, rf_ph = _final_phases(rf_ph, lf_ph)
     
-    imp_start_end = _detect_start_end_imp_phase(lph=lf_ph, rph=rf_ph)
+    lf_imp_start_end, rf_imp_start_end = _detect_start_end_imp_phase(lph=lf_ph,
+                                                                     rph=rf_ph)
                         
-    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1), imp_start_end
+    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1), 
+    lf_imp_start_end, rf_imp_start_end
     
     
 def _body_phase(raz, laz, hz):
@@ -377,15 +379,16 @@ def _detect_start_end_imp_phase(lph, rph):
     lf_range_imp = _zero_runs(col_dat=lph, imp_value=phase_id.lf_imp.value)
     
     # declaring variable to store the start and end of impact phase
-    imp_start_stop = np.zeros((len(lph), 2))*np.nan
+    lf_imp_start_stop = np.zeros(len(lph))*np.nan
+    rf_imp_start_stop = np.zeros(len(rph))*np.nan
     
     # assigning impact phase id values to mark start and stop
-    imp_start_stop[lf_range_imp[:, 0], 0] = impact_start_stop.imp_start.value
-    imp_start_stop[lf_range_imp[:, 1]-1, 0] = impact_start_stop.imp_end.value
-    imp_start_stop[rf_range_imp[:, 0], 1] = impact_start_stop.imp_start.value
-    imp_start_stop[rf_range_imp[:, 1]-1, 1] = impact_start_stop.imp_end.value
+    lf_imp_start_stop[lf_range_imp[:, 0]] = impact_start_stop.imp_start.value
+    lf_imp_start_stop[lf_range_imp[:, 1]-1] = impact_start_stop.imp_end.value
+    rf_imp_start_stop[rf_range_imp[:, 0]] = impact_start_stop.imp_start.value
+    rf_imp_start_stop[rf_range_imp[:, 1]-1] = impact_start_stop.imp_end.value
     
-    return imp_start_stop
+    return lf_imp_start_stop.reshape(-1, 1), rf_imp_start_stop.reshape(-1, 1)
 
     
 def _zero_runs(col_dat, imp_value):
