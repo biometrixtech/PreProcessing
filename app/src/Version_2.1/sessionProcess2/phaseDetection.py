@@ -10,7 +10,6 @@ import logging
 import numpy as np
 
 from phaseID import phase_id
-from impactStartStopID import impact_start_stop
 
 
 logger = logging.getLogger()

@@ -122,8 +122,6 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         del input_data_batch  # not used in further computations
         try:
             output_data_batch = output_data_batch.replace('None', '')
-            output_data_batch = output_data_batch.replace(-2147483648, '')
-            output_data_batch = output_data_batch.replace(-9223372036854775808, '')
             if counter == 1:
                 # Write to DB
                 cur.execute(queries.quer_create)
