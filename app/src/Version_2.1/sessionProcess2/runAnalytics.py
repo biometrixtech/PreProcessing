@@ -123,8 +123,9 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
 
     # landing time attributes
     n_landtime, ltime_index, lf_rf_imp_indicator =\
-                            impact.sync_time(data.phase_rf, data.phase_lf,
-                                             sampl_freq)
+                            impact.sync_time(rf_imp_range[:, 0], 
+                                             lf_imp_range[:, 0],
+                                             float(sampl_freq))
 
     # landing pattern attributes
     if len(n_landtime) != 0:

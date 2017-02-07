@@ -9,20 +9,18 @@ import logging
 
 import numpy as np
 
-from phaseID import phase_id
-
 
 logger = logging.getLogger()
     
     
-def sync_time(imp_rf, imp_lf, sampl_rate):
+def sync_time(rf_start, lf_start, sampl_rate):
 
     """Determine the land time on impact for right and left feet.
     
     Args:
-        imp_rf: right foot phase
-        imp_lf: left foot phase
-        sampl_rate: int, sampling rate of sensor
+        rf_start: array, left foot impact phase start indices
+        lf_start: array, right foot impact phase start indices
+        sampl_rate: float, sampling rate of sensor
 
     Returns:
         diff: array, time difference between right and left feet impacts
@@ -31,44 +29,42 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
         the ground first
     """
         
-    rf_start = _zero_runs(imp_time=imp_rf, rf_or_lf='rf')  # obtaining the first instant 
-    # of the impact phases of the right foot
-    lf_start = _zero_runs(imp_time=imp_lf, rf_or_lf='lf')  # obtaining the first instant 
-    # of the impact phases of the left foot
+#    rf_start = _zero_runs(imp_time=imp_rf, rf_or_lf='rf')  # obtaining the first instant 
+#    # of the impact phases of the right foot
+#    lf_start = _zero_runs(imp_time=imp_lf, rf_or_lf='lf')  # obtaining the first instant 
+#    # of the impact phases of the left foot
     
-    # delete phase variables
-    del imp_rf, imp_lf
+#    # delete phase variables
+#    del imp_rf, imp_lf
 
     # initialize variables
     diff = []  # initialize list to store the difference in impact times
     ltime_index = []  # initialize list to store index for land time
     lf_rf_imp_indicator = []  # initialize list to indicate whether right/left
     # foot impacted the ground first
+    list_rf_start = list(rf_start)  # converted array to list
+    list_lf_start = list(lf_start)  # converted array to list
 
     # determine false impacts
-    for i in enumerate(rf_start):
-        for j in enumerate(lf_start):
-            if abs(lf_start[j[0]] - rf_start[i[0]]) <= 0.3*sampl_rate:
+    for i in list_rf_start:
+        for j in list_lf_start:
+            if abs(j-i) <= 0.3*sampl_rate:
             # checking for false impact phases
-                if lf_start[j[0]] < rf_start[i[0]]:  # check if left foot
+                if j < i:  # check if left foot
                 # impacts first
-                    diff.append(-(lf_start[j[0]] - rf_start[i[0]])\
-                    /float(sampl_rate)*1000)
+                    diff.append(-(j-i)/sampl_rate*1000)
                     # appending the difference of time of impact between
                     # left and right feet, dividing by the sampling rate to
                     # convert the time difference to milli seconds
-                    ltime_index.append(int(j[1]))
+                    ltime_index.append(int(j))
                     lf_rf_imp_indicator.append('l')
-                elif lf_start[j[0]] > rf_start[i[0]]:  # check if right foot
-                # impacts first
-                    diff.append((rf_start[i[0]] - lf_start[j[0]])\
-                    /float(sampl_rate)*1000)
-                    ltime_index.append(int(i[1]))
+                elif j > i:  # check if right foot impacts first
+                    diff.append((i-j)/sampl_rate*1000)
+                    ltime_index.append(int(i))
                     lf_rf_imp_indicator.append('r')
-                elif lf_start[j[0]] == rf_start[i[0]]:  # check impact time of
-                # right foot equals left foot
+                elif j == i:  # check impact time of right foot equals left foot
                     diff.append(0.0)
-                    ltime_index.append(int(i[1]))
+                    ltime_index.append(int(i))
                     lf_rf_imp_indicator.append('n')
           
     return np.array(diff).reshape(-1, 1), \
@@ -106,44 +102,44 @@ def sync_time(imp_rf, imp_lf, sampl_rate):
 #    return first_instance_imp
     
     
-def _zero_runs(imp_time, rf_or_lf):
-
-    """
-    Determine the beginning of each impact.
-    Args:
-        imp_time: array, right/left foot phase
-        rf_or_lf: string, indicator for right/left foot
-    Returns:
-        ranges: array, first instance of impact for right/left foot
-    """
-    
-    if 'r' in rf_or_lf:
-        imp_value = phase_id.rf_imp.value
-    elif 'l' in rf_or_lf:
-        imp_value = phase_id.lf_imp.value
-
-    # determine where column data is NaN
-    isnan = np.array(np.array(imp_time==imp_value).astype(int)).reshape(-1, 1)
-    del imp_time  # not used in further computations
-#    isnan = isnan[miss_type != intentional_missing_data]  # subsetting for when
-    # missing value is an intentional blank
-#    del miss_type  # not used in further computations
-    
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-        
-    # mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-    del isnan  # not used in further computations
-
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges[:,0]
+#def _zero_runs(imp_time, rf_or_lf):
+#
+#    """
+#    Determine the beginning of each impact.
+#    Args:
+#        imp_time: array, right/left foot phase
+#        rf_or_lf: string, indicator for right/left foot
+#    Returns:
+#        ranges: array, first instance of impact for right/left foot
+#    """
+#    
+#    if 'r' in rf_or_lf:
+#        imp_value = phase_id.rf_imp.value
+#    elif 'l' in rf_or_lf:
+#        imp_value = phase_id.lf_imp.value
+#
+#    # determine where column data is NaN
+#    isnan = np.array(np.array(imp_time==imp_value).astype(int)).reshape(-1, 1)
+#    del imp_time  # not used in further computations
+##    isnan = isnan[miss_type != intentional_missing_data]  # subsetting for when
+#    # missing value is an intentional blank
+##    del miss_type  # not used in further computations
+#    
+#    if isnan[0] == 1:
+#        t_b = 1
+#    else:
+#        t_b = 0
+#        
+#    # mark where column data changes to and from NaN
+#    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+#    if isnan[-1] == 1:
+#        absdiff = np.concatenate([absdiff, [1]], 0)
+#    del isnan  # not used in further computations
+#
+#    # determine the number of consecutive NaNs
+#    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+#
+#    return ranges[:,0]
 
 
 def landing_pattern(rf_euly, lf_euly, land_time_index, l_r_imp_ind, sampl_rate,
