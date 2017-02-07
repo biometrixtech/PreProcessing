@@ -10,6 +10,7 @@ import logging
 import numpy as np
 
 from phaseID import phase_id
+from impactStartStopID import impact_start_stop
 
 
 logger = logging.getLogger()
@@ -68,8 +69,10 @@ def combine_phase(laccz, raccz, hz):
     lf_ph = np.array(lf_ph)
             
     lf_ph, rf_ph = _final_phases(rf_ph, lf_ph)
+    
+    imp_start_end = _detect_start_end_imp_phase(lph=lf_ph, rph=rf_ph)
                         
-    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1)
+    return lf_ph.reshape(-1, 1), rf_ph.reshape(-1, 1), imp_start_end
     
     
 def _body_phase(raz, laz, hz):
@@ -365,6 +368,46 @@ def _final_phases(rf_ph, lf_ph):
                 rf_ph[i[0]] = phase_id.lf_ground.value
                 
     return lf_ph, rf_ph
+    
+    
+def _detect_start_end_imp_phase(lph, rph):
+    
+    # start and end indices of impact phase for left and right foot
+    rf_range_imp = _zero_runs(col_dat=rph, imp_value=phase_id.rf_imp.value)
+    lf_range_imp = _zero_runs(col_dat=lph, imp_value=phase_id.lf_imp.value)
+    
+    # declaring variable to store the start and end of impact phase
+    imp_start_stop = np.zeros((len(lph), 2))*np.nan
+    
+    # assigning impact phase id values to mark start and stop
+    imp_start_stop[lf_range_imp[:, 0], 0] = impact_start_stop.imp_start.value
+    imp_start_stop[lf_range_imp[:, 1]-1, 0] = impact_start_stop.imp_end.value
+    imp_start_stop[rf_range_imp[:, 0], 1] = impact_start_stop.imp_start.value
+    imp_start_stop[rf_range_imp[:, 1]-1, 1] = impact_start_stop.imp_end.value
+    
+    return imp_start_stop
+
+    
+def _zero_runs(col_dat, imp_value):
+
+    # determine where column data is NaN
+    isnan = np.array(np.array(col_dat==imp_value).astype(int)).reshape(-1, 1)
+    
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        absdiff = np.concatenate([absdiff, [1]], 0)
+    del isnan  # not used in further computations
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+
+    return ranges
 
     
 if __name__ == "__main__":
