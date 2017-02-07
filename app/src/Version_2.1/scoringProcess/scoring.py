@@ -53,12 +53,13 @@ def score(data, user_hist):
     mS = np.abs(np.array(data.mech_stress)).reshape(-1, )
     mS_scaled = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel)).reshape(-1, )
+    tA_scaled = np.array(tA/np.nanmean(tA))
 
     #divide each feature value by (totalAccel*mechStress) to control
     #for these performance variables
     # TODO (Dipesh) need to find better control
 #    scale = mS_scaled*tA
-    scale = np.sqrt(tA*mS_scaled)
+    scale = np.sqrt(tA_scaled*mS_scaled)
     hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(scale)
     hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(scale)
 #    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
@@ -157,8 +158,8 @@ def _create_distribution(data):
     mS = np.abs(np.array(data.mech_stress))
     mS_scaled = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel))
-
-    scale = np.sqrt(tA*mS_scaled)
+    tA_scaled = np.array(tA/np.nanmean(tA))
+    scale = np.sqrt(tA_scaled*mS_scaled)
     fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(scale)))
     fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(scale)))
 #    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
