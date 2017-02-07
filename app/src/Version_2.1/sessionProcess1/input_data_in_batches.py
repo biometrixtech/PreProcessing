@@ -64,8 +64,8 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         return "Fail!"
     _logger("DATA LOADED!")
     #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    del sdata['ticker_l']
-    del sdata['ticker_h']
+    del sdata[' ticker_l']
+    del sdata[' ticker_h']
     del sdata['ticker_rf']
     sdata.columns = cols.columns_session
     
