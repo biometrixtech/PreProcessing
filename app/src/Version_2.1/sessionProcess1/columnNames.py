@@ -57,7 +57,7 @@ column_session1_to_s3 = ['team_id', 'user_id', 'session_event_id',
 
 column_session2_out = ['team_id', 'user_id', 'session_event_id',
                        'session_type', 'obs_index', 'obs_master_index','ms_elapsed',
-                       'phase_lf', 'phase_rf', 'activity_id',
+                       'phase_lf', 'phase_rf', 'activity_id','lf_impact_phase', 'rf_impact_phase',
                        'mech_stress', 'total_accel',
                        'rate_force_absorption_lf', 'rate_force_absorption_rf',
                        'contra_hip_drop_lf', 'contra_hip_drop_rf',
@@ -69,7 +69,7 @@ column_session2_out = ['team_id', 'user_id', 'session_event_id',
                        'LeX','HeX','ReX']
 
 column_session2_to_DB = ['user_id', 'session_event_id', 'obs_index', 'obs_master_index',
-                       'phase_lf', 'phase_rf', 'activity_id',
+                       'phase_lf', 'phase_rf', 'activity_id','lf_impact_phase', 'rf_impact_phase',
                          'rate_force_absorption_lf', 'rate_force_absorption_rf',
                          'single_leg_stationary', 'single_leg_dynamic', 'double_leg', 'feet_eliminated',
                          'rot', 'lat', 'vert', 'horz', 'rot_binary', 'lat_binary','vert_binary', 'horz_binary', 'stationary_binary']
