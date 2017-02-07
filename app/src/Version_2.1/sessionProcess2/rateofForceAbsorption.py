@@ -10,13 +10,13 @@ import numpy as np
 from phaseID import phase_id
 
 
-def det_rofa(l_ph, r_ph, laccz, raccz, user_mass, hz):
+def det_rofa(lf_imp, rf_imp, laccz, raccz, user_mass, hz):
     '''
     Determine rate of force absorption.
     
     Args:
-        l_ph: array, left foot phase
-        r_ph: array, right foot phase
+        lf_imp: 2d array, start and end indices of impact phase, left foot
+        rf_imp: 2d array, start and end indices of impact phase, right foot
         laccz: array, left foot vertical acceleration
         raccz: array, right foot vertical acceleration
         user_mass: float, mass of the user in kg
@@ -27,67 +27,67 @@ def det_rofa(l_ph, r_ph, laccz, raccz, user_mass, hz):
         rf_rofa: array, rate of force absorption right foot
     '''
     
-    # determine the start and end of impact phase for left & right feet
-    lf_start_imp, lf_end_imp = _bound_det(ph=l_ph, lf_or_rf='lf')
-    del l_ph  # not used in further computations
-    rf_start_imp, rf_end_imp = _bound_det(ph=r_ph, lf_or_rf='rf')
-    del r_ph  # not used in further computations
+#    # determine the start and end of impact phase for left & right feet
+#    lf_start_imp, lf_end_imp = _bound_det(ph=l_ph, lf_or_rf='lf')
+#    del l_ph  # not used in further computations
+#    rf_start_imp, rf_end_imp = _bound_det(ph=r_ph, lf_or_rf='rf')
+#    del r_ph  # not used in further computations
     
     # determine rate of force absorption for left & right feet
-    if len(lf_start_imp) != 0:
-        lf_rofa = _det_lf_rf_rofa(accz=abs(laccz), s_imp=lf_start_imp, 
-                                  e_imp=lf_end_imp, mass=user_mass, hz=hz)
+    if len(lf_imp) != 0:
+        lf_rofa = _det_lf_rf_rofa(accz=abs(laccz), s_imp=lf_imp[:, 0], 
+                                  e_imp=lf_imp[:, 1], mass=user_mass, hz=hz)
     else:
         lf_rofa = np.zeros((len(laccz), 1))*np.nan
         
     # delete variables that are not used in further computations
-    del lf_start_imp, lf_end_imp, laccz
+    del lf_imp, laccz
 
-    if len(rf_start_imp) != 0:
-        rf_rofa = _det_lf_rf_rofa(accz=abs(raccz), s_imp=rf_start_imp, 
-                                  e_imp=rf_end_imp, mass=user_mass, hz=hz) 
+    if len(rf_imp) != 0:
+        rf_rofa = _det_lf_rf_rofa(accz=abs(raccz), s_imp=rf_imp[:, 0], 
+                                  e_imp=rf_imp[:, 1], mass=user_mass, hz=hz) 
     else:
         rf_rofa = np.zeros((len(raccz), 1))*np.nan
         
     # delete variables that are not used in further computations
-    del rf_start_imp, rf_end_imp, raccz
+    del rf_imp, raccz
     
     return lf_rofa, rf_rofa
     
 
-def _bound_det(ph, lf_or_rf):
-    '''
-    Determine the start and end if each impact phase.
-    
-    Args:
-        ph: array, left/right foot phase
-        lf_or_rf: string, indicates whether boundaries are being determined 
-        for left/right foot
-        
-    Returns:
-        start_imp: array, start of an impact
-        end_imp: array, end of an impact
-    '''
-    
-    start_imp = []
-    end_imp = []
-    
-    if lf_or_rf == 'lf':
-        imp_value = phase_id.lf_imp.value
-    else:
-        imp_value = phase_id.rf_imp.value
-        
-    for i in range(len(ph)-1):
-        if i == 0 and ph[i] == imp_value:
-            start_imp.append(i)
-        elif ph[i] != imp_value and ph[i+1] == imp_value:
-            start_imp.append(i+1)
-        elif ph[i] == imp_value and ph[i+1] != imp_value:
-            end_imp.append(i)
-        elif i+1 == len(ph)-1 and ph[i+1] == imp_value:
-            end_imp.append(i+1)
-            
-    return np.array(start_imp), np.array(end_imp)
+#def _bound_det(ph, lf_or_rf):
+#    '''
+#    Determine the start and end if each impact phase.
+#    
+#    Args:
+#        ph: array, left/right foot phase
+#        lf_or_rf: string, indicates whether boundaries are being determined 
+#        for left/right foot
+#        
+#    Returns:
+#        start_imp: array, start of an impact
+#        end_imp: array, end of an impact
+#    '''
+#    
+#    start_imp = []
+#    end_imp = []
+#    
+#    if lf_or_rf == 'lf':
+#        imp_value = phase_id.lf_imp.value
+#    else:
+#        imp_value = phase_id.rf_imp.value
+#        
+#    for i in range(len(ph)-1):
+#        if i == 0 and ph[i] == imp_value:
+#            start_imp.append(i)
+#        elif ph[i] != imp_value and ph[i+1] == imp_value:
+#            start_imp.append(i+1)
+#        elif ph[i] == imp_value and ph[i+1] != imp_value:
+#            end_imp.append(i)
+#        elif i+1 == len(ph)-1 and ph[i+1] == imp_value:
+#            end_imp.append(i+1)
+#            
+#    return np.array(start_imp), np.array(end_imp)
     
     
 def _det_lf_rf_rofa(accz, s_imp, e_imp, mass, hz):

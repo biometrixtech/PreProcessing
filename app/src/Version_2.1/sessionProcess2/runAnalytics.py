@@ -163,7 +163,7 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
 #%%
     # RATE OF FORCE ABSORPTION
 #    mass = 50
-    rofa_lf, rofa_rf = fa.det_rofa(l_ph=data.phase_lf, r_ph=data.phase_rf,
+    rofa_lf, rofa_rf = fa.det_rofa(lf_imp=lf_imp_range, rf_imp=rf_imp_range,
                                    laccz=data.LaZ, raccz=data.RaZ,
                                    user_mass=mass, hz=sampl_freq) 
     data.rate_force_absorption_lf = rofa_lf
