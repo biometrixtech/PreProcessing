@@ -57,8 +57,8 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
 
 #%%
     # PHASE DETECTION
-    data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ,
-                                                       sampl_freq)
+    data.phase_lf, data.phase_rf, data.lf_impact_phase, \
+    data.rf_impact_phase = phase.combine_phase(data.LaZ, data.RaZ, sampl_freq)
 
     _logger('DONE WITH PHASE DETECTION!')
 #%%
