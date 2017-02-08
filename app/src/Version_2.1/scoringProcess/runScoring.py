@@ -53,7 +53,7 @@ def run_scoring(sensor_data, file_name, aws=True):
     AWS = aws
     COLUMN_SCORING_OUT = cols.column_scoring_out
     cont_write = 'biometrix-sessionprocessedcontainer'
-#    cont_read = 'biometrix-scoringcontainer'
+    cont_read = 'biometrix-scoringhist'
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
@@ -65,6 +65,8 @@ def run_scoring(sensor_data, file_name, aws=True):
     columns = sdata.columns
     data = do.RawFrame(sdata, columns)
     del sdata
+    session_event_id = data.session_event_id[0]
+    user_id = data.user_id[0]
     # CONTROL SCORE
     data.control, data.hip_control, data.ankle_control, data.control_lf,\
             data.control_rf = control_score(data.LeX, data.ReX, data.HeX,
@@ -79,23 +81,24 @@ def run_scoring(sensor_data, file_name, aws=True):
     # At this point we need to load the historical data for the subject
 
     # read historical data
-#    try:
-#        obj = s3.Bucket(cont_read).Object('user_hist.csv')
-#        fileobj = obj.get()
+    try:
+        obj = s3.Bucket(cont_read).Object(user_id)
+        fileobj = obj.get()
+        body = fileobj["Body"]
 #        body = fileobj["Body"].read()
 #        hist_data = cStringIO.StringIO(body)
-#        user_hist = pd.read_csv(hist_data)
-#    except Exception as error:
-#        if AWS:
-#            _logger("Cannot read historical user data from s3!", info=False)
-#            raise error
-#        else:
-#            try:
-#                user_hist = pd.read_csv("user_hist.csv")
-#            except:
-#                raise IOError("User history not found in s3/local directory")
-#    
-#    _logger("user history captured")
+        user_hist = pd.read_csv(body)
+    except Exception as error:
+        if AWS:
+            _logger("Cannot read historical user data from s3!", info=False)
+            raise error
+        else:
+            try:
+                user_hist = pd.read_csv("user_hist.csv")
+            except:
+                raise IOError("User history not found in s3/local directory")
+
+    _logger("user history captured")
 
     data.consistency, data.hip_consistency, \
         data.ankle_consistency, data.consistency_lf, \
@@ -104,7 +107,7 @@ def run_scoring(sensor_data, file_name, aws=True):
         data.destr_multiplier, data.dest_mech_stress, \
         data.const_mech_stress, data.block_duration, \
         data.session_duration, data.block_mech_stress_elapsed, \
-        data.session_mech_stress_elapsed = score(data, data)
+        data.session_mech_stress_elapsed = score(data, user_hist)
 #    del user_hist
     _logger("DONE WITH SCORING!")
     # combine into movement data table
@@ -114,7 +117,8 @@ def run_scoring(sensor_data, file_name, aws=True):
                                        'session_type': data.session_type.reshape(-1, )})
 
     for var in COLUMN_SCORING_OUT[2:]:
-        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=movement_data.index)
+        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )},
+                                   index=movement_data.index)
         frames = [movement_data, frame]
         movement_data = pd.concat(frames, axis=1)
         del frame, frames, data.__dict__[var]
@@ -126,10 +130,12 @@ def run_scoring(sensor_data, file_name, aws=True):
     file_name = "movement_"+file_name
     try:
         _multipartupload_data(movement_data, file_name, cont_write, cur, conn)
-        conn.close()
     except Exception as error:
         conn.close()
-        error
+        raise error
+    else:
+        cur.execute(queries.quer_update_session_events, (session_event_id,))
+        conn.close()
     # write to s3 container
 #    _write_table_s3(movement_data, file_name, s3, cont_write)
     _logger("DONE WRITING TO S3 and DB")

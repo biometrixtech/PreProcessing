@@ -46,3 +46,7 @@ quer_update = """UPDATE movement
 
 # finally drop the temp table
 quer_drop = "DROP TABLE temp_mov"
+
+quer_update_session_events = """update session_events set session_success=True
+                                where updated_at = now(),
+                                session_event_id = (%s)"""
