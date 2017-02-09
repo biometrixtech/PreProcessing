@@ -82,13 +82,15 @@ def run_scoring(sensor_data, file_name, aws=True):
 
     # read historical data
     try:
-        obj = s3.Bucket(cont_read).Object(user_id)
-        fileobj = obj.get()
-        body = fileobj["Body"]
-#        body = fileobj["Body"].read()
-#        hist_data = cStringIO.StringIO(body)
-        user_hist = pd.read_csv(body)
-        user_hist.columns = cols.columns_hist
+        objs = list(s3.Bucket(cont_read).objects.filter(Prefix=user_id))
+        if len(objs) == 1:
+            obj = s3.Bucket(cont_read).Object(user_id)
+            fileobj = obj.get()
+            body = fileobj["Body"]
+            user_hist = pd.read_csv(body)
+            user_hist.columns = cols.columns_hist
+        else:
+            user_hist = data
     except Exception as error:
         if AWS:
             _logger("Cannot read historical user data from s3!", info=False)
