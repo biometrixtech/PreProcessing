@@ -136,6 +136,7 @@ def run_scoring(sensor_data, file_name, aws=True):
         raise error
     else:
         cur.execute(queries.quer_update_session_events, (session_event_id,))
+        conn.commit()
         conn.close()
     # write to s3 container
 #    _write_table_s3(movement_data, file_name, s3, cont_write)
