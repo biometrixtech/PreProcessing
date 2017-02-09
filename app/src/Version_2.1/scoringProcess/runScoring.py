@@ -65,8 +65,8 @@ def run_scoring(sensor_data, file_name, aws=True):
     columns = sdata.columns
     data = do.RawFrame(sdata, columns)
     del sdata
-    session_event_id = data.session_event_id[0]
-    user_id = data.user_id[0]
+    session_event_id = data.session_event_id[0][0]
+    user_id = data.user_id[0][0]
     # CONTROL SCORE
     data.control, data.hip_control, data.ankle_control, data.control_lf,\
             data.control_rf = control_score(data.LeX, data.ReX, data.HeX,
@@ -88,6 +88,7 @@ def run_scoring(sensor_data, file_name, aws=True):
 #        body = fileobj["Body"].read()
 #        hist_data = cStringIO.StringIO(body)
         user_hist = pd.read_csv(body)
+        user_hist.columns = cols.columns_hist
     except Exception as error:
         if AWS:
             _logger("Cannot read historical user data from s3!", info=False)
@@ -135,6 +136,7 @@ def run_scoring(sensor_data, file_name, aws=True):
         raise error
     else:
         cur.execute(queries.quer_update_session_events, (session_event_id,))
+        conn.commit()
         conn.close()
     # write to s3 container
 #    _write_table_s3(movement_data, file_name, s3, cont_write)
