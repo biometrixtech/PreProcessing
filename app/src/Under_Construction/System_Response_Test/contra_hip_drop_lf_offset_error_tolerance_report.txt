@@ -1,0 +1,7 @@
+Report of contra_hip_drop_lf with 1e-07 tolerance to erroneous Euler angle offsets.
+
+Test run on 13-12-2016.
+
+If offset is in practice file, and right sensor is offset, 
+        contra_hip_drop_lf breaks when offset = > 30 degrees.
+

@@ -1,0 +1,145 @@
+************* Module quatConvs
+C:  1, 0: Invalid module name "quatConvs" (invalid-name)
+W: 25,-1: String statement has no effect (pointless-string-statement)
+C: 28, 0: Invalid argument name "q" (invalid-name)
+C: 46, 4: Invalid variable name "a" (invalid-name)
+C: 47, 4: Invalid variable name "b" (invalid-name)
+C: 48, 4: Invalid variable name "c" (invalid-name)
+C: 49, 4: Invalid variable name "d" (invalid-name)
+C: 50, 4: Invalid variable name "e" (invalid-name)
+C: 56, 8: Invalid variable name "q1" (invalid-name)
+C: 59, 8: Invalid variable name "b" (invalid-name)
+C: 60, 8: Invalid variable name "a" (invalid-name)
+C: 63, 8: Invalid variable name "q1" (invalid-name)
+C: 66, 8: Invalid variable name "b" (invalid-name)
+C: 67, 8: Invalid variable name "a" (invalid-name)
+R: 80, 0: Too many local variables (34/30) (too-many-locals)
+C: 97, 4: Invalid variable name "a" (invalid-name)
+C: 98, 4: Invalid variable name "b" (invalid-name)
+C: 99, 4: Invalid variable name "c" (invalid-name)
+C:100, 4: Invalid variable name "d" (invalid-name)
+C:101, 4: Invalid variable name "e" (invalid-name)
+C:103, 4: Invalid variable name "g" (invalid-name)
+C:104, 4: Invalid variable name "h" (invalid-name)
+C:108, 4: Invalid variable name "A" (invalid-name)
+C:109, 4: Invalid variable name "B" (invalid-name)
+C:110, 4: Invalid variable name "C" (invalid-name)
+C:111, 4: Invalid variable name "D" (invalid-name)
+C:112, 4: Invalid variable name "E" (invalid-name)
+C:113, 4: Invalid variable name "F" (invalid-name)
+C:114, 4: Invalid variable name "G" (invalid-name)
+C:115, 4: Invalid variable name "H" (invalid-name)
+C:116, 4: Invalid variable name "I" (invalid-name)
+C:117, 4: Invalid variable name "J" (invalid-name)
+C:118, 4: Invalid variable name "K" (invalid-name)
+C:119, 4: Invalid variable name "L" (invalid-name)
+C:120, 4: Invalid variable name "M" (invalid-name)
+C:122, 4: Invalid variable name "O" (invalid-name)
+C:123, 4: Invalid variable name "P" (invalid-name)
+C:126, 4: Invalid variable name "Q" (invalid-name)
+C:130, 4: Invalid variable name "Q" (invalid-name)
+C:133, 5: Invalid variable name "D" (invalid-name)
+C:133, 8: Invalid variable name "V" (invalid-name)
+C:138, 4: Invalid variable name "q" (invalid-name)
+C:140, 4: Consider using enumerate instead of iterating with range and len (consider-using-enumerate)
+C:146, 4: Invalid variable name "q" (invalid-name)
+
+
+Report
+======
+79 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |1          |=          |100.00      |100.00   |
++---------+-------+-----------+-----------+------------+---------+
+|class    |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|method   |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|function |2      |2          |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    numpy (quatConvs)
+    quatOps (quatConvs)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |84     |56.38 |84       |=          |
++----------+-------+------+---------+-----------+
+|docstring |40     |26.85 |40       |=          |
++----------+-------+------+---------+-----------+
+|comment   |9      |6.04  |9        |=          |
++----------+-------+------+---------+-----------+
+|empty     |16     |10.74 |16       |=          |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |0        |=          |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |0.000    |=          |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |42     |43       |-1.00      |
++-----------+-------+---------+-----------+
+|refactor   |1      |1        |=          |
++-----------+-------+---------+-----------+
+|warning    |1      |1        |=          |
++-----------+-------+---------+-----------+
+|error      |0      |0        |=          |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++---------------------------+------------+
+|message id                 |occurrences |
++===========================+============+
+|invalid-name               |41          |
++---------------------------+------------+
+|too-many-locals            |1           |
++---------------------------+------------+
+|pointless-string-statement |1           |
++---------------------------+------------+
+|consider-using-enumerate   |1           |
++---------------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 4.43/10 (previous run: 4.30/10, +0.13)
+

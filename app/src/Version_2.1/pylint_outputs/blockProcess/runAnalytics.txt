@@ -1,0 +1,169 @@
+************* Module runAnalytics
+C:  1, 0: Invalid module name "runAnalytics" (invalid-name)
+W: 46,-1: String statement has no effect (pointless-string-statement)
+R: 59, 0: Too many instance attributes (12/7) (too-many-instance-attributes)
+R: 88, 4: Too many local variables (97/30) (too-many-locals)
+E:131,15: Catching an exception which doesn't inherit from BaseException: boto3.exceptions (catching-non-exception)
+C:123,12: Invalid variable name "s3" (invalid-name)
+E:133,12: Raising boto3.exceptions while only classes or instances are allowed (raising-bad-type)
+E:261,58: Instance of 'RawFrame' has no 'epoch_time' member (no-member)
+E:273,45: Instance of 'RawFrame' has no 'missing_data_indicator' member (no-member)
+E:274,45: Instance of 'RawFrame' has no 'corrupt_magn' member (no-member)
+E:286,45: Instance of 'RawFrame' has no 'missing_data_indicator' member (no-member)
+E:287,45: Instance of 'RawFrame' has no 'corrupt_magn' member (no-member)
+E:299,45: Instance of 'RawFrame' has no 'missing_data_indicator' member (no-member)
+E:300,45: Instance of 'RawFrame' has no 'corrupt_magn' member (no-member)
+E:311,53: Instance of 'RawFrame' has no 'epoch_time' member (no-member)
+E:392,44: Instance of 'RawFrame' has no 'epoch_time' member (no-member)
+E:439,15: Catching an exception which doesn't inherit from BaseException: boto3.exceptions (catching-non-exception)
+E:548,46: Instance of 'RawFrame' has no 'epoch_time' member (no-member)
+E:553,42: Instance of 'RawFrame' has no 'epoch_time' member (no-member)
+E:558,43: Instance of 'RawFrame' has no 'epoch_time' member (no-member)
+E:610,27: Catching an exception which doesn't inherit from BaseException: boto3.exceptions (catching-non-exception)
+E:703,25: Too many positional arguments for function call (too-many-function-args)
+E:706,25: Too many positional arguments for function call (too-many-function-args)
+E:715,25: Too many positional arguments for function call (too-many-function-args)
+E:718,25: Too many positional arguments for function call (too-many-function-args)
+E:726,27: Too many positional arguments for function call (too-many-function-args)
+E:739,24: Too many positional arguments for function call (too-many-function-args)
+E:740,41: Instance of 'RawFrame' has no 'epoch_time' member (no-member)
+W:818, 8: No exception type(s) specified (bare-except)
+R: 88, 4: Too many branches (55/12) (too-many-branches)
+R: 88, 4: Too many statements (406/75) (too-many-statements)
+R: 59, 0: Too few public methods (0/2) (too-few-public-methods)
+C: 15, 0: external import "import boto3" comes before "import numpy as np" (wrong-import-order)
+
+
+Report
+======
+428 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |1          |=          |100.00      |100.00   |
++---------+-------+-----------+-----------+------------+---------+
+|class    |1      |1          |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|method   |1      |1          |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|function |1      |1          |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    IAD (runAnalytics)
+    IED (runAnalytics)
+    balanceCME (runAnalytics)
+    boto3 (runAnalytics)
+    controlScore (runAnalytics)
+    coordinateFrameTransformation (runAnalytics)
+    createTables (runAnalytics)
+    dataObject (runAnalytics)
+    impactCME (runAnalytics)
+    mechStressTraining (runAnalytics)
+    movementAttrib (runAnalytics)
+    numpy (runAnalytics)
+    pandas (runAnalytics)
+    phaseDetection (runAnalytics)
+    prePreProcessing (runAnalytics)
+    psycopg2 (runAnalytics)
+      \-extras (runAnalytics)
+    quatConvs (runAnalytics)
+    scoring (runAnalytics)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |548    |63.21 |548      |=          |
++----------+-------+------+---------+-----------+
+|docstring |47     |5.42  |47       |=          |
++----------+-------+------+---------+-----------+
+|comment   |184    |21.22 |184      |=          |
++----------+-------+------+---------+-----------+
+|empty     |88     |10.15 |88       |=          |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |0        |=          |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |0.000    |=          |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |3      |4        |-1.00      |
++-----------+-------+---------+-----------+
+|refactor   |5      |5        |=          |
++-----------+-------+---------+-----------+
+|warning    |2      |2        |=          |
++-----------+-------+---------+-----------+
+|error      |23     |23       |=          |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++-----------------------------+------------+
+|message id                   |occurrences |
++=============================+============+
+|no-member                    |13          |
++-----------------------------+------------+
+|too-many-function-args       |6           |
++-----------------------------+------------+
+|catching-non-exception       |3           |
++-----------------------------+------------+
+|invalid-name                 |2           |
++-----------------------------+------------+
+|wrong-import-order           |1           |
++-----------------------------+------------+
+|too-many-statements          |1           |
++-----------------------------+------------+
+|too-many-locals              |1           |
++-----------------------------+------------+
+|too-many-instance-attributes |1           |
++-----------------------------+------------+
+|too-many-branches            |1           |
++-----------------------------+------------+
+|too-few-public-methods       |1           |
++-----------------------------+------------+
+|raising-bad-type             |1           |
++-----------------------------+------------+
+|pointless-string-statement   |1           |
++-----------------------------+------------+
+|bare-except                  |1           |
++-----------------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 7.08/10 (previous run: 7.06/10, +0.02)
+

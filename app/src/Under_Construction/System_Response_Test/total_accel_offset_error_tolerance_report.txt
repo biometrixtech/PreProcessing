@@ -1,0 +1,13 @@
+Report of total_accel with 0.1 tolerance to erroneous Euler angle offsets.
+
+Test run on 12-12-2016.
+
+If offset is in base file, and left sensor is offset, and hip sensor is offset, 
+        total_accel breaks when offset = 1 degrees.
+
+If offset is in session calib file, and hip sensor is offset, 
+        total_accel breaks when offset = 1 degrees.
+
+If offset is in practice file, and right sensor is offset, 
+        total_accel breaks when offset = 1 degrees.
+

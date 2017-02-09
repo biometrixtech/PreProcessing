@@ -1,0 +1,109 @@
+************* Module dynamicSamplingRate
+C: 13, 0: Trailing whitespace (trailing-whitespace)
+C: 16, 0: Trailing whitespace (trailing-whitespace)
+C: 42, 0: Trailing whitespace (trailing-whitespace)
+C: 49, 0: Trailing whitespace (trailing-whitespace)
+C: 87, 0: Trailing whitespace (trailing-whitespace)
+C:102, 0: Trailing whitespace (trailing-whitespace)
+C:  1, 0: Invalid module name "dynamicSamplingRate" (invalid-name)
+C: 11, 0: Invalid argument name "MS_WIN_SIZE" (invalid-name)
+C: 29, 4: Invalid variable name "LOWEST_HZ" (invalid-name)
+C: 42, 0: Invalid function name "handle_dynamic_sampling_create_features" (invalid-name)
+C: 42, 0: Invalid argument name "MS_WIN_SIZE" (invalid-name)
+C: 63, 4: Invalid variable name "LOWEST_HZ" (invalid-name)
+C: 95, 4: Invalid variable name "hz" (invalid-name)
+
+
+Report
+======
+26 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |1          |=          |100.00      |100.00   |
++---------+-------+-----------+-----------+------------+---------+
+|class    |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|method   |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|function |3      |1          |+2.00      |100.00      |33.33    |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    numpy (dynamicSamplingRate)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |33     |32.04 |12       |+21.00     |
++----------+-------+------+---------+-----------+
+|docstring |46     |44.66 |20       |+26.00     |
++----------+-------+------+---------+-----------+
+|comment   |5      |4.85  |6        |-1.00      |
++----------+-------+------+---------+-----------+
+|empty     |19     |18.45 |7        |+12.00     |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |0        |=          |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |0.000    |=          |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |13     |5        |+8.00      |
++-----------+-------+---------+-----------+
+|refactor   |0      |0        |=          |
++-----------+-------+---------+-----------+
+|warning    |0      |0        |=          |
++-----------+-------+---------+-----------+
+|error      |0      |0        |=          |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++--------------------+------------+
+|message id          |occurrences |
++====================+============+
+|invalid-name        |7           |
++--------------------+------------+
+|trailing-whitespace |6           |
++--------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 5.00/10 (previous run: 4.44/10, +0.56)
+

@@ -1,0 +1,131 @@
+************* Module runBaseFeet
+E: 17, 0: Unable to import 'anatomicalCalibration' (import-error)
+R: 25, 0: Too many local variables (47/30) (too-many-locals)
+E: 80,11: Catching an exception which doesn't inherit from BaseException: boto3.exceptions (catching-non-exception)
+C: 67, 8: Invalid variable name "S3" (invalid-name)
+E: 82, 8: Raising boto3.exceptions while only classes or instances are allowed (raising-bad-type)
+E:159,15: Catching an exception which doesn't inherit from BaseException: boto3.exceptions (catching-non-exception)
+E:259,19: Catching an exception which doesn't inherit from BaseException: boto3.exceptions (catching-non-exception)
+E:291,19: Catching an exception which doesn't inherit from BaseException: boto3.exceptions (catching-non-exception)
+R: 25, 0: Too many return statements (9/6) (too-many-return-statements)
+R: 25, 0: Too many branches (30/12) (too-many-branches)
+R: 25, 0: Too many statements (162/75) (too-many-statements)
+C:302, 4: Invalid constant name "path" (invalid-name)
+C:303, 4: Invalid constant name "result" (invalid-name)
+W:  8, 0: Unused import sys (unused-import)
+W: 17, 0: Unused anatomicalCalibration imported as ac (unused-import)
+
+
+Report
+======
+179 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |1      |1          |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|class    |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|method   |0      |0          |=          |0           |0        |
++---------+-------+-----------+-----------+------------+---------+
+|function |1      |1          |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    boto3 (runBaseFeet)
+    errors (runBaseFeet)
+    numpy (runBaseFeet)
+    pandas (runBaseFeet)
+    placementCheck (runBaseFeet)
+    prePreProcessing (runBaseFeet)
+    psycopg2 (runBaseFeet)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |210    |68.63 |210      |=          |
++----------+-------+------+---------+-----------+
+|docstring |23     |7.52  |23       |=          |
++----------+-------+------+---------+-----------+
+|comment   |35     |11.44 |35       |=          |
++----------+-------+------+---------+-----------+
+|empty     |38     |12.42 |38       |=          |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+------+---------+-----------+
+|                         |now   |previous |difference |
++=========================+======+=========+===========+
+|nb duplicated lines      |0     |0        |=          |
++-------------------------+------+---------+-----------+
+|percent duplicated lines |0.000 |0.000    |=          |
++-------------------------+------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |3      |3        |=          |
++-----------+-------+---------+-----------+
+|refactor   |4      |4        |=          |
++-----------+-------+---------+-----------+
+|warning    |2      |2        |=          |
++-----------+-------+---------+-----------+
+|error      |6      |6        |=          |
++-----------+-------+---------+-----------+
+
+
+
+Messages
+--------
+
++---------------------------+------------+
+|message id                 |occurrences |
++===========================+============+
+|catching-non-exception     |4           |
++---------------------------+------------+
+|invalid-name               |3           |
++---------------------------+------------+
+|unused-import              |2           |
++---------------------------+------------+
+|too-many-statements        |1           |
++---------------------------+------------+
+|too-many-return-statements |1           |
++---------------------------+------------+
+|too-many-locals            |1           |
++---------------------------+------------+
+|too-many-branches          |1           |
++---------------------------+------------+
+|raising-bad-type           |1           |
++---------------------------+------------+
+|import-error               |1           |
++---------------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 7.82/10 (previous run: 7.82/10, +0.00)
+

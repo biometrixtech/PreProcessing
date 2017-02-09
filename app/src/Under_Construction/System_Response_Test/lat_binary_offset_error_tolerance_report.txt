@@ -1,0 +1,13 @@
+Report of lat_binary with 0.9 tolerance to erroneous Euler angle offsets.
+
+Test run on 12-12-2016.
+
+If offset is in base file, and left sensor is offset, and hip sensor is offset, 
+        lat_binary breaks when offset = > 30 degrees.
+
+If offset is in session calib file, and hip sensor is offset, 
+        lat_binary breaks when offset = > 30 degrees.
+
+If offset is in practice file, and right sensor is offset, 
+        lat_binary breaks when offset = > 30 degrees.
+

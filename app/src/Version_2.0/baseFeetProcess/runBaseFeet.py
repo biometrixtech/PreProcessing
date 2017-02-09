@@ -87,7 +87,7 @@ def record_special_feet(sensor_data, file_name):
            'HaY','HaZ','HqX','HqY','HqZ','RaX','RaY','RaZ',
            'RqX','RqY','RqZ']
            
-        # check for missing values for each of acceleration and quaternion values
+    # check for missing values for each of acceleration and quaternion values
     for var in columns:
         out, ind = ppp.handling_missing_data(epoch_time,
                                                data[var].reshape(-1,1),

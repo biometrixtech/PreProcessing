@@ -1,0 +1,13 @@
+Report of ankle_rot_lf with 0.75 tolerance to erroneous Euler angle offsets.
+
+Test run on 12-12-2016.
+
+If offset is in base file, and left sensor is offset, and hip sensor is offset, 
+        ankle_rot_lf breaks when offset = 1 degrees.
+
+If offset is in session calib file, and hip sensor is offset, 
+        ankle_rot_lf breaks when offset = 1 degrees.
+
+If offset is in practice file, and right sensor is offset, 
+        ankle_rot_lf breaks when offset = 1 degrees.
+
