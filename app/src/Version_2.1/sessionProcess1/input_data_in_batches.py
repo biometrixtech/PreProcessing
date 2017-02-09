@@ -49,6 +49,11 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         
     # read transformation offset values from DB/local Memory
     session_event_id = ids_from_db[0]
+    cur.execute(queries.quer_check_movement, (session_event_id,))
+    row_count = cur.fetchone()[0]
+    if row_count != 0:
+        _logger("Session_event already processed and data in movement table")
+        return "Success!"
     offsets_read = _read_offsets(cur, session_event_id)
     _logger("OFFSETS READ") 
 

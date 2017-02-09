@@ -18,6 +18,9 @@ quer_read_offsets = """select hip_n_transform, hip_bf_transform,
     from session_events where id = (%s));"""
 
 quer_read_mass = """select weight from users where id=%s"""
+
+quer_check_movement = """select count(*) from movement
+                         where session_event_id=(%s)"""
 #quer_read_exercise_ids = """select exercise_id from blocks_exercises
 #                            where block_id = (%s)"""
 #
