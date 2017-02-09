@@ -32,14 +32,14 @@ def detect_start_end_imp_phase(lph, rph):
     lf_range_imp = _zero_runs(col_dat=lph, imp_value=phase_id.lf_imp.value)
     
     # declaring variable to store the start and end of impact phase
-    lf_imp_start_stop = np.zeros(len(lph))*False
-    rf_imp_start_stop = np.zeros(len(rph))*False
+    lf_imp_start_stop = np.zeros(len(lph))*np.nan
+    rf_imp_start_stop = np.zeros(len(rph))*np.nan
     
     # assigning True when an impact phase appears
     for i in range(len(lf_range_imp)):
-        lf_imp_start_stop[lf_range_imp[i, 0]:lf_range_imp[i, 1]] = True
+        lf_imp_start_stop[lf_range_imp[i, 0]:lf_range_imp[i, 1]] = i+1
     for j in range(len(rf_range_imp)):
-        rf_imp_start_stop[rf_range_imp[j, 0]:rf_range_imp[j, 1]] = True
+        rf_imp_start_stop[rf_range_imp[j, 0]:rf_range_imp[j, 1]] = j+1
     
     return lf_imp_start_stop.reshape(-1, 1), rf_imp_start_stop.reshape(-1, 1),\
             lf_range_imp, rf_range_imp
