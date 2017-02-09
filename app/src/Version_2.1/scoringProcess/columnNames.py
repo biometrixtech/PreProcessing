@@ -96,3 +96,8 @@ column_scoring_out = ['user_id', 'session_event_id', 'obs_index', 'obs_master_in
                       'symmetry','hip_symmetry', 'ankle_symmetry',
                       'consistency', 'hip_consistency', 'ankle_consistency', 'consistency_lf', 'consistency_rf',
                       'control', 'hip_control', 'ankle_control', 'control_lf', 'control_rf']
+columns_hist = ['mech_stress', 'total_accel',
+                'contra_hip_drop_lf', 'contra_hip_drop_rf',
+                'ankle_rot_lf', 'ankle_rot_rf',
+                'land_pattern_lf', 'land_pattern_rf', 'land_time',
+                'foot_position_lf', 'foot_position_rf']
