@@ -1,0 +1,7 @@
+Report of rot_binary with 1e-07 tolerance to erroneous Euler angle offsets.
+
+Test run on 13-12-2016.
+
+If offset is in practice file, and right sensor is offset, 
+        rot_binary breaks when offset = 1 degrees.
+

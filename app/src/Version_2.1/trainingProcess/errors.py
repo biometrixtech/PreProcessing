@@ -9,6 +9,8 @@ from enum import Enum
 
 
 class ErrorId(Enum):
+    """Enumerate Error ids for data checks
+    """
     
     no_error = 0
     corrupt_magn = 1
@@ -24,6 +26,8 @@ class ErrorId(Enum):
 
 
 class ErrorMessageBase(object):
+    """List error messages to send in rPush for base calibration
+    """
     def __init__(self, error_id):
         if error_id == 0:
             self.error_message = ""
@@ -50,6 +54,8 @@ class ErrorMessageBase(object):
 
 
 class ErrorMessageSession(object):
+    """List error messages to send in rPush for session calibration
+    """
     def __init__(self, error_id):
         if error_id == 0:
             self.error_message = ""
@@ -77,57 +83,63 @@ class ErrorMessageSession(object):
 
             
 class RPushDataBase(object):
+    """Define json to send to rPush corresponding to errorId for base
+    """
     def __init__(self, error_id):
         if error_id == 0:
-            self.value = {"action":"run_ression_calibration"}
+            self.value = '{"action":"run_ression_calibration"}'
         elif error_id == 1:
-            self.value = {"action":"run_magn_calibration"}
+            self.value = '{"action":"run_magn_calibration"}'
         elif error_id == 2:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 3:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 4:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 5:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 6:
-            self.value = {"action":"run_left_placement"}
+            self.value = '{"action":"run_left_placement"}'
         elif error_id == 7:
-            self.value = {"action":"run_left_placement"}
+            self.value = '{"action":"run_left_placement"}'
         elif error_id == 8:
-            self.value = {"action":"run_right_placement"}
+            self.value = '{"action":"run_right_placement"}'
         elif error_id == 9:
-            self.value = {"action":"run_base_calibration"}
+            self.value = '{"action":"run_base_calibration"}'
         elif error_id == 10:
-            self.value = {"action":"run_base_calibration"}
+            self.value = '{"action":"run_base_calibration"}'
             
             
 class RPushDataSession(object):
+    """rPush data corresponding to error_id for session calibration
+    """
     def __init__(self, error_id):
         if error_id == 0:
-            self.value = {"action":"select_regimen"}
+            self.value = '{"action":"select_regimen"}'
         elif error_id == 1:
-            self.value = {"action":"run_magn_calibration"}
+            self.value = '{"action":"run_magn_calibration"}'
         elif error_id == 2:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 3:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 4:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 5:
-            self.value = {"action":"run_hip_placement"}
+            self.value = '{"action":"run_hip_placement"}'
         elif error_id == 6:
-            self.value = {"action":"run_left_placement"}
+            self.value = '{"action":"run_left_placement"}'
         elif error_id == 7:
-            self.value = {"action":"run_left_placement"}
+            self.value = '{"action":"run_left_placement"}'
         elif error_id == 8:
-            self.value = {"action":"run_right_placement"}
+            self.value = '{"action":"run_right_placement"}'
         elif error_id == 9:
-            self.value = {"action":"run_session_calibration"}
+            self.value = '{"action":"run_session_calibration"}'
         elif error_id == 10:
-            self.value = {"action":"run_session_calibration"}
+            self.value = '{"action":"run_session_calibration"}'
             
 class ErrorMessageTraining(object):
+    """rPush message corresponding to errorId for trainining
+    """
     def __init__(self, error_id):
         if error_id == 0:
             self.error_message = ""
@@ -137,12 +149,14 @@ class ErrorMessageTraining(object):
             self.error_message = "Training failed, please try again"
 
 class RPushDataTraining(object):
+    """rPush data corresponding to error_id for training
+    """
     def __init__(self, error_id):
-        if error_id ==0:
-            self.value = {"action":"train_system"}
+        if error_id == 0:
+            self.value = '{"action":"train_system"}'
         if error_id == 1:
-            self.value = {"action":"run_magn_calibration"}
+            self.value = '{"action":"run_magn_calibration"}'
         elif error_id == 10:
-            self.value = {"action":"capture_exercise"}
+            self.value = '{"action":"capture_exercise"}'
             
             

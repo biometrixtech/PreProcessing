@@ -114,7 +114,7 @@ class TrainingExecution(object): #Abstract setUp class
                     single_leg = (%s),
                     double_leg = (%s),
                     feet_eliminated = (%s),
-                    total_acceleration = (%s)
+                    max_accel = (%s)
                     where sensor_data_filename = (%s);"""
         
         #Read the user_id, exercise_id

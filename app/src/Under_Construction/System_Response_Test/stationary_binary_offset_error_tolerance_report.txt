@@ -1,0 +1,10 @@
+Report of stationary_binary with 0.0001 percent tolerance to erroneous Euler angle offsets.
+
+Test run on 12-12-2016.
+
+If offset is in base file, and left sensor is offset, and hip sensor is offset, 
+        stationary_binary breaks when offset = > 30 degrees.
+
+If offset is in practice file, and right sensor is offset, 
+        stationary_binary breaks when offset = > 30 degrees.
+

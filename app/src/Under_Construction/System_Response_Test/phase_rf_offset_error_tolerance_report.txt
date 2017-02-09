@@ -1,0 +1,13 @@
+Report of phase_rf with 1e-07 tolerance to erroneous Euler angle offsets.
+
+Test run on 14-12-2016.
+
+If offset is in base file, and left sensor is offset, and hip sensor is offset, 
+        phase_rf breaks when offset = > 30 degrees.
+
+If offset is in session calib file, and hip sensor is offset, 
+        phase_rf breaks when offset = > 30 degrees.
+
+If offset is in practice file, and right sensor is offset, 
+        phase_rf breaks when offset = > 30 degrees.
+
