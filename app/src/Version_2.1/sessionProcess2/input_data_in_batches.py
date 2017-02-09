@@ -71,9 +71,9 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     try:
         sdata = pd.read_csv(sensor_data)
         del sensor_data
-    except:
-        _logger("Sensor data doesn't have column names!", info=False)
-        return "Fail!"
+    except Exception as error:
+        _logger("Cannot load data!", info=False)
+        raise error
     if len(sdata) == 0:
         _logger("Sensor data is empty!", info=False)
         return "Fail!"
