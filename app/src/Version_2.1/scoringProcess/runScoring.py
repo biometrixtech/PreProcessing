@@ -103,6 +103,10 @@ def run_scoring(sensor_data, file_name, aws=True):
 
     _logger("user history captured")
 
+    # Read the mech_stress_scale value from db
+    cur.execute(queries.quer_read_ms_scale, (file_name,))
+    mech_stress_scale = cur.fetchone()[0]
+
     data.consistency, data.hip_consistency, \
         data.ankle_consistency, data.consistency_lf, \
         data.consistency_rf, data.symmetry, \
@@ -110,10 +114,12 @@ def run_scoring(sensor_data, file_name, aws=True):
         data.destr_multiplier, data.dest_mech_stress, \
         data.const_mech_stress, data.block_duration, \
         data.session_duration, data.block_mech_stress_elapsed, \
-        data.session_mech_stress_elapsed = score(data, user_hist)
+        data.session_mech_stress_elapsed = score(data, user_hist,
+                                                 mech_stress_scale)
 #    del user_hist
     _logger("DONE WITH SCORING!")
     # combine into movement data table
+    data.mech_stress = data.mech_stress/mech_stress_scale
     movement_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
                                        'user_id': data.user_id.reshape(-1, ),
                                        'session_event_id': data.session_event_id.reshape(-1, ),
