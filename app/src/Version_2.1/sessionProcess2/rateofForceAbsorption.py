@@ -106,7 +106,7 @@ def _det_lf_rf_rofa(accz, s_imp, e_imp, mass, hz):
     rofa = np.zeros((len(accz), 1))*np.nan
     
     for i, j in zip(s_imp, e_imp):
-        num = np.max(accz[i:j])  # maximum force during impact
+        num = np.nanmax(accz[i:j])  # maximum force during impact
         length_subset_acc = len(accz[i:i+np.argmax(accz[i:j])])
         if length_subset_acc != 0:
             denom = float(length_subset_acc)/hz  # time
