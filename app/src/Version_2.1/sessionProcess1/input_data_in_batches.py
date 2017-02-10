@@ -74,6 +74,10 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     del sdata['ticker_rf']
     sdata.columns = cols.columns_session
     
+    # sort by epoch time
+    sdata = sdata.sort(['epoch_time'])
+    sdata = sdata.reset_index(drop=True)
+    
     # number of rows to pass in each batch & number of parts being passed to
     # runAnalytics
     batch_size = 400000
