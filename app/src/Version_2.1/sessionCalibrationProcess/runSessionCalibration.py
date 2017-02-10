@@ -72,8 +72,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                 session_ac_success = (%s),
                 failure_type = (%s),
                 base_calibration = (%s),
-                updated_at = now(),
-                processed_at = now()
+                updated_at = now()
                 where sensor_data_filename=(%s);"""
 
     # For base calibration, update base_anatomical_calibration_events
@@ -230,6 +229,7 @@ def run_calibration(sensor_data, file_name, aws=True):
                                   missing_or_corrupt='corrupt')
     # check if length of subset data is >= required amount (1.5 sec)
     if len(subset_data) < min_data_thresh:
+        _logger("Not enough data after subsetting for bad magn!", info=False)
         return "Fail!"
 
     # Record percentage and ranges of magn_values for diagonostic purposes
