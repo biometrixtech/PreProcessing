@@ -10,6 +10,7 @@ import logging
 import sys
 
 import numpy as np
+import pandas as pd
 from scipy.interpolate import UnivariateSpline
 from sklearn.neighbors.kde import KernelDensity as kde
 from sklearn import mixture
@@ -28,15 +29,16 @@ Outputs: Consistency and symmetry scores, destructive multiplier,
 """
 
 
-def score(data, user_hist):
+def score(data, user_hist, mech_stress_scale):
     """Average consistency, symmetry, control scores at sensor level,
     ankle/hip level and then average at body level
     Args:
         data : RawFrame object with the movement quality features, total_accel,
-                mech_stress, ms_elapsed, control score, session_type attributes
-        userDB : RawFrame object with historical(7 days) MQ features,
-                total_accel and mech_stress for the user
-    Returns:
+               mech_stress, ms_elapsed, control score, session_type attributes
+        user_hist : RawFrame object/pandas dataframe with historical(5 days)
+                    MQ features, total_accel and mech_stress for the user
+        mech_stress_scale: scaling factor for mechanical stress
+        Returns:
         consistency, hip_consistency, ankle_consistency, consistency_lf,
         consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,
         dest_mech_stress, const_mech_stress, block_duration, session_duration,
@@ -50,16 +52,18 @@ def score(data, user_hist):
         For session_type =2,3, session_mech_stress_elapsed and session_duration
         will be nan's.
     """
+    global MECH_STRESS_SCALE
+    MECH_STRESS_SCALE = mech_stress_scale
     mS = np.abs(np.array(data.mech_stress)).reshape(-1, )
-    mS_scaled = np.array(mS/np.nanmean(mS))
+    mS_norm = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel)).reshape(-1, )
-    tA_scaled = np.array(tA/np.nanmean(tA))
+    tA_norm = np.array(tA/np.nanmean(tA))
 
     #divide each feature value by (totalAccel*mechStress) to control
     #for these performance variables
     # TODO (Dipesh) need to find better control
-#    scale = mS_scaled*tA
-    scale = np.sqrt(tA_scaled*mS_scaled)
+#    scale = mS_norm*tA
+    scale = np.sqrt(tA_norm*mS_norm)
     hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(scale)
     hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(scale)
 #    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
@@ -89,6 +93,8 @@ def score(data, user_hist):
     overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
     consistency = np.nanmean(overall_consistency_scores, 0)
 
+    mS = mS/MECH_STRESS_SCALE
+
     #multiply each score by mechStress value for weighting
     consistency_lf = consistency_lf*mS
     consistency_rf = consistency_rf*mS
@@ -114,10 +120,10 @@ def score(data, user_hist):
 #    Block/Session duration
     ms_elapsed = np.array(data.ms_elapsed)
     session_type = np.array(data.session_type)
-    duration = np.cumsum(ms_elapsed)/np.sum(ms_elapsed)
+    duration = np.nan_to_num(ms_elapsed).cumsum()/np.nansum(ms_elapsed)
 
     #MechStress Elapsed
-    mech_stress_elapsed = np.cumsum(mS)/np.sum(mS)
+    mech_stress_elapsed = np.nan_to_num(mS).cumsum()/np.nansum(mS)
 
     if session_type[0] in (2, 3): #2:strength_training, 3: return to play
         block_duration = duration
@@ -156,10 +162,10 @@ def _create_distribution(data):
         Interpolation mapping function for each Movement Quality feature
     """
     mS = np.abs(np.array(data.mech_stress))
-    mS_scaled = np.array(mS/np.nanmean(mS))
+    mS_norm = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel))
-    tA_scaled = np.array(tA/np.nanmean(tA))
-    scale = np.sqrt(tA_scaled*mS_scaled)
+    tA_norm = np.array(tA/np.nanmean(tA))
+    scale = np.sqrt(tA_norm*mS_norm)
     fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(scale)))
     fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(scale)))
 #    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
