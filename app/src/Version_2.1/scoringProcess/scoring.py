@@ -28,14 +28,15 @@ Outputs: Consistency and symmetry scores, destructive multiplier,
 """
 
 
-def score(data, user_hist):
+def score(data, user_hist, mech_stress_scale):
     """Average consistency, symmetry, control scores at sensor level,
     ankle/hip level and then average at body level
     Args:
         data : RawFrame object with the movement quality features, total_accel,
                 mech_stress, ms_elapsed, control score, session_type attributes
-        userDB : RawFrame object with historical(7 days) MQ features,
-                total_accel and mech_stress for the user
+        user_hist : RawFrame object with historical(5 days) MQ features,
+                    total_accel and mech_stress for the user
+        mech_stress_scale: scaling factor for mechanical stress
     Returns:
         consistency, hip_consistency, ankle_consistency, consistency_lf,
         consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,
@@ -51,15 +52,15 @@ def score(data, user_hist):
         will be nan's.
     """
     mS = np.abs(np.array(data.mech_stress)).reshape(-1, )
-    mS_scaled = np.array(mS/np.nanmean(mS))
+    mS_norm = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel)).reshape(-1, )
-    tA_scaled = np.array(tA/np.nanmean(tA))
+    tA_norm = np.array(tA/np.nanmean(tA))
 
     #divide each feature value by (totalAccel*mechStress) to control
     #for these performance variables
     # TODO (Dipesh) need to find better control
 #    scale = mS_scaled*tA
-    scale = np.sqrt(tA_scaled*mS_scaled)
+    scale = np.sqrt(tA_norm*mS_norm)
     hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(scale)
     hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(scale)
 #    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
@@ -89,12 +90,13 @@ def score(data, user_hist):
     overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
     consistency = np.nanmean(overall_consistency_scores, 0)
 
+    scaled_mech_stress = mS/mech_stress_scale
     #multiply each score by mechStress value for weighting
-    consistency_lf = consistency_lf*mS
-    consistency_rf = consistency_rf*mS
-    hip_consistency = hip_consistency*mS
-    ankle_consistency = ankle_consistency*mS
-    consistency = consistency*mS
+    consistency_lf = consistency_lf*scaled_mech_stress
+    consistency_rf = consistency_rf*scaled_mech_stress
+    hip_consistency = hip_consistency*scaled_mech_stress
+    ankle_consistency = ankle_consistency*scaled_mech_stress
+    consistency = consistency*scaled_mech_stress
 
     #Aggregate symmetry scores
     overall_symmetry_scores = np.vstack([hip_symmetry, ankle_symmetry])
@@ -103,13 +105,13 @@ def score(data, user_hist):
     ##Calculate the destructive mechStress multiplier
     destr_multiplier = ((1 - symmetry/100)**2 + (1 - control/100)**2)/2
 
-    dest_mech_stress = np.array(mS)*np.array(destr_multiplier)
-    const_mech_stress = mS - dest_mech_stress
+    dest_mech_stress = np.array(scaled_mech_stress)*np.array(destr_multiplier)
+    const_mech_stress = scaled_mech_stress - dest_mech_stress
 
     #multiply each score by mechStress value for weighting
-    symmetry = symmetry*mS
-    hip_symmetry = hip_symmetry*mS
-    ankle_symmetry = ankle_symmetry*mS
+    symmetry = symmetry*scaled_mech_stress
+    hip_symmetry = hip_symmetry*scaled_mech_stress
+    ankle_symmetry = ankle_symmetry*scaled_mech_stress
 
 #    Block/Session duration
     ms_elapsed = np.array(data.ms_elapsed)
@@ -156,10 +158,10 @@ def _create_distribution(data):
         Interpolation mapping function for each Movement Quality feature
     """
     mS = np.abs(np.array(data.mech_stress))
-    mS_scaled = np.array(mS/np.nanmean(mS))
+    mS_norm = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel))
-    tA_scaled = np.array(tA/np.nanmean(tA))
-    scale = np.sqrt(tA_scaled*mS_scaled)
+    tA_norm = np.array(tA/np.nanmean(tA))
+    scale = np.sqrt(tA_norm*mS_norm)
     fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(scale)))
     fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(scale)))
 #    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))

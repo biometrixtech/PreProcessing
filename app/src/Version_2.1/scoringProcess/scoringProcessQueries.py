@@ -51,3 +51,8 @@ quer_update_session_events = """update session_events
                                 set session_success=True,
                                 updated_at = now()
                                 where id = (%s)"""
+
+quer_read_ms_scale = """select mech_stress_scale
+             from session_anatomical_calibration_events
+             where id = (select session_anatomical_calibration_event_id from 
+                         session_events where sensor_data_filename = (%s))"""
