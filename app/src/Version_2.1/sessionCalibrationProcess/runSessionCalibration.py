@@ -24,7 +24,6 @@ import neutralComponents as nc
 from errors import ErrorMessageSession, RPushDataSession
 import checkProcessed as cp
 from columnNames import columns_calib
-import mechStressScaling as mss
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -106,11 +105,9 @@ def run_calibration(sensor_data, file_name, aws=True):
                     processed_at = now(),
                     failure_type = 0
                     where sensor_data_filename  = (%s);"""
-    quer_ms_scale = """update session_anatomical_calibration_events
-                        set mech_stress_scale = (%s)
-                        where sensor_data_filename = (%s)"""
+
 #    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
-    quer_check_status = """select * 
+    quer_check_status = """ select * 
                 from fn_get_processing_status_from_sa_event_filename((%s))"""
     # Define containers to read from and write to
     cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
@@ -233,7 +230,7 @@ def run_calibration(sensor_data, file_name, aws=True):
         return "Fail!"
 
     # Record percentage and ranges of magn_values for diagonostic purposes
-#    _record_magn(subset_data, file_name, S3)
+    _record_magn(subset_data, file_name, S3)
 
     out_file = "processed_" + file_name
     index = subset_data['index']
@@ -529,13 +526,6 @@ def run_calibration(sensor_data, file_name, aws=True):
                             info=False)
                     raise ValueError('NaN in hip_n_transform')
 
-                ms_scale = mss.calc_ms_scale(data_o_pd, hip_bf_transform,
-                                             lf_bf_transform, rf_bf_transform,
-                                             lf_n_transform, rf_n_transform,
-                                             hip_n_transform)
-
-                cur.execute(quer_ms_scale, (ms_scale, file_name))
-                conn.commit()
                 # Save session calibration offsets to
                 # SessionAnatomicalCalibrationEvent
                 # along with base_calibration=True and success=True
@@ -589,13 +579,6 @@ def run_calibration(sensor_data, file_name, aws=True):
                                             hip_bf_transform,
                                             rf_bf_transform)
 
-                ms_scale = mss.calc_ms_scale(data_o_pd, hip_bf_transform,
-                                             lf_bf_transform, rf_bf_transform,
-                                             lf_n_transform, rf_n_transform,
-                                             hip_n_transform)
-                cur.execute(quer_ms_scale, (ms_scale, file_name))
-                conn.commit()
-                
                 hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
                 lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
                 rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
@@ -773,5 +756,5 @@ def _process_se(file_name, cur, conn, quer_check_status):
 
 
 if __name__ == '__main__':
-    path = 'f876b560-05fa-4f0e-bbfc-0dd84e9fefbc'
-    result = run_calibration(path, path, aws=False)
+    path = 'team1_session1_trainingset_anatomicalCalibration.csv'
+    result = run_calibration(path, path)
