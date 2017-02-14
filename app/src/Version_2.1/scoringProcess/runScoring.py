@@ -89,8 +89,10 @@ def run_scoring(sensor_data, file_name, aws=True):
             body = fileobj["Body"]
             user_hist = pd.read_csv(body)
             user_hist.columns = cols.columns_hist
-        else:
+        elif len(data) > 50000:
             user_hist = data
+        else:
+            _logger("There's no historical data and current data isn't long enough!")
     except Exception as error:
         if AWS:
             _logger("Cannot read historical user data from s3!", info=False)

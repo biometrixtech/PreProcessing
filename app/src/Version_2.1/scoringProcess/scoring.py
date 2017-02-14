@@ -283,7 +283,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     ##Symmetry for ankle rotation
     if all(np.isnan(aRL)) or all(np.isnan(aRR)):
         ankle_rot_score = np.zeros(len(aRL))*np.nan
-    elif len(aRL[np.isfinite(aRL)]) < 3 or len(aRR[np.isfinite(aRR)]) < 3:
+    elif len(aRL[np.isfinite(aRL)]) < 5 or len(aRR[np.isfinite(aRR)]) < 5:
         ankle_rot_score = np.zeros(len(aRL))*np.nan
     else:
         l_fn_rot, r_fn_rot = _symmetry_score(aRL, aRR)
@@ -297,7 +297,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     ##Symmetry for foot position
     if all(np.isnan(fPL)) or all(np.isnan(fPR)):
         foot_pos_score = np.zeros(len(fPL))*np.nan
-    elif len(fPL[np.isfinite(fPL)]) < 3 or len(fPR[np.isfinite(fPR)]) < 3:
+    elif len(fPL[np.isfinite(fPL)]) < 5 or len(fPR[np.isfinite(fPR)]) < 5:
         foot_pos_score = np.zeros(len(fPL))*np.nan
     else:
         l_fn_pos, r_fn_pos = _symmetry_score(fPL, fPR)
@@ -311,7 +311,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     # Symmetry score for landing pattern
     if all(np.isnan(lPL)) or all(np.isnan(lPR)):
         ankle_pat_score = np.zeros(len(lPL))*np.nan
-    elif len(lPL[np.isfinite(lPL)]) < 3 or len(lPR[np.isfinite(lPR)]) < 3:
+    elif len(lPL[np.isfinite(lPL)]) < 5 or len(lPR[np.isfinite(lPR)]) < 5:
         ankle_pat_score = np.zeros(len(lPL))*np.nan
     else:
         l_fn_pat, r_fn_pat = _symmetry_score(lPL, lPR)
@@ -330,7 +330,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
 
     if all(np.isnan(lT)):
         ankle_tim_score = np.zeros(len(lT))*np.nan
-    elif len(lTL[np.isfinite(lTL)]) < 3 or len(lTR[np.isfinite(lTR)]) < 3:
+    elif len(lTL[np.isfinite(lTL)]) < 5 or len(lTR[np.isfinite(lTR)]) < 5:
         ankle_tim_score = np.zeros(len(lT))*np.nan
     else:
         l_fn_tim, r_fn_tim = _symmetry_score(lTL, lTR)
@@ -383,6 +383,8 @@ def _hip(hDL, hDR, fn_hDL, fn_hDR):
     #all rows
     if all(np.isnan(hDL)) or all(np.isnan(hDR)):
         hip_drop_score = np.zeros(len(hDR))*np.nan
+    elif len(hDL[np.isfinite(hDL)]) < 5 or len(hDR[np.isfinite(hDR)]) < 5:
+        hip_drop_score = np.zeros(len(hDL))*np.nan
     else:
         l_fn_drop, r_fn_drop = _symmetry_score(hDL, hDR)
         score_drop_l = l_fn_drop(hDL)
