@@ -139,6 +139,8 @@ def record_base_feet(sensor_data, file_name, aws=True):
         except psycopg2.Error as error:
             _logger("Cannot write to DB after failure!", False)
         finally:
+            _logger("Not enough data after subsetting for bad magn!",
+                    info=False)
             return "Fail!"
 
 
