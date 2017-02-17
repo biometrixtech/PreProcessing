@@ -158,6 +158,7 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
     if len(nan_row) != 0:
         for i in nan_row:
             data.mech_stress = np.insert(data.mech_stress, i, np.nan, axis=0)
+    data.mech_stress[np.array([i == 3 for i in data.phase_lf])] = np.nan
     del ms_data, nan_row, mstress_fit
     _logger('DONE WITH MECH STRESS!')
 #%%
