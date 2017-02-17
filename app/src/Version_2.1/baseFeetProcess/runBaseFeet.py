@@ -141,6 +141,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
         finally:
             _logger("Not enough data after subsetting for bad magn!",
                     info=False)
+            _logger("User is: "+ user_id)
             return "Fail!"
 
 
@@ -221,6 +222,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
 #            raise error
         else:
             _logger("Failure Message: " + msg, False)
+            _logger("User is: "+ user_id)
             return "Fail!"
 
     else:
@@ -345,6 +347,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
 #                raise error
             else:
                 _logger("Failure Message: " + msg, False)
+                _logger("User is: "+ user_id)
                 return "Fail!"
 
         else:

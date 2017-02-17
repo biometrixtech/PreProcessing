@@ -227,6 +227,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     # check if length of subset data is >= required amount (1.5 sec)
     if len(subset_data) < min_data_thresh:
         _logger("Not enough data after subsetting for bad magn!", info=False)
+        _logger("User is: "+ user_id)
         return "Fail!"
 
     # Record percentage and ranges of magn_values for diagonostic purposes
@@ -311,6 +312,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 #            raise error
         else:
             _logger("Failure Message: " + msg, False)
+            _logger("User is: "+ user_id)
             return "Fail!"
 
     else:
@@ -426,6 +428,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 #                raise error
             else:
                 _logger("Failure Message: " + msg, False)
+                _logger("User is: "+ user_id)
                 return "Fail!"
 
         else:
