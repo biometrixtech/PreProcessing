@@ -33,6 +33,7 @@ def quat_prod(q1, q2):
         Quaternion representing the final orientation.
 
     """
+
     # normalize rotation quaternion
     q2 = quat_norm(q2)
 
@@ -66,18 +67,18 @@ def _vector_quat_prod(q1, q2):
 
     """
 
-    # create storage for quaternion
+    # create storage for quaternion and divide into scalar and vector parts
     prod = np.zeros(q1.shape)
+    s1 = q1[:, 0]
+    s2 = q2[:, 0]
+    v1 = q1[:, 1:4]
+    v2 = q2[:, 1:4]
+    del q1, q2
 
     # calculate product quaternion's elements
-    prod[:, 0] = q1[:, 0]*q2[:, 0] - q1[:, 1]*q2[:, 1] -\
-                 q1[:, 2]*q2[:, 2] - q1[:, 3]*q2[:, 3]
-    prod[:, 1] = q1[:, 0]*q2[:, 1] + q1[:, 1]*q2[:, 0] +\
-                 q1[:, 2]*q2[:, 3] - q1[:, 3]*q2[:, 2]
-    prod[:, 2] = q1[:, 0]*q2[:, 2] - q1[:, 1]*q2[:, 3] +\
-                 q1[:, 2]*q2[:, 0] + q1[:, 3]*q2[:, 1]
-    prod[:, 3] = q1[:, 0]*q2[:, 3] + q1[:, 1]*q2[:, 2] -\
-                 q1[:, 2]*q2[:, 1] + q1[:, 3]*q2[:, 0]
+    s3 = s1*s2 - np.sum(v1*v2, axis=1)
+    v3 = v2*s1[:, np.newaxis] + v1*s2[:, np.newaxis] + np.cross(v1, v2)
+    prod = np.hstack((s3.reshape(len(s1), 1), v3))
 
     return prod
 
