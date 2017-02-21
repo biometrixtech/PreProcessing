@@ -6,8 +6,7 @@ Created on Fri Oct 14 05:34:54 2016
 """
 import numpy as np
 import quatOps as qo
-import quatConvs as qc
-   
+import quatConvs as qc   
  
 def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral,
                        rf_neutral, phase_lf, phase_rf):
@@ -61,8 +60,9 @@ def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral,
     hip_neutral_eul = qc.quat_to_euler(hip_neutral)
     rf_neutral_eul = qc.quat_to_euler(rf_neutral)
     del lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, rf_neutral
-    
+
     length = len(lf_eul)
+
     # divide into single axes
     lf_roll = qc.euler_to_quat(np.hstack((lf_eul[:, 0].reshape(-1, 1),
                                           np.zeros((length, 2)))))
@@ -70,23 +70,14 @@ def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral,
                                            np.zeros((length, 2)))))
     rf_roll = qc.euler_to_quat(np.hstack((rf_eul[:, 0].reshape(-1, 1),
                                           np.zeros((length, 2)))))
-#    lf_pitch = qc.euler_to_quat(np.hstack((np.zeros((length, 1)),
-#                                           lf_eul[:, 1].reshape(-1, 1),
-#                                           np.zeros((length, 1)))))
-#    hip_pitch = qc.euler_to_quat(np.hstack((np.zeros((length, 1)),
-#                                            hip_eul[:, 1].reshape(-1, 1),
-#                                            np.zeros((length, 1)))))
-#    rf_pitch = qc.euler_to_quat(np.hstack((np.zeros((length, 1)),
-#                                           rf_eul[:, 1].reshape(-1, 1),
-#                                           np.zeros((length, 1)))))
     hip_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
                                           hip_eul[:, 2].reshape(-1, 1))))
     lf_raw_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
                                              lf_eul[:, 2].reshape(-1, 1))))
     rf_raw_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
                                              rf_eul[:, 2].reshape(-1, 1))))
-    lf_yaw = qo.find_rot(lf_raw_yaw, hip_yaw)
-    rf_yaw = qo.find_rot(rf_raw_yaw, hip_yaw)
+    lf_yaw = qo.find_rot(hip_yaw, lf_raw_yaw)
+    rf_yaw = qo.find_rot(hip_yaw, rf_raw_yaw)
     del lf_eul, rf_eul, hip_eul
     
     lf_neutral_roll = qc.euler_to_quat(np.hstack((lf_neutral_eul[:,
@@ -98,31 +89,21 @@ def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral,
     rf_neutral_roll = qc.euler_to_quat(np.hstack((rf_neutral_eul[:,
                                                   0].reshape(-1, 1),
                                                   np.zeros((length, 2)))))
-#    lf_neutral_pitch = qc.euler_to_quat(np.hstack((np.zeros((length, 1)),
-#                                        lf_neutral_eul[:, 1].reshape(-1, 1),
-#                                        np.zeros((length, 1)))))
-#    hip_neutral_pitch = qc.euler_to_quat(np.hstack((np.zeros((length, 1)),
-#                                         hip_neutral_eul[:, 1].reshape(-1, 1),
-#                                         np.zeros((length, 1)))))
-#    rf_neutral_pitch = qc.euler_to_quat(np.hstack((np.zeros((length, 1)),
-#                                        rf_neutral_eul[:, 1].reshape(-1, 1),
-#                                        np.zeros((length, 1)))))
-#    hip_neutral_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
-#                                       hip_eul[:, 2].reshape(-1, 1))))
     lf_neutral_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
                                       lf_neutral_eul[:, 2].reshape(-1, 1))))
     rf_neutral_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
                                       rf_neutral_eul[:, 2].reshape(-1, 1))))
     del lf_neutral_eul, rf_neutral_eul, hip_neutral_eul
+
     # contralateral hip drop
         # hip roll
-    hip_rot_lf = _cont_rot_CME(hip_roll, phase_lf, [1, 4], hip_neutral_roll)
-    hip_rot_rf = _cont_rot_CME(hip_roll, phase_rf, [2, 5], hip_neutral_roll)
+    hip_rot_lf = _cont_rot_CME(hip_roll, phase_lf, [0, 1, 4], hip_neutral_roll)
+    hip_rot_rf = _cont_rot_CME(hip_roll, phase_rf, [0, 2, 5], hip_neutral_roll)
     contra_hip_drop_lf = hip_rot_lf.reshape(-1, 3)[:, 0]
     contra_hip_drop_lf = contra_hip_drop_lf* - 1 # fix so superior > 0
     contra_hip_drop_rf = hip_rot_rf.reshape(-1, 3)[:, 0]
     del hip_neutral_roll, hip_rot_lf, hip_rot_rf
-    
+
     # ankle roll
         # foot roll
     roll_lf = _cont_rot_CME(lf_roll, phase_lf, [0, 1, 4], lf_neutral_roll)
@@ -131,6 +112,7 @@ def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral,
     ankle_rot_lf = ankle_rot_lf*-1 # fix so medial > 0
     ankle_rot_rf = roll_rf.reshape(-1, 3)[:, 0]
     del lf_neutral_roll, rf_neutral_roll, roll_lf, roll_rf
+
     # foot position
         # foot yaw
     yaw_lf = _cont_rot_CME(lf_yaw, phase_lf, [0, 1, 4], lf_neutral_yaw)
