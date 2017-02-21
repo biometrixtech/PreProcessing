@@ -52,8 +52,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
                    failure_type = (%s),
                    feet_processed_sensor_data_filename = (%s),
                    user_success = (%s),
-                   updated_at = now(),
-                   processed_at = now()
+                   updated_at = now()
                    where feet_sensor_data_filename=(%s);"""
 
     quer_success = """update base_anatomical_calibration_events set
