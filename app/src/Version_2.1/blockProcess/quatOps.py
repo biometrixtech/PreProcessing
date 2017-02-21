@@ -49,7 +49,7 @@ def quat_prod(q1, q2):
 
     return prod
     
-def _vector_quat_prod(q1, q2, length):
+def _vector_quat_prod(q1, q2):
 
     """
     Function to compute the product between two quaternions during vector
