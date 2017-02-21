@@ -12,12 +12,13 @@ import quatConvs as qc
 
 def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
                              hip_bf_transform, rf_bf_transform):
+
     """
     Computes components of neutral positions for an athlete based on their
     calibration data. Note the definitions in Returns: transforms are not true
     transforms, but rather compilations of values to be used directly and in
     computations of neutral values.
-    
+
     Args:
         - sitting data: from base calibration,
         - standing data: from either base orsession calibration (most recent
@@ -25,7 +26,7 @@ def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
         - lf_bf_transform: quat value to convert lf sensor data to body frame
         - hip_bf_transform: quat value to convert hip sensor data to body frame
         - rf_bf_transform: quat value to convert rf sensor data to body frame
-        
+
     Returns:
         - lf_n_transform: quaternion form of neutral left foot offset yaw from
           hip body frame, roll, and pitch, in ZYX rotation order, returned as
@@ -35,7 +36,7 @@ def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
         - rf_n_transform: quaternion form of neutral right foot offset yaw from
           hip body frame, roll, and pitch, in ZYX rotation order, returned as
           x, y, z order
-    
+
     """
 
     # divide data into relevant quaternions
@@ -59,17 +60,6 @@ def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
     lf_bf_transform = lf_bf_transform.reshape(1, -1)
     rf_bf_transform = rf_bf_transform.reshape(1, -1)
     hip_bf_transform = hip_bf_transform.reshape(1, -1)
-
-#    # isolate portion of recording from which to calculate values
-#    freq = 100
-#    start_ind = 2 * freq
-#    stop_ind = 4 * freq
-#
-#    sitting_lf_data = sitting_lf_datadb[start_ind:, :]
-#    sitting_rf_data = sitting_rf_datadb[start_ind:, :]
-#    standing_hip_data = standing_hip_datadb[start_ind:stop_ind, :]
-#    standing_lf_data = standing_lf_datadb[start_ind:stop_ind, :]
-#    standing_rf_data = standing_rf_datadb[start_ind:stop_ind, :]
 
     # normalize orientation data
     sitting_lf_data = qo.quat_norm(sitting_lf_data)
