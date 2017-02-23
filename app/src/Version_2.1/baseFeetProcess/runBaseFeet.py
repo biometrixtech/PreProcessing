@@ -7,6 +7,7 @@ Created on Tue Oct 18 15:18:54 2016
 import cStringIO
 #import sys
 import logging
+import os
 
 import boto3
 import numpy as np
@@ -40,6 +41,11 @@ def record_base_feet(sensor_data, file_name, aws=True):
         calibration step.
         Save transformed data to database with indicator of success/failure
     """
+    db_name = os.environ['db_name']
+    db_host = os.environ['db_host']
+    db_username = os.environ['db_username']
+    db_password = os.environ['db_password']
+    cont_write = os.environ['cont_write']
     global AWS
     AWS = aws
     
@@ -68,9 +74,8 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 from fn_get_processing_status_from_ba_event_filename((%s))"""
     ###Connect to the database
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                                password=db_password)
         cur = conn.cursor()
 
         # connect to S3 bucket for uploading file
@@ -95,7 +100,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
         _logger("feet_sensor_data_filename not found in table", False)
         raise error
     #define container to write processed file to
-    cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
+#    cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
 
     #Read data into structured numpy array
     try:
@@ -471,7 +476,7 @@ def _process_sac(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url = "http://172.31.28.141/api/sessionanatomical/processfile"
+        url = os.environ['sa_api_url']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionanatomical/processfile"
