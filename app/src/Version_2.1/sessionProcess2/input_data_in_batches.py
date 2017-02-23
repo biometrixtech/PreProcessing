@@ -9,6 +9,7 @@ import logging
 import math
 import cStringIO
 import pickle
+import os
 
 import pandas as pd
 import numpy as np
@@ -36,18 +37,20 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     COLUMN_SESSION2_TO_S3 = cols.column_session2_to_s3
     _logger("STARTED PROCESSING!")
     # Define container to which final output data must be written
-    cont_write_final = 'biometrix-scoringcontainer'
+#    cont_write_final = 'biometrix-scoringcontainer'
+    cont_write_final = os.environ['cont_write']
     
     # Define container that holds models
-    cont_models = 'biometrix-globalmodels'
-    
+    cont_models = os.environ['biometrix-globalmodels']
+#    cont_models = 'biometrix-globalmodels'
+    ms_model = os.environ['ms_model']
     # connect to DB and s3
     conn, cur, s3 = _connect_db_s3()
 
     # Mechanical Stress            
     # load model
     try:
-        ms_obj = s3.Bucket(cont_models).Object('ms_trainmodel.pkl')
+        ms_obj = s3.Bucket(cont_models).Object(ms_model)
         ms_fileobj = ms_obj.get()
         ms_body = ms_fileobj["Body"].read()
 
@@ -215,10 +218,14 @@ def _logger(message, info=True):
 def _connect_db_s3():
     """Start a connection to the database and to s3 resource.
     """
+    db_name = os.environ['db_name']
+    db_host = os.environ['db_host']
+    db_username = os.environ['db_username']
+    db_password = os.environ['db_password']
+
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com'
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                                password=db_password)
         cur = conn.cursor()
         # Connect to AWS s3 container
         s3 = boto3.resource('s3')
@@ -230,6 +237,7 @@ def _connect_db_s3():
         raise error
     else:
         return conn, cur, s3
+
 
 def _read_ids(cur, file_name):
     '''Read relevant ids from database and assign zeros if not found

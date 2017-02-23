@@ -17,6 +17,7 @@ Output data stored in TrainingEvents or BlockEvents table.
 #import sys
 import cStringIO
 import logging
+import os
 #import numpy as np
 import pandas as pd
 import psycopg2
@@ -52,8 +53,10 @@ def run_scoring(sensor_data, file_name, aws=True):
     global COLUMN_SCORING_OUT
     AWS = aws
     COLUMN_SCORING_OUT = cols.column_scoring_out
-    cont_write = 'biometrix-sessionprocessedcontainer'
-    cont_read = 'biometrix-scoringhist'
+    cont_write = os.environ['cont_write']
+    cont_read = os.environ['cont_read']
+#    cont_write = 'biometrix-sessionprocessedcontainer'
+#    cont_read = 'biometrix-scoringhist'
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
@@ -159,10 +162,14 @@ def run_scoring(sensor_data, file_name, aws=True):
 def _connect_db_s3():
     """Start a connection to the database and to s3 resource.
     """
+    db_name = os.environ['db_name']
+    db_host = os.environ['db_host']
+    db_username = os.environ['db_username']
+    db_password = os.environ['db_password']
+
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com'
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                                password=db_password)
         cur = conn.cursor()
         # Connect to AWS s3 container
         s3 = boto3.resource('s3')
