@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import requests
 import psycopg2
+from base64 import b64decode
 
 import anatomicalCalibration as ac
 from placementCheck import placement_check
@@ -29,6 +30,7 @@ import sessionCalibrationQueries as queries
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 
 def run_calibration(sensor_data, file_name, aws=True):
     """Checks the validity of base calibration step and writes transformed
@@ -47,15 +49,24 @@ def run_calibration(sensor_data, file_name, aws=True):
         Save offset values to database
     """
     global AWS
+    global KMS
     AWS = aws
-    db_name = os.environ['db_name']
-    db_host = os.environ['db_host']
-    db_username = os.environ['db_username']
-    db_password = os.environ['db_password']
-    cont_read = os.environ['cont_read']
-    cont_write = os.environ['cont_write']
-    # Setup Queries based on different situations
+    KMS = boto3.client('kms')
+    # Read encrypted environment variables
+    encrypted_name = os.environ['db_name']
+    encrypted_host = os.environ['db_host']
+    encrypted_username = os.environ['db_username']
+    encrypted_password = os.environ['db_password']
+    encrypted_cont_read = os.environ['cont_read']
+    encrypted_cont_write = os.environ['cont_write']
 
+    # Decrypt environment variables to plaintext
+    db_name = KMS.decrypt(CiphertextBlob=b64decode(encrypted_name))['Plaintext']
+    db_host = KMS.decrypt(CiphertextBlob=b64decode(encrypted_host))['Plaintext']
+    db_username = KMS.decrypt(CiphertextBlob=b64decode(encrypted_username))['Plaintext']
+    db_password = KMS.decrypt(CiphertextBlob=b64decode(encrypted_password))['Plaintext']
+    cont_read = KMS.decrypt(CiphertextBlob=b64decode(encrypted_cont_read))['Plaintext']
+    cont_write = KMS.decrypt(CiphertextBlob=b64decode(encrypted_cont_write))['Plaintext']
     # Define containers to read from and write to
 #    cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
 #    cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
@@ -656,7 +667,8 @@ def _process_se(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url = os.environ['se_api_url']
+        url_encrypted = os.environ['se_api_url']
+        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionevent/processfile"
