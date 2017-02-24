@@ -597,6 +597,11 @@ def _logger(message, info=True):
 
 def _record_magn(data, file_name, S3):
     import csv
+    cont_magntest = os.environ['cont_magntest']
+    magntest_file = os.environ['magntest_file']
+    cont_magntest = KMS.decrypt(CiphertextBlob=b64decode(cont_magntest))['Plaintext']
+    magntest_file = KMS.decrypt(CiphertextBlob=b64decode(magntest_file))['Plaintext']
+
     corrupt_magn = data['corrupt_magn']
     percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
     minimum_lf = np.min(data['corrupt_magn_lf'])
@@ -606,13 +611,13 @@ def _record_magn(data, file_name, S3):
     minimum_rf = np.min(data['corrupt_magn_rf'])
     maximum_rf = np.max(data['corrupt_magn_rf'])
     files_magntest = []
-    for obj in S3.Bucket('biometrix-magntest').objects.all():
+    for obj in S3.Bucket(cont_magntest).objects.all():
         files_magntest.append(obj.key)
-    file_present = 'magntest_session_calib' in  files_magntest
+    file_present = magntest_file in  files_magntest
     if AWS:
         try:
             if file_present:
-                obj = S3.Bucket('biometrix-magntest').Object('magntest_session_calib')
+                obj = S3.Bucket(cont_magntest).Object(magntest_file)
                 fileobj = obj.get()
                 body = fileobj["Body"].read()
                 feet = cStringIO.StringIO(body)
@@ -638,8 +643,7 @@ def _record_magn(data, file_name, S3):
                             minimum_h, maximum_h,
                             minimum_rf, maximum_rf))
                 feet.seek(0)
-            S3.Bucket('biometrix-magntest').put_object(Key='magntest_session_calib',
-                                                       Body=feet)
+            S3.Bucket(cont_magntest).put_object(Key=magntest_file, Body=feet)
         except:
             _logger("Cannot updage magn logs!", AWS)
 
