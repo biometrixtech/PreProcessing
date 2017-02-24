@@ -17,6 +17,7 @@ Output data stored in TrainingEvents or BlockEvents table.
 #import sys
 import cStringIO
 import logging
+import os
 #import numpy as np
 import pandas as pd
 import psycopg2
@@ -24,6 +25,7 @@ import psycopg2.extras
 import boto3
 import math
 from itertools import islice, count
+from base64 import b64decode
 
 from controlScore import control_score
 from scoring import score
@@ -50,10 +52,19 @@ def run_scoring(sensor_data, file_name, aws=True):
     """
     global AWS
     global COLUMN_SCORING_OUT
+    global KMS
     AWS = aws
     COLUMN_SCORING_OUT = cols.column_scoring_out
-    cont_write = 'biometrix-sessionprocessedcontainer'
-    cont_read = 'biometrix-scoringhist'
+    KMS = boto3.client('kms')
+    # Read encrypted container names
+    cont_read = os.environ['cont_read']
+    cont_write = os.environ['cont_write']
+
+    # Decrypt container names
+    cont_read = KMS.decrypt(CiphertextBlob=b64decode(cont_read))['Plaintext']
+    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+#    cont_write = 'biometrix-sessionprocessedcontainer'
+#    cont_read = 'biometrix-scoringhist'
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
@@ -89,7 +100,7 @@ def run_scoring(sensor_data, file_name, aws=True):
             body = fileobj["Body"]
             user_hist = pd.read_csv(body)
             user_hist.columns = cols.columns_hist
-        elif len(data) > 50000:
+        elif len(data.LeX) > 50000:
             user_hist = data
         else:
             _logger("There's no historical data and current data isn't long enough!")
@@ -159,10 +170,21 @@ def run_scoring(sensor_data, file_name, aws=True):
 def _connect_db_s3():
     """Start a connection to the database and to s3 resource.
     """
+    # Read encrypted environment variables for db connection
+    db_name = os.environ['db_name']
+    db_host = os.environ['db_host']
+    db_username = os.environ['db_username']
+    db_password = os.environ['db_password']
+
+    # Decrypt the variables
+    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+    db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
+    db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
+    db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
+
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com'
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                                password=db_password)
         cur = conn.cursor()
         # Connect to AWS s3 container
         s3 = boto3.resource('s3')

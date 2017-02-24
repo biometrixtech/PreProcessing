@@ -7,16 +7,16 @@ Created on Tue Oct 18 15:18:54 2016
 import cStringIO
 #import sys
 import logging
+import os
 
 import boto3
 import numpy as np
 import pandas as pd
 import psycopg2
 import requests
-#import httplib
+from base64 import b64decode
 
 import prePreProcessing as ppp
-#import anatomicalCalibration as ac
 from errors import ErrorMessageBase, RPushDataBase
 from placementCheck import placement_check
 import checkProcessed as cp
@@ -41,8 +41,23 @@ def record_base_feet(sensor_data, file_name, aws=True):
         Save transformed data to database with indicator of success/failure
     """
     global AWS
+    global KMS
     AWS = aws
-    
+    # Read the encrypted environment variables
+    db_name = os.environ['db_name']
+    db_host = os.environ['db_host']
+    db_username = os.environ['db_username']
+    db_password = os.environ['db_password']
+    cont_write = os.environ['cont_write']
+
+    #Decrypt the environment variables
+    KMS = boto3.client('kms')
+    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+    db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
+    db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
+    db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
+    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+
     # Query to read user_id linked to the given data_filename
     quer_read = """select user_id from base_anatomical_calibration_events
                    where feet_sensor_data_filename = (%s);"""
@@ -68,9 +83,8 @@ def record_base_feet(sensor_data, file_name, aws=True):
                 from fn_get_processing_status_from_ba_event_filename((%s))"""
     ###Connect to the database
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                                password=db_password)
         cur = conn.cursor()
 
         # connect to S3 bucket for uploading file
@@ -95,7 +109,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
         _logger("feet_sensor_data_filename not found in table", False)
         raise error
     #define container to write processed file to
-    cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
+#    cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
 
     #Read data into structured numpy array
     try:
@@ -400,6 +414,10 @@ def _logger(message, info=True):
 
 def _record_magn(data, file_name, S3):
     import csv
+    cont_magntest = os.environ['cont_magntest']
+    magntest_file = os.environ['magntest_file']
+    cont_magntest = KMS.decrypt(CiphertextBlob=b64decode(cont_magntest))['Plaintext']
+    magntest_file = KMS.decrypt(CiphertextBlob=b64decode(magntest_file))['Plaintext']
     corrupt_magn = data['corrupt_magn']
     percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
     minimum_lf = np.min(data['corrupt_magn_lf'])
@@ -409,13 +427,13 @@ def _record_magn(data, file_name, S3):
     minimum_rf = np.min(data['corrupt_magn_rf'])
     maximum_rf = np.max(data['corrupt_magn_rf'])
     files_magntest = []
-    for obj in S3.Bucket('biometrix-magntest').objects.all():
+    for obj in S3.Bucket(cont_magntest).objects.all():
         files_magntest.append(obj.key)
-    file_present = 'magntest_base' in  files_magntest
+    file_present = magntest_file in  files_magntest
     if AWS:
         try:
             if file_present:
-                obj = S3.Bucket('biometrix-magntest').Object('magntest_base')
+                obj = S3.Bucket(cont_magntest).Object(magntest_file)
                 fileobj = obj.get()
                 body = fileobj["Body"].read()
                 feet = cStringIO.StringIO(body)
@@ -441,8 +459,7 @@ def _record_magn(data, file_name, S3):
                             minimum_h, maximum_h,
                             minimum_rf, maximum_rf))
                 feet.seek(0)
-            S3.Bucket('biometrix-magntest').put_object(Key='magntest_base',
-                                                       Body=feet)
+            S3.Bucket(cont_magntest).put_object(Key=magntest_file, Body=feet)
         except:
             _logger("Cannot updage magn logs!", AWS)
 
@@ -471,7 +488,8 @@ def _process_sac(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url = "http://172.31.28.141/api/sessionanatomical/processfile"
+        url_encrypted = os.environ['sa_api_url']
+        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionanatomical/processfile"

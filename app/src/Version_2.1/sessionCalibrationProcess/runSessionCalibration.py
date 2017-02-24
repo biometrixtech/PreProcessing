@@ -9,12 +9,14 @@ Created on Tue Oct 18 18:30:17 2016
 import cStringIO
 #import sys
 import logging
+import os
 
 import boto3
 import numpy as np
 import pandas as pd
 import requests
 import psycopg2
+from base64 import b64decode
 
 import anatomicalCalibration as ac
 from placementCheck import placement_check
@@ -24,9 +26,11 @@ import neutralComponents as nc
 from errors import ErrorMessageSession, RPushDataSession
 import checkProcessed as cp
 from columnNames import columns_calib
+import sessionCalibrationQueries as queries
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 
 def run_calibration(sensor_data, file_name, aws=True):
     """Checks the validity of base calibration step and writes transformed
@@ -45,86 +49,39 @@ def run_calibration(sensor_data, file_name, aws=True):
         Save offset values to database
     """
     global AWS
+    global KMS
     AWS = aws
-    # Setup Queries based on different situations
+    KMS = boto3.client('kms')
+    # Read encrypted environment variables
+    encrypted_name = os.environ['db_name']
+    encrypted_host = os.environ['db_host']
+    encrypted_username = os.environ['db_username']
+    encrypted_password = os.environ['db_password']
+    encrypted_cont_read = os.environ['cont_read']
+    encrypted_cont_write = os.environ['cont_write']
 
-    # Read relevant information from base_anatomical_calibration_events
-    # based on provided sensor_data_filename and
-    # base_anatomical_calibration_event_id tied to the filename
-    quer_read = """select user_id,
-                          expired,
-                          user_success,
-                          base_ac_success,
-                          feet_processed_sensor_data_filename,
-                          hip_pitch_transform,
-                          hip_roll_transform,
-                          lf_roll_transform,
-                          rf_roll_transform
-                from base_anatomical_calibration_events where
-                id = (select base_anatomical_calibration_event_id from
-                        session_anatomical_calibration_events where 
-                        sensor_data_filename = (%s));"""
-
-    # Update anatomical_calibration_events in case the tests fail
-    quer_fail = """update session_anatomical_calibration_events set
-                user_success = (%s),
-                session_ac_success = (%s),
-                failure_type = (%s),
-                base_calibration = (%s),
-                updated_at = now()
-                where sensor_data_filename=(%s);"""
-
-    # For base calibration, update base_anatomical_calibration_events
-    quer_base_succ = """update  base_anatomical_calibration_events set
-                base_ac_success = (%s),
-                hip_pitch_transform = (%s),
-                hip_roll_transform = (%s),
-                lf_roll_transform = (%s),
-                rf_roll_transform = (%s),
-                expired = (%s),
-                updated_at = now()
-                where id  = (select base_anatomical_calibration_event_id from
-                            session_anatomical_calibration_events where
-                            sensor_data_filename = (%s));"""
-
-    # For both base and session calibration, update
-    # session_anatomical_calibration_events with relevant info
-    # for base calibration, session calibration follows base calibration
-    # for session calibration, it's independent and uses values read earlier
-    quer_session_succ = """update session_anatomical_calibration_events set
-                    user_success = (%s),
-                    session_ac_success = (%s),
-                    base_calibration = (%s),
-                    hip_n_transform = (%s),
-                    hip_bf_transform = (%s),
-                    lf_n_transform = (%s),
-                    lf_bf_transform = (%s),
-                    rf_n_transform = (%s),
-                    rf_bf_transform = (%s),
-                    updated_at = now(),
-                    processed_at = now(),
-                    failure_type = 0
-                    where sensor_data_filename  = (%s);"""
-
-#    quer_rpush = "select fn_send_push_notification(%s, %s, %s)"
-    quer_check_status = """ select * 
-                from fn_get_processing_status_from_sa_event_filename((%s))"""
+    # Decrypt environment variables to plaintext
+    db_name = KMS.decrypt(CiphertextBlob=b64decode(encrypted_name))['Plaintext']
+    db_host = KMS.decrypt(CiphertextBlob=b64decode(encrypted_host))['Plaintext']
+    db_username = KMS.decrypt(CiphertextBlob=b64decode(encrypted_username))['Plaintext']
+    db_password = KMS.decrypt(CiphertextBlob=b64decode(encrypted_password))['Plaintext']
+    cont_read = KMS.decrypt(CiphertextBlob=b64decode(encrypted_cont_read))['Plaintext']
+    cont_write = KMS.decrypt(CiphertextBlob=b64decode(encrypted_cont_write))['Plaintext']
     # Define containers to read from and write to
-    cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
-    cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
+#    cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
+#    cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
 
     try:
         # Connect to the database
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com' 
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                                password=db_password)
         cur = conn.cursor()
 
         # Connect to AWS S3
         S3 = boto3.resource('s3')
 
         # Execute the read query and extract relevant indicator info
-        cur.execute(quer_read, (file_name, ))
+        cur.execute(queries.quer_read, (file_name, ))
         data_read = cur.fetchall()[0]
         user_id = data_read[0]
         if user_id is None:
@@ -286,7 +243,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 
         # Update special_anatomical_calibration_events
         try:
-            cur.execute(quer_fail, (False, False, ind, is_base, file_name))
+            cur.execute(queries.quer_fail, (False, False, ind, is_base, file_name))
             conn.commit()
             conn.close()
         except psycopg2.Error as error:
@@ -401,7 +358,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 #            r_push_data = RPushDataSession(ind).value
             # Write to SessionAnatomicalCalibrationEvents
             try:
-                cur.execute(quer_fail, (False, False, ind, is_base, file_name))
+                cur.execute(queries.quer_fail, (False, False, ind, is_base, file_name))
                 conn.commit()
                 conn.close()
             except psycopg2.Error as error:
@@ -478,12 +435,12 @@ def run_calibration(sensor_data, file_name, aws=True):
                 # Save base calibration offsets to
                 # BaseAnatomicalCalibrationEvent along with hip_success
                 try:
-                    cur.execute(quer_base_succ, (True, hip_p_transform,
-                                                 hip_r_transform,
-                                                 lf_r_transform,
-                                                 rf_r_transform,
-                                                 False,
-                                                 file_name))
+                    cur.execute(queries.quer_base_succ, (True, hip_p_transform,
+                                                         hip_r_transform,
+                                                         lf_r_transform,
+                                                         rf_r_transform,
+                                                         False,
+                                                         file_name))
                     conn.commit()
                 except psycopg2.Error as error:
                     _logger("Cannot write base transform values to DB",
@@ -540,14 +497,14 @@ def run_calibration(sensor_data, file_name, aws=True):
                 hip_n_transform = hip_n_transform.reshape(-1,).tolist()
 
                 try:
-                    cur.execute(quer_session_succ, (True, True, is_base,
-                                                    hip_n_transform,
-                                                    hip_bf_transform,
-                                                    lf_n_transform,
-                                                    lf_bf_transform,
-                                                    rf_n_transform,
-                                                    rf_bf_transform,
-                                                    file_name))
+                    cur.execute(queries.quer_session_succ, (True, True, is_base,
+                                                            hip_n_transform,
+                                                            hip_bf_transform,
+                                                            lf_n_transform,
+                                                            lf_bf_transform,
+                                                            rf_n_transform,
+                                                            rf_bf_transform,
+                                                            file_name))
                     conn.commit()
                 except psycopg2.Error as error:
                     _logger("Cannot write to DB after success!",
@@ -564,7 +521,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 #                            info=False)
 #                    raise error
                 else:
-                    _process_se(file_name, cur, conn, quer_check_status)
+                    _process_se(file_name, cur, conn, queries.quer_check_status)
                     conn.close()
                     return "Success!"
 
@@ -593,14 +550,14 @@ def run_calibration(sensor_data, file_name, aws=True):
                 # SessionAnatomicalCalibrationEvent
                 # along with base_calibration=False and success=True
                 try:
-                    cur.execute(quer_session_succ, (True, True, is_base,
-                                                    hip_n_transform,
-                                                    hip_bf_transform,
-                                                    lf_n_transform,
-                                                    lf_bf_transform,
-                                                    rf_n_transform,
-                                                    rf_bf_transform,
-                                                    file_name))
+                    cur.execute(queries.quer_session_succ, (True, True, is_base,
+                                                            hip_n_transform,
+                                                            hip_bf_transform,
+                                                            lf_n_transform,
+                                                            lf_bf_transform,
+                                                            rf_n_transform,
+                                                            rf_bf_transform,
+                                                            file_name))
                     conn.commit()
                 except psycopg2.Error as error:
                     _logger("Cannot write to DB after success!",
@@ -615,7 +572,7 @@ def run_calibration(sensor_data, file_name, aws=True):
 #                    _logger("Cannot write to rpush after succcess!", info=False)
 #                    raise error
                 else:
-                    _process_se(file_name, cur, conn, quer_check_status)
+                    _process_se(file_name, cur, conn, queries.quer_check_status)
                     conn.close()
                     return "Success!"
 
@@ -640,6 +597,11 @@ def _logger(message, info=True):
 
 def _record_magn(data, file_name, S3):
     import csv
+    cont_magntest = os.environ['cont_magntest']
+    magntest_file = os.environ['magntest_file']
+    cont_magntest = KMS.decrypt(CiphertextBlob=b64decode(cont_magntest))['Plaintext']
+    magntest_file = KMS.decrypt(CiphertextBlob=b64decode(magntest_file))['Plaintext']
+
     corrupt_magn = data['corrupt_magn']
     percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
     minimum_lf = np.min(data['corrupt_magn_lf'])
@@ -649,13 +611,13 @@ def _record_magn(data, file_name, S3):
     minimum_rf = np.min(data['corrupt_magn_rf'])
     maximum_rf = np.max(data['corrupt_magn_rf'])
     files_magntest = []
-    for obj in S3.Bucket('biometrix-magntest').objects.all():
+    for obj in S3.Bucket(cont_magntest).objects.all():
         files_magntest.append(obj.key)
-    file_present = 'magntest_session_calib' in  files_magntest
+    file_present = magntest_file in  files_magntest
     if AWS:
         try:
             if file_present:
-                obj = S3.Bucket('biometrix-magntest').Object('magntest_session_calib')
+                obj = S3.Bucket(cont_magntest).Object(magntest_file)
                 fileobj = obj.get()
                 body = fileobj["Body"].read()
                 feet = cStringIO.StringIO(body)
@@ -681,8 +643,7 @@ def _record_magn(data, file_name, S3):
                             minimum_h, maximum_h,
                             minimum_rf, maximum_rf))
                 feet.seek(0)
-            S3.Bucket('biometrix-magntest').put_object(Key='magntest_session_calib',
-                                                       Body=feet)
+            S3.Bucket(cont_magntest).put_object(Key=magntest_file, Body=feet)
         except:
             _logger("Cannot updage magn logs!", AWS)
 
@@ -710,7 +671,8 @@ def _process_se(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url = "http://172.31.28.141/api/sessionevent/processfile"
+        url_encrypted = os.environ['se_api_url']
+        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionevent/processfile"

@@ -8,12 +8,14 @@ Created on Fri Jan 27 07:40:55 2017
 import logging
 import math
 import cStringIO
+import os
 
 import pandas as pd
 import numpy as np
 import boto3
 import psycopg2
 import psycopg2.extras
+from base64 import b64decode
 
 import columnNames as cols
 import sessionProcessQueries as queries
@@ -29,14 +31,18 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     global COLUMN_SESSION1_OUT
     global COLUMN_SESSION1_TO_DB
     global COLUMN_SESSION1_TO_S3
+    global KMS
     AWS = aws
     COLUMN_SESSION1_OUT = cols.column_session1_out
     COLUMN_SESSION1_TO_DB = cols.column_session1_to_DB
     COLUMN_SESSION1_TO_S3 = cols.column_session1_to_s3
+    KMS = boto3.client('kms')
     _logger("STARTED PROCESSING!")
 
     # Define container to which final output data must be written
-    cont_write = 'biometrix-sessioncontainer2'
+    cont_write = os.environ['cont_write']
+    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+#    cont_write = 'biometrix-sessioncontainer2'
 
     # connect to DB and s3
     conn, cur, s3 = _connect_db_s3()
@@ -60,6 +66,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     # read sensor data
     try:
         sdata = pd.read_csv(sensor_data)
+        sdata = sdata.iloc[200:] #remove first 1.5s of data
         del sensor_data
     except Exception as error:
         _logger("Error reading sensor data!", info=False)
@@ -190,10 +197,21 @@ def _logger(message, info=True):
 def _connect_db_s3():
     """Start a connection to the database and to s3 resource.
     """
+    # Read encrypted environment variables for db connection
+    db_name = os.environ['db_name']
+    db_host = os.environ['db_host']
+    db_username = os.environ['db_username']
+    db_password = os.environ['db_password']
+
+    # Decrypt the variables
+    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+    db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
+    db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
+    db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
+
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com'
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                                password=db_password)
         cur = conn.cursor()
         # Connect to AWS s3 container
         s3 = boto3.resource('s3')

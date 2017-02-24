@@ -9,12 +9,14 @@ import logging
 import math
 import cStringIO
 import pickle
+import os
 
 import pandas as pd
 import numpy as np
 import boto3
 import psycopg2
 import psycopg2.extras
+from base64 import b64decode
 
 import columnNames as cols
 import sessionProcessQueries as queries
@@ -30,24 +32,31 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     global COLUMN_SESSION2_OUT
     global COLUMN_SESSION2_TO_DB
     global COLUMN_SESSION2_TO_S3
+    global KMS
     AWS = aws
     COLUMN_SESSION2_OUT = cols.column_session2_out
     COLUMN_SESSION2_TO_DB = cols.column_session2_to_DB
     COLUMN_SESSION2_TO_S3 = cols.column_session2_to_s3
+    KMS = boto3.client('kms')
     _logger("STARTED PROCESSING!")
     # Define container to which final output data must be written
-    cont_write_final = 'biometrix-scoringcontainer'
-    
+#    cont_write_final = 'biometrix-scoringcontainer'
+    cont_write = os.environ['cont_write']
+    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+
     # Define container that holds models
-    cont_models = 'biometrix-globalmodels'
-    
+    cont_models = os.environ['cont_models']
+    cont_models = KMS.decrypt(CiphertextBlob=b64decode(cont_models))['Plaintext']
+#    cont_models = 'biometrix-globalmodels'
+    ms_model = os.environ['ms_model']
+    ms_model = KMS.decrypt(CiphertextBlob=b64decode(ms_model))['Plaintext']
     # connect to DB and s3
     conn, cur, s3 = _connect_db_s3()
 
     # Mechanical Stress            
     # load model
     try:
-        ms_obj = s3.Bucket(cont_models).Object('ms_trainmodel.pkl')
+        ms_obj = s3.Bucket(cont_models).Object(ms_model)
         ms_fileobj = ms_obj.get()
         ms_body = ms_fileobj["Body"].read()
 
@@ -104,7 +113,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
 
     # looping through each batch of the data file
     s3 = boto3.client('s3')
-    mp = s3.create_multipart_upload(Bucket=cont_write_final, Key=file_name)
+    mp = s3.create_multipart_upload(Bucket=cont_write, Key=file_name)
     for i in range(batches):
         counter += 1
         subset_size = min([len(sdata), batch_size])
@@ -146,7 +155,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                    columns=COLUMN_SESSION2_TO_S3)
                 del output_data_batch
                 fileobj.seek(0)
-                part = s3.upload_part(Bucket=cont_write_final, Key=file_name,
+                part = s3.upload_part(Bucket=cont_write, Key=file_name,
                                       PartNumber=counter,
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
@@ -175,7 +184,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                    na_rep='', columns=COLUMN_SESSION2_TO_S3)
                 del output_data_batch
                 fileobj.seek(0)
-                part = s3.upload_part(Bucket=cont_write_final, Key=file_name,
+                part = s3.upload_part(Bucket=cont_write, Key=file_name,
                                       PartNumber=counter,
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
@@ -194,7 +203,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         _logger('Processing through runAnalytics FAILED!')        
     # Write to S3 and DB
     part_info = {'Parts': Parts}
-    s3.complete_multipart_upload(Bucket=cont_write_final, Key=file_name,
+    s3.complete_multipart_upload(Bucket=cont_write, Key=file_name,
                                  UploadId=mp['UploadId'],
                                  MultipartUpload=part_info)
 
@@ -212,13 +221,26 @@ def _logger(message, info=True):
     else:
         print message
         
+
 def _connect_db_s3():
     """Start a connection to the database and to s3 resource.
     """
+    # Read encrypted environment variables for db connection
+    db_name = os.environ['db_name']
+    db_host = os.environ['db_host']
+    db_username = os.environ['db_username']
+    db_password = os.environ['db_password']
+
+    # Decrypt the variables
+    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+    db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
+    db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
+    db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
+
+
     try:
-        conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-        host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com'
-        password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                                password=db_password)
         cur = conn.cursor()
         # Connect to AWS s3 container
         s3 = boto3.resource('s3')
@@ -230,6 +252,7 @@ def _connect_db_s3():
         raise error
     else:
         return conn, cur, s3
+
 
 def _read_ids(cur, file_name):
     '''Read relevant ids from database and assign zeros if not found
@@ -346,7 +369,8 @@ def _read_offsets(cur, session_event_id):
                                  "the database or local memory")
 #                offsets_read = dummy_offsets   
     return offsets_read
-        
+
+    
 #%%
 if __name__ == "__main__":
     sensor_data = 'c4ed8189-6e1d-47c3-9cc5-446329b10796'
