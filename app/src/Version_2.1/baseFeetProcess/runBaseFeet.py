@@ -14,10 +14,9 @@ import numpy as np
 import pandas as pd
 import psycopg2
 import requests
-#import httplib
+from base64 import b64decode
 
 import prePreProcessing as ppp
-#import anatomicalCalibration as ac
 from errors import ErrorMessageBase, RPushDataBase
 from placementCheck import placement_check
 import checkProcessed as cp
@@ -41,14 +40,24 @@ def record_base_feet(sensor_data, file_name, aws=True):
         calibration step.
         Save transformed data to database with indicator of success/failure
     """
+    global AWS
+    global KMS
+    AWS = aws
+    # Read the encrypted environment variables
     db_name = os.environ['db_name']
     db_host = os.environ['db_host']
     db_username = os.environ['db_username']
     db_password = os.environ['db_password']
     cont_write = os.environ['cont_write']
-    global AWS
-    AWS = aws
-    
+
+    #Decrypt the environment variables
+    KMS = boto3.client('kms')
+    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+    db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
+    db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
+    db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
+    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+
     # Query to read user_id linked to the given data_filename
     quer_read = """select user_id from base_anatomical_calibration_events
                    where feet_sensor_data_filename = (%s);"""
@@ -476,7 +485,8 @@ def _process_sac(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url = os.environ['sa_api_url']
+        url_encrypted = os.environ['sa_api_url']
+        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionanatomical/processfile"
