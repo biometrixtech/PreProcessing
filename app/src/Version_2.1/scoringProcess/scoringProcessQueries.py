@@ -8,6 +8,8 @@ Lists all the postgres queries needed for sessionProcess
 
 quer_create = "CREATE TEMP TABLE temp_mov AS SELECT * FROM movement LIMIT 0"
 
+quer_delete = "delete from movement where session_event_id = (%s)"
+
 # Query to copy data over from temp table to movement table
 quer_update = """UPDATE movement
     set mech_stress = temp_mov.mech_stress,
