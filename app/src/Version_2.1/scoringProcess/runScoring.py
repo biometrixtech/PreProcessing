@@ -104,6 +104,11 @@ def run_scoring(sensor_data, file_name, aws=True):
             user_hist = data
         else:
             _logger("There's no historical data and current data isn't long enough!")
+            # Can't complete scoring, delete data from movement table and exit
+            cur.execute(queries.quer_delete, (session_event_id, ))
+            conn.commit()
+            conn.close()
+            return "Fail!"
     except Exception as error:
         if AWS:
             _logger("Cannot read historical user data from s3!", info=False)

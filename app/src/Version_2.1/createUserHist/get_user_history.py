@@ -6,6 +6,8 @@ import boto3
 import logging
 import cStringIO
 import psycopg2
+import os
+from base64 import b64decode
 #import uuid
 ##import zipfile as zf
 #
@@ -19,15 +21,28 @@ create_temp_table = """CREATE TEMP TABLE hist AS SELECT mech_stress, total_accel
                      FROM movement where session_event_id in %s"""
 get_user_id = 'select user_id from session_events where sensor_data_filename = (%s)'
 get_session_events = 'select * from fn_get_session_event_id_hist((%s))'
-cont_write = 'biometrix-scoringhist'
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.info('Loading sessionProcess')
     
 def lambda_handler(event, context):
-    conn = psycopg2.connect("""dbname='biometrix' user='ubuntu'
-            host='ec2-35-162-107-177.us-west-2.compute.amazonaws.com'
-            password='d8dad414c2bb4afd06f8e8d4ba832c19d58e123f'""")
+    KMS = boto3.client('kms')
+    # Read encrypted environment variables for db connection
+    db_name = os.environ['db_name']
+    db_host = os.environ['db_host']
+    db_username = os.environ['db_username']
+    db_password = os.environ['db_password']
+    cont_write = os.environ['cont_write']
+
+    # Decrypt the variables
+    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+    db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
+    db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
+    db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
+    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+
+    conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
+                            password=db_password)
     cur = conn.cursor()
     S3 = boto3.resource('s3')
 
@@ -43,7 +58,7 @@ def lambda_handler(event, context):
         session_event_ids = cur.fetchall()
         session_ids = tuple(zip(*session_event_ids)[0])
         logger.info('Relevant session_event_ids retrieved')
-        logger.infl(session_ids)
+        logger.info(session_ids)
         cur.execute(create_temp_table, (session_ids,))
         logger.info('Temp table created')
         f = cStringIO.StringIO()
