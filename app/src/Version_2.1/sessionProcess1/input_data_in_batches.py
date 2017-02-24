@@ -66,6 +66,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     # read sensor data
     try:
         sdata = pd.read_csv(sensor_data)
+        sdata = sdata.iloc[200:] #remove first 1.5s of data
         del sensor_data
     except Exception as error:
         _logger("Error reading sensor data!", info=False)
