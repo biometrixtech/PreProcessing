@@ -87,7 +87,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     sdata = sdata.reset_index(drop=True)
     
     # SUBSET DATA
-    sdata = ppp.sdata(old_data=sdata)
+    sdata = ppp.subset_data(old_data=sdata)
     sdata = sdata.reset_index(drop=True)
     if len(sdata) == 0:
         _logger("No overlapping samples after time sync", info=False)
