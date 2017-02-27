@@ -61,22 +61,16 @@ def run_session(sensor_data, file_name, ids_from_db, offsets_read,
     session_event_id = ids_from_db[0]
     session_type = ids_from_db[5]
     
-    # SUBSET DATA
-    subset_data = ppp.subset_data(old_data=sensor_data)
-    del sensor_data
-    if len(subset_data) == 0:
-        _logger("No overlapping samples after time sync", info=False)
-        return "Fail!"
     # Record percentage and ranges of magn_values for diagonostic purposes
     try:
         S3 = boto3.resource('s3') 
-        _record_magn(subset_data, file_name, S3)
+        _record_magn(sensor_data, file_name, S3)
     except:
         _logger("failed to write magn values to s3!")
         
-    columns = subset_data.columns
-    data = do.RawFrame(subset_data, columns)
-    del subset_data
+    columns = sensor_data.columns
+    data = do.RawFrame(sensor_data, columns)
+    del sensor_data
     data = cp.handle_processed(data)
 
     # PRE-PRE-PROCESSING

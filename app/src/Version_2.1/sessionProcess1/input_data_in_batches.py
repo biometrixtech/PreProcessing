@@ -19,6 +19,7 @@ from base64 import b64decode
 
 import columnNames as cols
 import sessionProcessQueries as queries
+import prePreProcessing as ppp
 import runAnalytics as ra
 
 logger = logging.getLogger()
@@ -66,7 +67,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     # read sensor data
     try:
         sdata = pd.read_csv(sensor_data)
-        sdata = sdata.iloc[200:] #remove first 1.5s of data
+#        sdata = sdata.iloc[200:] #remove first 1.5s of data
         del sensor_data
     except Exception as error:
         _logger("Error reading sensor data!", info=False)
@@ -84,6 +85,17 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     # sort by epoch time
     sdata = sdata.sort(['epoch_time'])
     sdata = sdata.reset_index(drop=True)
+    
+    # SUBSET DATA
+    sdata = ppp.sdata(old_data=sdata)
+    sdata = sdata.reset_index(drop=True)
+    if len(sdata) == 0:
+        _logger("No overlapping samples after time sync", info=False)
+        return "Fail!"
+    elif len(sdata) > 200:
+        sdata = sdata.iloc[200:] #remove first 2s of data
+    else:
+        _logger("No data after removing first 2s of data")
     
     # number of rows to pass in each batch & number of parts being passed to
     # runAnalytics
