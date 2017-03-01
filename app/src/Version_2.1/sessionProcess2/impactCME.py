@@ -49,7 +49,7 @@ def sync_time(rf_start, lf_start, sampl_rate):
     for i in list_rf_start:
         for j in list_lf_start:
             if abs(j-i) <= 0.3*sampl_rate:
-            # checking for false impact phases
+            # comparing correct impacts (pairs) of right and left feet
                 if j < i:  # check if left foot
                 # impacts first
                     diff.append(-(j-i)/sampl_rate*1000)
