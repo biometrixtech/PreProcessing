@@ -42,13 +42,14 @@ def record_base_feet(sensor_data, file_name, aws=True):
     """
     global AWS
     global KMS
+    global SUB_FOLDER
     AWS = aws
     # Read the encrypted environment variables
     db_name = os.environ['db_name']
     db_host = os.environ['db_host']
     db_username = os.environ['db_username']
     db_password = os.environ['db_password']
-    cont_write = os.environ['cont_write']
+    sub_folder = os.environ['cont_write']
 
     #Decrypt the environment variables
     KMS = boto3.client('kms')
@@ -56,8 +57,9 @@ def record_base_feet(sensor_data, file_name, aws=True):
     db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
-    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
 
+    cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
     # Query to read user_id linked to the given data_filename
     quer_read = """select user_id from base_anatomical_calibration_events
                    where feet_sensor_data_filename = (%s);"""
@@ -223,7 +225,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
         data_feet.to_csv(f, index=False)
         f.seek(0)
         try:
-            S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+            S3.Bucket(cont_write).put_object(Key=SUB_FOLDER+out_file, Body=f)
 #            cur.execute(quer_rpush, (user_id, msg, r_push_data))
 #            conn.commit()
 #            conn.close()
@@ -347,7 +349,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
             data_pd.to_csv(f, index=False)
             f.seek(0)
             try:
-                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+                S3.Bucket(cont_write).put_object(Key=SUB_FOLDER+out_file, Body=f)
 #                cur.execute(quer_rpush, (user_id, msg, r_push_data))
 #                conn.commit()
 #                conn.close()
@@ -382,7 +384,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
             data_pd.to_csv(f, index=False)
             f.seek(0)
             try:
-                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+                S3.Bucket(cont_write).put_object(Key=SUB_FOLDER+out_file, Body=f)
 #                cur.execute(quer_rpush, (user_id, msg, r_push_data))
 #                conn.commit()
 #                conn.close()
@@ -414,10 +416,11 @@ def _logger(message, info=True):
 
 def _record_magn(data, file_name, S3):
     import csv
-    cont_magntest = os.environ['cont_magntest']
+    cont_magntest = 'biometrix-magntest'
+#    cont_magntest = os.environ['cont_magntest']
     magntest_file = os.environ['magntest_file']
-    cont_magntest = KMS.decrypt(CiphertextBlob=b64decode(cont_magntest))['Plaintext']
-    magntest_file = KMS.decrypt(CiphertextBlob=b64decode(magntest_file))['Plaintext']
+#    cont_magntest = KMS.decrypt(CiphertextBlob=b64decode(cont_magntest))['Plaintext']
+    magntest_file = SUB_FOLDER+KMS.decrypt(CiphertextBlob=b64decode(magntest_file))['Plaintext']
     corrupt_magn = data['corrupt_magn']
     percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
     minimum_lf = np.min(data['corrupt_magn_lf'])
@@ -427,8 +430,9 @@ def _record_magn(data, file_name, S3):
     minimum_rf = np.min(data['corrupt_magn_rf'])
     maximum_rf = np.max(data['corrupt_magn_rf'])
     files_magntest = []
-    for obj in S3.Bucket(cont_magntest).objects.all():
+    for obj in S3.Bucket(cont_magntest).objects.filter(Prefix=SUB_FOLDER):
         files_magntest.append(obj.key)
+    print files_magntest
     file_present = magntest_file in  files_magntest
     if AWS:
         try:

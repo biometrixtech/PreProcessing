@@ -27,6 +27,7 @@ def lambda_handler(event, context):
         s3r = boto3.resource('s3')
         logger.info('Obtained S3 Resource')
         obj = s3r.Bucket(bucket).Object(key)
+        key = key.split('/')[1]
         logger.info('Obtained Key')        
         fileobj = obj.get()
         logger.info('Got Fileobj')        
