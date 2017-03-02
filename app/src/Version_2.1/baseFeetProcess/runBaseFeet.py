@@ -49,7 +49,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
     db_host = os.environ['db_host']
     db_username = os.environ['db_username']
     db_password = os.environ['db_password']
-    sub_folder = os.environ['cont_write']
+    sub_folder = os.environ['sub_folder']
 
     #Decrypt the environment variables
     KMS = boto3.client('kms')

@@ -59,7 +59,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     encrypted_username = os.environ['db_username']
     encrypted_password = os.environ['db_password']
 #    encrypted_cont_read = os.environ['cont_read']
-    encrypted_sub_folder = os.environ['cont_write']
+    encrypted_sub_folder = os.environ['sub_folder']
 
     # Decrypt environment variables to plaintext
     db_name = KMS.decrypt(CiphertextBlob=b64decode(encrypted_name))['Plaintext']
