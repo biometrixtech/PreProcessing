@@ -148,7 +148,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                    columns=COLUMN_SESSION1_TO_S3)
                 del output_data_batch
                 fileobj.seek(0)
-                part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+SUB_FOLDER+file_name,
+                part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                       PartNumber=counter,
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
@@ -170,7 +170,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                    na_rep='', columns=COLUMN_SESSION1_TO_S3)
                 del output_data_batch
                 fileobj.seek(0)
-                part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+SUB_FOLDER+file_name,
+                part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                       PartNumber=counter,
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
