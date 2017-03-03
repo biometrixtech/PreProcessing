@@ -540,6 +540,32 @@ def run_calibration(sensor_data, file_name, aws=True):
                                             hip_bf_transform,
                                             rf_bf_transform)
 
+                # Check if bodyframe and neutral transform values are nan's
+                if np.any(np.isnan(hip_bf_transform)):
+                    _logger('Hip bodyframe transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in hip_bf_transform')
+                elif np.any(np.isnan(lf_bf_transform)):
+                    _logger('LF bodyframe transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in lf_bf_transform')
+                elif np.any(np.isnan(rf_bf_transform)):
+                    _logger('RF bodyframe transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in rf_bf_transform')
+                elif np.any(np.isnan(lf_n_transform)):
+                    _logger('LF neutral transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in lf_n_transform')
+                elif np.any(np.isnan(rf_n_transform)):
+                    _logger('RF neutral transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in rf_n_transform')
+                elif np.any(np.isnan(hip_n_transform)):
+                    _logger('Hip neutral transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in hip_n_transform')
+
                 hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
                 lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
                 rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
