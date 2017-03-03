@@ -33,14 +33,14 @@ def lambda_handler(event, context):
     db_username = os.environ['db_username']
     db_password = os.environ['db_password']
 #    cont_write = os.environ['cont_write']
-    sub_folder = os.environ['sub_folder']
+    sub_folder = os.environ['sub_folder']+'/'
 
     # Decrypt the variables
-    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+#    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
-    sub_folder = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
+#    sub_folder = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
 #    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
     cont_write = 'biometrix-scoringhist'
 

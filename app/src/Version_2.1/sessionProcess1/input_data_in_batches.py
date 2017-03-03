@@ -42,8 +42,8 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     _logger("STARTED PROCESSING!")
 
     # Define container to which final output data must be written
-    sub_folder = os.environ['sub_folder']
-    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
+    SUB_FOLDER = os.environ['sub_folder']+'/'
+#    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
     cont_write = 'biometrix-sessioncontainer2'
 
     # connect to DB and s3
@@ -217,7 +217,7 @@ def _connect_db_s3():
     db_password = os.environ['db_password']
 
     # Decrypt the variables
-    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+#    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
