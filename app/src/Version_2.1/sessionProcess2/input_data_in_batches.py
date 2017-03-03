@@ -33,6 +33,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     global COLUMN_SESSION2_TO_DB
     global COLUMN_SESSION2_TO_S3
     global KMS
+    global SUB_FOLDER
     AWS = aws
     COLUMN_SESSION2_OUT = cols.column_session2_out
     COLUMN_SESSION2_TO_DB = cols.column_session2_to_DB
@@ -40,14 +41,14 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     KMS = boto3.client('kms')
     _logger("STARTED PROCESSING!")
     # Define container to which final output data must be written
-#    cont_write_final = 'biometrix-scoringcontainer'
-    cont_write = os.environ['cont_write']
-    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+    cont_write = 'biometrix-scoringcontainer'
+    sub_folder = os.environ['sub_folder']
+    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
 
     # Define container that holds models
-    cont_models = os.environ['cont_models']
-    cont_models = KMS.decrypt(CiphertextBlob=b64decode(cont_models))['Plaintext']
-#    cont_models = 'biometrix-globalmodels'
+#    cont_models = os.environ['cont_models']
+#    cont_models = KMS.decrypt(CiphertextBlob=b64decode(cont_models))['Plaintext']
+    cont_models = 'biometrix-globalmodels'
     ms_model = os.environ['ms_model']
     ms_model = KMS.decrypt(CiphertextBlob=b64decode(ms_model))['Plaintext']
     # connect to DB and s3
@@ -56,7 +57,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     # Mechanical Stress            
     # load model
     try:
-        ms_obj = s3.Bucket(cont_models).Object(ms_model)
+        ms_obj = s3.Bucket(cont_models).Object(SUB_FOLDER+ms_model)
         ms_fileobj = ms_obj.get()
         ms_body = ms_fileobj["Body"].read()
 
@@ -113,7 +114,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
 
     # looping through each batch of the data file
     s3 = boto3.client('s3')
-    mp = s3.create_multipart_upload(Bucket=cont_write, Key=file_name)
+    mp = s3.create_multipart_upload(Bucket=cont_write, Key=SUB_FOLDER+file_name)
     for i in range(batches):
         counter += 1
         subset_size = min([len(sdata), batch_size])
@@ -155,7 +156,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                    columns=COLUMN_SESSION2_TO_S3)
                 del output_data_batch
                 fileobj.seek(0)
-                part = s3.upload_part(Bucket=cont_write, Key=file_name,
+                part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                       PartNumber=counter,
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
@@ -184,7 +185,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                    na_rep='', columns=COLUMN_SESSION2_TO_S3)
                 del output_data_batch
                 fileobj.seek(0)
-                part = s3.upload_part(Bucket=cont_write, Key=file_name,
+                part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                       PartNumber=counter,
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
@@ -203,7 +204,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         _logger('Processing through runAnalytics FAILED!')        
     # Write to S3 and DB
     part_info = {'Parts': Parts}
-    s3.complete_multipart_upload(Bucket=cont_write, Key=file_name,
+    s3.complete_multipart_upload(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                  UploadId=mp['UploadId'],
                                  MultipartUpload=part_info)
 
