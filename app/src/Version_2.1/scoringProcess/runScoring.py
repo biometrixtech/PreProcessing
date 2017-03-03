@@ -58,7 +58,7 @@ def run_scoring(sensor_data, file_name, aws=True):
     COLUMN_SCORING_OUT = cols.column_scoring_out
     KMS = boto3.client('kms')
     # Read encrypted subfolder name
-    sub_folder = os.environ['sub_folder']
+    SUB_FOLDER = os.environ['sub_folder']+'/'
 #    cont_read = os.environ['cont_read']
 #    cont_write = os.environ['cont_write']
 
@@ -67,8 +67,8 @@ def run_scoring(sensor_data, file_name, aws=True):
 #    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_read = 'biometrix-scoringhist'
-    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
-    _logger(SUB_FOLDER)
+#    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
+#    _logger(SUB_FOLDER)
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
@@ -186,7 +186,7 @@ def _connect_db_s3():
     db_password = os.environ['db_password']
 
     # Decrypt the variables
-    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+#    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']

@@ -49,15 +49,15 @@ def record_base_feet(sensor_data, file_name, aws=True):
     db_host = os.environ['db_host']
     db_username = os.environ['db_username']
     db_password = os.environ['db_password']
-    sub_folder = os.environ['sub_folder']
+    SUB_FOLDER = os.environ['sub_folder']+'/'
 
     #Decrypt the environment variables
     KMS = boto3.client('kms')
-    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
+#    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
-    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
+#    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
 
     cont_write = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
     # Query to read user_id linked to the given data_filename

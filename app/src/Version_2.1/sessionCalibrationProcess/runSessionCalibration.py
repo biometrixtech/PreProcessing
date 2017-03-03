@@ -54,20 +54,20 @@ def run_calibration(sensor_data, file_name, aws=True):
     AWS = aws
     KMS = boto3.client('kms')
     # Read encrypted environment variables
-    encrypted_name = os.environ['db_name']
+    db_name = os.environ['db_name']
     encrypted_host = os.environ['db_host']
     encrypted_username = os.environ['db_username']
     encrypted_password = os.environ['db_password']
 #    encrypted_cont_read = os.environ['cont_read']
-    encrypted_sub_folder = os.environ['sub_folder']
+    SUB_FOLDER = os.environ['sub_folder']+'/'
 
     # Decrypt environment variables to plaintext
-    db_name = KMS.decrypt(CiphertextBlob=b64decode(encrypted_name))['Plaintext']
+#    db_name = KMS.decrypt(CiphertextBlob=b64decode(encrypted_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(encrypted_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(encrypted_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(encrypted_password))['Plaintext']
 #    cont_read = KMS.decrypt(CiphertextBlob=b64decode(encrypted_cont_read))['Plaintext']
-    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(encrypted_sub_folder))['Plaintext']+'/'
+#    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(encrypted_sub_folder))['Plaintext']+'/'
     # Define containers to read from and write to
     cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
     cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
