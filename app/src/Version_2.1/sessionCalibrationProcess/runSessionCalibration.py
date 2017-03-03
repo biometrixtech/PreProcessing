@@ -50,6 +50,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     """
     global AWS
     global KMS
+    global SUB_FOLDER
     AWS = aws
     KMS = boto3.client('kms')
     # Read encrypted environment variables
@@ -57,19 +58,19 @@ def run_calibration(sensor_data, file_name, aws=True):
     encrypted_host = os.environ['db_host']
     encrypted_username = os.environ['db_username']
     encrypted_password = os.environ['db_password']
-    encrypted_cont_read = os.environ['cont_read']
-    encrypted_cont_write = os.environ['cont_write']
+#    encrypted_cont_read = os.environ['cont_read']
+    encrypted_sub_folder = os.environ['sub_folder']
 
     # Decrypt environment variables to plaintext
     db_name = KMS.decrypt(CiphertextBlob=b64decode(encrypted_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(encrypted_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(encrypted_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(encrypted_password))['Plaintext']
-    cont_read = KMS.decrypt(CiphertextBlob=b64decode(encrypted_cont_read))['Plaintext']
-    cont_write = KMS.decrypt(CiphertextBlob=b64decode(encrypted_cont_write))['Plaintext']
+#    cont_read = KMS.decrypt(CiphertextBlob=b64decode(encrypted_cont_read))['Plaintext']
+    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(encrypted_sub_folder))['Plaintext']+'/'
     # Define containers to read from and write to
-#    cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
-#    cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
+    cont_read = 'biometrix-baseanatomicalcalibrationprocessedcontainer'
+    cont_write = 'biometrix-sessionanatomicalcalibrationprocessedcontainer'
 
     try:
         # Connect to the database
@@ -117,7 +118,7 @@ def run_calibration(sensor_data, file_name, aws=True):
     #read from S3
     feet_file = data_read[4]
     try:
-        obj = S3.Bucket(cont_read).Object(feet_file)
+        obj = S3.Bucket(cont_read).Object(SUB_FOLDER+feet_file)
         fileobj = obj.get()
         body = fileobj["Body"].read()
         feet = cStringIO.StringIO(body)
@@ -257,7 +258,7 @@ def run_calibration(sensor_data, file_name, aws=True):
         data_calib.to_csv(f, index=False)
         f.seek(0)
         try:
-            S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+            S3.Bucket(cont_write).put_object(Key=SUB_FOLDER+out_file, Body=f)
 #            cur.execute(quer_rpush, (user_id, msg, r_push_data))
 #            conn.commit()
 #            conn.close()
@@ -373,7 +374,7 @@ def run_calibration(sensor_data, file_name, aws=True):
             data_pd.to_csv(f, index=False)
             f.seek(0)
             try:
-                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+                S3.Bucket(cont_write).put_object(Key=SUB_FOLDER+out_file, Body=f)
 #                cur.execute(quer_rpush, (user_id, msg, r_push_data))
 #                conn.commit()
 #                conn.close()
@@ -401,7 +402,7 @@ def run_calibration(sensor_data, file_name, aws=True):
             data_pd.to_csv(f, index=False)
             f.seek(0)
             try:
-                S3.Bucket(cont_write).put_object(Key=out_file, Body=f)
+                S3.Bucket(cont_write).put_object(Key=SUB_FOLDER+out_file, Body=f)
             except boto3.exceptions as error:
                 _logger("Cannot write to s3!", info=False)
                 raise error
@@ -539,6 +540,32 @@ def run_calibration(sensor_data, file_name, aws=True):
                                             hip_bf_transform,
                                             rf_bf_transform)
 
+                # Check if bodyframe and neutral transform values are nan's
+                if np.any(np.isnan(hip_bf_transform)):
+                    _logger('Hip bodyframe transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in hip_bf_transform')
+                elif np.any(np.isnan(lf_bf_transform)):
+                    _logger('LF bodyframe transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in lf_bf_transform')
+                elif np.any(np.isnan(rf_bf_transform)):
+                    _logger('RF bodyframe transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in rf_bf_transform')
+                elif np.any(np.isnan(lf_n_transform)):
+                    _logger('LF neutral transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in lf_n_transform')
+                elif np.any(np.isnan(rf_n_transform)):
+                    _logger('RF neutral transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in rf_n_transform')
+                elif np.any(np.isnan(hip_n_transform)):
+                    _logger('Hip neutral transform has missing values.',
+                            info=False)
+                    raise ValueError('NaN in hip_n_transform')
+
                 hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
                 lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
                 rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
@@ -597,10 +624,11 @@ def _logger(message, info=True):
 
 def _record_magn(data, file_name, S3):
     import csv
-    cont_magntest = os.environ['cont_magntest']
+    cont_magntest = 'biometrix-magntest'
+#    cont_magntest = os.environ['cont_magntest']
     magntest_file = os.environ['magntest_file']
-    cont_magntest = KMS.decrypt(CiphertextBlob=b64decode(cont_magntest))['Plaintext']
-    magntest_file = KMS.decrypt(CiphertextBlob=b64decode(magntest_file))['Plaintext']
+#    cont_magntest = KMS.decrypt(CiphertextBlob=b64decode(cont_magntest))['Plaintext']
+    magntest_file = SUB_FOLDER+KMS.decrypt(CiphertextBlob=b64decode(magntest_file))['Plaintext']
 
     corrupt_magn = data['corrupt_magn']
     percent_corrupt = np.sum(corrupt_magn)/np.float(len(corrupt_magn))
@@ -611,7 +639,7 @@ def _record_magn(data, file_name, S3):
     minimum_rf = np.min(data['corrupt_magn_rf'])
     maximum_rf = np.max(data['corrupt_magn_rf'])
     files_magntest = []
-    for obj in S3.Bucket(cont_magntest).objects.all():
+    for obj in S3.Bucket(cont_magntest).objects.filter(Prefix=SUB_FOLDER):
         files_magntest.append(obj.key)
     file_present = magntest_file in  files_magntest
     if AWS:

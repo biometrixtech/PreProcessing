@@ -33,6 +33,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     global COLUMN_SESSION1_TO_DB
     global COLUMN_SESSION1_TO_S3
     global KMS
+    global SUB_FOLDER
     AWS = aws
     COLUMN_SESSION1_OUT = cols.column_session1_out
     COLUMN_SESSION1_TO_DB = cols.column_session1_to_DB
@@ -41,9 +42,9 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     _logger("STARTED PROCESSING!")
 
     # Define container to which final output data must be written
-    cont_write = os.environ['cont_write']
-    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
-#    cont_write = 'biometrix-sessioncontainer2'
+    sub_folder = os.environ['sub_folder']
+    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
+    cont_write = 'biometrix-sessioncontainer2'
 
     # connect to DB and s3
     conn, cur, s3 = _connect_db_s3()
@@ -110,7 +111,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
 
     # looping through each batch of the data file
     s3 = boto3.client('s3')
-    mp = s3.create_multipart_upload(Bucket=cont_write, Key=file_name)
+    mp = s3.create_multipart_upload(Bucket=cont_write, Key=SUB_FOLDER+file_name)
     for i in range(batches):
         counter += 1
         subset_size = min([len(sdata), batch_size])
@@ -147,7 +148,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                    columns=COLUMN_SESSION1_TO_S3)
                 del output_data_batch
                 fileobj.seek(0)
-                part = s3.upload_part(Bucket=cont_write, Key=file_name,
+                part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                       PartNumber=counter,
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
@@ -169,7 +170,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                    na_rep='', columns=COLUMN_SESSION1_TO_S3)
                 del output_data_batch
                 fileobj.seek(0)
-                part = s3.upload_part(Bucket=cont_write, Key=file_name,
+                part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                       PartNumber=counter,
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
@@ -190,7 +191,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         
     # Write to S3 and DB
     part_info = {'Parts': Parts}
-    s3.complete_multipart_upload(Bucket=cont_write, Key=file_name,
+    s3.complete_multipart_upload(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                  UploadId=mp['UploadId'],
                                  MultipartUpload=part_info)
 
