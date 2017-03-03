@@ -53,18 +53,22 @@ def run_scoring(sensor_data, file_name, aws=True):
     global AWS
     global COLUMN_SCORING_OUT
     global KMS
+    global SUB_FOLDER
     AWS = aws
     COLUMN_SCORING_OUT = cols.column_scoring_out
     KMS = boto3.client('kms')
-    # Read encrypted container names
-    cont_read = os.environ['cont_read']
-    cont_write = os.environ['cont_write']
+    # Read encrypted subfolder name
+    sub_folder = os.environ['sub_folder']
+#    cont_read = os.environ['cont_read']
+#    cont_write = os.environ['cont_write']
 
     # Decrypt container names
-    cont_read = KMS.decrypt(CiphertextBlob=b64decode(cont_read))['Plaintext']
-    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
-#    cont_write = 'biometrix-sessionprocessedcontainer'
-#    cont_read = 'biometrix-scoringhist'
+#    cont_read = KMS.decrypt(CiphertextBlob=b64decode(cont_read))['Plaintext']
+#    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+    cont_write = 'biometrix-sessionprocessedcontainer'
+    cont_read = 'biometrix-scoringhist'
+    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
+    _logger(SUB_FOLDER)
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
@@ -93,9 +97,9 @@ def run_scoring(sensor_data, file_name, aws=True):
 
     # read historical data
     try:
-        objs = list(s3.Bucket(cont_read).objects.filter(Prefix=user_id))
+        objs = list(s3.Bucket(cont_read).objects.filter(Prefix=SUB_FOLDER+user_id))
         if len(objs) == 1:
-            obj = s3.Bucket(cont_read).Object(user_id)
+            obj = s3.Bucket(cont_read).Object(SUB_FOLDER+user_id)
             fileobj = obj.get()
             body = fileobj["Body"]
             user_hist = pd.read_csv(body)
@@ -213,74 +217,11 @@ def _logger(message, info=True):
         print message
 
 
-#def _write_table_db(movement_data, cur, conn):
-#    """Update the movement table with all the scores
-#    Args:
-#        movement_data: numpy recarray with complete data
-#        cur: cursor pointing to the current db connection
-#        conn: db connection
-#    Returns:
-#        result: string signifying success
-#    """
-#    movement_data_pd = pd.DataFrame(movement_data)
-#    movement_data_pd = movement_data_pd.replace('None', 'NaN')
-#    fileobj_db = cStringIO.StringIO()
-#    try:
-#        # create a temporary table with the schema of movement table
-#        cur.execute(queries.quer_create)
-#        movement_data_pd.to_csv(fileobj_db, index=False, header=False,
-#                                na_rep='NaN', columns=COLUMN_SCORING_OUT)
-#        del movement_data_pd
-#        # copy data to the empty temp table
-#        fileobj_db.seek(0)
-#        cur.copy_from(file=fileobj_db, table='temp_mov', sep=',', null='NaN',
-#                      columns=COLUMN_SCORING_OUT)
-#        del fileobj_db
-#        # copy relevant columns from temp table to movement table
-#        cur.execute(queries.quer_update)
-#        conn.commit()
-#        # drop temp table
-#        cur.execute(queries.quer_drop)
-#        conn.commit()
-#        conn.close()
-#    except Exception as error:
-#        if AWS:
-#            logger.warning("Cannot write movement data to DB!")
-#            raise error
-#        else:
-#            print "Cannot write movement data to DB!"
-#            return "Success!"
-#    else:
-#        return "Success!"
-#
-
-#def _write_table_s3(movement_data, file_name, s3, cont):
-#    """write final table to s3. In case of local run, if it can't be written to
-#    s3, it'll be written locally
-#    """
-#    movement_data_pd = pd.DataFrame(movement_data)
-#    try:
-#        fileobj = cStringIO.StringIO()
-#        movement_data_pd.to_csv(fileobj, index=False)
-#        del movement_data_pd
-#        fileobj.seek(0)
-#        s3.Bucket(cont).put_object(Key="movement_" + file_name, Body=fileobj)
-#    except:
-#        if AWS:
-#            del fileobj
-#            logger.warning("Cannot write movement table to s3")
-#        else:
-#            print "Cannot write file to s3 writing locally!"
-#            movement_data_pd = pd.DataFrame(movement_data)
-#            movement_data_pd.to_csv("movement_" + file_name, index=False)
-#            del movement_data_pd
-#
-
 def _multipartupload_data(movement_data, file_name, cont, cur, conn, DB=True):
 
     # Create a multipart upload request
     s3 = boto3.client('s3')
-    mp = s3.create_multipart_upload(Bucket=cont, Key=file_name)
+    mp = s3.create_multipart_upload(Bucket=cont, Key=SUB_FOLDER+file_name)
 
     # Use only a set of rows each time to write to fileobj
     rows_set_size = 200000  # number of rows durin each batch upload
@@ -323,7 +264,7 @@ def _multipartupload_data(movement_data, file_name, cont, cur, conn, DB=True):
                                         columns=COLUMN_SCORING_OUT)
             del movement_data_subset
             fileobj.seek(0)
-            part = s3.upload_part(Bucket=cont, Key=file_name,
+            part = s3.upload_part(Bucket=cont, Key=SUB_FOLDER+file_name,
                                   PartNumber=counter,
                                   UploadId=mp['UploadId'], Body=fileobj)
             Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
@@ -349,14 +290,14 @@ def _multipartupload_data(movement_data, file_name, cont, cur, conn, DB=True):
                 conn.commit()
             # Write to s3
             fileobj.seek(0)
-            part = s3.upload_part(Bucket=cont, Key=file_name,
+            part = s3.upload_part(Bucket=cont, Key=SUB_FOLDER+file_name,
                                   PartNumber=counter,
                                   UploadId=mp['UploadId'], Body=fileobj)
             Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
 
             del fileobj
     part_info = {'Parts': Parts}
-    s3.complete_multipart_upload(Bucket=cont, Key=file_name,
+    s3.complete_multipart_upload(Bucket=cont, Key=SUB_FOLDER+file_name,
                                  UploadId=mp['UploadId'],
                                  MultipartUpload=part_info)
 
