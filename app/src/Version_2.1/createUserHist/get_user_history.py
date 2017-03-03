@@ -32,14 +32,17 @@ def lambda_handler(event, context):
     db_host = os.environ['db_host']
     db_username = os.environ['db_username']
     db_password = os.environ['db_password']
-    cont_write = os.environ['cont_write']
+#    cont_write = os.environ['cont_write']
+    sub_folder = os.environ['sub_folder']
 
     # Decrypt the variables
     db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
-    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+    sub_folder = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
+#    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+    cont_write = 'biometrix-scoringhist'
 
     conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host,
                             password=db_password)
@@ -50,7 +53,7 @@ def lambda_handler(event, context):
     
     try:
         key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key']).encode('utf8')
-        file_name = key.split('_')[1] 
+        file_name = key.split('_')[1]
         cur.execute(get_user_id, (file_name,))
         user_id = cur.fetchall()[0]
         logger.info('user_id retrieved')
@@ -70,7 +73,7 @@ def lambda_handler(event, context):
         user_id = str(user_id[0])
         logger.info(user_id)
         f.seek(0)
-        S3.Bucket(cont_write).put_object(Key=user_id, Body=f)
+        S3.Bucket(cont_write).put_object(Key=sub_folder+user_id, Body=f)
         logger.info('Data written to s3')        
         
     except Exception as e:
