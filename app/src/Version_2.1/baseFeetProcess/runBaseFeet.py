@@ -432,7 +432,7 @@ def _record_magn(data, file_name, S3):
     files_magntest = []
     for obj in S3.Bucket(cont_magntest).objects.filter(Prefix=SUB_FOLDER):
         files_magntest.append(obj.key)
-    print files_magntest
+    
     file_present = magntest_file in  files_magntest
     if AWS:
         try:
