@@ -376,11 +376,11 @@ def _record_magn(data, file_name, S3):
     from base64 import b64decode
     KMS = boto3.client('kms')
     cont_magntest = 'biometrix-magntest'
-    SUB_FOLDER = os.environ['sub_folder']+'/'
+    sub_folder = os.environ['sub_folder']
 #    cont_magntest = os.environ['cont_magntest']
     magntest_file = os.environ['magntest_file']
 #    cont_magntest = KMS.decrypt(CiphertextBlob=b64decode(cont_magntest))['Plaintext']
-#    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
+    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
     magntest_file = SUB_FOLDER+KMS.decrypt(CiphertextBlob=b64decode(magntest_file))['Plaintext']
 
     corrupt_magn = data['corrupt_magn']
