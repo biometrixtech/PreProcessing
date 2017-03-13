@@ -50,16 +50,16 @@ def quat_to_euler(q):
     b = 2*(q[:, 2]*q[:, 3])+2*q[:, 0]*q[:, 1]
     phi = np.arctan2(b, a)
     
-    if any(c > .49):
+    if any(c > .4995):
         print "theta is 90"
-        psi[c > .49] = np.nan
-        theta[c > .49] = np.nan
-        phi[c > .49] = np.nan
-    elif any(c < -.49):
+        psi[c > .4995] = np.nan
+        theta[c > .4995] = np.nan
+        phi[c > .4995] = np.nan
+    elif any(c < -.4995):
         print "theta is -90"
-        psi[c < -.49] = np.nan
-        theta[c < -.49] = np.nan
-        phi[c < -.49] = np.nan
+        psi[c < -.4995] = np.nan
+        theta[c < -.4995] = np.nan
+        phi[c < -.4995] = np.nan
     elif any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
              < np.array([[1e-8]*4]), axis=1) == 4):
         ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
