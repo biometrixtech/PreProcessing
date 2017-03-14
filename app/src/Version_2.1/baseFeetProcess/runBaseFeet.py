@@ -492,8 +492,8 @@ def _process_sac(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url_encrypted = os.environ['sa_api_url']
-        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
+        url = os.environ['sa_api_url']
+#        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionanatomical/processfile"

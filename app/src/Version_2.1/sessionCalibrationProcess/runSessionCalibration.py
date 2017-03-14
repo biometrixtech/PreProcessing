@@ -699,8 +699,8 @@ def _process_se(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url_encrypted = os.environ['se_api_url']
-        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
+        url = os.environ['se_api_url']
+#        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionevent/processfile"
@@ -716,7 +716,6 @@ def _process_se(file_name, cur, conn, quer_check_status):
         for i in range(len(status_data_all)):
             status_data = status_data_all[i]
             se_filename = status_data[38]
-            _logger()
             #Check if all session_event files have been received
             se_lf_rec = status_data[42] is not None
             se_rf_rec = status_data[43] is not None
