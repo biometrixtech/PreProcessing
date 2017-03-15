@@ -325,6 +325,11 @@ def run_calibration(sensor_data, file_name, aws=True):
         right_acc = np.array([subset_data['RaX'], subset_data['RaY'],
                               subset_data['RaZ']]).transpose()
 
+        # filter standing calibration data for movement
+        left_acc, left_q_wxyz = _filter_movement(left_acc, left_q_wxyz)
+        hip_acc, hip_q_wxyz = _filter_movement(hip_acc, hip_q_wxyz)
+        right_acc, right_q_wxyz = _filter_movement(right_acc, right_q_wxyz)
+
         #create output table as a structured numpy array
         data_o = np.hstack((identifiers, indicators))
         data_o = np.hstack((data_o, left_acc))
@@ -610,6 +615,40 @@ def _select_recording(data):
     ind = beg + end
     subset_data = np.delete(data, ind, 0)
     return subset_data
+
+
+def _filter_movement(acc_data, quat_data):
+
+    x_data = acc_data[:, 0]
+    y_data = acc_data[:, 1]
+    z_data = acc_data[:, 2]
+
+    x_std_filter = (abs(x_data - np.nanmean(x_data)) > 1.75*np.nanstd(x_data))
+    y_std_filter = (abs(y_data - np.nanmean(y_data)) > 1.75*np.nanstd(y_data))
+    z_std_filter = (abs(z_data - np.nanmean(z_data)) > 1.75*np.nanstd(z_data))
+
+    x_data[x_std_filter] = np.nan
+    y_data[y_std_filter] = np.nan
+    z_data[z_std_filter] = np.nan
+
+    x_rng_filter = (abs(x_data - np.nanmean(x_data)) > 50)
+    y_rng_filter = (abs(y_data - np.nanmean(y_data)) > 50)
+    z_rng_filter = (abs(z_data - np.nanmean(z_data)) > 50)
+
+    acc_data[x_std_filter] = np.nan
+    acc_data[y_std_filter] = np.nan
+    acc_data[z_std_filter] = np.nan
+    quat_data[x_std_filter] = np.nan
+    quat_data[y_std_filter] = np.nan
+    quat_data[z_std_filter] = np.nan
+    acc_data[x_rng_filter] = np.nan
+    acc_data[y_rng_filter] = np.nan
+    acc_data[z_rng_filter] = np.nan
+    quat_data[x_rng_filter] = np.nan
+    quat_data[y_rng_filter] = np.nan
+    quat_data[z_rng_filter] = np.nan
+
+    return acc_data, quat_data
 
 
 def _logger(message, info=True):
