@@ -30,14 +30,14 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     
     global AWS
     global COLUMN_SESSION1_OUT
-    global COLUMN_SESSION1_TO_DB
-    global COLUMN_SESSION1_TO_S3
+#    global COLUMN_SESSION1_TO_DB
+#    global COLUMN_SESSION1_TO_S3
     global KMS
     global SUB_FOLDER
     AWS = aws
     COLUMN_SESSION1_OUT = cols.column_session1_out
-    COLUMN_SESSION1_TO_DB = cols.column_session1_to_DB
-    COLUMN_SESSION1_TO_S3 = cols.column_session1_to_s3
+#    COLUMN_SESSION1_TO_DB = cols.column_session1_to_DB
+#    COLUMN_SESSION1_TO_S3 = cols.column_session1_to_s3
     KMS = boto3.client('kms')
     _logger("STARTED PROCESSING!")
 
@@ -131,21 +131,11 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         del input_data_batch  # not used in further computations
         try:
             output_data_batch = output_data_batch.replace('None', '')
+            output_data_batch = output_data_batch.round(8)
             if counter == 1:
-                # Write first part to DB
                 fileobj = cStringIO.StringIO()
                 output_data_batch.to_csv(fileobj, index=False, na_rep='',
-                                   header=False, columns=COLUMN_SESSION1_TO_DB)
-                fileobj.seek(0)
-                cur.copy_from(file=fileobj, table='movement', sep=',', null='',
-                              columns=COLUMN_SESSION1_TO_DB)
-                conn.commit()
-                del fileobj
-                _logger("Done Uploading part to DB!")
-                # Write first part to s3
-                fileobj = cStringIO.StringIO()
-                output_data_batch.to_csv(fileobj, index=False, na_rep='',
-                                   columns=COLUMN_SESSION1_TO_S3)
+                                   columns=COLUMN_SESSION1_OUT)
                 del output_data_batch
                 fileobj.seek(0)
                 part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
@@ -154,20 +144,10 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                 Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
                 del fileobj
             else:
-                # Write to DB
-                fileobj = cStringIO.StringIO()
-                output_data_batch.to_csv(fileobj, index=False, header=False,
-                                   na_rep='', columns=COLUMN_SESSION1_TO_DB)
-                fileobj.seek(0)
-                cur.copy_from(file=fileobj, table='movement', sep=',', null='',
-                              columns=COLUMN_SESSION1_TO_DB)
-                conn.commit()
-                del fileobj
-                _logger("Done Uploading part to DB!")
                 # Write part to s3
                 fileobj = cStringIO.StringIO()
                 output_data_batch.to_csv(fileobj, index=False, header=False,
-                                   na_rep='', columns=COLUMN_SESSION1_TO_S3)
+                                   na_rep='', columns=COLUMN_SESSION1_OUT)
                 del output_data_batch
                 fileobj.seek(0)
                 part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
@@ -180,22 +160,19 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
             conn.close()
             raise error
 
-#        output_data = output_data.append(output_data_batch, ignore_index=True)
-#        del output_data_batch  # not used in further computations
-
     conn.close()    
     if counter == batches:
         _logger('Processing through runAnalytics was a SUCCESS!')
     else:
         _logger('Processing through runAnalytics FAILED!')
         
-    # Write to S3 and DB
+    # Write to S3
     part_info = {'Parts': Parts}
     s3.complete_multipart_upload(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                  UploadId=mp['UploadId'],
                                  MultipartUpload=part_info)
 
-    _logger("Data in S3 and DB!")
+    _logger("Data in S3!")
     return "Success!"
     
 def _logger(message, info=True):
@@ -217,7 +194,6 @@ def _connect_db_s3():
     db_password = os.environ['db_password']
 
     # Decrypt the variables
-#    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']
@@ -282,20 +258,10 @@ def _read_ids(cur, file_name):
             session_type = 1
     else:
         session_event_id = ids[0]
-#        if session_event_id is None:
-#            session_event_id = dummy_uuid
         training_session_log_id = ids[1]
-#        if training_session_log_id is None:
-#            training_session_log_id = dummy_uuid
         user_id = ids[2]
-#        if user_id is None:
-#            user_id = dummy_uuid
         team_regimen_id = ids[3]
-#        if team_regimen_id is None:
-#            team_regimen_id = dummy_uuid
         team_id = ids[4]
-#        if team_id is None:
-#            team_id = dummy_uuid
         session_type = ids[5]
         if session_type == 'practice':
             session_type = 1

@@ -293,11 +293,6 @@ def run_session(sensor_data, file_name, ids_from_db, offsets_read,
                                       'RqX_n': data.RqX_n.reshape(-1,),
                                       'RqY_n': data.RqY_n.reshape(-1,),
                                       'RqZ_n': data.RqZ_n.reshape(-1,)})
-#    for var in COLUMN_SESSION1_OUT[6:]:
-#        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=scoring_data.index)
-#        frames = [scoring_data, frame]
-#        scoring_data = pd.concat(frames, axis=1)
-#        del frame, frames, data.__dict__[var]
     del data
     _logger("Table Created")
 
