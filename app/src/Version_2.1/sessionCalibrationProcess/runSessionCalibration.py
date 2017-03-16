@@ -738,8 +738,8 @@ def _process_se(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url_encrypted = os.environ['se_api_url']
-        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
+        url = os.environ['se_api_url']
+#        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionevent/processfile"
@@ -754,26 +754,26 @@ def _process_se(file_name, cur, conn, quer_check_status):
         conn.close()
         for i in range(len(status_data_all)):
             status_data = status_data_all[i]
-            se_filename = status_data[32]
+            se_filename = status_data[38]
             #Check if all session_event files have been received
-            se_lf_rec = status_data[33] is not None
-            se_rf_rec = status_data[34] is not None
-            se_h_rec = status_data[35] is not None
+            se_lf_rec = status_data[42] is not None
+            se_rf_rec = status_data[43] is not None
+            se_h_rec = status_data[44] is not None
             received = se_lf_rec and se_rf_rec and se_h_rec
             #Check session_event file hasn't already been processed
-            not_sent = status_data[36] is None
+            not_sent = status_data[45] is None
             #Check if upload to db has started for all sensors
-            se_lf_up_start = status_data[37] is not None
-            se_rf_up_start = status_data[38] is not None
-            se_h_up_start = status_data[39] is not None
-            up_started = se_lf_up_start and se_rf_up_start and se_h_up_start
-            #Check if upload to db has completed for all sensors
-            se_lf_up_comp = status_data[40] is not None
-            se_rf_up_comp = status_data[41] is not None
-            se_h_up_comp = status_data[42] is not None
-            up_completed = se_lf_up_comp and se_rf_up_comp and se_h_up_comp
+#            se_lf_up_start = status_data[37] is not None
+#            se_rf_up_start = status_data[38] is not None
+#            se_h_up_start = status_data[39] is not None
+#            up_started = se_lf_up_start and se_rf_up_start and se_h_up_start
+#            #Check if upload to db has completed for all sensors
+#            se_lf_up_comp = status_data[40] is not None
+#            se_rf_up_comp = status_data[41] is not None
+#            se_h_up_comp = status_data[42] is not None
+#            up_completed = se_lf_up_comp and se_rf_up_comp and se_h_up_comp
 
-            if received and not_sent and up_started and up_completed:
+            if received and not_sent:
                 """make api call here to begin session_event_processing"""
     #            data = {'fileName':se_filename}
     #            headers = {'Content-type':"application/json; charset=utf-8"}
