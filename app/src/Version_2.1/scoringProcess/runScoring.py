@@ -59,16 +59,17 @@ def run_scoring(sensor_data, file_name, aws=True):
     VARS_FOR_SCORING = cols.vars_for_scoring
     COLUMN_SCORING_OUT = cols.column_scoring_out
     KMS = boto3.client('kms')
+    # Read subfolder and api url from environ var
+    SUB_FOLDER = os.environ['sub_folder']+'/'
+    url = os.environ['db_write_url']
 
     # Make API call to write data from scoring container to DB
     _logger('Starting DB write request')
-    url = "http://writing-env.us-west-2.elasticbeanstalk.com/"
+#    url = "http://writing-env.us-west-2.elasticbeanstalk.com/"
     r = requests.post(url+file_name)
     _logger('Finished DB write request')
     _logger(r.status_code)
-    
-    # Read subfolder name
-    SUB_FOLDER = os.environ['sub_folder']+'/'
+
 
     # Define containers to read and write
     cont_write = 'biometrix-sessionprocessedcontainer'
@@ -84,7 +85,6 @@ def run_scoring(sensor_data, file_name, aws=True):
 
     session_event_id = data.session_event_id[0]
     user_id = data.user_id[0]
-    _logger(user_id)
     # CONTROL SCORE
     data['control'], data['hip_control'], data['ankle_control'], data['control_lf'],\
             data['control_rf'] = control_score(data.LeX, data.ReX, data.HeX,
@@ -145,19 +145,20 @@ def run_scoring(sensor_data, file_name, aws=True):
     data.mech_stress = data.mech_stress/mech_stress_scale
 #    _logger(data.columns)
     # Round the data to 6th decimal point
-    data = data.round(6)
-    
+    data = data.round(7)
+
     # write to s3 in parts
     file_name = "movement_"+file_name
     try:
         s3 = boto3.client('s3')
-        mp = s3.create_multipart_upload(Bucket=cont_write, Key=SUB_FOLDER+file_name)
-    
+        mp = s3.create_multipart_upload(Bucket=cont_write,
+                                        Key=SUB_FOLDER+file_name)
+
         # Use only a set of rows each time to write to fileobj
         batch_size = 300000  # number of rows durin each batch upload
         size = len(data)
         batches = int(math.ceil(size/float(batch_size)))
-        
+
     #    _logger('number of parts to be uploaded' + str(rows_set_count))
         _logger('Number of parts to be uploaded: '+ str(batches))
         # Initialize counter to the count number of parts uploaded in the loop below
@@ -168,15 +169,14 @@ def run_scoring(sensor_data, file_name, aws=True):
             subset_size = min([len(data), batch_size])
 
             if counter != 1:
+                # For second and subsequent batches, delete data already sent
                 data = data.drop(data.index[range(subset_size)])
                 data = data.reset_index(drop=True)
                 gc.collect()
-    #        movement_data_subset = movement_data.iloc[i:i+rows_set_size]
-            
+
             _logger('Passing Batch:'+str(counter))
             _logger('length of subset: '+str(subset_size))
-    #        print len(movement_data_subset), ': length of subset'
-            
+
             if counter == 1:
                 # Write first part to s3 with the header
                 fileobj = cStringIO.StringIO()
@@ -191,7 +191,7 @@ def run_scoring(sensor_data, file_name, aws=True):
                                       UploadId=mp['UploadId'], Body=fileobj)
                 Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
                 del fileobj
-        
+
             else:
                 # Other parts are written without header
                 fileobj = cStringIO.StringIO()
