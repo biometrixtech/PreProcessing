@@ -97,7 +97,9 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
         sdata = sdata.iloc[200:] #remove first 2s of data
     else:
         _logger("No data after removing first 2s of data")
-    
+
+    # Subset data to 2.5 hours
+    sdata = sdata.iloc[0:900000]
     # number of rows to pass in each batch & number of parts being passed to
     # runAnalytics
     batch_size = 300000
