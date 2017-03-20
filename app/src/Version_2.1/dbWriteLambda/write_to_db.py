@@ -51,11 +51,13 @@ quer_update = """UPDATE movement
         session_duration = temp_mov.session_duration,
         session_mech_stress_elapsed = temp_mov.session_mech_stress_elapsed
     from temp_mov
-    where movement.user_id = temp_mov.user_id and
-          movement.session_event_id = temp_mov.session_event_id and
+    where movement.session_event_id = temp_mov.session_event_id and
           movement.obs_index = temp_mov.obs_index"""
 
-
+quer_update_session_events = """update session_events
+                                set session_success=True,
+                                updated_at = now()
+                                where sensor_data_filename = (%s)"""
 # finally drop the temp table
 quer_drop = "DROP TABLE temp_mov"
 logger = logging.getLogger()
@@ -108,6 +110,8 @@ def lambda_handler(event, context):
         cur.execute(quer_drop)
         conn.commit()
         logger.info('dropped temp table')
+        cur.execute(quer_update_session_events, (key,))
+        conn.commit()
         conn.close()
         logger.info('Updated data for file:'+ key)
         #SUB_FOLDER = 'dev/'
