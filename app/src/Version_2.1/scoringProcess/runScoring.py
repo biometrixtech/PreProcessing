@@ -147,7 +147,7 @@ def run_scoring(sensor_data, file_name, aws=True):
     data.mech_stress = data.mech_stress/mech_stress_scale
 #    _logger(data.columns)
     # Round the data to 6th decimal point
-    data = data.round(7)
+    data = data.round(6)
 
     # write to s3 in parts
     file_name = "movement_"+file_name

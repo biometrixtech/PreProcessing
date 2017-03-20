@@ -4,7 +4,7 @@ import json
 import urllib
 import boto3
 import logging
-import cStringIO
+#import cStringIO
 
 import runScoring as rs
 
