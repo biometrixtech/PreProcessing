@@ -63,13 +63,6 @@ def run_scoring(sensor_data, file_name, aws=True):
     SUB_FOLDER = os.environ['sub_folder']+'/'
     url = os.environ['db_write_url']
 
-    # Make API call to write data from scoring container to DB
-    _logger('Starting DB write request')
-#    url = "http://writing-env.us-west-2.elasticbeanstalk.com/"
-    r = requests.post(url+file_name)
-    _logger('Finished DB write request')
-    _logger(r.status_code)
-
 
     # Define containers to read and write
     cont_write = 'biometrix-sessionprocessedcontainer'
@@ -82,6 +75,14 @@ def run_scoring(sensor_data, file_name, aws=True):
     data = pd.read_csv(sensor_data['Body'], usecols=VARS_FOR_SCORING)
     _logger('Data Read')
     del sensor_data
+
+    # Make API call to write data from scoring container to DB
+    _logger('Starting DB write request')
+#    url = "http://writing-env.us-west-2.elasticbeanstalk.com/"
+    r = requests.post(url+file_name)
+    _logger('Finished DB write request')
+    _logger(r.status_code)
+
 
     session_event_id = data.session_event_id[0]
     user_id = data.user_id[0]
@@ -105,6 +106,7 @@ def run_scoring(sensor_data, file_name, aws=True):
             fileobj = obj.get()
             body = fileobj["Body"]
             user_hist = pd.read_csv(body)
+            del body
             user_hist.columns = cols.columns_hist
         elif len(data.LeX) > 50000:
             user_hist = data
@@ -155,7 +157,7 @@ def run_scoring(sensor_data, file_name, aws=True):
                                         Key=SUB_FOLDER+file_name)
 
         # Use only a set of rows each time to write to fileobj
-        batch_size = 300000  # number of rows durin each batch upload
+        batch_size = len(data)  # number of rows durin each batch upload
         size = len(data)
         batches = int(math.ceil(size/float(batch_size)))
 
@@ -164,15 +166,10 @@ def run_scoring(sensor_data, file_name, aws=True):
         # Initialize counter to the count number of parts uploaded in the loop below
         counter = 0
         # Send the file parts, using FileChunkIO to create a file-like object
+#        batches = 1
         for i in range(batches):
             counter = counter + 1
             subset_size = min([len(data), batch_size])
-
-            if counter != 1:
-                # For second and subsequent batches, delete data already sent
-                data = data.drop(data.index[range(subset_size)])
-                data = data.reset_index(drop=True)
-                gc.collect()
 
             _logger('Passing Batch:'+str(counter))
             _logger('length of subset: '+str(subset_size))
