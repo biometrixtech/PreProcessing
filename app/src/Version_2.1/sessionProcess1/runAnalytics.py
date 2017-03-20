@@ -235,7 +235,7 @@ def run_session(sensor_data, file_name, ids_from_db, offsets_read,
     data.epoch_time = data.epoch_time.astype(long)
     data.ms_elapsed = data.ms_elapsed.astype(int)
 #    N = len(data.LaX)
-    scoring_data = pd.DataFrame(data={'team_id': np.array([team_id]*length),
+    session2_data = pd.DataFrame(data={'team_id': np.array([team_id]*length),
                                       'user_id': np.array([user_id]*length),
                                       'team_regimen_id': np.array([team_regimen_id]*length),
                                       'training_session_log_id': np.array([training_session_log_id]*length),
@@ -296,7 +296,7 @@ def run_session(sensor_data, file_name, ids_from_db, offsets_read,
     del data
     _logger("Table Created")
 
-    return scoring_data
+    return session2_data
 
 #%%
 def _logger(message, info=True):
