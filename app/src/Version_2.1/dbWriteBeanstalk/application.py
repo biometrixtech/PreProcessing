@@ -63,7 +63,7 @@ quer_update = """UPDATE movement
 quer_update_session_events = """update session_events
                                 set session_success=True,
                                 updated_at = now()
-                                where sesnor_data_filename = (%s)"""
+                                where sensor_data_filename = (%s)"""
 # finally drop the temp table
 quer_drop = "DROP TABLE temp_mov"
 
@@ -104,6 +104,7 @@ def application(environ, start_response):
             cont_read = 'biometrix-sessionprocessedcontainer'
             cont_write = 'biometrix-userhistcreate'
             obj = s3.Bucket(cont_read).Object(sub_folder+file_name)
+            file_name = file_name.split('_')[1]
             fileobj = obj.get()
             logger.info('Got Fileobj')
             content = fileobj['Body']
