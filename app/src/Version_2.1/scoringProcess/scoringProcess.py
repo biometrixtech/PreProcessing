@@ -4,7 +4,7 @@ import json
 import urllib
 import boto3
 import logging
-#import cStringIO
+import cStringIO
 
 import runScoring as rs
 
@@ -29,8 +29,9 @@ def lambda_handler(event, context):
         logger.info('Obtained Key')        
         fileobj = obj.get()
         logger.info('Got Fileobj')
-        content = fileobj['Body']
-        result = rs.run_scoring(content, key)
+#        content = fileobj['Body'].read()
+#        data = cStringIO.StringIO(content)
+        result = rs.run_scoring(fileobj, key)
         logger.info('outcome:' + result)
         return 'success'
 
