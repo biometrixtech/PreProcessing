@@ -15,6 +15,7 @@ Output data stored in TrainingEvents or BlockEvents table.
 
 """
 #import sys
+import gc
 import cStringIO
 import logging
 import os
@@ -24,13 +25,12 @@ import psycopg2
 import psycopg2.extras
 import boto3
 import math
-from itertools import islice, count
+#from itertools import islice, count
 from base64 import b64decode
+import requests
 
 from controlScore import control_score
 from scoring import score
-#import createTables as ct
-import dataObject as do
 import scoringProcessQueries as queries
 import columnNames as cols
 
@@ -52,44 +52,47 @@ def run_scoring(sensor_data, file_name, aws=True):
     """
     global AWS
     global COLUMN_SCORING_OUT
+    global VARS_FOR_SCORING
     global KMS
     global SUB_FOLDER
     AWS = aws
+    VARS_FOR_SCORING = cols.vars_for_scoring
     COLUMN_SCORING_OUT = cols.column_scoring_out
     KMS = boto3.client('kms')
-    # Read encrypted subfolder name
+    # Read subfolder and api url from environ var
     SUB_FOLDER = os.environ['sub_folder']+'/'
-#    cont_read = os.environ['cont_read']
-#    cont_write = os.environ['cont_write']
+    url = os.environ['db_write_url']
 
-    # Decrypt container names
-#    cont_read = KMS.decrypt(CiphertextBlob=b64decode(cont_read))['Plaintext']
-#    cont_write = KMS.decrypt(CiphertextBlob=b64decode(cont_write))['Plaintext']
+
+    # Define containers to read and write
     cont_write = 'biometrix-sessionprocessedcontainer'
     cont_read = 'biometrix-scoringhist'
-#    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
-#    _logger(SUB_FOLDER)
 
     # Connect to the database
     conn, cur, s3 = _connect_db_s3()
 
-    # Create a RawFrame object with initial data
-#    sdata = np.genfromtxt(sensor_data, delimiter=',', names=True)
-#    columns = sdata.dtype.names
-    sdata = pd.read_csv(sensor_data)
-    columns = sdata.columns
-    data = do.RawFrame(sdata, columns)
-    del sdata
-    session_event_id = data.session_event_id[0][0]
-    user_id = data.user_id[0][0]
+    # Read data. Only readin relevant columns in
+    data = pd.read_csv(sensor_data['Body'], usecols=VARS_FOR_SCORING)
+    _logger('Data Read')
+    del sensor_data
+
+    # Make API call to write data from scoring container to DB
+    _logger('Starting DB write request')
+#    url = "http://writing-env.us-west-2.elasticbeanstalk.com/"
+    r = requests.post(url+file_name)
+    _logger('Finished DB write request')
+    _logger(r.status_code)
+
+
+    session_event_id = data.session_event_id[0]
+    user_id = data.user_id[0]
     # CONTROL SCORE
-    data.control, data.hip_control, data.ankle_control, data.control_lf,\
-            data.control_rf = control_score(data.LeX, data.ReX, data.HeX,
+    data['control'], data['hip_control'], data['ankle_control'], data['control_lf'],\
+            data['control_rf'] = control_score(data.LeX, data.ReX, data.HeX,
                                             data.ms_elapsed, data.phase_lf,
                                             data.phase_rf)
 
     _logger('DONE WITH CONTROL SCORES!')
-
     # SCORING
     # Symmetry, Consistency, Destructive/Constructive Multiplier and
     # Duration
@@ -103,6 +106,7 @@ def run_scoring(sensor_data, file_name, aws=True):
             fileobj = obj.get()
             body = fileobj["Body"]
             user_hist = pd.read_csv(body)
+            del body
             user_hist.columns = cols.columns_hist
         elif len(data.LeX) > 50000:
             user_hist = data
@@ -124,55 +128,97 @@ def run_scoring(sensor_data, file_name, aws=True):
                 raise IOError("User history not found in s3/local directory")
 
     _logger("user history captured")
+    gc.collect()
 
     mech_stress_scale = 1000000
-    data.consistency, data.hip_consistency, \
-        data.ankle_consistency, data.consistency_lf, \
-        data.consistency_rf, data.symmetry, \
-        data.hip_symmetry, data.ankle_symmetry, \
-        data.destr_multiplier, data.dest_mech_stress, \
-        data.const_mech_stress, data.block_duration, \
-        data.session_duration, data.block_mech_stress_elapsed, \
-        data.session_mech_stress_elapsed = score(data, user_hist,
+    data['consistency'], data['hip_consistency'], \
+        data['ankle_consistency'], data['consistency_lf'], \
+        data['consistency_rf'], data['symmetry'], \
+        data['hip_symmetry'], data['ankle_symmetry'], \
+        data['destr_multiplier'], data['dest_mech_stress'], \
+        data['const_mech_stress'], data['block_duration'], \
+        data['session_duration'], data['block_mech_stress_elapsed'], \
+        data['session_mech_stress_elapsed'] = score(data, user_hist,
                                                  mech_stress_scale)
-#    del user_hist
+    del user_hist
     _logger("DONE WITH SCORING!")
-    # combine into movement data table
+    gc.collect()
+
     data.mech_stress = data.mech_stress/mech_stress_scale
-    movement_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
-                                       'user_id': data.user_id.reshape(-1, ),
-                                       'session_event_id': data.session_event_id.reshape(-1, ),
-                                       'session_type': data.session_type.reshape(-1, )})
+#    _logger(data.columns)
+    # Round the data to 6th decimal point
+    data = data.round(6)
 
-    for var in COLUMN_SCORING_OUT[2:]:
-        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )},
-                                   index=movement_data.index)
-        frames = [movement_data, frame]
-        movement_data = pd.concat(frames, axis=1)
-        del frame, frames, data.__dict__[var]
-
-#    movement_data = ct.create_movement_table(len(data.LaX), data)
-    _logger("table created")
-    del data
-    # write to s3 and db in parts
+    # write to s3 in parts
     file_name = "movement_"+file_name
     try:
-        _multipartupload_data(movement_data, file_name, cont_write, cur, conn)
+        s3 = boto3.client('s3')
+        mp = s3.create_multipart_upload(Bucket=cont_write,
+                                        Key=SUB_FOLDER+file_name)
+
+        # Use only a set of rows each time to write to fileobj
+        batch_size = len(data)  # number of rows durin each batch upload
+        size = len(data)
+        batches = int(math.ceil(size/float(batch_size)))
+
+    #    _logger('number of parts to be uploaded' + str(rows_set_count))
+        _logger('Number of parts to be uploaded: '+ str(batches))
+        # Initialize counter to the count number of parts uploaded in the loop below
+        counter = 0
+        # Send the file parts, using FileChunkIO to create a file-like object
+#        batches = 1
+        for i in range(batches):
+            counter = counter + 1
+            subset_size = min([len(data), batch_size])
+
+            _logger('Passing Batch:'+str(counter))
+            _logger('length of subset: '+str(subset_size))
+
+            if counter == 1:
+                # Write first part to s3 with the header
+                fileobj = cStringIO.StringIO()
+                data.to_csv(fileobj, index=False, na_rep='',
+                                     columns=COLUMN_SCORING_OUT,
+                                     nrows=subset_size)
+    #            del movement_data_subset
+                fileobj.seek(0)
+                part = s3.upload_part(Bucket=cont_write,
+                                      Key=SUB_FOLDER+file_name,
+                                      PartNumber=counter,
+                                      UploadId=mp['UploadId'], Body=fileobj)
+                Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
+                del fileobj
+
+            else:
+                # Other parts are written without header
+                fileobj = cStringIO.StringIO()
+                data.to_csv(fileobj, index=False, header=False, na_rep='',
+                                     columns=COLUMN_SCORING_OUT,
+                                     nrows=subset_size)
+                fileobj.seek(0)
+                part = s3.upload_part(Bucket=cont_write,
+                                      Key=SUB_FOLDER+file_name,
+                                      PartNumber=counter,
+                                      UploadId=mp['UploadId'], Body=fileobj)
+                Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
+                del fileobj
+
+        part_info = {'Parts': Parts}
+        s3.complete_multipart_upload(Bucket=cont_write,
+                                     Key=SUB_FOLDER+file_name,
+                                     UploadId=mp['UploadId'],
+                                     MultipartUpload=part_info)
+
     except Exception as error:
         conn.close()
         raise error
-    else:
-        cur.execute(queries.quer_update_session_events, (session_event_id,))
-        conn.commit()
-        conn.close()
-    # write to s3 container
-#    _write_table_s3(movement_data, file_name, s3, cont_write)
-    _logger("DONE WRITING TO S3 and DB")
-    # write table to DB
-#    result = _write_table_db(movement_data, cur, conn)
-#    _logger("DONE writing to DB")
+#    else:
+#        cur.execute(queries.quer_update_session_events, (session_event_id,))
+#        conn.commit()
+#        conn.close()
 
-#    return result
+    _logger("DONE WRITING TO S3")
+
     return "Success!"
 
 
@@ -215,91 +261,6 @@ def _logger(message, info=True):
             logger.warning(message)
     else:
         print message
-
-
-def _multipartupload_data(movement_data, file_name, cont, cur, conn, DB=True):
-
-    # Create a multipart upload request
-    s3 = boto3.client('s3')
-    mp = s3.create_multipart_upload(Bucket=cont, Key=SUB_FOLDER+file_name)
-
-    # Use only a set of rows each time to write to fileobj
-    rows_set_size = 200000  # number of rows durin each batch upload
-    number_of_rows = len(movement_data)
-    rows_set_count = int(math.ceil(number_of_rows/float(rows_set_size)))
-#    _logger('number of parts to be uploaded' + str(rows_set_count))
-    _logger('Number of parts to be uploaded: '+ str(rows_set_count))
-    
-    # Initialize counter to the count number of parts uploaded in the loop below
-    counter = 0
-    # Send the file parts, using FileChunkIO to create a file-like object
-    for i in islice(count(), 0, number_of_rows,  rows_set_size):
-        counter = counter + 1
-        movement_data_subset = movement_data.iloc[i:i+rows_set_size]
-        _logger('length of subset: '+str(len(movement_data_subset)))
-#        print len(movement_data_subset), ': length of subset'
-        fileobj = cStringIO.StringIO()
-        if counter == 1:
-            if DB:
-                # Write first part to DB
-                fileobj = cStringIO.StringIO()
-                movement_data_subset.to_csv(fileobj, index=False, header=False,
-                                            na_rep='', columns=COLUMN_SCORING_OUT)
-                cur.execute(queries.quer_create)
-                # copy data to the empty temp table
-                fileobj.seek(0)
-                cur.copy_from(file=fileobj, table='temp_mov', sep=',', null='',
-                              columns=COLUMN_SCORING_OUT)
-                # copy relevant columns from temp table to movement table
-                cur.execute(queries.quer_update)
-                conn.commit()
-                # drop temp table
-                cur.execute(queries.quer_drop)
-                conn.commit()
-                del fileobj
-
-            # Write first part to s3
-            fileobj = cStringIO.StringIO()
-            movement_data_subset.to_csv(fileobj, index=False, na_rep='',
-                                        columns=COLUMN_SCORING_OUT)
-            del movement_data_subset
-            fileobj.seek(0)
-            part = s3.upload_part(Bucket=cont, Key=SUB_FOLDER+file_name,
-                                  PartNumber=counter,
-                                  UploadId=mp['UploadId'], Body=fileobj)
-            Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
-            del fileobj
-    
-        else:
-            fileobj = cStringIO.StringIO()
-            movement_data_subset.to_csv(fileobj, index=False, header=False,
-                                        na_rep='', columns=COLUMN_SCORING_OUT)
-            del movement_data_subset
-            if DB:
-                # Write to DB
-                cur.execute(queries.quer_create)
-                # copy data to the empty temp table
-                fileobj.seek(0)
-                cur.copy_from(file=fileobj, table='temp_mov', sep=',', null='',
-                              columns=COLUMN_SCORING_OUT)
-                # copy relevant columns from temp table to movement table
-                cur.execute(queries.quer_update)
-                conn.commit()
-                # drop temp table
-                cur.execute(queries.quer_drop)
-                conn.commit()
-            # Write to s3
-            fileobj.seek(0)
-            part = s3.upload_part(Bucket=cont, Key=SUB_FOLDER+file_name,
-                                  PartNumber=counter,
-                                  UploadId=mp['UploadId'], Body=fileobj)
-            Parts.append({'PartNumber':counter, 'ETag': part['ETag']})
-
-            del fileobj
-    part_info = {'Parts': Parts}
-    s3.complete_multipart_upload(Bucket=cont, Key=SUB_FOLDER+file_name,
-                                 UploadId=mp['UploadId'],
-                                 MultipartUpload=part_info)
 
 
 if __name__ == "__main__":
