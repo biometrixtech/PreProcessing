@@ -30,24 +30,21 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     
     global AWS
     global COLUMN_SESSION2_OUT
-    global COLUMN_SESSION2_TO_DB
-    global COLUMN_SESSION2_TO_S3
     global KMS
     global SUB_FOLDER
     AWS = aws
     COLUMN_SESSION2_OUT = cols.column_session2_out
-    COLUMN_SESSION2_TO_DB = cols.column_session2_to_DB
-    COLUMN_SESSION2_TO_S3 = cols.column_session2_to_s3
     KMS = boto3.client('kms')
+
     _logger("STARTED PROCESSING!")
+
     # Define container to which final output data must be written
     cont_write = 'biometrix-scoringcontainer'
-    SUB_FOLDER = os.environ['sub_folder']+'/'
-#    SUB_FOLDER = KMS.decrypt(CiphertextBlob=b64decode(sub_folder))['Plaintext']+'/'
 
-    # Define container that holds models
-#    cont_models = os.environ['cont_models']
-#    cont_models = KMS.decrypt(CiphertextBlob=b64decode(cont_models))['Plaintext']
+    # Read subfolder
+    SUB_FOLDER = os.environ['sub_folder']+'/'
+
+    # Define container that holds models and read model filename
     cont_models = 'biometrix-globalmodels'
     ms_model = os.environ['ms_model']
     ms_model = KMS.decrypt(CiphertextBlob=b64decode(ms_model))['Plaintext']
@@ -79,7 +76,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
 
     # read sensor data
     try:
-        sdata = pd.read_csv(sensor_data)
+        sdata = pd.read_csv(sensor_data, nrows=900000)
         del sensor_data
     except Exception as error:
         _logger("Cannot load data!", info=False)
@@ -103,7 +100,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
 
     # number of rows to pass in each batch & number of parts being passed to
     # runAnalytics
-    batch_size = 200000
+    batch_size = 300000
     size = len(sdata)
     batches = int(math.ceil(size/float(batch_size)))
     _logger('number of batches of input data: '+ str(batches))
@@ -130,30 +127,15 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                                            mass, mstress_fit, AWS)
         _logger('batch ' + str(counter) + ' processed')
         del input_data_batch  # not used in further computations
+
         try:
             output_data_batch = output_data_batch.replace('None', '')
+            output_data_batch = output_data_batch.round(5)
             if counter == 1:
-                # Write to DB
-                cur.execute(queries.quer_create)
-                fileobj = cStringIO.StringIO()
-                output_data_batch.to_csv(fileobj, index=False, header=False,
-                                   na_rep='', columns=COLUMN_SESSION2_TO_DB)
-                # copy data to the empty temp table
-                fileobj.seek(0)
-                cur.copy_from(file=fileobj, table='temp_mov', sep=',', null='',
-                              columns=COLUMN_SESSION2_TO_DB)
-                # copy relevant columns from temp table to movement table
-                cur.execute(queries.quer_update)
-                conn.commit()
-                # drop temp table
-                cur.execute(queries.quer_drop)
-                conn.commit()
-                del fileobj
-    
-                # Write first part to s3
+                # Write first part to s3 with headers
                 fileobj = cStringIO.StringIO()
                 output_data_batch.to_csv(fileobj, index=False, na_rep='',
-                                   columns=COLUMN_SESSION2_TO_S3)
+                                   columns=COLUMN_SESSION2_OUT)
                 del output_data_batch
                 fileobj.seek(0)
                 part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
@@ -162,27 +144,10 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
                 Parts = [{'PartNumber':counter, 'ETag': part['ETag']}]
                 del fileobj
             else:
-                # Write to DB
-                cur.execute(queries.quer_create)
+                # Write part to s3 without headers
                 fileobj = cStringIO.StringIO()
                 output_data_batch.to_csv(fileobj, index=False, header=False,
-                                   na_rep='', columns=COLUMN_SESSION2_TO_DB)
-                # copy data to the empty temp table
-                fileobj.seek(0)
-                cur.copy_from(file=fileobj, table='temp_mov', sep=',', null='',
-                              columns=COLUMN_SESSION2_TO_DB)
-                # copy relevant columns from temp table to movement table
-                cur.execute(queries.quer_update)
-                conn.commit()
-                # drop temp table
-                cur.execute(queries.quer_drop)
-                conn.commit()
-                del fileobj
-
-                # Write part to s3
-                fileobj = cStringIO.StringIO()
-                output_data_batch.to_csv(fileobj, index=False, header=False,
-                                   na_rep='', columns=COLUMN_SESSION2_TO_S3)
+                                   na_rep='', columns=COLUMN_SESSION2_OUT)
                 del output_data_batch
                 fileobj.seek(0)
                 part = s3.upload_part(Bucket=cont_write, Key=SUB_FOLDER+file_name,
@@ -195,21 +160,18 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
             raise error
         _logger('Completed uploading part: '+str(counter))
 
-#        output_data = output_data.append(output_data_batch, ignore_index=True)
-#        del output_data_batch  # not used in further computations
     conn.close()
     if counter == batches:
         _logger('Processing through runAnalytics was a SUCCESS!')
     else:
         _logger('Processing through runAnalytics FAILED!')        
-    # Write to S3 and DB
+
     part_info = {'Parts': Parts}
     s3.complete_multipart_upload(Bucket=cont_write, Key=SUB_FOLDER+file_name,
                                  UploadId=mp['UploadId'],
                                  MultipartUpload=part_info)
 
-    _logger("Data in S3 and DB!")
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    _logger("Data in S3!")
 
     return "Success!"
     
@@ -233,7 +195,6 @@ def _connect_db_s3():
     db_password = os.environ['db_password']
 
     # Decrypt the variables
-#    db_name = KMS.decrypt(CiphertextBlob=b64decode(db_name))['Plaintext']
     db_host = KMS.decrypt(CiphertextBlob=b64decode(db_host))['Plaintext']
     db_username = KMS.decrypt(CiphertextBlob=b64decode(db_username))['Plaintext']
     db_password = KMS.decrypt(CiphertextBlob=b64decode(db_password))['Plaintext']

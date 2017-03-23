@@ -325,6 +325,11 @@ def run_calibration(sensor_data, file_name, aws=True):
         right_acc = np.array([subset_data['RaX'], subset_data['RaY'],
                               subset_data['RaZ']]).transpose()
 
+        # filter standing calibration data for movement
+        left_acc, left_q_wxyz = _filter_movement(left_acc, left_q_wxyz)
+        hip_acc, hip_q_wxyz = _filter_movement(hip_acc, hip_q_wxyz)
+        right_acc, right_q_wxyz = _filter_movement(right_acc, right_q_wxyz)
+
         #create output table as a structured numpy array
         data_o = np.hstack((identifiers, indicators))
         data_o = np.hstack((data_o, left_acc))
@@ -612,6 +617,40 @@ def _select_recording(data):
     return subset_data
 
 
+def _filter_movement(acc_data, quat_data):
+
+    x_data = acc_data[:, 0]
+    y_data = acc_data[:, 1]
+    z_data = acc_data[:, 2]
+
+    x_std_filter = (abs(x_data - np.nanmean(x_data)) > 1.75*np.nanstd(x_data))
+    y_std_filter = (abs(y_data - np.nanmean(y_data)) > 1.75*np.nanstd(y_data))
+    z_std_filter = (abs(z_data - np.nanmean(z_data)) > 1.75*np.nanstd(z_data))
+
+    x_data[x_std_filter] = np.nan
+    y_data[y_std_filter] = np.nan
+    z_data[z_std_filter] = np.nan
+
+    x_rng_filter = (abs(x_data - np.nanmean(x_data)) > 50)
+    y_rng_filter = (abs(y_data - np.nanmean(y_data)) > 50)
+    z_rng_filter = (abs(z_data - np.nanmean(z_data)) > 50)
+
+    acc_data[x_std_filter] = np.nan
+    acc_data[y_std_filter] = np.nan
+    acc_data[z_std_filter] = np.nan
+    quat_data[x_std_filter] = np.nan
+    quat_data[y_std_filter] = np.nan
+    quat_data[z_std_filter] = np.nan
+    acc_data[x_rng_filter] = np.nan
+    acc_data[y_rng_filter] = np.nan
+    acc_data[z_rng_filter] = np.nan
+    quat_data[x_rng_filter] = np.nan
+    quat_data[y_rng_filter] = np.nan
+    quat_data[z_rng_filter] = np.nan
+
+    return acc_data, quat_data
+
+
 def _logger(message, info=True):
     if AWS:
         if info:
@@ -699,8 +738,8 @@ def _process_se(file_name, cur, conn, quer_check_status):
     make the call if required.
     """
     if AWS:
-        url_encrypted = os.environ['se_api_url']
-        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
+        url = os.environ['se_api_url']
+#        url = KMS.decrypt(CiphertextBlob=b64decode(url_encrypted))['Plaintext']
     else:
         url = "http://sensorprocessingapi-dev.us-west-2.elasticbeanstalk.com/"+\
                 "api/sessionevent/processfile"
@@ -715,26 +754,26 @@ def _process_se(file_name, cur, conn, quer_check_status):
         conn.close()
         for i in range(len(status_data_all)):
             status_data = status_data_all[i]
-            se_filename = status_data[32]
+            se_filename = status_data[38]
             #Check if all session_event files have been received
-            se_lf_rec = status_data[33] is not None
-            se_rf_rec = status_data[34] is not None
-            se_h_rec = status_data[35] is not None
+            se_lf_rec = status_data[42] is not None
+            se_rf_rec = status_data[43] is not None
+            se_h_rec = status_data[44] is not None
             received = se_lf_rec and se_rf_rec and se_h_rec
             #Check session_event file hasn't already been processed
-            not_sent = status_data[36] is None
+            not_sent = status_data[45] is None
             #Check if upload to db has started for all sensors
-            se_lf_up_start = status_data[37] is not None
-            se_rf_up_start = status_data[38] is not None
-            se_h_up_start = status_data[39] is not None
-            up_started = se_lf_up_start and se_rf_up_start and se_h_up_start
-            #Check if upload to db has completed for all sensors
-            se_lf_up_comp = status_data[40] is not None
-            se_rf_up_comp = status_data[41] is not None
-            se_h_up_comp = status_data[42] is not None
-            up_completed = se_lf_up_comp and se_rf_up_comp and se_h_up_comp
+#            se_lf_up_start = status_data[37] is not None
+#            se_rf_up_start = status_data[38] is not None
+#            se_h_up_start = status_data[39] is not None
+#            up_started = se_lf_up_start and se_rf_up_start and se_h_up_start
+#            #Check if upload to db has completed for all sensors
+#            se_lf_up_comp = status_data[40] is not None
+#            se_rf_up_comp = status_data[41] is not None
+#            se_h_up_comp = status_data[42] is not None
+#            up_completed = se_lf_up_comp and se_rf_up_comp and se_h_up_comp
 
-            if received and not_sent and up_started and up_completed:
+            if received and not_sent:
                 """make api call here to begin session_event_processing"""
     #            data = {'fileName':se_filename}
     #            headers = {'Content-type':"application/json; charset=utf-8"}
