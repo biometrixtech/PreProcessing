@@ -19,7 +19,7 @@ data representative of standing still.
 """
 
 
-def _special_hip_calib(data):
+def _special_hip_calib(hip_data):
     
     """
     Special hip calibration analyzes data taken while subject is standing
@@ -57,7 +57,7 @@ def _special_hip_calib(data):
     # create storage for variables and calculate instantaneous hip offsets
     
     hip_asf_eul = qc.quat_to_euler(hip_asf)
-    length = len(data)
+    length = len(hip_data)
 
     # create offset using pitch
     hip_asf_pitch_offset = np.hstack((np.zeros((length, 1)),
@@ -141,7 +141,7 @@ def _special_foot_calib(foot_data, hip_data, hip_pitch_transform):
     return foot_roll_transform
     
     
-def run_special_calib(hip_data):
+def run_special_calib(data):
     """
     Runs special hip and feet calibration analyses. Takes separate data paths,
     extracts relevant data, and outputs global variables needed in downstream
@@ -161,12 +161,14 @@ def run_special_calib(hip_data):
 #    hip_data = hip_data[0:hip_length]
 #    feet_data = feet_data[0:length]
 
-    hip_data = np.vstack([hip_data['HqW'], hip_data['HqX'],
-                              hip_data['HqY'], hip_data['HqZ']]).T
-    left_data = np.vstack([hip_data['LqW'], hip_data['LqX'],
-                                hip_data['LqY'], hip_data['LqZ']]).T
-    right_data = np.vstack([hip_data['RqW'], hip_data['RqX'],
-                                 hip_data['RqY'], hip_data['RqZ']]).T
+    hip_data = np.vstack([data['HqW'], data['HqX'],
+                          data['HqY'], data['HqZ']]).T
+#    _logger('DONE WITH HIP SUBSET')
+    left_data = np.vstack([data['LqW'], data['LqX'],
+                           data['LqY'], data['LqZ']]).T
+#    _logger('DONE WITH LEFT SUBSET')
+    right_data = np.vstack([data['RqW'], data['RqX'],
+                            data['RqY'], data['RqZ']]).T
 
     hip_data = qo.quat_norm(hip_data)
     lf_data = qo.quat_norm(left_data)
@@ -186,3 +188,13 @@ def run_special_calib(hip_data):
             hip_roll_transform.reshape(-1, 1),\
             lf_roll_transform.reshape(-1, 1),\
             rf_roll_transform.reshape(-1, 1)
+
+
+#def _logger(message, info=True):
+#    if AWS:
+#        if info:
+#            logger.info(message)
+#        else:
+#            logger.warning(message)
+#    else:
+#        print message
