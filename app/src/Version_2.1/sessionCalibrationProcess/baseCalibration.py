@@ -38,10 +38,6 @@ def _special_hip_calib(data):
         hip_pitch_transform and hip_roll_transform
     
     """
-
-    # create storage for values and fill with normalized orientations
-        
-    hip_data = qo.quat_norm(data)
             
     # TODO(Courtney): incorporate bow into calculation of hip_asf_transform
             
@@ -59,8 +55,6 @@ def _special_hip_calib(data):
     hip_asf = qo.quat_prod(hip_data, hip_asf_transform)
     
     # create storage for variables and calculate instantaneous hip offsets
-#    hip_pitch_transform_inst=np.zeros_like(hip_asf)
-#    hip_roll_transform_inst=np.zeros_like(hip_asf)
     
     hip_asf_eul = qc.quat_to_euler(hip_asf)
     length = len(data)
@@ -147,7 +141,7 @@ def _special_foot_calib(foot_data, hip_data, hip_pitch_transform):
     return foot_roll_transform
     
     
-def run_special_calib(hip_data, feet_data):
+def run_special_calib(hip_data):
     """
     Runs special hip and feet calibration analyses. Takes separate data paths,
     extracts relevant data, and outputs global variables needed in downstream
@@ -161,34 +155,30 @@ def run_special_calib(hip_data, feet_data):
         lf_ and rf_ roll_transform s
         
     """
-    hip_length = len(hip_data)
-    feet_length = len(feet_data)
-    length = np.min([hip_length, feet_length])
-    hip_data = hip_data[0:length]
-    feet_data = feet_data[0:length]
-    #TODO(courtney): add subsetting hip_data for 3 seconds first
-    # calculate hip transforms from special hip calibration
-    hip_data_hip = np.vstack([hip_data['HqW'], hip_data['HqX'],
+#    hip_length = len(hip_data)
+#    feet_length = len(feet_data)
+#    length = np.min([hip_length, feet_length])
+#    hip_data = hip_data[0:hip_length]
+#    feet_data = feet_data[0:length]
+
+    hip_data = np.vstack([hip_data['HqW'], hip_data['HqX'],
                               hip_data['HqY'], hip_data['HqZ']]).T
-    hip_pitch_transform, hip_roll_transform = _special_hip_calib(hip_data_hip)
-    
-    # divide data from special feet calibration
-    hip_data_foot = np.vstack([feet_data['HqW'], feet_data['HqX'],
-                               feet_data['HqY'], feet_data['HqZ']]).T
-    left_data_foot = np.vstack([feet_data['LqW'], feet_data['LqX'],
-                                feet_data['LqY'], feet_data['LqZ']]).T
-    right_data_foot = np.vstack([feet_data['RqW'], feet_data['RqX'],
-                                 feet_data['RqY'], feet_data['RqZ']]).T
-                          
-    hipf_data = qo.quat_norm(hip_data_foot)
-    lf_data = qo.quat_norm(left_data_foot)
-    rf_data = qo.quat_norm(right_data_foot)
+    left_data = np.vstack([hip_data['LqW'], hip_data['LqX'],
+                                hip_data['LqY'], hip_data['LqZ']]).T
+    right_data = np.vstack([hip_data['RqW'], hip_data['RqX'],
+                                 hip_data['RqY'], hip_data['RqZ']]).T
 
-    # calculate feet transforms from special feet calibration
+    hip_data = qo.quat_norm(hip_data)
+    lf_data = qo.quat_norm(left_data)
+    rf_data = qo.quat_norm(right_data)
 
-    lf_roll_transform = _special_foot_calib(lf_data, hipf_data,
+    # calculate hip transforms
+    hip_pitch_transform, hip_roll_transform = _special_hip_calib(hip_data)
+
+    # calculate feet transforms
+    lf_roll_transform = _special_foot_calib(lf_data, hip_data,
                                             hip_pitch_transform)
-    rf_roll_transform = _special_foot_calib(rf_data, hipf_data,
+    rf_roll_transform = _special_foot_calib(rf_data, hip_data,
                                             hip_pitch_transform)
     
     # reshape and return values
