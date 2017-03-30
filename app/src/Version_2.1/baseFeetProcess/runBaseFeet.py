@@ -175,7 +175,7 @@ def record_base_feet(sensor_data, file_name, aws=True):
     # Check for duplicate epoch time
     duplicate_index = ppp.check_duplicate_index(index)
     if duplicate_index:
-        _logger('Duplicate index.'. False)
+        _logger('Duplicate index.', False)
     
     # PRE-PRE-PROCESSING
     columns = ['LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'HaX',
