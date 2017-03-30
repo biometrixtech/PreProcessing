@@ -546,7 +546,7 @@ def _process_sac(file_name, cur, conn, quer_check_status):
                         _logger("Successfully started session calib processing!")
                 else:
                     _logger("Session calib file doesn't need to start processing!")
-                sa_filename_prev = sa_filename_prev
+                sa_filename_prev = sa_filename
 
 
 if __name__ == '__main__':
