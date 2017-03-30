@@ -507,40 +507,46 @@ def _process_sac(file_name, cur, conn, quer_check_status):
         _logger("Couldn't find associated events")
     else:
         conn.close()
+        sa_filename_prev = 'none'
         for i in range(len(status_data_all)):
             status_data = status_data_all[i]
             sa_filename = status_data[21]
-            _logger(sa_filename)
-            #Check if all session_calib files have been received
-            sa_lf_rec = status_data[25] is not None
-            sa_rf_rec = status_data[26] is not None
-            sa_h_rec = status_data[27] is not None
-            received = sa_lf_rec and sa_rf_rec and sa_h_rec
-            #Check session_calib file hasn't already been processed
-            not_sent = status_data[28] is None
-            #Check if upload to db has started for all sensors
-#            sa_lf_up_start = status_data[23] is not None
-#            sa_rf_up_start = status_data[24] is not None
-#            sa_h_up_start = status_data[25] is not None
-#            up_started = sa_lf_up_start and sa_rf_up_start and sa_h_up_start
-#            #Check if upload to db has completed for all sensors
-#            sa_lf_up_comp = status_data[26] is not None
-#            sa_rf_up_comp = status_data[27] is not None
-#            sa_h_up_comp = status_data[28] is not None
-#            up_completed = sa_lf_up_comp and sa_rf_up_comp and sa_h_up_comp
-
-            if received and not_sent:
-    #            data = {'fileName':sa_filename}
-    #            headers = {'Content-type':"application/json; charset=utf-8"}
-                _logger("API call started")
-                r = requests.post(url+'?fileName='+sa_filename)
-                _logger("API call completed!")
-                if r.status_code !=200:
-                    _logger("Failed to start session calib processing!")
-                else:
-                    _logger("Successfully started session calib processing!")
+            if sa_filename == sa_filename_prev:
+                _logger('repeated sa_filename')
+                pass
             else:
-                _logger("Session calib file doesn't need to start processing!")
+                _logger(sa_filename)
+                #Check if all session_calib files have been received
+                sa_lf_rec = status_data[25] is not None
+                sa_rf_rec = status_data[26] is not None
+                sa_h_rec = status_data[27] is not None
+                received = sa_lf_rec and sa_rf_rec and sa_h_rec
+                #Check session_calib file hasn't already been processed
+                not_sent = status_data[28] is None
+                #Check if upload to db has started for all sensors
+    #            sa_lf_up_start = status_data[23] is not None
+    #            sa_rf_up_start = status_data[24] is not None
+    #            sa_h_up_start = status_data[25] is not None
+    #            up_started = sa_lf_up_start and sa_rf_up_start and sa_h_up_start
+    #            #Check if upload to db has completed for all sensors
+    #            sa_lf_up_comp = status_data[26] is not None
+    #            sa_rf_up_comp = status_data[27] is not None
+    #            sa_h_up_comp = status_data[28] is not None
+    #            up_completed = sa_lf_up_comp and sa_rf_up_comp and sa_h_up_comp
+
+                if received and not_sent:
+        #            data = {'fileName':sa_filename}
+        #            headers = {'Content-type':"application/json; charset=utf-8"}
+                    _logger("API call started")
+                    r = requests.post(url+'?fileName='+sa_filename)
+                    _logger("API call completed!")
+                    if r.status_code !=200:
+                        _logger("Failed to start session calib processing!")
+                    else:
+                        _logger("Successfully started session calib processing!")
+                else:
+                    _logger("Session calib file doesn't need to start processing!")
+                sa_filename_prev = sa_filename_prev
 
 
 if __name__ == '__main__':
