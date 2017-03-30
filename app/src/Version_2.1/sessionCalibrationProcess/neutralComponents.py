@@ -10,7 +10,7 @@ import quatOps as qo
 import quatConvs as qc
 
 
-def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
+def run_neutral_computations(standing_data, lf_bf_transform,
                              hip_bf_transform, rf_bf_transform):
 
     """
@@ -40,12 +40,12 @@ def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
     """
 
     # divide data into relevant quaternions
-    sitting_lf_data = np.array([sitting_data['LqW'], sitting_data['LqX'],
-                                  sitting_data['LqY'],
-                                  sitting_data['LqZ']]).transpose()
-    sitting_rf_data = np.array([sitting_data['RqW'], sitting_data['RqX'],
-                                  sitting_data['RqY'],
-                                  sitting_data['RqZ']]).transpose()
+#    sitting_lf_data = np.array([sitting_data['LqW'], sitting_data['LqX'],
+#                                  sitting_data['LqY'],
+#                                  sitting_data['LqZ']]).transpose()
+#    sitting_rf_data = np.array([sitting_data['RqW'], sitting_data['RqX'],
+#                                  sitting_data['RqY'],
+#                                  sitting_data['RqZ']]).transpose()
     standing_hip_data = np.array([standing_data['HqW'], standing_data['HqX'],
                                    standing_data['HqY'],
                                    standing_data['HqZ']]).transpose()
@@ -62,29 +62,29 @@ def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
     hip_bf_transform = hip_bf_transform.reshape(1, -1)
 
     # normalize orientation data
-    sitting_lf_data = qo.quat_norm(sitting_lf_data)
-    sitting_rf_data = qo.quat_norm(sitting_rf_data)
+#    sitting_lf_data = qo.quat_norm(sitting_lf_data)
+#    sitting_rf_data = qo.quat_norm(sitting_rf_data)
     standing_hip_data = qo.quat_norm(standing_hip_data)
     standing_lf_data = qo.quat_norm(standing_lf_data)
     standing_rf_data = qo.quat_norm(standing_rf_data)
 
     # convert to body frame
-    sitting_lf_bf = qo.quat_prod(sitting_lf_data, lf_bf_transform)
-    sitting_rf_bf = qo.quat_prod(sitting_rf_data, rf_bf_transform)
+#    sitting_lf_bf = qo.quat_prod(sitting_lf_data, lf_bf_transform)
+#    sitting_rf_bf = qo.quat_prod(sitting_rf_data, rf_bf_transform)
     standing_hip_bf = qo.quat_prod(standing_hip_data, hip_bf_transform)
     standing_lf_bf = qo.quat_prod(standing_lf_data, lf_bf_transform)
     standing_rf_bf = qo.quat_prod(standing_rf_data, rf_bf_transform)
 
     # average body frame data
-    sitting_lf_bf_avg = qo.quat_avg(sitting_lf_bf)
-    sitting_rf_bf_avg = qo.quat_avg(sitting_rf_bf)
+#    sitting_lf_bf_avg = qo.quat_avg(sitting_lf_bf)
+#    sitting_rf_bf_avg = qo.quat_avg(sitting_rf_bf)
     standing_hip_bf_avg = qo.quat_avg(standing_hip_bf)
     standing_lf_bf_avg = qo.quat_avg(standing_lf_bf)
     standing_rf_bf_avg = qo.quat_avg(standing_rf_bf)
 
     # calculate euler angle components of averaged body frame data
-    sitting_lf_eul = qc.quat_to_euler(sitting_lf_bf_avg)
-    sitting_rf_eul = qc.quat_to_euler(sitting_rf_bf_avg)
+#    sitting_lf_eul = qc.quat_to_euler(sitting_lf_bf_avg)
+#    sitting_rf_eul = qc.quat_to_euler(sitting_rf_bf_avg)
     standing_hip_eul = qc.quat_to_euler(standing_hip_bf_avg)
     standing_lf_eul = qc.quat_to_euler(standing_lf_bf_avg)
     standing_rf_eul = qc.quat_to_euler(standing_rf_bf_avg)
@@ -95,12 +95,13 @@ def run_neutral_computations(sitting_data, standing_data, lf_bf_transform,
     hip_neutral_yaw = 0
 
     # save components of neutral feet transforms
-    lf_neutral_roll = sitting_lf_eul[0, 0]
+    lf_neutral_roll = standing_lf_eul[0, 0]
     lf_neutral_pitch = standing_lf_eul[0, 1]
     lf_yaw_quat = qo.find_rot(qc.euler_to_quat(standing_lf_eul),
                               qc.euler_to_quat(standing_hip_eul))
     lf_neutral_yaw = qc.quat_to_euler(lf_yaw_quat)[0, 2]
-    rf_neutral_roll = sitting_rf_eul[0, 0]
+
+    rf_neutral_roll = standing_rf_eul[0, 0]
     rf_neutral_pitch = standing_rf_eul[0, 1]
     rf_yaw_quat = qo.find_rot(qc.euler_to_quat(standing_rf_eul),
                               qc.euler_to_quat(standing_hip_eul))

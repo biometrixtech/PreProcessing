@@ -98,9 +98,9 @@ def run_calibration(sensor_data, file_name, aws=True):
         _logger("sensor_data_filename not found in table", info=False)
         raise error
 
-    expired = data_read[1]
-    feet_success = data_read[2]
-    hip_success = data_read[3]
+#    expired = data_read[1]
+#    feet_success = data_read[2]
+#    hip_success = data_read[3]
 
     # Read data into structured numpy array
     try:
@@ -116,54 +116,55 @@ def run_calibration(sensor_data, file_name, aws=True):
     data.dtype.names = columns_calib
     _logger("Data Loaded")
     #read from S3
-    feet_file = data_read[4]
-    try:
-        obj = S3.Bucket(cont_read).Object(SUB_FOLDER+feet_file)
-        fileobj = obj.get()
-        body = fileobj["Body"].read()
-        feet = cStringIO.StringIO(body)
-    except boto3.exceptions as error:
-        _logger("Cannot read feet_sensor_data from s3!", info=False)
-        raise error
+#    feet_file = data_read[4]
+#    try:
+#        obj = S3.Bucket(cont_read).Object(SUB_FOLDER+feet_file)
+#        fileobj = obj.get()
+#        body = fileobj["Body"].read()
+#        feet = cStringIO.StringIO(body)
+#    except boto3.exceptions as error:
+#        _logger("Cannot read feet_sensor_data from s3!", info=False)
+#        raise error
 
     # Read  base feet calibration data from s3
-    try:
-        feet_data = np.genfromtxt(feet, dtype=float, delimiter=',', names=True)
-
-    except IndexError:
-        _logger("Feet data doesn't have column names!",
-                info=False)
-        raise error
-    if len(feet_data) == 0:
-        _logger("Feet sensor data is empty!", info=False)
+#    try:
+#        feet_data = np.genfromtxt(feet, dtype=float, delimiter=',', names=True)
+#
+#    except IndexError:
+#        _logger("Feet data doesn't have column names!",
+#                info=False)
+#        raise error
+#    if len(feet_data) == 0:
+#        _logger("Feet sensor data is empty!", info=False)
 
     # if not expired and feet_success is true and hip_success is true, it's
     # treated as session calibration
     # if hip_success is blank, it's treated as base calibration
     # feet_success should always be true
     # expired should be false
-    if not expired and feet_success and hip_success:
-        is_base = False
-    else:
-        is_base = True
+#    if not expired and feet_success and hip_success:
+#        is_base = False
+#    else:
+#        is_base = True
+    is_base = True
 
     #if it's base, we need the processed_sensor_data_filename
     #if session, we need transform values corresponding to the base calibration
-
-    feet_file = data_read[4]
-    if not is_base:
-        hip_pitch_transform = np.array(data_read[5]).reshape(-1, 1)
-        if len(hip_pitch_transform) == 0:
-            is_base = True
-        hip_roll_transform = np.array(data_read[6]).reshape(-1, 1)
-        if len(hip_roll_transform) == 0:
-            is_base = True
-        lf_roll_transform = np.array(data_read[7]).reshape(-1, 1)
-        if len(lf_roll_transform) == 0:
-            is_base = True
-        rf_roll_transform = np.array(data_read[8]).reshape(-1, 1)
-        if len(rf_roll_transform) == 0:
-            is_base = True
+#
+#    feet_file = data_read[4]
+#    if not is_base:
+#        hip_pitch_transform = np.array(data_read[5]).reshape(-1, 1)
+#        if len(hip_pitch_transform) == 0:
+#            is_base = True
+#        hip_roll_transform = np.array(data_read[6]).reshape(-1, 1)
+#        if len(hip_roll_transform) == 0:
+#            is_base = True
+#        lf_roll_transform = np.array(data_read[7]).reshape(-1, 1)
+#        if len(lf_roll_transform) == 0:
+#            is_base = True
+#        rf_roll_transform = np.array(data_read[8]).reshape(-1, 1)
+#        if len(rf_roll_transform) == 0:
+#            is_base = True
     
     # check if the raw quaternions have been converted already
     data = cp.handle_processed(data)
@@ -412,110 +413,108 @@ def run_calibration(sensor_data, file_name, aws=True):
                 _logger("Cannot write to s3!", info=False)
                 raise error
 
-            if is_base:
+            #Run base calibration
+            hip_pitch_transform, hip_roll_transform,\
+            lf_roll_transform, rf_roll_transform = \
+            bc.run_special_calib(data_calib)
 
-                #Run base calibration
-                hip_pitch_transform, hip_roll_transform,\
-                lf_roll_transform, rf_roll_transform = \
-                bc.run_special_calib(data_calib, feet_data)
+            # check if the transform values are nan's
+            if np.any(np.isnan(hip_pitch_transform)):
+                _logger('Hip pitch transform has missing values', False)
+                raise ValueError('NaN in hip_pitch_transform')
+            elif np.any(np.isnan(hip_roll_transform)):
+                _logger('Hip roll transform has missing values', False)
+                raise ValueError('NaN in hip_roll_transform')
+            elif np.any(np.isnan(lf_roll_transform)):
+                _logger('LF roll transform has missing values', False)
+                raise ValueError('NaN in lf_roll_transform')
+            elif np.any(np.isnan(rf_roll_transform)):
+                _logger('RF roll transform has missing values', False)
+                raise ValueError('NaN in rf_roll_transform')
 
-                # check if the transform values are nan's
-                if np.any(np.isnan(hip_pitch_transform)):
-                    _logger('Hip pitch transform has missing values', False)
-                    raise ValueError('NaN in hip_pitch_transform')
-                elif np.any(np.isnan(hip_roll_transform)):
-                    _logger('Hip roll transform has missing values', False)
-                    raise ValueError('NaN in hip_roll_transform')
-                elif np.any(np.isnan(lf_roll_transform)):
-                    _logger('LF roll transform has missing values', False)
-                    raise ValueError('NaN in lf_roll_transform')
-                elif np.any(np.isnan(rf_roll_transform)):
-                    _logger('RF roll transform has missing values', False)
-                    raise ValueError('NaN in rf_roll_transform')
+            hip_p_transform = hip_pitch_transform.reshape(-1, ).tolist()
+            hip_r_transform = hip_roll_transform.reshape(-1, ).tolist()
+            lf_r_transform = lf_roll_transform.reshape(-1, ).tolist()
+            rf_r_transform = rf_roll_transform.reshape(-1, ).tolist()
 
-                hip_p_transform = hip_pitch_transform.reshape(-1, ).tolist()
-                hip_r_transform = hip_roll_transform.reshape(-1, ).tolist()
-                lf_r_transform = lf_roll_transform.reshape(-1, ).tolist()
-                rf_r_transform = rf_roll_transform.reshape(-1, ).tolist()
+            # Save base calibration offsets to
+            # BaseAnatomicalCalibrationEvent along with hip_success
+#            try:
+#                cur.execute(queries.quer_base_succ, (True, hip_p_transform,
+#                                                     hip_r_transform,
+#                                                     lf_r_transform,
+#                                                     rf_r_transform,
+#                                                     False,
+#                                                     file_name))
+#                conn.commit()
+#            except psycopg2.Error as error:
+#                _logger("Cannot write base transform values to DB",
+#                        info=False)
+#                raise error
 
-                # Save base calibration offsets to
-                # BaseAnatomicalCalibrationEvent along with hip_success
-                try:
-                    cur.execute(queries.quer_base_succ, (True, hip_p_transform,
-                                                         hip_r_transform,
-                                                         lf_r_transform,
-                                                         rf_r_transform,
-                                                         False,
-                                                         file_name))
-                    conn.commit()
-                except psycopg2.Error as error:
-                    _logger("Cannot write base transform values to DB",
-                            info=False)
-                    raise error
+            # Run session calibration
+            hip_bf_transform, lf_bf_transform, rf_bf_transform = \
+            ac.run_calib(data_calib, hip_pitch_transform,
+                         hip_roll_transform, lf_roll_transform,
+                         rf_roll_transform)
 
-                # Run session calibration
-                hip_bf_transform, lf_bf_transform, rf_bf_transform = \
-                ac.run_calib(data_calib, hip_pitch_transform,
-                             hip_roll_transform, lf_roll_transform,
-                             rf_roll_transform)
+            # Calculate neutral transforms
+            lf_n_transform, hip_n_transform, rf_n_transform =\
+            nc.run_neutral_computations(data_calib,
+                                        lf_bf_transform,
+                                        hip_bf_transform,
+                                        rf_bf_transform)
 
-                # Calculate neutral transforms
-                lf_n_transform, hip_n_transform, rf_n_transform =\
-                nc.run_neutral_computations(feet_data, data_calib,
-                                            lf_bf_transform,
-                                            hip_bf_transform,
-                                            rf_bf_transform)
+            # Check if bodyframe and neutral transform values are nan's
+            if np.any(np.isnan(hip_bf_transform)):
+                _logger('Hip bodyframe transform has missing values.',
+                        info=False)
+                raise ValueError('NaN in hip_bf_transform')
+            elif np.any(np.isnan(lf_bf_transform)):
+                _logger('LF bodyframe transform has missing values.',
+                        info=False)
+                raise ValueError('NaN in lf_bf_transform')
+            elif np.any(np.isnan(rf_bf_transform)):
+                _logger('RF bodyframe transform has missing values.',
+                        info=False)
+                raise ValueError('NaN in rf_bf_transform')
+            elif np.any(np.isnan(lf_n_transform)):
+                _logger('LF neutral transform has missing values.',
+                        info=False)
+                raise ValueError('NaN in lf_n_transform')
+            elif np.any(np.isnan(rf_n_transform)):
+                _logger('RF neutral transform has missing values.',
+                        info=False)
+                raise ValueError('NaN in rf_n_transform')
+            elif np.any(np.isnan(hip_n_transform)):
+                _logger('Hip neutral transform has missing values.',
+                        info=False)
+                raise ValueError('NaN in hip_n_transform')
 
-                # Check if bodyframe and neutral transform values are nan's
-                if np.any(np.isnan(hip_bf_transform)):
-                    _logger('Hip bodyframe transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in hip_bf_transform')
-                elif np.any(np.isnan(lf_bf_transform)):
-                    _logger('LF bodyframe transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in lf_bf_transform')
-                elif np.any(np.isnan(rf_bf_transform)):
-                    _logger('RF bodyframe transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in rf_bf_transform')
-                elif np.any(np.isnan(lf_n_transform)):
-                    _logger('LF neutral transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in lf_n_transform')
-                elif np.any(np.isnan(rf_n_transform)):
-                    _logger('RF neutral transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in rf_n_transform')
-                elif np.any(np.isnan(hip_n_transform)):
-                    _logger('Hip neutral transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in hip_n_transform')
+            # Save session calibration offsets to
+            # SessionAnatomicalCalibrationEvent
+            # along with base_calibration=True and success=True
+            hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
+            lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
+            rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
+            lf_n_transform = lf_n_transform.reshape(-1,).tolist()
+            rf_n_transform = rf_n_transform.reshape(-1,).tolist()
+            hip_n_transform = hip_n_transform.reshape(-1,).tolist()
 
-                # Save session calibration offsets to
-                # SessionAnatomicalCalibrationEvent
-                # along with base_calibration=True and success=True
-                hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
-                lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
-                rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
-                lf_n_transform = lf_n_transform.reshape(-1,).tolist()
-                rf_n_transform = rf_n_transform.reshape(-1,).tolist()
-                hip_n_transform = hip_n_transform.reshape(-1,).tolist()
-
-                try:
-                    cur.execute(queries.quer_session_succ, (True, True, is_base,
-                                                            hip_n_transform,
-                                                            hip_bf_transform,
-                                                            lf_n_transform,
-                                                            lf_bf_transform,
-                                                            rf_n_transform,
-                                                            rf_bf_transform,
-                                                            file_name))
-                    conn.commit()
-                except psycopg2.Error as error:
-                    _logger("Cannot write to DB after success!",
-                            info=False)
-                    raise error
+            try:
+                cur.execute(queries.quer_session_succ, (True, True, is_base,
+                                                        hip_n_transform,
+                                                        hip_bf_transform,
+                                                        lf_n_transform,
+                                                        lf_bf_transform,
+                                                        rf_n_transform,
+                                                        rf_bf_transform,
+                                                        file_name))
+                conn.commit()
+            except psycopg2.Error as error:
+                _logger("Cannot write to DB after success!",
+                        info=False)
+                raise error
 #                try:
 #                    cur.execute(quer_rpush, (user_id, msg, r_push_data))
 #                    conn.commit()
@@ -526,88 +525,12 @@ def run_calibration(sensor_data, file_name, aws=True):
 #                    _logger("Cannot write to rpush after succcess!",
 #                            info=False)
 #                    raise error
-                else:
-                    _process_se(file_name, cur, conn, queries.quer_check_status)
-                    conn.close()
-                    return "Success!"
-
             else:
-                # Run session calibration
-                hip_bf_transform, lf_bf_transform, rf_bf_transform = \
-                ac.run_calib(data_calib, hip_pitch_transform,
-                             hip_roll_transform, lf_roll_transform,
-                             rf_roll_transform)
-                
-                # Calculate neutral transforms
-                lf_n_transform, hip_n_transform, rf_n_transform =\
-                nc.run_neutral_computations(feet_data, data_calib,
-                                            lf_bf_transform,
-                                            hip_bf_transform,
-                                            rf_bf_transform)
+                _process_se(file_name, cur, conn, queries.quer_check_status)
+                conn.close()
+                return "Success!"
 
-                # Check if bodyframe and neutral transform values are nan's
-                if np.any(np.isnan(hip_bf_transform)):
-                    _logger('Hip bodyframe transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in hip_bf_transform')
-                elif np.any(np.isnan(lf_bf_transform)):
-                    _logger('LF bodyframe transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in lf_bf_transform')
-                elif np.any(np.isnan(rf_bf_transform)):
-                    _logger('RF bodyframe transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in rf_bf_transform')
-                elif np.any(np.isnan(lf_n_transform)):
-                    _logger('LF neutral transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in lf_n_transform')
-                elif np.any(np.isnan(rf_n_transform)):
-                    _logger('RF neutral transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in rf_n_transform')
-                elif np.any(np.isnan(hip_n_transform)):
-                    _logger('Hip neutral transform has missing values.',
-                            info=False)
-                    raise ValueError('NaN in hip_n_transform')
-
-                hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
-                lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
-                rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
-                lf_n_transform = lf_n_transform.reshape(-1,).tolist()
-                rf_n_transform = rf_n_transform.reshape(-1,).tolist()
-                hip_n_transform = hip_n_transform.reshape(-1,).tolist()
-
-                # Save session calibration offsets to
-                # SessionAnatomicalCalibrationEvent
-                # along with base_calibration=False and success=True
-                try:
-                    cur.execute(queries.quer_session_succ, (True, True, is_base,
-                                                            hip_n_transform,
-                                                            hip_bf_transform,
-                                                            lf_n_transform,
-                                                            lf_bf_transform,
-                                                            rf_n_transform,
-                                                            rf_bf_transform,
-                                                            file_name))
-                    conn.commit()
-                except psycopg2.Error as error:
-                    _logger("Cannot write to DB after success!",
-                            info=False)
-
-#                # rPush
-#                try:
-#                    cur.execute(quer_rpush, (user_id, msg, r_push_data))
-#                    conn.commit()
-#                    conn.close()
-#                except:
-#                    _logger("Cannot write to rpush after succcess!", info=False)
-#                    raise error
-                else:
-                    _process_se(file_name, cur, conn, queries.quer_check_status)
-                    conn.close()
-                    return "Success!"
-
+           
 def _select_recording(data):
     freq = 100
     beg = range(int(2 * freq))
