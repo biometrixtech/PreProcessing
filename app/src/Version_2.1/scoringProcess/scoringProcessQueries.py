@@ -49,6 +49,12 @@ quer_update = """UPDATE movement
 # finally drop the temp table
 quer_drop = "DROP TABLE temp_mov"
 
+
+# read the team_id to create alternate flow for research vs regular users
+quer_read_team_id = """select t.id from teams t, users u where t.id = u.team_id
+        and u.id =(select user_id from session_events where sensor_data_filename = (%s))"""
+
+# Update session_events to indicate successful completion of processing
 quer_update_session_events = """update session_events
                                 set session_success=True,
                                 updated_at = now()
