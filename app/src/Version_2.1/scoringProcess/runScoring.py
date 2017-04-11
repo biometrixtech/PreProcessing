@@ -76,11 +76,17 @@ def run_scoring(sensor_data, file_name, aws=True):
     conn, cur, s3 = _connect_db_s3()
 
 #   Read team_id to separate research data from user data
-    cur.execute(queries.quer_read_team_id, (file_name,))
-    team_id = cur.fetchone()
+    try:
+        cur.execute(queries.quer_read_team_id, (file_name,))
+        team_id = str(cur.fetchone()[0])
+        _logger(team_id)
+    except:
+        _logger('No associated team_id found for the given file')
+        return 'Fail!'
 
     # Read data. Only readin relevant columns in
     if team_id == '65fb2565-3a13-400c-92ed-17d7f7d57804':
+#    if team_id == '2214b4f1-5fb1-444f-aa65-af402e2db013':
         data = pd.read_csv(sensor_data['Body'], usecols=COLUMNS_RESEARCH)
         f = cStringIO.StringIO()
         data.to_csv(f, index=False)
@@ -88,6 +94,7 @@ def run_scoring(sensor_data, file_name, aws=True):
         cont_research = 'biometrix-research-data'
         f.seek(0)
         s3.Bucket(cont_research).put_object(Key=SUB_FOLDER+key, Body=f)
+        return 'Success!'
 
     else:
         data = pd.read_csv(sensor_data['Body'], usecols=VARS_FOR_SCORING)
@@ -131,8 +138,8 @@ def run_scoring(sensor_data, file_name, aws=True):
             else:
                 _logger("There's no historical data and current data isn't long enough!")
                 # Can't complete scoring, delete data from movement table and exit
-                cur.execute(queries.quer_delete, (session_event_id, ))
-                conn.commit()
+#                cur.execute(queries.quer_delete, (session_event_id, ))
+#                conn.commit()
                 conn.close()
                 return "Fail!"
         except Exception as error:
