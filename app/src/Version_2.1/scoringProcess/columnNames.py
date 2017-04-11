@@ -55,7 +55,7 @@ column_session2_out = ['team_id', 'user_id','session_event_id','session_type',
 
 
 vars_for_scoring = ['team_id', 'user_id', 'session_event_id',
-                    'session_type', 'obs_index',
+                    'session_type', 'obs_index', 'time_stamp',
                     'ms_elapsed',
                     'phase_lf', 'phase_rf',
                     'mech_stress', 'total_accel',
@@ -66,7 +66,7 @@ vars_for_scoring = ['team_id', 'user_id', 'session_event_id',
                     'LeX','HeX','ReX']
 
 
-column_scoring_out = ['user_id', 'session_event_id', 'obs_index',
+column_scoring_out = ['team_id', 'user_id', 'session_event_id', 'obs_index', 'time_stamp',
                       'mech_stress', 'const_mech_stress', 'dest_mech_stress',
                       'session_duration','session_mech_stress_elapsed',
                       'destr_multiplier',
@@ -103,3 +103,10 @@ columns_hist = ['mech_stress', 'total_accel',
                 'ankle_rot_lf', 'ankle_rot_rf',
                 'land_pattern_lf', 'land_pattern_rf', 'land_time',
                 'foot_position_lf', 'foot_position_rf']
+
+
+columns_research = ['team_id', 'user_id','session_event_id', 'time_stamp', 
+                  'mech_stress', 'total_accel',
+                  'LaX', 'LaY', 'LaZ', 'LeX', 'LeY', 'LeZ', 'LqW', 'LqX', 'LqY', 'LqZ',
+                  'HaX', 'HaY', 'HaZ', 'HeX', 'HeY', 'HeZ', 'HqW', 'HqX', 'HqY', 'HqZ',
+                  'RaX', 'RaY', 'RaZ', 'ReX', 'ReY', 'ReZ', 'RqW', 'RqX', 'RqY', 'RqZ']
