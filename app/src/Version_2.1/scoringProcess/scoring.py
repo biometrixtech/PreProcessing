@@ -194,6 +194,10 @@ def _con_fun(dist, double=False):
     """
     # get rid of missing values in the provided distribution
     dist = dist[np.isfinite(dist)]
+
+    #Limit historical data to 1.5M for memory issue (Will get rid later)
+    sample_size = min([len(dist), 1500000])
+    dist = np.random.choice(dist, size=sample_size, replace=False)
     if len(dist) < 5:
         logger.info('Not enough data to create mapping function')
         dist_sorted = np.array([-1, -.5, 0, .5, 1])
