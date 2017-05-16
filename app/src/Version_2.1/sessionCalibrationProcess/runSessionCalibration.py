@@ -84,7 +84,9 @@ def run_calibration(sensor_data, file_name, aws=True):
         # Execute the read query and extract relevant indicator info
         cur.execute(queries.quer_read, (file_name, ))
         data_read = cur.fetchall()[0]
+        _logger(data_read)
         user_id = data_read[0]
+        _logger(user_id)
         if user_id is None:
             user_id = '00000000-0000-0000-0000-000000000000'
             _logger("user_id associated with file not found", info=False)
@@ -185,9 +187,19 @@ def run_calibration(sensor_data, file_name, aws=True):
                                   missing_or_corrupt='corrupt')
     # check if length of subset data is >= required amount (1.5 sec)
     if len(subset_data) < min_data_thresh:
-        _logger("Not enough data after subsetting for bad magn!", info=False)
-        _logger("User is: "+ user_id)
-        return "Fail!"
+        # update session_anatomical_calibration_events
+        try:
+            cur.execute(queries.quer_fail, (False, False, 1, is_base,
+                                            file_name))
+            conn.commit()
+            conn.close()
+        except psycopg2.Error as error:
+            _logger("Cannot write to DB after failure!", False)
+        finally:
+            _logger("Not enough data after subsetting for bad magn!",
+                    info=False)
+            _logger("User is: "+ user_id)
+            return "Fail!"
 
     # Record percentage and ranges of magn_values for diagonostic purposes
     _record_magn(subset_data, file_name, S3)
