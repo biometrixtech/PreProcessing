@@ -287,52 +287,7 @@ def _read_ids(cur, file_name):
 
     return (session_event_id, training_session_log_id, user_id, team_regimen_id,
             team_id, session_type)
-            
-def _read_offsets(cur, session_event_id):
-    '''Read the offsets for coordinateframe transformation.
-    
-    If it's in aws lambda, try to find offsets in DB and raise
-    appropriate error,
-    If it's a local run for testing, look for associated offsets in DB
-    first, if not found, check local memory to see if the offset values
-    are stored. If both these fail, ValueError is raised.
-    '''
-    try:
-        cur.execute(queries.quer_read_offsets, (session_event_id,))
-        offsets_read = cur.fetchall()[0]
-    except psycopg2.Error as error:
-        
-        if AWS:
-            logger.warning("Cannot read transform offsets!")
-            raise error
-        else:
-            try:
-                # these should be the offsets calculated by separate runs of 
-                # calibration script. If not found, load some random values
-                offsets_read = (hip_n_transform, hip_bf_transform,
-                                lf_n_transform, lf_bf_transform,
-                                rf_n_transform, rf_bf_transform)
-            except NameError:
-                raise ValueError("No associated offset values found in "+
-                                 "the database or local memory")           
-    except IndexError as error:
-        if AWS:
-            logger.warning("Transform offsets cannot be found!")
-            raise error
-        else:
-            try:
-                # these should be the offsets calculated by separate runs of 
-                # calibration script. If not found, load some random values
-                offsets_read = (hip_n_transform, hip_bf_transform,
-                                lf_n_transform, lf_bf_transform,
-                                rf_n_transform, rf_bf_transform)
-            except NameError:
-                raise ValueError("No associated offset values found in "+
-                                 "the database or local memory")
-#                offsets_read = dummy_offsets   
-    return offsets_read
 
-    
 #%%
 if __name__ == "__main__":
     sensor_data = 'c4ed8189-6e1d-47c3-9cc5-446329b10796'

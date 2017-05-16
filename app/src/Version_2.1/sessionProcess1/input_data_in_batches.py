@@ -299,8 +299,8 @@ def _read_offsets(cur, session_event_id):
                 # these should be the offsets calculated by separate runs of 
                 # calibration script. If not found, load some random values
                 offsets_read = (hip_n_transform, hip_bf_transform,
-                                lf_n_transform, lf_bf_transform,
-                                rf_n_transform, rf_bf_transform)
+                                lf_bf_transform,
+                                rf_bf_transform)
             except NameError:
                 raise ValueError("No associated offset values found in "+
                                  "the database or local memory")           
@@ -313,8 +313,8 @@ def _read_offsets(cur, session_event_id):
                 # these should be the offsets calculated by separate runs of 
                 # calibration script. If not found, load some random values
                 offsets_read = (hip_n_transform, hip_bf_transform,
-                                lf_n_transform, lf_bf_transform,
-                                rf_n_transform, rf_bf_transform)
+                                lf_bf_transform,
+                                rf_bf_transform)
             except NameError:
                 raise ValueError("No associated offset values found in "+
                                  "the database or local memory")

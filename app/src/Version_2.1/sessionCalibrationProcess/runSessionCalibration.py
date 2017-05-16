@@ -18,11 +18,9 @@ import requests
 import psycopg2
 from base64 import b64decode
 
-import anatomicalCalibration as ac
+import findTransforms as ft
 from placementCheck import placement_check
-import baseCalibration as bc
 import prePreProcessing as ppp
-import neutralComponents as nc
 from errors import ErrorMessageSession, RPushDataSession
 import checkProcessed as cp
 from columnNames import columns_calib
@@ -425,57 +423,9 @@ def run_calibration(sensor_data, file_name, aws=True):
                 _logger("Cannot write to s3!", info=False)
                 raise error
 
-            #Run base calibration
-            hip_pitch_transform, hip_roll_transform,\
-            lf_roll_transform, rf_roll_transform = \
-            bc.run_special_calib(data_calib)
-
-            # check if the transform values are nan's
-            if np.any(np.isnan(hip_pitch_transform)):
-                _logger('Hip pitch transform has missing values', False)
-                raise ValueError('NaN in hip_pitch_transform')
-            elif np.any(np.isnan(hip_roll_transform)):
-                _logger('Hip roll transform has missing values', False)
-                raise ValueError('NaN in hip_roll_transform')
-            elif np.any(np.isnan(lf_roll_transform)):
-                _logger('LF roll transform has missing values', False)
-                raise ValueError('NaN in lf_roll_transform')
-            elif np.any(np.isnan(rf_roll_transform)):
-                _logger('RF roll transform has missing values', False)
-                raise ValueError('NaN in rf_roll_transform')
-
-            hip_p_transform = hip_pitch_transform.reshape(-1, ).tolist()
-            hip_r_transform = hip_roll_transform.reshape(-1, ).tolist()
-            lf_r_transform = lf_roll_transform.reshape(-1, ).tolist()
-            rf_r_transform = rf_roll_transform.reshape(-1, ).tolist()
-
-            # Save base calibration offsets to
-            # BaseAnatomicalCalibrationEvent along with hip_success
-#            try:
-#                cur.execute(queries.quer_base_succ, (True, hip_p_transform,
-#                                                     hip_r_transform,
-#                                                     lf_r_transform,
-#                                                     rf_r_transform,
-#                                                     False,
-#                                                     file_name))
-#                conn.commit()
-#            except psycopg2.Error as error:
-#                _logger("Cannot write base transform values to DB",
-#                        info=False)
-#                raise error
-
-            # Run session calibration
-            hip_bf_transform, lf_bf_transform, rf_bf_transform = \
-            ac.run_calib(data_calib, hip_pitch_transform,
-                         hip_roll_transform, lf_roll_transform,
-                         rf_roll_transform)
-
-            # Calculate neutral transforms
-            lf_n_transform, hip_n_transform, rf_n_transform =\
-            nc.run_neutral_computations(data_calib,
-                                        lf_bf_transform,
-                                        hip_bf_transform,
-                                        rf_bf_transform)
+            # Calculate transform values
+            lf_bf_transform, hip_bf_transform, rf_bf_transform, \
+                    hip_n_transform = ft.run_transform_calculations(data_calib)
 
             # Check if bodyframe and neutral transform values are nan's
             if np.any(np.isnan(hip_bf_transform)):
@@ -490,14 +440,6 @@ def run_calibration(sensor_data, file_name, aws=True):
                 _logger('RF bodyframe transform has missing values.',
                         info=False)
                 raise ValueError('NaN in rf_bf_transform')
-            elif np.any(np.isnan(lf_n_transform)):
-                _logger('LF neutral transform has missing values.',
-                        info=False)
-                raise ValueError('NaN in lf_n_transform')
-            elif np.any(np.isnan(rf_n_transform)):
-                _logger('RF neutral transform has missing values.',
-                        info=False)
-                raise ValueError('NaN in rf_n_transform')
             elif np.any(np.isnan(hip_n_transform)):
                 _logger('Hip neutral transform has missing values.',
                         info=False)
@@ -509,17 +451,13 @@ def run_calibration(sensor_data, file_name, aws=True):
             hip_bf_transform = hip_bf_transform.reshape(-1,).tolist()
             lf_bf_transform = lf_bf_transform.reshape(-1,).tolist()
             rf_bf_transform = rf_bf_transform.reshape(-1,).tolist()
-            lf_n_transform = lf_n_transform.reshape(-1,).tolist()
-            rf_n_transform = rf_n_transform.reshape(-1,).tolist()
             hip_n_transform = hip_n_transform.reshape(-1,).tolist()
 
             try:
                 cur.execute(queries.quer_session_succ, (True, True, is_base,
                                                         hip_n_transform,
                                                         hip_bf_transform,
-                                                        lf_n_transform,
                                                         lf_bf_transform,
-                                                        rf_n_transform,
                                                         rf_bf_transform,
                                                         file_name))
                 conn.commit()
