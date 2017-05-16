@@ -24,7 +24,7 @@ import prePreProcessing as ppp
 import dataObject as do
 # import phaseDetection as phase
 #import IAD
-import coordinateFrameTransformation as coord
+import frameTransformations as frames
 import checkProcessed as cp
 import columnNames as cols
 
@@ -99,28 +99,19 @@ def run_session(sensor_data, file_name, ids_from_db, offsets_read,
     if len(hip_bf_transform) == 0:
         _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
-    lf_n_transform = np.array(offsets_read[2]).reshape(-1, 1)
-    if len(lf_n_transform) == 0:
-        _logger("Calibration offset value missing", info=False)
-        raise ValueError("Missing Offsets")
-    lf_bf_transform = np.array(offsets_read[3]).reshape(-1, 1)
+    lf_bf_transform = np.array(offsets_read[2]).reshape(-1, 1)
     if len(lf_bf_transform) == 0:
         _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
-    rf_n_transform = np.array(offsets_read[4]).reshape(-1, 1)
-    if len(rf_n_transform) == 0:
-        _logger("Calibration offset value missing", info=False)
-        raise ValueError("Missing Offsets")
-    rf_bf_transform = np.array(offsets_read[5]).reshape(-1, 1)
+    rf_bf_transform = np.array(offsets_read[3]).reshape(-1, 1)
     if len(rf_bf_transform) == 0:
         _logger("Calibration offset value missing", info=False)
         raise ValueError("Missing Offsets")
 
     # use transform values to adjust coordinate frame of all block data
     _transformed_data, neutral_data =\
-            coord.transform_data(data, hip_bf_transform, lf_bf_transform,
-                                 rf_bf_transform, lf_n_transform,
-                                 rf_n_transform, hip_n_transform)
+        frames.transform_frames(data, lf_bf_transform, hip_bf_transform,
+                            rf_bf_transform, hip_n_transform)
     # transform neutral orientations for each point in time to ndarray
     neutral_data = np.array(neutral_data)
 
