@@ -70,14 +70,13 @@ def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral,
                                            np.zeros((length, 2)))))
     rf_roll = qc.euler_to_quat(np.hstack((rf_eul[:, 0].reshape(-1, 1),
                                           np.zeros((length, 2)))))
-    hip_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
-                                          hip_eul[:, 2].reshape(-1, 1))))
-    lf_raw_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
+#    hip_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
+#                                          hip_eul[:, 2].reshape(-1, 1))))
+    lf_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
                                              lf_eul[:, 2].reshape(-1, 1))))
-    rf_raw_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
+    rf_yaw = qc.euler_to_quat(np.hstack((np.zeros((length, 2)),
                                              rf_eul[:, 2].reshape(-1, 1))))
-    lf_yaw = qo.find_rot(hip_yaw, lf_raw_yaw)
-    rf_yaw = qo.find_rot(hip_yaw, rf_raw_yaw)
+
     del lf_eul, rf_eul, hip_eul
     
     lf_neutral_roll = qc.euler_to_quat(np.hstack((lf_neutral_eul[:,
