@@ -102,7 +102,7 @@ def send_batches_of_data(sensor_data, file_name, aws=True):
     sdata = sdata.iloc[0:900000]
     # number of rows to pass in each batch & number of parts being passed to
     # runAnalytics
-    batch_size = 300000
+    batch_size = 400000
     size = len(sdata)
     batches = int(math.ceil(size/float(batch_size)))
     _logger('number of batches of input data: '+ str(batches))
