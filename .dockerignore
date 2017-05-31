@@ -1,0 +1,9 @@
+*
+!docker
+
+!app/src/Version_2.1/sessionProcess2
+app/src/Version_2.1/sessionProcess2/lib
+app/src/Version_2.1/sessionProcess2/pandas
+app/src/Version_2.1/sessionProcess2/scipy
+app/src/Version_2.1/sessionProcess2/sklearn
+app/src/Version_2.1/sessionProcess2/numpy

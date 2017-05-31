@@ -1,0 +1,11 @@
+FROM python:2
+
+RUN apt-get update && apt-get install -y \
+    nano \
+    python-pip
+
+RUN pip install \
+    boto3 \
+    pandas
+
+COPY ./app/src/Version_2.1 /opt/biometrix/preprocessing
