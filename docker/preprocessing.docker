@@ -1,4 +1,4 @@
-FROM python:2
+FROM python:2.7
 
 RUN apt-get update && apt-get install -y \
     nano \
@@ -6,6 +6,18 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install \
     boto3 \
-    pandas
+    pandas \
+    psycopg2 \
+    scikit-learn
 
-COPY ./app/src/Version_2.1 /opt/biometrix/preprocessing
+# Scipy is huge, install it separately
+RUN pip install scipy
+
+RUN pip install enum34
+
+WORKDIR /opt/biometrix/preprocessing
+
+COPY ./app/src/Version_2.2 .
+
+#ENTRYPOINT python
+#CMD sessionProcess.py
