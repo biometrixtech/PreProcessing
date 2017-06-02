@@ -36,11 +36,11 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
     """Creates object attributes according to session analysis process.
 
     Args:
-        sensor_data: raw data object with attributes of:
+        data_in: raw data object with attributes of:
             epoch_time, corrupt_magn, missing_type, LaX, LaY, LaZ, LqX, LqY,
             LqZ, HaX, HaY, HaZ, HqX, HqY, HqZ, RaX, RaY, RaZ, RqX, RqY, RqZ
         file_name: sensor_data_filename in DB
-        AWS: Boolean indicator for whether we're running locally or on amazon
+        aws: Boolean indicator for whether we're running locally or on amazon
             aws
     
     Returns:

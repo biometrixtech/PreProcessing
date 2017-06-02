@@ -1,4 +1,5 @@
 *.zip
+*.pyc
 app/src/Under_Construction/*.pyc
 app/src/Under_Construction/hypothesis_testing/.hypothesis/
 app/src/Under_Construction/.hypothesis/
