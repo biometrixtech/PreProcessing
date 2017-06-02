@@ -1,11 +1,13 @@
 FROM python:2.7
 
 RUN apt-get update && apt-get install -y \
+    awscli \
     nano \
     python-pip
 
 RUN pip install \
     boto3 \
+    enum34 \
     pandas \
     psycopg2 \
     scikit-learn
@@ -13,7 +15,6 @@ RUN pip install \
 # Scipy is huge, install it separately
 RUN pip install scipy
 
-RUN pip install enum34
 
 WORKDIR /opt/biometrix/preprocessing
 
