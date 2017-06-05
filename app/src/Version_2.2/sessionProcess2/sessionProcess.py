@@ -58,4 +58,5 @@ def script_handler(filepath):
         raise
 
 if __name__ == '__main__':
-    script_handler('164588ca-bfe8-4b78-b824-362602a5cecb')
+    file_name = sys.argv[1]
+    script_handler(file_name)
