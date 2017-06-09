@@ -25,20 +25,20 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(filepath, chunk_size=100):
+def script_handler(s3_bucket, s3_path, chunk_size=100):
 
-    logger.info('Running downloadAndChunk on "{}"'.format(filepath))
+    logger.info('Running downloadAndChunk on "{}/{}"'.format(s3_bucket, s3_path))
 
     try:
         config = Config(
             AWS=False,
-            ENVIRONMENT='dev',
+            ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT=None,
             FP_OUTPUT='/net/efs/downloadAndChunk/output',
             KMS_REGION='us-west-2',
             S3_REGION='us-west-2',
-            S3_BUCKET='biometrix-sessioncontainer2',
-            S3_KEY=filepath,
+            S3_BUCKET=s3_bucket,
+            S3_KEY=s3_path,
             CHUNK_SIZE=chunk_size
         )
 
@@ -51,7 +51,7 @@ def script_handler(filepath, chunk_size=100):
             config.ENVIRONMENT + '/' + config.S3_KEY,
             tmp_filename,
         )
-        logger.info('Downloaded "{}" from S3'.format(filepath))
+        logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_path))
 
         # Get the column headers (first line of first file)
         header_filename = '{base_fn}-header'.format(base_fn=tmp_filename)
@@ -92,7 +92,7 @@ def script_handler(filepath, chunk_size=100):
         os.remove(body_filename)
         os.remove(header_filename)
 
-        logger.info('Finished processing "{}" into {} chunks'.format(filepath, chunks))
+        logger.info('Finished processing "{}/{}" into {} chunks'.format(s3_bucket, s3_path, chunks))
 
     except Exception as e:
         logger.info(e)
@@ -102,4 +102,4 @@ def script_handler(filepath, chunk_size=100):
 
 if __name__ == '__main__':
     input_file_name = sys.argv[1]
-    script_handler(input_file_name)
+    script_handler('biometrix-sessioncontainer2', input_file_name)

@@ -40,7 +40,7 @@ def script_handler(filepath):
             DB_NAME=os.environ['DB_NAME'],
             DB_PASSWORD=os.environ['DB_PASSWORD'],
             DB_USERNAME=os.environ['DB_USERNAME'],
-            ENVIRONMENT='dev',
+            ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT='/net/efs/sessionprocess2/input',
             FP_OUTPUT='/net/efs/sessionprocess2/output',
             KMS_REGION='us-west-2',
