@@ -21,5 +21,4 @@ WORKDIR /opt/biometrix/preprocessing
 
 COPY ./app/src/Version_2.2 .
 
-#ENTRYPOINT python
-#CMD sessionProcess.py
+ENTRYPOINT python batch_entrypoint.py
