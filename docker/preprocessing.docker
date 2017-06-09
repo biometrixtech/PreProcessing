@@ -21,4 +21,4 @@ WORKDIR /opt/biometrix/preprocessing
 
 COPY ./app/src/Version_2.2 .
 
-ENTRYPOINT python batch_entrypoint.py
+ENTRYPOINT ["python", "./batch_entrypoint.py"]
