@@ -3,6 +3,7 @@ FROM python:2.7
 RUN apt-get update && apt-get install -y \
     awscli \
     nano \
+    nfs-common \
     python-pip
 
 RUN pip install \
@@ -19,6 +20,9 @@ RUN mkdir /net /net/efs
 
 WORKDIR /opt/biometrix/preprocessing
 
+COPY ./docker/entrypoint.sh .
+
 COPY ./app/src/Version_2.2 .
 
-ENTRYPOINT ["python", "./batch_entrypoint.py"]
+USER root
+ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
