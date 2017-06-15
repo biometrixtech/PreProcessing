@@ -10,7 +10,7 @@ def send_success(meta):
         sfn_client = boto3.client('stepfunctions', region_name='us-west-2')
         sfn_client.send_task_success(
             taskToken=meta['TaskToken'],
-            output={
+            output=json.dumps({
                 "Meta": {
                     "ExecutionArn": meta.get('ExecutionArn', None),
                     "BatchJob": {
@@ -21,7 +21,7 @@ def send_success(meta):
                 },
                 "Status": 'SUCCEEDED',
                 "Output": {}
-            }
+            })
         )
 
     
@@ -31,6 +31,7 @@ def send_failure(meta):
 
 if __name__ == '__main__':
     input_data = meta_data = None
+    print(sys.argv)
 
     try:
         script = sys.argv[1]
