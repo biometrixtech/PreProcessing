@@ -7,7 +7,7 @@ import sys
 
 def send_success(meta):
     if 'TaskToken' in meta:
-        sfn_client = boto3.client('stepfunctions', region_name='us-west-2')
+        sfn_client = boto3.client('stepfunctions', region_name='us-east-1')
         sfn_client.send_task_success(
             taskToken=meta['TaskToken'],
             output=json.dumps({
