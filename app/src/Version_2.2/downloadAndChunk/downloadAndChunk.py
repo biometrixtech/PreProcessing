@@ -76,6 +76,7 @@ def script_handler(s3_bucket, s3_path, chunk_size=100):
 
         # Prepend the column headers to each file and copy to the EFS directory
         chunks = 0
+        all_output_files = []
         for file in glob.glob(tmp_filename + '-[0-9]*'):
             file_name = os.path.basename(file)
 
@@ -87,12 +88,14 @@ def script_handler(s3_bucket, s3_path, chunk_size=100):
 
             logger.info('Processed "{}" chunk'.format(file))
             chunks += 1
+            all_output_files.append(file_name)
 
         os.remove(tmp_filename)
         os.remove(body_filename)
         os.remove(header_filename)
 
         logger.info('Finished processing "{}/{}" into {} chunks'.format(s3_bucket, s3_path, chunks))
+        return all_output_files
 
     except Exception as e:
         logger.info(e)
