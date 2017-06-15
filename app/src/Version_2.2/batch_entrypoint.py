@@ -6,21 +6,23 @@ import sys
 
 
 def send_success(meta):
-    lambda_client = boto3.client('lambda', region_name='us-west-2')
-    lambda_client.invoke_function(
-        FunctionName='foo',
-        InvokeArgs=json.dumps({
-            "Meta": {
-                "ExecutionArn": meta.get('ExecutionArn', None),
-                "BatchJob": {
-                    "Id": '',
-                    "Name": ''
+    if 'TaskToken' in meta:
+        sfn_client = boto3.client('stepfunctions', region_name='us-west-2')
+        sfn_client.send_task_success(
+            taskToken=meta['TaskToken'],
+            output={
+                "Meta": {
+                    "ExecutionArn": meta.get('ExecutionArn', None),
+                    "BatchJob": {
+                        "Id": '',
+                        "Name": ''
+                    },
+                    "TaskToken": meta.get('TaskToken')
                 },
-                "TaskToken": meta.get('TaskToken')
-            },
-            "Status": 'SUCCEEDED',
-        })
-    )
+                "Status": 'SUCCEEDED',
+                "Output": {}
+            }
+        )
 
     
 def send_failure(meta):
