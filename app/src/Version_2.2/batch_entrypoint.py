@@ -6,7 +6,7 @@ import sys
 
 
 def send_success(meta):
-    lambda_client = boto3.client('lambda', region='us-west-2')
+    lambda_client = boto3.client('lambda', region_name='us-west-2')
     lambda_client.invoke_function(
         FunctionName='foo',
         InvokeArgs=json.dumps({
