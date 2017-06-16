@@ -11,15 +11,12 @@ import os
 
 import pandas as pd
 import numpy as np
-import boto3
 import psycopg2
 import psycopg2.extras
-from base64 import b64decode
 
 import columnNames as cols
 import sessionProcessQueries as queries
 import runAnalytics
-from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -91,37 +88,10 @@ def load_user_mass(sdata, config):
 
 
 def load_mechanical_stress_model(config):
-    kms = boto3.client('kms', region_name=config.KMS_REGION)
-    ms_model = kms.decrypt(CiphertextBlob=b64decode(config.MS_MODEL))['Plaintext']
-
-    try:
-        _logger(config.MS_MODEL_PATH + '/ms_trainmodel.pkl')
-        with open(config.MS_MODEL_PATH + '/ms_trainmodel.pkl') as model_file:
-            return pickle.load(model_file)
-    except:
-        raise # IOError("MS model file not found in s3/local directory")
-
-    # try:
-    #     s3 = boto3.resource('s3')
-    #     ms_obj = s3.Bucket(config.MS_MODEL_BUCKET).Object(config.ENVIRONMENT + '/' + ms_model)
-    #     ms_fileobj = ms_obj.get()
-    #     ms_body = ms_fileobj["Body"].read()
-    #     _logger('Downloaded mechanical stress model')
-    #     exit(1)
-    #
-    #     # we're reading the first model on the list, there are multiple
-    #     mstress_fit = pickle.loads(ms_body)
-    #     del ms_body
-    #     del ms_fileobj
-    #     del ms_obj
-    # except ClientError:
-    #     if config.AWS:
-    #         _logger("Cannot load MS model from s3!", info=False)
-    #         raise
-    #     else:
-
-
-    # return mstress_fit
+    path = os.path.join(config.MS_MODEL_PATH, config.MS_MODEL)
+    _logger("Loading model from {}".format(path))
+    with open(path) as model_file:
+        return pickle.load(model_file)
 
 
 def _logger(message, info=True):
