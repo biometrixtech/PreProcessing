@@ -66,7 +66,7 @@ if __name__ == '__main__':
             print('Running downloadAndChunk()')
             load_parameters(['DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME', 'MS_MODEL'])
             from sessionProcess2 import sessionProcess
-            sessionProcess.script_handler(input_data.get('Filepath', None))
+            sessionProcess.script_handler(input_data.get('Filename', None))
             send_success(meta_data, {})
 
     except Exception:
