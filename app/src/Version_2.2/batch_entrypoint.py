@@ -69,6 +69,10 @@ if __name__ == '__main__':
             sessionProcess.script_handler(input_data.get('Filename', None))
             send_success(meta_data, {})
 
+        elif script == 'noop':
+            # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
+            send_success(meta_data, {})
+
     except Exception:
         send_failure(meta_data)
         raise
