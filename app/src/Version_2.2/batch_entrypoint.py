@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
         elif script == 'sessionprocess2':
             print('Running downloadAndChunk()')
-            load_parameters(['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'])
+            load_parameters(['DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME'])
             from sessionProcess2 import sessionProcess
             sessionProcess.script_handler(input_data.get('Filepath', None))
             send_success(meta_data, {})
