@@ -28,13 +28,11 @@ psycopg2.extras.register_uuid()
 def send_batches_of_data(file_path, config, aws=True):
     
     global AWS
-    global COLUMN_SESSION2_OUT
     AWS = aws
-    COLUMN_SESSION2_OUT = cols.column_session2_out
 
     _logger("STARTED PROCESSING!")
 
-    # Mechanical Stress            
+    # Mechanical Stress
     # load model
     mstress_fit = load_mechanical_stress_model(config=config)
 
@@ -50,8 +48,8 @@ def send_batches_of_data(file_path, config, aws=True):
     _logger("DATA LOADED!")
 
     #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
-    # read user mass 
-    mass = load_user_mass(sdata)
+    # read user mass
+    mass = load_user_mass(sdata, config=config)
 
     size = len(sdata)
     sdata['obs_master_index'] = np.array(range(size)).reshape(-1, 1) + 1
@@ -71,11 +69,15 @@ def send_batches_of_data(file_path, config, aws=True):
     return "Success!"
 
 
-def load_user_mass(sdata):
+def load_user_mass(sdata, config):
     user_id = sdata['user_id'][0]
 
+    # FIXME
+    if config.DB_HOST == 'MOCK' and config.DB_NAME == 'MOCK':
+        return 60
+
     try:
-        _connect_db(config=config)
+        (conn, cur) = _connect_db(config=config)
         cur.execute(queries.quer_read_mass, (user_id,))
         mass = cur.fetchall()[0][0]
     except psycopg2.Error as error:
@@ -133,19 +135,15 @@ def _logger(message, info=True):
         
 
 def _connect_db(config):
-    """Start a connection to the database
     """
-    kms = boto3.client('kms', region_name=config.KMS_REGION)
-
-    db_name = config.DB_NAME
-    db_host = kms.decrypt(CiphertextBlob=b64decode(config.DB_HOST))['Plaintext']
-    db_username = kms.decrypt(CiphertextBlob=b64decode(config.DB_USERNAME))['Plaintext']
-    db_password = kms.decrypt(CiphertextBlob=b64decode(config.DB_PASSWORD))['Plaintext']
-    _logger('Loaded DB credentials')
-
-    return None, None
+    Start a connection to the database
+    """
     try:
-        conn = psycopg2.connect(dbname=db_name, user=db_username, host=db_host, password=db_password)
+        conn = psycopg2.connect(
+            dbname=config.DB_NAME,
+            user=config.DB_USERNAME,
+            host=config.DB_HOST,
+            password=config.DB_PASSWORD)
         cur = conn.cursor()
 
     except psycopg2.Error as error:
