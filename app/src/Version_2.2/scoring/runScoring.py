@@ -86,6 +86,7 @@ def run_scoring(sensor_data, file_name, config):
 
     except Exception:
         _logger("Cannot read historical user data from s3!")
+        raise
         if config.AWS:
             raise
         else:
