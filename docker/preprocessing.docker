@@ -11,6 +11,7 @@ RUN pip install \
     enum34 \
     pandas \
     psycopg2 \
+    s3fs \
     scikit-learn
 
 # Scipy is huge, install it separately

@@ -21,6 +21,7 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras
 import boto3
+from s3fs.core import S3FileSystem
 
 from controlScore import control_score
 from scoring import score
@@ -71,11 +72,8 @@ def run_scoring(sensor_data, file_name, config):
         s3 = boto3.resource('s3')
         objs = list(s3.Bucket(config.S3_BUCKET_HISTORY).objects.filter(Prefix=path))
         if len(objs) == 1:
-            obj = s3.Bucket(config.S3_BUCKET_HISTORY).Object(path)
-            fileobj = obj.get()
-            body = fileobj["Body"]
-            user_hist = pd.read_csv(body)
-            del body
+            s3 = S3FileSystem(anon=False)
+            user_hist = pd.read_csv(s3.open('{}/{}'.format(config.S3_BUCKET_HISTORY, path), mode='rb'))
             user_hist.columns = cols.columns_hist
         elif len(data.LeX) > 50000:
             user_hist = data
