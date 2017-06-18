@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
         elif script == 'scoring':
             print('Running scoring()')
-            # load_parameters(['DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME'])
+            load_parameters(['DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME'])
             from scoring import scoringProcess
             scoringProcess.script_handler(input_data.get('Filenames', None))
             send_success(meta_data, {})
