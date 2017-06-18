@@ -63,7 +63,7 @@ vars_for_scoring = ['team_id', 'user_id', 'session_event_id',
                     'ankle_rot_lf', 'ankle_rot_rf',
                     'foot_position_lf', 'foot_position_rf',
                     'land_pattern_lf', 'land_pattern_rf', 'land_time',
-                    'LeX','HeX','ReX']
+                    'LeX', 'HeX', 'ReX']
 
 
 column_scoring_out = ['user_id', 'session_event_id', 'obs_index',
