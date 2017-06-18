@@ -22,8 +22,8 @@ WORKDIR /opt/biometrix/preprocessing
 
 COPY ./docker/entrypoint.sh .
 RUN chmod a+x /opt/biometrix/preprocessing/entrypoint.sh
-
-COPY ./app/src/Version_2.2 .
+ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
 
 USER root
-ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
+
+COPY ./app/src/Version_2.2 .
