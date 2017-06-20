@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 import psycopg2
 import psycopg2.extras
+from keras.models import load_model
 
 import columnNames as cols
 import sessionProcessQueries as queries
@@ -31,7 +32,8 @@ def send_batches_of_data(file_path, config, aws=True):
 
     # Mechanical Stress
     # load model
-    mstress_fit = load_mechanical_stress_model(config=config)
+    grf_fit = load_grf_model(config=config)
+    sc = load_grf_scaler(config=config)
 
     # read sensor data
     try:
@@ -52,7 +54,7 @@ def send_batches_of_data(file_path, config, aws=True):
     sdata['obs_master_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
     # Process the data
-    output_data_batch = runAnalytics.run_session(sdata, None, mass, mstress_fit, AWS)
+    output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, AWS)
 
     # Prepare data for dumping
     output_data_batch = output_data_batch.replace('None', '')
@@ -71,7 +73,7 @@ def load_user_mass(sdata, config):
 
     # FIXME
     if config.DB_HOST == 'MOCK' and config.DB_NAME == 'MOCK':
-        return 60
+        return 70
 
     try:
         (conn, cur) = _connect_db(config=config)
@@ -82,13 +84,24 @@ def load_user_mass(sdata, config):
         raise error
     else:
         if mass is None:
-            mass = 60
+            mass = 70
+        else:
+            mass = mass*0.453592
 
     return mass
 
 
-def load_mechanical_stress_model(config):
+def load_grf_model(config):
     path = os.path.join(config.MS_MODEL_PATH, config.MS_MODEL)
+    _logger("Loading model from {}".format(path))
+    return load_model(path)
+#    with open(path) as model_file:
+#        return pickle.load(model_file)
+
+
+def load_grf_scaler(config):
+    #TODO(Stephen) need to define path for scaler (same location as grf_model)
+    path = os.path.join(config.SCALER_PATH, config.SCALER)
     _logger("Loading model from {}".format(path))
     with open(path) as model_file:
         return pickle.load(model_file)
