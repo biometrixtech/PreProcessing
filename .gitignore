@@ -8,3 +8,4 @@ app/src/Version_2.1/*/*.pyc
 app/src/Version_2.1/*/*.pyc
 app/src/Version_2.1/*/*.csv
 app/src/Under_Construction/integration_testing/*/*.pyc
+.DS_Store
