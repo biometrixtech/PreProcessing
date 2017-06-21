@@ -32,7 +32,7 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def run_scoring(sensor_data, file_name, config):
+def run_scoring(sensor_data, file_name, data, config):
     """Creates object attributes according to block analysis process.
 
     Args:
@@ -45,20 +45,19 @@ def run_scoring(sensor_data, file_name, config):
         Note: In case of completion for local run, returns movement table.
     """
 
-    data = pd.read_csv(sensor_data, usecols=cols.vars_for_scoring)
+    sdata = pd.read_csv(sensor_data, usecols=cols.vars_for_scoring)
     _logger('Data Read')
     del sensor_data
 
-    session_event_id = data.session_event_id[0]
-    user_id = data.user_id[0]
+    user_id = data.get('UserId', None)
     # CONTROL SCORE
     (
-        data['control'],
-        data['hip_control'],
-        data['ankle_control'],
-        data['control_lf'],
-        data['control_rf']
-    ) = control_score(data.LeX, data.ReX, data.HeX, data.ms_elapsed, data.phase_lf, data.phase_rf)
+        sdata['control'],
+        sdata['hip_control'],
+        sdata['ankle_control'],
+        sdata['control_lf'],
+        sdata['control_rf']
+    ) = control_score(sdata.LeX, sdata.ReX, sdata.HeX, sdata.ms_elapsed, sdata.phase_lf, sdata.phase_rf)
 
     _logger('DONE WITH CONTROL SCORES!')
     # SCORING
@@ -75,8 +74,8 @@ def run_scoring(sensor_data, file_name, config):
             s3 = S3FileSystem(anon=False)
             user_hist = pd.read_csv(s3.open('{}/{}'.format(config.S3_BUCKET_HISTORY, path), mode='rb'))
             user_hist.columns = cols.columns_hist
-        elif len(data.LeX) > 50000:
-            user_hist = data
+        elif len(sdata.LeX) > 50000:
+            user_hist = sdata
         else:
             _logger("There's no historical data and current data isn't long enough!")
             # Can't complete scoring, delete data from movement table and exit
@@ -98,63 +97,37 @@ def run_scoring(sensor_data, file_name, config):
 
     mech_stress_scale = 1000000
     (
-        data['consistency'],
-        data['hip_consistency'],
-        data['ankle_consistency'],
-        data['consistency_lf'],
-        data['consistency_rf'],
-        data['symmetry'],
-        data['hip_symmetry'],
-        data['ankle_symmetry'],
-        data['destr_multiplier'],
-        data['dest_mech_stress'],
-        data['const_mech_stress'],
-        data['block_duration'],
-        data['session_duration'],
-        data['block_mech_stress_elapsed'],
-        data['session_mech_stress_elapsed']
-    ) = score(data, user_hist, mech_stress_scale)
+        sdata['consistency'],
+        sdata['hip_consistency'],
+        sdata['ankle_consistency'],
+        sdata['consistency_lf'],
+        sdata['consistency_rf'],
+        sdata['symmetry'],
+        sdata['hip_symmetry'],
+        sdata['ankle_symmetry'],
+        sdata['destr_multiplier'],
+        sdata['dest_mech_stress'],
+        sdata['const_mech_stress'],
+        sdata['block_duration'],
+        sdata['session_duration'],
+        sdata['block_mech_stress_elapsed'],
+        sdata['session_mech_stress_elapsed']
+    ) = score(sdata, user_hist, mech_stress_scale)
     del user_hist
     _logger("DONE WITH SCORING!")
     gc.collect()
 
-    data.mech_stress = data.mech_stress/mech_stress_scale
+    sdata.mech_stress = sdata.mech_stress / mech_stress_scale
     # Round the data to 6th decimal point
-    data = data.round(6)
+    sdata = sdata.round(6)
 
     # Output data
     fileobj = open(config.FP_OUTPUT + '/' + file_name, 'wb')
-    data.to_csv(fileobj, index=False, na_rep='', columns=cols.column_scoring_out)
-    del data
+    sdata.to_csv(fileobj, index=False, na_rep='', columns=cols.column_scoring_out)
+    del sdata
     _logger("DONE WRITING OUTPUT FILE")
 
-    # conn, cur = _connect_db(config)
-    # cur.execute(queries.quer_update_session_events, (session_event_id,))
-    # conn.commit()
-    # conn.close()
-
-    _logger("DONE UPDATING DATABASE")
-
     return "Success!"
-
-
-def _connect_db(config):
-    """
-    Start a connection to the database
-    """
-    try:
-        conn = psycopg2.connect(
-            dbname=config.DB_NAME,
-            user=config.DB_USERNAME,
-            host=config.DB_HOST,
-            password=config.DB_PASSWORD)
-        cur = conn.cursor()
-
-    except psycopg2.Error as error:
-        logger.warning("Cannot connect to DB")
-        raise error
-    else:
-        return conn, cur
 
 
 def _logger(message):

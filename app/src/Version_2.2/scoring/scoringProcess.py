@@ -15,10 +15,6 @@ logger.info('Loading sessionProcess')
 
 Config = namedtuple('Config', [
     'AWS',
-    'DB_HOST',
-    'DB_NAME',
-    'DB_PASSWORD',
-    'DB_USERNAME',
     'ENVIRONMENT',
     'FP_INPUT',
     'FP_OUTPUT',
@@ -27,17 +23,13 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(filenames):
+def script_handler(filenames, data):
 
     logger.info('Received scoring request for {}'.format(", ".join(filenames)))
 
     try:
         config = Config(
             AWS=False,
-            DB_HOST=os.environ['DB_HOST'],
-            DB_NAME=os.environ['DB_NAME'],
-            DB_PASSWORD=os.environ['DB_PASSWORD'],
-            DB_USERNAME=os.environ['DB_USERNAME'],
             ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT='/net/efs/scoring/input',
             FP_OUTPUT='/net/efs/scoring/output',
@@ -64,7 +56,7 @@ def script_handler(filenames):
         else:
             file_name = filenames[0]
 
-        result = runScoring.run_scoring(stream, file_name, config=config)
+        result = runScoring.run_scoring(stream, file_name, data, config=config)
         logger.info('outcome:' + result)
         return 'success'
 
