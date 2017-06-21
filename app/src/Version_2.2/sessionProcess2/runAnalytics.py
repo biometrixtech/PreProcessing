@@ -167,7 +167,7 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     # set grf value below certain threshold to 0
     grf[grf<=.1]=0
     # fill in nans for rows with missing predictors
-    length = len(data)
+    length = len(data_in)
     grf_temp = np.ones(length)
     grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
     #Insert nan for grf where data needed to predict was missing
@@ -248,6 +248,12 @@ def _filter_data(X, cutoff=12, fs=100, order=4):
 
 #%%
 if __name__ == "__main__":
-    sensor_data = 'C:\\Users\\dipesh\\Desktop\\biometrix\\aws\\c4ed8189-6e1d-47c3-9cc5-446329b10796'
-    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
-    result = run_session(sensor_data, file_name, aws=False)
+    from keras.models import load_model
+    import pickle
+    sensor_data = pd.read_csv('/Users/dipeshgautam/Desktop/biometrix/test_sessionProcess/c1ecad3c-857a-408e-b07a-5f4e670d1f15')
+    grf_fit = load_model('/Users/dipeshgautam/Desktop/biometrix/mech_stress_run/grf_model_v2_0.h5')
+    with open('/Users/dipeshgautam/Desktop/biometrix/mech_stress_run/scaler_model_v2_0.h5') as model_file:
+        sc = pickle.load(model_file)
+    
+#    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
+    result = run_session(sensor_data, None, 70, grf_fit, sc, aws=False)
