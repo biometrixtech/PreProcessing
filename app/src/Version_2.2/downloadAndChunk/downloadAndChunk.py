@@ -5,6 +5,7 @@ import boto3
 import glob
 import logging
 import os
+import pandas
 import subprocess
 import sys
 
@@ -62,18 +63,12 @@ def script_handler(s3_bucket, s3_path, chunk_size=100):
             )
         )
 
+        # Get the user_id from the first row
+        sdata = pandas.read_csv(tmp_filename, nrows=1)
+        user_id = sdata['user_id'][0]
+
         # Strip the header from the file
         os.system('tail -n +2 {tmp_filename} > {tmp_filename}-body'.format(tmp_filename=tmp_filename))
-
-        # Get the user_id from the first row
-        firstline_filename = '{base_fn}-firstline'.format(base_fn=tmp_filename)
-        os.system(
-            'head -n 1 {tmp_filename} > {firstline_filename}'.format(
-                tmp_filename=tmp_filename,
-                firstline_filename=firstline_filename
-            )
-        )
-        with
 
         # Divide file into chunks
         body_filename = tmp_filename + '-body'
@@ -105,7 +100,7 @@ def script_handler(s3_bucket, s3_path, chunk_size=100):
         os.remove(header_filename)
 
         logger.info('Finished processing "{}/{}" into {} chunks'.format(s3_bucket, s3_path, chunks))
-        return all_output_files
+        return all_output_files, user_id
 
     except Exception as e:
         logger.info(e)

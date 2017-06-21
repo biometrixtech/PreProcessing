@@ -59,8 +59,8 @@ if __name__ == '__main__':
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
             from downloadAndChunk import downloadAndChunk
-            all_output_files = downloadAndChunk.script_handler(input_data.get('S3Bucket', None), input_data.get('S3Path', None))
-            send_success(meta_data, {"Filenames": all_output_files})
+            all_output_files, user_id = downloadAndChunk.script_handler(input_data.get('S3Bucket', None), input_data.get('S3Path', None))
+            send_success(meta_data, {"Filenames": all_output_files, "UserId": user_id})
 
         elif script == 'sessionprocess2':
             print('Running downloadAndChunk()')
