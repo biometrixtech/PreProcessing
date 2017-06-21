@@ -17,6 +17,7 @@ from keras.models import load_model
 
 import columnNames as cols
 import sessionProcessQueries as queries
+import prePreProcessing as ppp
 import runAnalytics
 
 logger = logging.getLogger()
@@ -30,7 +31,7 @@ def send_batches_of_data(file_path, config, aws=True):
 
     _logger("STARTED PROCESSING!")
 
-    # Mechanical Stress
+    # GRF
     # load model
     grf_fit = load_grf_model(config=config)
     sc = load_grf_scaler(config=config)
@@ -49,7 +50,9 @@ def send_batches_of_data(file_path, config, aws=True):
     #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     # read user mass
     mass = load_user_mass(sdata, config=config)
+    sdata = ppp.subset_data(old_data=sdata)
 
+    sdata['time_stamp'], sdata['ms_elapsed'] = ppp.convert_epochtime_datetime_mselapsed(sdata.epoch_time)
     size = len(sdata)
     sdata['obs_master_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
