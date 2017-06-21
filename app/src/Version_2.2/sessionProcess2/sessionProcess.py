@@ -15,10 +15,6 @@ logger.info('Loading sessionProcess')
 
 Config = namedtuple('Config', [
     'AWS',
-    'DB_HOST',
-    'DB_NAME',
-    'DB_PASSWORD',
-    'DB_USERNAME',
     'ENVIRONMENT',
     'FP_INPUT',
     'FP_OUTPUT',
@@ -29,17 +25,13 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(filepath):
+def script_handler(filepath, data):
 
     logger.info('Received sessionProcess request for {}'.format(filepath))
 
     try:
         config = Config(
             AWS=False,
-            DB_HOST=os.environ['DB_HOST'],
-            DB_NAME=os.environ['DB_NAME'],
-            DB_PASSWORD=os.environ['DB_PASSWORD'],
-            DB_USERNAME=os.environ['DB_USERNAME'],
             ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT='/net/efs/sessionprocess2/input',
             FP_OUTPUT='/net/efs/sessionprocess2/output',
@@ -48,7 +40,7 @@ def script_handler(filepath):
             MS_MODEL_BUCKET='biometrix-globalmodels',
             MS_MODEL_PATH='/net/efs/globalmodels',
         )
-        result = idb.send_batches_of_data(filepath, config=config)
+        result = idb.send_batches_of_data(filepath, data, config=config)
         logger.info('outcome:' + result)
         return 'success'
 
@@ -59,4 +51,4 @@ def script_handler(filepath):
 
 if __name__ == '__main__':
     file_name = sys.argv[1]
-    script_handler(file_name)
+    script_handler(file_name, {"UserMass": 65})

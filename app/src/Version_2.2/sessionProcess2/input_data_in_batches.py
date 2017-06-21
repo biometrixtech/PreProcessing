@@ -22,7 +22,7 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def send_batches_of_data(file_path, config, aws=True):
+def send_batches_of_data(file_path, data, config, aws=True):
     
     global AWS
     AWS = aws
@@ -46,7 +46,7 @@ def send_batches_of_data(file_path, config, aws=True):
 
     #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     # read user mass
-    mass = load_user_mass(sdata, config=config)
+    mass = load_user_mass(data)
 
     size = len(sdata)
     sdata['obs_master_index'] = np.array(range(size)).reshape(-1, 1) + 1
@@ -66,25 +66,8 @@ def send_batches_of_data(file_path, config, aws=True):
     return "Success!"
 
 
-def load_user_mass(sdata, config):
-    user_id = sdata['user_id'][0]
-
-    # FIXME
-    if config.DB_HOST == 'MOCK' and config.DB_NAME == 'MOCK':
-        return 60
-
-    try:
-        (conn, cur) = _connect_db(config=config)
-        cur.execute(queries.quer_read_mass, (user_id,))
-        mass = cur.fetchall()[0][0]
-    except psycopg2.Error as error:
-        _logger("Cannot read user's mass", info=False)
-        raise error
-    else:
-        if mass is None:
-            mass = 60
-
-    return mass
+def load_user_mass(data):
+    return data.get('UserMass', 60)
 
 
 def load_mechanical_stress_model(config):
@@ -102,22 +85,3 @@ def _logger(message, info=True):
             logger.warning(message)
     else:
         print message
-        
-
-def _connect_db(config):
-    """
-    Start a connection to the database
-    """
-    try:
-        conn = psycopg2.connect(
-            dbname=config.DB_NAME,
-            user=config.DB_USERNAME,
-            host=config.DB_HOST,
-            password=config.DB_PASSWORD)
-        cur = conn.cursor()
-
-    except psycopg2.Error as error:
-        logger.warning("Cannot connect to DB")
-        raise error
-    else:
-        return conn, cur

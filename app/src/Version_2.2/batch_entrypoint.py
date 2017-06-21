@@ -64,9 +64,12 @@ if __name__ == '__main__':
 
         elif script == 'sessionprocess2':
             print('Running downloadAndChunk()')
-            load_parameters(['DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME', 'MS_MODEL'])
+            load_parameters(['MS_MODEL'])
             from sessionProcess2 import sessionProcess
-            sessionProcess.script_handler(input_data.get('Filename', None))
+            sessionProcess.script_handler(
+                input_data.get('Filename', None),
+                input_data.get('Data', {})
+            )
             send_success(meta_data, {})
 
         elif script == 'noop':
