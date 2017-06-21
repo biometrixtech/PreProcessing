@@ -65,6 +65,16 @@ def script_handler(s3_bucket, s3_path, chunk_size=100):
         # Strip the header from the file
         os.system('tail -n +2 {tmp_filename} > {tmp_filename}-body'.format(tmp_filename=tmp_filename))
 
+        # Get the user_id from the first row
+        firstline_filename = '{base_fn}-firstline'.format(base_fn=tmp_filename)
+        os.system(
+            'head -n 1 {tmp_filename} > {firstline_filename}'.format(
+                tmp_filename=tmp_filename,
+                firstline_filename=firstline_filename
+            )
+        )
+        with
+
         # Divide file into chunks
         body_filename = tmp_filename + '-body'
         subprocess.call([
