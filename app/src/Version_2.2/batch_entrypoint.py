@@ -79,11 +79,11 @@ if __name__ == '__main__':
         elif script == 'scoring':
             print('Running scoring()')
             from scoring import scoringProcess
-            scoringProcess.script_handler(
+            output_file = scoringProcess.script_handler(
                 input_data.get('Filenames', None),
                 input_data.get('Data', {})
             )
-            send_success(meta_data, {})
+            send_success(meta_data, {"Filename": output_file})
 
     except Exception:
         send_failure(meta_data)

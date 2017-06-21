@@ -58,7 +58,7 @@ def script_handler(filenames, data):
 
         result = runScoring.run_scoring(stream, file_name, data, config=config)
         logger.info('outcome:' + result)
-        return 'success'
+        return config.FP_OUTPUT + '/' + file_name
 
     except Exception as e:
         logger.info(e)
