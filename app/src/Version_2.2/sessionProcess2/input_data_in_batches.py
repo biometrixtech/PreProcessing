@@ -37,7 +37,7 @@ def send_batches_of_data(file_path, config, aws=True):
 
     # read sensor data
     try:
-        sdata = pd.read_csv(config.FP_INPUT + '/' + file_path, nrows=900000)
+        sdata = pd.read_csv(config.FP_INPUT + '/' + file_path)
     except Exception as error:
         _logger("Cannot load data!", info=False)
         raise error
@@ -51,7 +51,7 @@ def send_batches_of_data(file_path, config, aws=True):
     mass = load_user_mass(sdata, config=config)
 
     size = len(sdata)
-    sdata['obs_master_index'] = np.array(range(size)).reshape(-1, 1) + 1
+    sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
     # Process the data
     output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, AWS)
