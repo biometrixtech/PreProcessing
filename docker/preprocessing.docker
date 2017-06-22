@@ -1,30 +1,24 @@
 FROM python:2.7
 
-RUN apt-get update && apt-get install -y \
-    awscli \
-    nano \
-    nfs-common \
-    python-pip
-
-RUN pip install \
-    boto3 \
-    enum34 \
-    pandas \
-    psycopg2 \
-    s3fs \
-    scikit-learn
-
-# Scipy is huge, install it separately
-RUN pip install scipy
-
+# Set up users and directories
+USER root
 RUN mkdir /net /net/efs
-
 WORKDIR /opt/biometrix/preprocessing
 
+# Install packages
+RUN apt-get update && apt-get install -y \
+    nfs-common \
+    python-pip \
+  && apt-get clean
+
+# Set up entrypoint
 COPY ./docker/entrypoint.sh .
 RUN chmod a+x /opt/biometrix/preprocessing/entrypoint.sh
 ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
 
-USER root
+# Install python dependencies
+COPY app/src/Version_2.2/pip_requirements .
+RUN pip install -r pip_requirements
 
+# Copy application code
 COPY ./app/src/Version_2.2 .
