@@ -92,6 +92,7 @@ def load_user_mass(sdata, config):
 
 
 def load_grf_model(config):
+#TODO(Stephen) Verify this is correct.
     path = os.path.join(config.MS_MODEL_PATH, config.MS_MODEL)
     _logger("Loading model from {}".format(path))
     return load_model(path)
