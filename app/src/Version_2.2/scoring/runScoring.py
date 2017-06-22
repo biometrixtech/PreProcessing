@@ -58,7 +58,7 @@ def run_scoring(sensor_data, file_name, config):
         data['ankle_control'],
         data['control_lf'],
         data['control_rf']
-    ) = control_score(data.LeX, data.ReX, data.HeX, data.ms_elapsed, data.phase_lf, data.phase_rf)
+    ) = control_score(data.LeX, data.ReX, data.HeX, data.phase_lf, data.phase_rf)
 
     _logger('DONE WITH CONTROL SCORES!')
     # SCORING

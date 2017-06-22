@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 
-def control_score(LeX, HeX, ReX, ms_elapsed, phase_lf, phase_rf):
+def control_score(LeX, HeX, ReX, phase_lf, phase_rf):
     """Calculates instantaneous control scores
     Scoring is based on standard deviation of euler angle (x) within a certian
     window.
@@ -18,35 +18,34 @@ def control_score(LeX, HeX, ReX, ms_elapsed, phase_lf, phase_rf):
         LeX: left euler X
         ReX: right euler X
         HeX: hip euler x
-        ms_elapsed: time in milliseconds since last sample
         phase_lf: left foot phase
         phase_rf: right foot phase
     Returns:
         control, hip_control, ankle_control, control_lf, control_rf scores for
         each timepoint all these should be (n,1) numpy arrays
-
-    Note:
-    Pandas 0.19 has a feature to get rolling calculation based on time window
-    rather than number of points which will make calculations more efficient.
     """
     N = int(120/10.) + 1
+    M = 5
     LeX_copy = np.array(LeX)
     ReX_copy = np.array(ReX)
     HeX_copy = np.array(HeX)
     LeX_copy[np.array([i not in [0, 1, 4] for i in phase_lf])] = np.nan
     ReX_copy[np.array([i not in [0, 2, 5] for i in phase_rf])] = np.nan
-    HeX_copy[phase_lf == 3] = np.nan
-    
+    HeX_copy[np.array([i==3 for i in phase_lf])] = np.nan
+
+    #TODO(Dipesh) Handle weird jumps in euler angles/ possibly add handling of missing data)    
     LeX_pd = pd.Series(LeX_copy.reshape(-1,))
     HeX_pd = pd.Series(HeX_copy.reshape(-1,))
     ReX_pd = pd.Series(ReX_copy.reshape(-1,))
 
-    score_raw_l = LeX_pd.rolling(min_periods=N, window=N, center=True).std()
-    score_raw_h = HeX_pd.rolling(min_periods=N, window=N, center=True).std()
-    score_raw_r = ReX_pd.rolling(min_periods=N, window=N, center=True).std()
-
+    score_raw_l = LeX_pd.rolling(min_periods=M, window=N, center=True).std()
+    score_raw_h = HeX_pd.rolling(min_periods=M, window=N, center=True).std()
+    score_raw_r = ReX_pd.rolling(min_periods=M, window=N, center=True).std()
+    score_raw_l[np.isnan(LeX_pd)] = np.nan
+    score_raw_h[np.isnan(HeX_pd)] = np.nan
+    score_raw_r[np.isnan(ReX_pd)] = np.nan
     #TODO(Dipesh) Need to update the bounds based on data
-    upper = .25 # upper bound for what sd is considered 0 score
+    upper = .20 # upper bound for what sd is considered 0 score
     lower = 0. # lower bound for what sd is considered 100,
     score_raw_l[score_raw_l >= upper] = upper
     score_raw_l[score_raw_l <= lower] = lower
