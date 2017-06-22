@@ -65,7 +65,11 @@ def script_handler(s3_bucket, s3_path, chunk_size=100):
 
         # Get the user_id from the first row
         sdata = pandas.read_csv(tmp_filename, nrows=1)
-        user_id = sdata['user_id'][0]
+        res = {
+            "UserId": sdata['user_id'][0],
+            "SessionEventId": sdata['session_event_id'][0],
+            "Filenames": []
+        }
 
         # Strip the header from the file
         os.system('tail -n +2 {tmp_filename} > {tmp_filename}-body'.format(tmp_filename=tmp_filename))
@@ -80,8 +84,6 @@ def script_handler(s3_bucket, s3_path, chunk_size=100):
         ])
 
         # Prepend the column headers to each file and copy to the EFS directory
-        chunks = 0
-        all_output_files = []
         for file in glob.glob(tmp_filename + '-[0-9]*'):
             file_name = os.path.basename(file)
 
@@ -92,15 +94,14 @@ def script_handler(s3_bucket, s3_path, chunk_size=100):
             os.remove(file)
 
             logger.info('Processed "{}" chunk'.format(file))
-            chunks += 1
-            all_output_files.append(file_name)
+            res['Filenames'].append(file_name)
 
         os.remove(tmp_filename)
         os.remove(body_filename)
         os.remove(header_filename)
 
-        logger.info('Finished processing "{}/{}" into {} chunks'.format(s3_bucket, s3_path, chunks))
-        return all_output_files, user_id
+        logger.info('Finished processing "{}/{}" into {} chunks'.format(s3_bucket, s3_path, len(res['Filenames'])))
+        return res
 
     except Exception as e:
         logger.info(e)
