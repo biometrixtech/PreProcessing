@@ -85,6 +85,13 @@ if __name__ == '__main__':
             )
             send_success(meta_data, {"Filename": output_file})
 
+        elif script == 'writemongo':
+            print('Uploading to mongodb database')
+            from writemongo import writemongo
+            writemongo.script_handler(
+                input_data.get('Filename', None)
+            )
+
     except Exception:
         send_failure(meta_data)
         raise
