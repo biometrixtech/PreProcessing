@@ -58,7 +58,7 @@ def script_handler(filenames, data):
 
         result = runScoring.run_scoring(stream, file_name, data, config=config)
         logger.info('outcome:' + result)
-        return config.FP_OUTPUT + '/' + file_name
+        return file_name
 
     except Exception as e:
         logger.info(e)
@@ -67,4 +67,4 @@ def script_handler(filenames, data):
 
 if __name__ == '__main__':
     argv_file_name = json.loads(sys.argv[1])
-    script_handler(argv_file_name)
+    script_handler(argv_file_name, {"UserMass": 60, "SessionEventId": "7c6b5f4f-afd8-4793-8f76-dc57b985d4b6"})
