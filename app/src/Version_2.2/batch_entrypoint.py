@@ -63,7 +63,9 @@ if __name__ == '__main__':
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
             from downloadAndChunk import downloadAndChunk
-            res = downloadAndChunk.script_handler(input_data.get('S3Bucket', None), input_data.get('S3Path', None))
+            res = downloadAndChunk.script_handler(
+                input_data.get('S3Bucket', None),
+                input_data.get('S3Path', None))
             send_success(meta_data, res)
 
         elif script == 'sessionprocess2':
@@ -74,7 +76,7 @@ if __name__ == '__main__':
             from sessionProcess2 import sessionProcess
             sessionProcess.script_handler(
                 input_data.get('Filename', None),
-                input_data.get('Data', {})
+                input_data
             )
             send_success(meta_data, {})
 
@@ -87,7 +89,7 @@ if __name__ == '__main__':
             from scoring import scoringProcess
             output_file = scoringProcess.script_handler(
                 input_data.get('Filenames', None),
-                input_data.get('Data', {})
+                input_data
             )
             send_success(meta_data, {"Filename": output_file})
 
