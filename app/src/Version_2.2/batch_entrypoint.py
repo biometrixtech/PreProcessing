@@ -93,13 +93,14 @@ if __name__ == '__main__':
 
         elif script == 'writemongo':
             print('Uploading to mongodb database')
+            load_parameters(['MONGO_HOST', 'MONGO_USER', 'MONGO_PASSWORD', 'MONGO_DATABASE'])
             from writemongo import writemongo
             writemongo.script_handler(
                 input_data.get('Filename', None)
             )
 
-    except Exception:
-        send_failure(meta_data)
+    except Exception as e:
+        send_failure(meta_data, e)
         raise
 
 
