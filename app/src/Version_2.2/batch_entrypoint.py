@@ -33,7 +33,7 @@ def send_failure(meta, exception):
         sfn_client.send_task_failure(
             taskToken=meta['TaskToken'],
             error="An exception was thrown",
-            cause=json.dumps(exception)
+            cause=repr(exception)
         )
 
 
