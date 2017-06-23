@@ -46,18 +46,18 @@ def send_batches_of_data(file_path, data, config, aws=True):
         return "Fail!"
     _logger("DATA LOADED!")
 
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     # read user mass
     mass = load_user_mass(data)
 
     size = len(sdata)
     sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
+    hip_n_transform = data.get('HipNTransform', [])
+
     # Process the data
-    # TODO(Stephen) need to add code to load hip_n_transform (read as a list)
     # and pass it as argument to run_session as
     # run_session(sdata, None, mass, grf_fit, sc, hip_n_transform, AWS)
-    output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, AWS)
+    output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, hip_n_transform, AWS)
 
     # Prepare data for dumping
     output_data_batch = output_data_batch.replace('None', '')
@@ -72,13 +72,14 @@ def send_batches_of_data(file_path, data, config, aws=True):
 
 
 def load_user_mass(data):
-    return data.get('UserMass', 70) * 0.453592
+    return float(data.get('UserMass', 70)) * 0.453592
 
 
 def load_grf_model(config):
     path = os.path.join(config.MS_MODEL_PATH, config.MS_MODEL)
     _logger("Loading grf model from {}".format(path))
     return load_model(path)
+
 
 def load_grf_scaler(config):
     path = os.path.join(config.MS_SCALER_PATH, config.MS_SCALER)
