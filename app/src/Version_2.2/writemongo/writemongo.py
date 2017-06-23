@@ -38,7 +38,6 @@ def script_handler(file_name):
             MONGO_DATABASE=os.environ['MONGO_DATABASE'],
             MONGO_COLLECTION=os.environ['MONGO_COLLECTION'],
         )
-        return
 
         mongo_client = MongoClient(config.MONGO_HOST)
         mongo_database = mongo_client[config.MONGO_DATABASE]
