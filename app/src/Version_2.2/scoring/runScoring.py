@@ -15,9 +15,9 @@ Output data stored in TrainingEvents or BlockEvents table.
 
 """
 from __future__ import print_function
-import gc
 import logging
 import pandas as pd
+import numpy as np
 import psycopg2
 import psycopg2.extras
 import boto3
@@ -25,7 +25,6 @@ from s3fs.core import S3FileSystem
 
 from controlScore import control_score
 from scoring import score
-import scoringProcessQueries as queries
 import columnNames as cols
 
 logger = logging.getLogger()
@@ -45,7 +44,7 @@ def run_scoring(sensor_data, file_name, data, config):
         Note: In case of completion for local run, returns movement table.
     """
 
-    sdata = pd.read_csv(sensor_data, usecols=cols.vars_for_scoring)
+    sdata = pd.read_csv(sensor_data)
     _logger('Data Read')
     del sensor_data
 
@@ -60,12 +59,12 @@ def run_scoring(sensor_data, file_name, data, config):
     ) = control_score(sdata.LeX, sdata.ReX, sdata.HeX, sdata.phase_lf, sdata.phase_rf)
 
     _logger('DONE WITH CONTROL SCORES!')
-    # SCORING
-    # Symmetry, Consistency, Destructive/Constructive Multiplier and
-    # Duration
-    # At this point we need to load the historical data for the subject
-
-    # read historical data
+#     SCORING
+#     Symmetry, Consistency, Destructive/Constructive Multiplier and
+#     Duration
+#     At this point we need to load the historical data for the subject
+#
+#     read historical data
     try:
         path = "{}/{}".format(config.ENVIRONMENT, user_id)
         s3 = boto3.resource('s3')
@@ -93,9 +92,8 @@ def run_scoring(sensor_data, file_name, data, config):
                 raise IOError("User history not found in s3/local directory")
 
     _logger("user history captured")
-    gc.collect()
 
-    mech_stress_scale = 1000000
+    grf_scale = 1000000
     (
         sdata['consistency'],
         sdata['hip_consistency'],
@@ -106,20 +104,25 @@ def run_scoring(sensor_data, file_name, data, config):
         sdata['hip_symmetry'],
         sdata['ankle_symmetry'],
         sdata['destr_multiplier'],
-        sdata['dest_mech_stress'],
-        sdata['const_mech_stress'],
-        sdata['block_duration'],
+        sdata['dest_grf'],
+        sdata['const_grf'],
         sdata['session_duration'],
-        sdata['block_mech_stress_elapsed'],
-        sdata['session_mech_stress_elapsed']
-    ) = score(sdata, user_hist, mech_stress_scale)
+        sdata['session_grf_elapsed']
+    ) = score(sdata, user_hist, grf_scale)
     del user_hist
     _logger("DONE WITH SCORING!")
-    gc.collect()
 
-    sdata.mech_stress = sdata.mech_stress / mech_stress_scale
+    sdata.grf = sdata.grf / grf_scale
     # Round the data to 6th decimal point
     sdata = sdata.round(6)
+
+    # Add nans for future variables
+    sdata['symmetry_l'] = np.nan
+    sdata['symmetry_r'] = np.nan
+    sdata['hip_symmetry_l'] = np.nan
+    sdata['hip_symmetry_r'] = np.nan
+    sdata['ankle_symmetry_l'] = np.nan
+    sdata['ankle_symmetry_r'] = np.nan
 
     # Output data
     fileobj = open(config.FP_OUTPUT + '/' + file_name, 'wb')
@@ -132,5 +135,4 @@ def run_scoring(sensor_data, file_name, data, config):
 
 def _logger(message):
     print(message)
-
 
