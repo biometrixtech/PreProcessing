@@ -36,9 +36,9 @@ def send_batches_of_data(file_path, data, config, aws=True):
     # read sensor data
     try:
         sdata = pd.read_csv(config.FP_INPUT + '/' + file_path, nrows=900000)
-    except Exception as error:
+    except:
         _logger("Cannot load data!", info=False)
-        raise error
+        raise
     if len(sdata) == 0:
         _logger("Sensor data is empty!", info=False)
         return "Fail!"
