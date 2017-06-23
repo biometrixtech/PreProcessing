@@ -54,6 +54,9 @@ def send_batches_of_data(file_path, data, config, aws=True):
     sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
     # Process the data
+    # TODO(Stephen) need to add code to load hip_n_transform (read as a list)
+    # and pass it as argument to run_session as
+    # run_session(sdata, None, mass, grf_fit, sc, hip_n_transform, AWS)
     output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, AWS)
 
     # Prepare data for dumping
