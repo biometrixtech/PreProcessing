@@ -38,29 +38,27 @@ def send_failure(meta, exception):
 
 
 def load_parameters(keys):
-    print('Retrieving configuration from SSM')
-    ssm_client = boto3.client('ssm', region_name='us-east-1')
-    response = ssm_client.get_parameters(
-        Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in keys],
-        WithDecryption=True
-    )
-    params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
-    # Export to environment
-    for k, v in params.items():
-        os.environ[k] = v
-    return params
+    keys_to_load = [key for key in keys if key.upper() not in os.environ]
+    if len(keys_to_load) > 0:
+        print('Retrieving configuration for [{}] from SSM'.format(", ".join(keys_to_load)))
+        ssm_client = boto3.client('ssm', region_name='us-east-1')
+        response = ssm_client.get_parameters(
+            Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in keys_to_load],
+            WithDecryption=True
+        )
+        params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
+        # Export to environment
+        for k, v in params.items():
+            os.environ[k] = v
 
 
 if __name__ == '__main__':
     input_data = meta_data = None
-    print(sys.argv)
 
     try:
         script = sys.argv[1]
         input_data = json.loads(sys.argv[2])
         meta_data = json.loads(sys.argv[3])
-
-        print([script, input_data, meta_data])
 
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
@@ -70,7 +68,7 @@ if __name__ == '__main__':
 
         elif script == 'sessionprocess2':
             print('Running downloadAndChunk()')
-            load_parameters(['MS_MODEL'])
+            load_parameters(['MS_MODEL', 'MS_SCALER'])
             from sessionProcess2 import sessionProcess
             sessionProcess.script_handler(
                 input_data.get('Filename', None),

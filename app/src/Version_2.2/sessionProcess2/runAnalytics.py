@@ -18,8 +18,10 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras
 
+from scipy.signal import butter, filtfilt
+
 import dataObject as do
-from mechStressTraining import prepare_data
+from prep_grf_data import prepare_data
 import movementAttrib as matrib
 import balanceCME as cmed
 import impactCME as impact
@@ -32,7 +34,7 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def run_session(data_in, file_name, mass, mstress_fit, aws=True):
+def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     """Creates object attributes according to session analysis process.
 
     Args:
@@ -40,6 +42,9 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
             epoch_time, corrupt_magn, missing_type, LaX, LaY, LaZ, LqX, LqY,
             LqZ, HaX, HaY, HaZ, HqX, HqY, HqZ, RaX, RaY, RaZ, RqX, RqY, RqZ
         file_name: sensor_data_filename in DB
+        mass: user's mass in kg
+        grf_fit: keras fitted model for grf prediction
+        sc: scaler model to scale data
         aws: Boolean indicator for whether we're running locally or on amazon
             aws
     
@@ -149,17 +154,30 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
     _logger('DONE WITH IMPACT CME!')
     #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
+    # prepare data for grf prediction
+    data.mass = mass*9.807/1000 # convert mass from kg to kN
+    grf_data, nan_row = prepare_data(data, sc)
 
-    ms_data, nan_row = prepare_data(data, False)
-   
-    # calculate mechanical stress
-    data.mech_stress = np.abs(mstress_fit.predict(ms_data).reshape(-1, 1))
-    #Insert nan for mech_stress where data needed to predict was missing
+    # predict grf
+    grf = grf_fit.predict(grf_data).reshape(-1,)
+
+    # pass predicted data through low-pass filter
+    grf = _filter_data(grf, cutoff=12)
+
+    # set grf value below certain threshold to 0
+    grf[grf<=.1]=0
+    # fill in nans for rows with missing predictors
+    length = len(data)
+    grf_temp = np.ones(length)
+    grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
+    #Insert nan for grf where data needed to predict was missing
     if len(nan_row) != 0:
         for i in nan_row:
-            data.mech_stress = np.insert(data.mech_stress, i, np.nan, axis=0)
-    data.mech_stress[np.array([i == 3 for i in data.phase_lf])] = np.nan
-    del ms_data, nan_row, mstress_fit
+            grf_temp[i] = np.nan
+
+    data.grf = grf_temp*1000
+    
+    del grf_data, nan_row, grf_fit, grf, grf_temp
     _logger('DONE WITH MECH STRESS!')
 #%%
     # RATE OF FORCE ABSORPTION
@@ -206,7 +224,7 @@ def run_session(data_in, file_name, mass, mstress_fit, aws=True):
     
     return scoring_data
 
-#%%
+#%% helper function
 def _logger(message, info=True):
     if AWS:
         if info:
@@ -215,6 +233,18 @@ def _logger(message, info=True):
             logger.warning(message)
     else:
         print message
+
+def _filter_data(X, cutoff=12, fs=100, order=4):
+    """forward-backward lowpass butterworth filter
+    defaults:
+        cutoff freq: 12hz
+        sampling rage: 100hz
+        order: 4"""
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff/nyq
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    X_filt = filtfilt(b, a, X, axis=0)
+    return X_filt
 
 #%%
 if __name__ == "__main__":

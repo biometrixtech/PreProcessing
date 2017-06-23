@@ -19,9 +19,10 @@ Config = namedtuple('Config', [
     'FP_INPUT',
     'FP_OUTPUT',
     'KMS_REGION',
-    'MS_MODEL',
-    'MS_MODEL_BUCKET',
     'MS_MODEL_PATH',
+    'MS_MODEL',
+    'MS_SCALER_PATH',
+    'MS_SCALER',
 ])
 
 
@@ -36,9 +37,10 @@ def script_handler(filepath, data):
             FP_INPUT='/net/efs/sessionprocess2/input',
             FP_OUTPUT='/net/efs/sessionprocess2/output',
             KMS_REGION='us-west-2',
-            MS_MODEL=os.environ['MS_MODEL'],
-            MS_MODEL_BUCKET='biometrix-globalmodels',
             MS_MODEL_PATH='/net/efs/globalmodels',
+            MS_MODEL=os.environ['MS_MODEL'],
+            MS_SCALER_PATH='/net/efs/globalscalers',
+            MS_SCALER=os.environ['MS_SCALER'],
         )
         result = idb.send_batches_of_data(filepath, data, config=config)
         logger.info('outcome:' + result)
