@@ -67,8 +67,10 @@ if __name__ == '__main__':
             send_success(meta_data, res)
 
         elif script == 'sessionprocess2':
-            print('Running downloadAndChunk()')
+            print('Running sessionprocess2()')
             load_parameters(['MS_MODEL', 'MS_SCALER'])
+            # Use theano backend for keras
+            os.environ['KERAS_BACKEND'] = 'theano'
             from sessionProcess2 import sessionProcess
             sessionProcess.script_handler(
                 input_data.get('Filename', None),
