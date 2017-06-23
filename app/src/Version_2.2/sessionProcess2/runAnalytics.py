@@ -29,6 +29,8 @@ import rateofForceAbsorption as fa
 import columnNames as cols
 import phaseDetection as phase
 from detectImpactPhaseIntervals import detect_start_end_imp_phase
+import quatConvs as qc
+import prePreProcessing as ppp
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -58,12 +60,14 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     AWS = aws
     COLUMN_SESSION2_OUT = cols.column_session2_out
     columns = data_in.columns
+    data_in = ppp.subset_data(old_data=data_in)
     data = do.RawFrame(data_in, columns)
     sampl_freq = 100
 
 #%%
     # PHASE DETECTION
-    data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ, sampl_freq)
+    data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ,
+                                                       sampl_freq)
 
     _logger('DONE WITH PHASE DETECTION!')
     
@@ -73,6 +77,33 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     lf_imp_range, rf_imp_range = detect_start_end_imp_phase(lph=data.phase_lf,
                                                             rph=data.phase_rf)
     _logger('DONE WITH DETECTING IMPACT PHASE INTERVALS')
+
+#%% ms_elapsed and datetime
+    data.time_stamp, data.ms_elapsed =\
+                    ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
+
+#%% Compute euler angles
+    lf_quats = np.hstack([data.LqW, data.LqX, data.LqY,
+                          data.LqZ]).reshape(-1, 4)
+    lf_euls = qc.quat_to_euler(lf_quats)
+    data.LeX = lf_euls[:, 0].reshape(-1, 1)
+    data.LeY = lf_euls[:, 1].reshape(-1, 1)
+    data.LeZ = lf_euls[:, 2].reshape(-1, 1)
+
+    hip_quats = np.hstack([data.HqW, data.HqX, data.HqY,
+                           data.HqZ]).reshape(-1, 4)
+    h_euls = qc.quat_to_euler(hip_quats)
+    data.HeX = h_euls[:, 0].reshape(-1, 1)
+    data.HeY = h_euls[:, 1].reshape(-1, 1)
+    data.HeZ = h_euls[:, 2].reshape(-1, 1)
+
+
+    rf_quats = np.hstack([data.RqW, data.RqX, data.RqY,
+                          data.RqZ]).reshape(-1, 4)
+    rf_euls = qc.quat_to_euler(rf_quats)
+    data.ReX = rf_euls[:, 0].reshape(-1, 1)
+    data.ReY = rf_euls[:, 1].reshape(-1, 1)
+    data.ReZ = rf_euls[:, 2].reshape(-1, 1)
 
 #%%
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
@@ -98,7 +129,38 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
                                        data.single_leg, sampl_freq)
     del hip_acc, hip_eul
     _logger('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
+
+#%% Enumerate plane and stance
+    data.stance = np.array([1]*len(data.rot)).reshape(-1, 1)
+    data.plane = np.array([0]*len(data.rot)).reshape(-1, 1)
+    #Enumerate stance
+    data.stance[data.feet_eliminated==1] = 2
+    data.stance[data.double_leg==1] = 3
+    data.stance[data.single_leg_stationary==1] = 4
+    data.stance[data.single_leg_dynamic==1] = 5
+
+    data.not_standing = np.array([0]*len(data.rot)).reshape(-1, 1)
+    data.not_standing[data.stance==1] = 1
+
+    # Enumerate plane
+    data.plane[data.rot_binary==1] = 1
+    data.plane[data.lat_binary==1] = 2
+    data.plane[data.vert_binary==1] = 3
+    data.plane[data.horz_binary==1] = 4
+    data.plane[(data.rot_binary==1) & (data.lat_binary==1)] = 5
+    data.plane[(data.rot_binary==1) & (data.vert_binary==1)] = 6
+    data.plane[(data.rot_binary==1) & (data.horz_binary==1)] = 7
+    data.plane[(data.lat_binary==1) & (data.vert_binary==1)] = 8
+    data.plane[(data.lat_binary==1) & (data.horz_binary==1)] = 9
+    data.plane[(data.vert_binary==1) & (data.horz_binary==1)] = 10
+    data.plane[(data.rot_binary==1) & (data.lat_binary==1) &(data.vert_binary==1)] = 11
+    data.plane[(data.rot_binary==1) & (data.lat_binary==1) &(data.horz_binary==1)] = 12
+    data.plane[(data.rot_binary==1) & (data.vert_binary==1) &(data.horz_binary==1)] = 13
+    data.plane[(data.lat_binary==1) & (data.vert_binary==1) &(data.horz_binary==1)] = 14
+    data.plane[(data.rot_binary==1) & (data.lat_binary==1) &(data.vert_binary==1)&(data.horz_binary==1)] = 15
+
+
 #%%
     # MOVEMENT QUALITY FEATURES
 
@@ -121,7 +183,7 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     del lf_quat, hip_quat, rf_quat
     del lf_neutral, hip_neutral, rf_neutral
     _logger('DONE WITH BALANCE CME!')
-    #_logger(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
 #%%
     # IMPACT CME
     # define dictionary for msElapsed
@@ -167,7 +229,7 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     # set grf value below certain threshold to 0
     grf[grf<=.1]=0
     # fill in nans for rows with missing predictors
-    length = len(data)
+    length = len(data_in)
     grf_temp = np.ones(length)
     grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
     #Insert nan for grf where data needed to predict was missing
@@ -248,6 +310,12 @@ def _filter_data(X, cutoff=12, fs=100, order=4):
 
 #%%
 if __name__ == "__main__":
-    sensor_data = 'C:\\Users\\dipesh\\Desktop\\biometrix\\aws\\c4ed8189-6e1d-47c3-9cc5-446329b10796'
-    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
-    result = run_session(sensor_data, file_name, aws=False)
+    from keras.models import load_model
+    import pickle
+    sensor_data = pd.read_csv('/Users/dipeshgautam/Desktop/biometrix/test_sessionProcess/3ffac6af-b7a3-4354-b6c0-c33accc3855a')
+    grf_fit = load_model('/Users/dipeshgautam/Desktop/biometrix/mech_stress_run/grf_model_v2_0.h5')
+    with open('/Users/dipeshgautam/Desktop/biometrix/mech_stress_run/scaler_model_v2_0.pkl') as model_file:
+        sc = pickle.load(model_file)
+    
+#    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
+    result = run_session(sensor_data, None, 70, grf_fit, sc, aws=False)

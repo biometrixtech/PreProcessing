@@ -30,14 +30,14 @@ def send_batches_of_data(file_path, data, config, aws=True):
 
     _logger("STARTED PROCESSING!")
 
-    # Mechanical Stress
+    # GRF
     # load model
     grf_fit = load_grf_model(config=config)
     sc = load_grf_scaler(config=config)
 
     # read sensor data
     try:
-        sdata = pd.read_csv(config.FP_INPUT + '/' + file_path, nrows=900000)
+        sdata = pd.read_csv(config.FP_INPUT + '/' + file_path)
     except:
         _logger("Cannot load data!", info=False)
         raise
@@ -51,7 +51,7 @@ def send_batches_of_data(file_path, data, config, aws=True):
     mass = load_user_mass(data)
 
     size = len(sdata)
-    sdata['obs_master_index'] = np.array(range(size)).reshape(-1, 1) + 1
+    sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
     # Process the data
     output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, AWS)
