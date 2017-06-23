@@ -36,7 +36,7 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
+def run_session(data_in, file_name, mass, grf_fit, sc, hip_n_transform, aws=True):
     """Creates object attributes according to session analysis process.
 
     Args:
@@ -47,6 +47,7 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
         mass: user's mass in kg
         grf_fit: keras fitted model for grf prediction
         sc: scaler model to scale data
+        hip_n_transform: tranform values to compute neutral components
         aws: Boolean indicator for whether we're running locally or on amazon
             aws
     
@@ -73,7 +74,7 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     
 #%%
     # DETECT IMPACT PHASE INTERVALS
-    data.lf_impact_phase, data.rf_impact_phase,\
+    data.impact_phase_lf, data.impact_phase_rf,\
     lf_imp_range, rf_imp_range = detect_start_end_imp_phase(lph=data.phase_lf,
                                                             rph=data.phase_rf)
     _logger('DONE WITH DETECTING IMPACT PHASE INTERVALS')
@@ -170,9 +171,7 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     rf_quat = np.hstack([data.RqW, data.RqX, data.RqY, data.RqZ])
 
     # isolate neutral quaternions
-    lf_neutral = np.hstack([data.LqW_n, data.LqX_n, data.LqY_n, data.LqZ_n])
-    hip_neutral = np.hstack([data.HqW_n, data.HqX_n, data.HqY_n, data.HqZ_n])
-    rf_neutral = np.hstack([data.RqW_n, data.RqX_n, data.RqY_n, data.RqZ_n])
+    lf_neutral, hip_neutral, rf_neutral = _calculate_hip_neutral(hip_quat, hip_n_transform)
 
     # calculate movement attributes
     data.contra_hip_drop_lf, data.contra_hip_drop_rf, data.ankle_rot_lf,\
@@ -253,27 +252,18 @@ def run_session(data_in, file_name, mass, grf_fit, sc, aws=True):
     del rofa_lf, rofa_rf
     _logger('DONE WITH RATE OF FORCE ABSORPTION!')
 #%%
-    # combine into movement data table
-#    length = len(data.user_id)
-#
-    length = len(data.team_id)
-    setattr(data, 'activity_id', np.array(['']*length).reshape(-1, 1))
-    data.ms_elapsed = data.ms_elapsed.astype(int)
-    data.single_leg_stationary = data.single_leg_stationary.astype(int)
-    data.single_leg_dynamic = data.single_leg_dynamic.astype(int)
-    data.double_leg = data.double_leg.astype(int)
-    data.feet_eliminated = data.feet_eliminated.astype(int)
-    data.rot_binary = data.rot_binary.astype(int)
-    data.lat_binary = data.lat_binary.astype(int)
-    data.vert_binary = data.vert_binary.astype(int)
-    data.horz_binary = data.horz_binary.astype(int)
-    data.stationary_binary = data.stationary_binary.astype(int)
-    # data.lf_impact_phase = data.lf_impact_phase.astype(int)
-    # data.rf_impact_phase = data.rf_impact_phase.astype(int)
-    scoring_data = pd.DataFrame(data={'team_id': data.team_id.reshape(-1, ),
-                                      'user_id': data.user_id.reshape(-1,),
-                                      'session_event_id': data.session_event_id.reshape(-1,),
-                                      'session_type': data.session_type.reshape(-1,)})
+    # combine into data table
+    length = len(data.LaX) 
+    setattr(data, 'loading_lf', np.array([np.nan]*length).reshape(-1, 1)) 
+    setattr(data, 'loading_rf', np.array([np.nan]*length).reshape(-1, 1)) 
+    setattr(data, 'grf_lf', np.array([np.nan]*length).reshape(-1, 1)) 
+    setattr(data, 'grf_rf', np.array([np.nan]*length).reshape(-1, 1)) 
+    setattr(data, 'rate_force_production_lf', np.array([np.nan]*length).reshape(-1, 1)) 
+    setattr(data, 'rate_force_production_rf', np.array([np.nan]*length).reshape(-1, 1))
+    scoring_data = pd.DataFrame(data={'obs_index': data.obs_index.reshape(-1, ),
+                                      'time_stamp': data.time_stamp.reshape(-1,),
+                                      'epoch_time': data.epoch_time.reshape(-1,),
+                                      'ms_elapsed': data.ms_elapsed.reshape(-1,)})
     for var in COLUMN_SESSION2_OUT[4:]:
        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=scoring_data.index)
        frames = [scoring_data, frame]
@@ -308,6 +298,39 @@ def _filter_data(X, cutoff=12, fs=100, order=4):
     X_filt = filtfilt(b, a, X, axis=0)
     return X_filt
 
+def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
+    #%% Transform Data into Neutral Versions, for balanceCME Calculations
+
+   # define length, reshape transform value
+    length = len(hip_bf_quats)
+    hip_n_transform = np.array(hip_n_transform).reshape(-1, 4)
+
+   # divide static neutral and instantaneous hip data into axial components
+    static_hip_neut = qc.quat_to_euler(hip_n_transform)
+    neutral_hip_roll = static_hip_neut[0, 0]
+    neutral_hip_pitch = static_hip_neut[0, 1]
+
+    neutral_hip_roll = np.full((length, 1), neutral_hip_roll, float)
+    neutral_hip_pitch = np.full((length, 1), neutral_hip_pitch, float)
+    inst_hip_yaw = qc.quat_to_euler(hip_bf_quats)[:, 2].reshape(-1, 1)
+
+   # combine select data to define neutral hip data
+    hip_neutral_euls = np.hstack((neutral_hip_roll, neutral_hip_pitch,
+                                  inst_hip_yaw))
+
+   # define hip adjusted inertial frame using instantaneous hip yaw
+    hip_aif_euls = np.hstack((np.zeros((length, 2)), inst_hip_yaw))
+
+   # convert all Euler angles to quaternions and return as relevant output
+    hip_aif = qc.euler_to_quat(hip_aif_euls)
+    hip_neutral = qc.euler_to_quat(hip_neutral_euls)
+
+    lf_neutral = hip_aif # in perfectly neutral stance, lf bf := hip AIF
+    rf_neutral = hip_aif # in perfectly neutral stance, rf bf := hip AIF
+
+    return lf_neutral, hip_neutral, rf_neutral
+
+
 #%%
 if __name__ == "__main__":
     from keras.models import load_model
@@ -316,6 +339,10 @@ if __name__ == "__main__":
     grf_fit = load_model('/Users/dipeshgautam/Desktop/biometrix/mech_stress_run/grf_model_v2_0.h5')
     with open('/Users/dipeshgautam/Desktop/biometrix/mech_stress_run/scaler_model_v2_0.pkl') as model_file:
         sc = pickle.load(model_file)
-    
+    hip_n_transform = [0.987955980423897,0.129494511785864,0.0839820262430614,-0.0110077895195965]
 #    file_name = '7803f828-bd32-4e97-860c-34a995f08a9e'
-    result = run_session(sensor_data, None, 70, grf_fit, sc, aws=False)
+    size = len(sensor_data)
+    sensor_data['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
+    result = run_session(sensor_data, None, 70, grf_fit, sc, hip_n_transform, aws=False)
+    
+    result.to_csv('test_out.csv', index=False, columns=COLUMN_SESSION2_OUT)
