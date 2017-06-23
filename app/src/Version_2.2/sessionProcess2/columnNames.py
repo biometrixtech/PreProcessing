@@ -12,14 +12,13 @@ incoming_from_accessory = ['epoch_time', 'corrupt',
                            'magn_rf', 'corrupt_lf', 
                            'RaX', 'RaY', 'RaZ', 'RqX', 'RqY', 'RqZ', 'RqW'] 
 
-column_session2_out = ['team_id','training_group_id', 'user_id', 'team_regimen_id', 'training_session_log_id', 
-                       'session_event_id', 'session_type', 'obs_index','time_stamp', 
-                       'epoch_time', 'ms_elapsed', 'loading_lf', 'loading_rf', 
-                       'phase_lf',  'phase_rf','impact_phase_lf', 'impact_phase_rf', 'grf','grf_lf','grf_rf', 
-                       'contra_hip_drop_lf','contra_hip_drop_rf','ankle_rot_lf','ankle_rot_rf','foot_position_lf','foot_position_rf', 
-                       'land_pattern_lf','land_pattern_rf','land_time', 
-                       'rate_force_absorption_lf','rate_force_absorption_rf','rate_force_production_lf','rate_force_production_rf','total_accel', 
-                       'stance','plane','rot','lat','vert','horz', 'LeX', 'ReX', 'HeX'] 
+column_session2_out = ['obs_index', 'time_stamp', 'epoch_time', 'ms_elapsed',
+                       'loading_lf', 'loading_rf',
+                       'phase_lf',  'phase_rf', 'impact_phase_lf', 'impact_phase_rf', 'grf', 'grf_lf', 'grf_rf',
+                       'contra_hip_drop_lf', 'contra_hip_drop_rf', 'ankle_rot_lf', 'ankle_rot_rf', 'foot_position_lf', 'foot_position_rf',
+                       'land_pattern_lf', 'land_pattern_rf', 'land_time',
+                       'rate_force_absorption_lf', 'rate_force_absorption_rf', 'rate_force_production_lf', 'rate_force_production_rf', 'total_accel',
+                       'stance', 'plane', 'rot', 'lat', 'vert', 'horz', 'LeX', 'HeX', 'ReX']
 
 column_scoring_out = ['team_id','training_group_id', 'user_id', 'team_regimen_id', 'training_session_log_id', 
                       'session_event_id', 'session_type', 'obs_index','time_stamp', 
