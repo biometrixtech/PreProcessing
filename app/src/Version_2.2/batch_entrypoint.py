@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Entrypoint when called as a batch job
 import os
-
+from datetime import datetime
 import boto3
 import json
 import sys
@@ -27,8 +27,14 @@ def send_success(meta, output):
         )
 
     
-def send_failure(meta):
-    pass
+def send_failure(meta, exception):
+    if 'TaskToken' in meta:
+        sfn_client = boto3.client('stepfunctions', region_name='us-east-1')
+        sfn_client.send_task_failure(
+            taskToken=meta['TaskToken'],
+            error="An exception was thrown",
+            cause=json.dumps(exception)
+        )
 
 
 def load_parameters(keys):
@@ -95,3 +101,11 @@ if __name__ == '__main__':
     except Exception:
         send_failure(meta_data)
         raise
+
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+    if isinstance(obj, datetime):
+        serial = obj.isoformat()
+        return serial
+    raise TypeError("Type not serializable")
