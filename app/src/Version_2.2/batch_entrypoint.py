@@ -98,7 +98,8 @@ if __name__ == '__main__':
             load_parameters(['MONGO_HOST', 'MONGO_USER', 'MONGO_PASSWORD', 'MONGO_DATABASE'])
             from writemongo import writemongo
             writemongo.script_handler(
-                input_data.get('Filename', None)
+                input_data.get('Filename', None),
+                input_data
             )
 
     except Exception as e:
