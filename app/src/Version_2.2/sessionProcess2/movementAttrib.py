@@ -132,11 +132,11 @@ def plane_analysis(hip_acc, hip_eul, ms_elapsed):
 
     # give binaries value according to instantaneous percentages of each
         # plane of motion
-    stationary_binary[(accel_mag<0.75)] = 1
-    lat_binary[(lat>0.15) & (stationary_binary==0)] = 1
-    vert_binary[(vert>0.15) & (stationary_binary==0)] = 1
-    horz_binary[(horz>0.15) & (stationary_binary==0)] = 1
-    rot_binary[(rot>0.2) & (stationary_binary==0)] = 1
+    stationary_binary[(np.abs(accel_mag)<0.75)] = 1
+    lat_binary[(np.abs(lat)>0.15) & (stationary_binary==0)] = 1
+    vert_binary[(np.abs(vert)>0.15) & (stationary_binary==0)] = 1
+    horz_binary[(np.abs(horz)>0.15) & (stationary_binary==0)] = 1
+    rot_binary[(np.abs(rot)>0.2) & (stationary_binary==0)] = 1
     
     return lat, vert, horz, rot, lat_binary, vert_binary, horz_binary,\
             rot_binary, stationary_binary, accel_mag.reshape(-1, 1)

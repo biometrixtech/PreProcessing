@@ -96,9 +96,9 @@ def combine_phase(laccz, raccz, hz):
 
     #Insert previous value for phase where data needed to predict was missing
     if missing_data:
-        lf_ph1 = np.ones(length)
+        lf_ph1 = np.ones(length).astype(int)
         lf_ph1[finite_row] = lf_ph
-        rf_ph1 = np.ones(length)
+        rf_ph1 = np.ones(length).astype(int)
         rf_ph1[finite_row] = rf_ph
         for i in nan_row:
             lf_ph1[i] = lf_ph1[i-1]
@@ -233,7 +233,7 @@ def _phase_detect(acc, hz):
                 start_bal.append(start_bal[i]+j)
 
     # create balance phase array
-    bal_phase = np.ones(len_acc)  # 1=movement phase
+    bal_phase = np.ones(len_acc).astype(int)  # 1=movement phase
     bal_phase[start_bal] = 0  # 0=balance phase
 
     return bal_phase

@@ -23,28 +23,28 @@ Inputs: Two RawFrame object with movement quality features
     --current session/block,
     --historical user data
 Outputs: Consistency and symmetry scores, destructive multiplier,
-        destructive and constructive mech_stress and block/session_duration
+        destructive and constructive grf and block/session_duration
         block/session_mech_stress_elapsed for each timepoint
 #############################################################################
 """
 
 
-def score(data, user_hist, mech_stress_scale):
+def score(data, user_hist, grf_scale):
     """Average consistency, symmetry, control scores at sensor level,
     ankle/hip level and then average at body level
     Args:
         data : RawFrame object with the movement quality features, total_accel,
-               mech_stress, ms_elapsed, control score, session_type attributes
+               grf, ms_elapsed, control score, session_type attributes
         user_hist : RawFrame object/pandas dataframe with historical(5 days)
-                    MQ features, total_accel and mech_stress for the user
-        mech_stress_scale: scaling factor for mechanical stress
+                    MQ features, total_accel and grf for the user
+        grf_scale: scaling factor for mechanical stress
         Returns:
         consistency, hip_consistency, ankle_consistency, consistency_lf,
         consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,
         dest_mech_stress, const_mech_stress, block_duration, session_duration,
         block_mech_stress_elapsed, session_mech_stress_elapsed
 
-        Note: All symmetry and consistency scores are multiplied by mech_stress
+        Note: All symmetry and consistency scores are multiplied by grf
                 for calculating weighted average while aggregating
 
         For session_type = 1, block_mech_stress_elapsed and block_duration will
@@ -52,9 +52,9 @@ def score(data, user_hist, mech_stress_scale):
         For session_type =2,3, session_mech_stress_elapsed and session_duration
         will be nan's.
     """
-    global MECH_STRESS_SCALE
-    MECH_STRESS_SCALE = mech_stress_scale
-    mS = np.abs(np.array(data.mech_stress)).reshape(-1, )
+    global GRF_SCALE
+    GRF_SCALE = grf_scale
+    mS = np.abs(np.array(data.grf)).reshape(-1, )
     mS_norm = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel)).reshape(-1, )
     tA_norm = np.array(tA/np.nanmean(tA))
@@ -93,7 +93,7 @@ def score(data, user_hist, mech_stress_scale):
     overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
     consistency = np.nanmean(overall_consistency_scores, 0)
 
-    mS = mS/MECH_STRESS_SCALE
+    mS = mS/GRF_SCALE
 
     #multiply each score by mechStress value for weighting
     consistency_lf = consistency_lf*mS
@@ -109,8 +109,8 @@ def score(data, user_hist, mech_stress_scale):
     ##Calculate the destructive mechStress multiplier
     destr_multiplier = ((1 - symmetry/100)**2 + (1 - control/100)**2)/2
 
-    dest_mech_stress = np.array(mS)*np.array(destr_multiplier)
-    const_mech_stress = mS - dest_mech_stress
+    dest_grf = np.array(mS)*np.array(destr_multiplier)
+    const_grf = mS - dest_grf
 
     #multiply each score by mechStress value for weighting
     symmetry = symmetry*mS
@@ -119,35 +119,19 @@ def score(data, user_hist, mech_stress_scale):
 
 #    Block/Session duration
     ms_elapsed = np.array(data.ms_elapsed)
-    session_type = np.array(data.session_type)
-    duration = np.nan_to_num(ms_elapsed).cumsum()/np.nansum(ms_elapsed)
+    session_duration = np.nan_to_num(ms_elapsed).cumsum()/np.nansum(ms_elapsed)
 
     #MechStress Elapsed
-    mech_stress_elapsed = np.nan_to_num(mS).cumsum()/np.nansum(mS)
+    session_grf_elapsed = np.nan_to_num(mS).cumsum()/np.nansum(mS)
 
-    if session_type[0] in (2, 3): #2:strength_training, 3: return to play
-        block_duration = duration
-        session_duration = np.zeros(len(duration))*np.nan
-
-        block_mech_stress_elapsed = mech_stress_elapsed
-        session_mech_stress_elapsed = np.zeros(len(duration))*np.nan
-
-    elif session_type[0] == 1: #1: practice
-        block_duration = np.zeros(len(duration))*np.nan
-        session_duration = duration
-
-        block_mech_stress_elapsed = np.zeros(len(duration))*np.nan
-        session_mech_stress_elapsed = mech_stress_elapsed
 
     return consistency.reshape(-1, 1), hip_consistency.reshape(-1, 1),\
         ankle_consistency.reshape(-1, 1), consistency_lf.reshape(-1, 1),\
         consistency_rf.reshape(-1, 1), symmetry.reshape(-1, 1),\
         hip_symmetry.reshape(-1, 1), ankle_symmetry.reshape(-1, 1),\
-        destr_multiplier.reshape(-1, 1), dest_mech_stress.reshape(-1, 1),\
-        const_mech_stress.reshape(-1, 1), block_duration.reshape(-1, 1),\
-        session_duration.reshape(-1, 1),\
-        block_mech_stress_elapsed.reshape(-1, 1),\
-        session_mech_stress_elapsed.reshape(-1, 1)
+        destr_multiplier.reshape(-1, 1), dest_grf.reshape(-1, 1),\
+        const_grf.reshape(-1, 1), session_duration.reshape(-1, 1),\
+        session_grf_elapsed.reshape(-1, 1)
 
 
 def _create_distribution(data):
@@ -156,12 +140,12 @@ def _create_distribution(data):
 
     Args:
         data : data table with historical(7 days) MQ features,
-        total_accel and mech_stress for the user
+        total_accel and grf for the user
 
     Returns:
         Interpolation mapping function for each Movement Quality feature
     """
-    mS = np.abs(np.array(data.mech_stress))
+    mS = np.abs(np.array(data.grf))
     mS_norm = np.array(mS/np.nanmean(mS))
     tA = np.abs(np.array(data.total_accel))
     tA_norm = np.array(tA/np.nanmean(tA))
@@ -463,88 +447,3 @@ def _symmetry_score(dist_l, dist_r):
 
 if __name__ == '__main__':
     pass
-#    import matplotlib.pyplot as plt
-#    import numpy as np
-#    import time
-#    path = 'C:\\Users\\dipesh\\Desktop\\biometrix\\DATA\\indworkout\\'
-#    data = np.genfromtxt(path + "Subject3_LESS_Transformed_Data.csv",
-#                         delimiter=",", dtype=float, names=True)
-#
-#    ms_ta = np.genfromtxt(path + "ms_ta.csv", delimiter=",",
-#                          dtype=float, names=True)
-#    data_mov = pd.DataFrame()
-##    data_mov['msElapsed'] = np.zeros(len(data))+4
-#    data_mov['epochTime'] = data['Timestamp']
-#    data_mov['hip_drop_l'] = data['hipDropL']
-#    data_mov['hip_drop_r'] = data['hipDropR']
-#    data_mov['hip_rot'] = data['hipRot']-90
-#    data_mov['ankle_rot_l'] = data['ankleRotL']
-#    data_mov['ankle_rot_r'] = data['ankleRotR']
-##    data_mov['foot_position_l'] = data['ankleRotL']
-##    data_mov['foot_position_r'] = data['ankleRotR']
-#    data_mov['land_pattern_l'] = np.zeros(len(data))*np.nan
-#    data_mov['land_pattern_r'] = np.zeros(len(data))*np.nan
-#    data_mov['land_time'] = np.zeros(len(data))*np.nan
-##    data_mov['land_time_r'] = np.zeros(len(data))*np.nan
-#    data_mov['control'] = data['control']
-#    data_mov['mech_stress'] = ms_ta['mechStress'][range(len(data))]
-#    data_mov['total_accel'] = ms_ta['totalAccel'][range(len(data))]
-#
-#    userDB = pd.DataFrame(data_mov)
-#    userDB['mech_stress'] = ms_ta['mechStress'][range(len(data))]
-#    userDB['total_accel'] = ms_ta['totalAccel'][range(len(data))]
-#    userDB['land_pattern_l'] = np.random.rand(len(data))
-#    userDB['land_pattern_r'] = np.random.rand(len(data))
-#    userDB['land_time'] = np.random.uniform(-.1, .1, len(data))
-##    userDB['land_time_r'] = np.random.rand(len(data))
-#
-#    userDB.to_csv(path+"subject3_DblSquat_hist.csv")
-
-#    userDB['epochTime'] = data['Timestamp']
-#    userDB['hip_drop_l'] = data['hipDropL']
-#    userDB['hip_drop_r'] = data['hipDropR']
-#    userDB['hip_rot'] = data['hipRot']-90
-#    userDB['ankle_rot_l'] = data['ankleRotL']
-#    userDB['ankle_rot_r'] = data['ankleRotR']
-##    data_mov['foot_position_l'] = data['ankleRotL']
-##    data_mov['foot_position_r'] = data['ankleRotR']
-#    userDB['land_pattern_l'] = np.random.rand(len(data))
-#    userDB['land_pattern_r'] = np.random.rand(len(data))
-#    userDB['land_time_l'] = np.random.rand(len(data))
-#    userDB['land_time_r'] = np.random.rand(len(data))
-#    userDB['control'] = data['control']
-#    userDB['mech_stress'] = ms_ta['mechStress'][range(len(data))]
-#    userDB['total_accel'] = ms_ta['totalAccel'][range(len(data))]
-#    userDB['land_pattern_l'] = data['ankleRotL']
-
-#    s = time.time()
-#    consistency, hip_consistency, ankle_consistency, consistency_lf,\
-#    consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
-#    dest_mech_stress, const_mech_stress, block_duration, session_duration,\
-#    block_mech_stress_elapsed, session_mech_stress_elapsed = score(data_mov,
-#                                                                   userDB)
-
-#    consistency, hip_consistency, ankle_consistency, consistency_lf,\
-#    consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,\
-#    dest_mech_stress = score(data_mov,userDB)
-#    e = time.time()
-#    elap = e-s
-#    print elap
-#
-#    data_pd = pd.DataFrame(data)
-#    data_pd['consistency'] = consistency
-#    data_pd['hip_consistency'] = hip_consistency
-#    data_pd['ankle_consistency'] = ankle_consistency
-#    data_pd['consistency_lf'] = consistency_lf
-#    data_pd['consistency_rf'] = consistency_rf
-#    data_pd['symmetry'] = symmetry
-#    data_pd['hip_symmetry'] = hip_symmetry
-#    data_pd['ankle_symmetry'] = ankle_symmetry
-#    data_pd['destr_multiplier'] = destr_multiplier
-#    data_pd['dest_mech_stress'] = dest_mech_stress
-#    data_pd['const_mech_stress'] = const_mech_stress
-#    data_pd['block_duration'] = block_duration
-#    data_pd['session_duration'] = session_duration
-#    data_pd['block_mech_stress_elapsed'] = block_mech_stress_elapsed
-#    data_pd['session_mech_stress_elapsed'] = session_mech_stress_elapsed
-#    data_pd.to_csv(path+"Subject3_DblSquat_Transformed_scoring.csv")
