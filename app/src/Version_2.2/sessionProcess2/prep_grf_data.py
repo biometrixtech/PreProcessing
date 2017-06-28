@@ -62,6 +62,11 @@ def prepare_data(data_in, sc):
     dum_phase_lf = pd.get_dummies(data.phase_lf, prefix = 'phase_lf').astype(long)
     dum_phase_rf = pd.get_dummies(data.phase_rf, prefix = 'phase_rf').astype(long)
     data = pd.concat([data, dum_phase_lf, dum_phase_rf], axis=1)
+    phase_cols = {'phase_lf_0', 'phase_lf_1', 'phase_lf_2',
+                  'phase_rf_0', 'phase_rf_1', 'phase_rf_2'}
+    missing_cols = phase_cols - set(data.columns)
+    for col in missing_cols:
+        data[col] = 0
 
     data.loc[data.phase_lf_0==0, 'phase_lf_0'] = -1
     data.loc[data.phase_lf_1==0, 'phase_lf_1'] = -1
