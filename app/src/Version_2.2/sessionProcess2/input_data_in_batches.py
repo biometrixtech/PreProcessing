@@ -35,6 +35,8 @@ def send_batches_of_data(file_path, data, config, aws=True):
     grf_fit = load_grf_model(config=config)
     sc = load_grf_scaler(config=config)
 
+    _logger("LOADING DATA")
+
     # read sensor data
     try:
         sdata = pd.read_csv(config.FP_INPUT + '/' + file_path)
