@@ -26,7 +26,7 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(s3_bucket, s3_path, chunk_size=100):
+def script_handler(s3_bucket, s3_path, chunk_size=100000):
 
     logger.info('Running downloadAndChunk on "{}/{}"'.format(s3_bucket, s3_path))
 
