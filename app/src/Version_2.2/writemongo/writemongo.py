@@ -75,12 +75,12 @@ def script_handler(file_name, input_data):
                         'rateForceProductionRF', 'totalAccel',
                         'stance', 'plane', 'rot', 'lat', 'vert', 'horz']
 
-        team_id = data.get('TeamId', None)
-        training_group_id = [data.get('TrainingGroupId', None)]
-        user_id = data.get('UserId', None)
-        training_session_log_id = data.get('TrainingSessionLogId', None)
-        session_event_id = data.get('SessionEventId', None)
-        session_type = data.get('SessionType', None)
+        team_id = input_data.get('TeamId', None)
+        training_group_id = [input_data.get('TrainingGroupId', None)]
+        user_id = input_data.get('UserId', None)
+        training_session_log_id = input_data.get('TrainingSessionLogId', None)
+        session_event_id = input_data.get('SessionEventId', None)
+        session_type = input_data.get('SessionType', None)
         record_ids = []
         for i, j in zip(data_start, data_end):
             # subset data into 30s chunks
