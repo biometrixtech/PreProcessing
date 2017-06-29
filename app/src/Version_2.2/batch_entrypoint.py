@@ -101,6 +101,7 @@ if __name__ == '__main__':
                 input_data.get('Filename', None),
                 input_data
             )
+            send_success(meta_data, {})
 
     except Exception as e:
         send_failure(meta_data, e)
