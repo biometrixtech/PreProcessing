@@ -29,10 +29,11 @@ def send_success(meta, output):
 
     
 def send_failure(meta, exception):
-    if 'TaskToken' in meta:
+    task_token = meta.get('TaskTokenFailure', meta.get('TaskToken', None))
+    if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_failure(
-            taskToken=meta['TaskToken'],
+            taskToken=task_token,
             error="An exception was thrown",
             cause=repr(exception)
         )
