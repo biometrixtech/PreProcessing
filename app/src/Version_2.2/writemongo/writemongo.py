@@ -170,6 +170,70 @@ def script_handler(file_name, input_data):
                                                    "%Y-%m-%d %H:%M:%S")
             event_date = str(date_time.date())
             start_time = pandas.Timedelta(str(date_time.time()))
+            # 30s aggregation scores
+            # grf
+            total_ind = numpy.array([k!=3 for k in data_30.phaseLF])
+            lf_ind = numpy.array([k in [0, 1, 4] for k in data_30.phaseLF])
+            rf_ind = numpy.array([k in [0, 2, 5] for k in data_30.phaseRF])
+            data_30['total_grf'] = data_30['total'].fillna(value=numpy.nan) * total_ind
+            total_grf = numpy.sum(data_30['total_grf'])
+            data_30['lf_grf'] = data_30['total'].fillna(value=numpy.nan) * lf_ind
+            lf_grf = numpy.sum(data_30['lf_grf'])
+            data_30['rf_grf'] = data_30['total'].fillna(value=numpy.nan) * rf_ind
+            rf_grf = numpy.sum(data_30['rf_grf'])
+
+            # control aggregation
+            control = numpy.sum(data_30['control']*data_30['total_grf']) / total_grf
+            hip_control = numpy.sum(data_30['hipControl']*data_30['total_grf']) / total_grf
+            ankle_control = numpy.sum(data_30['ankleControl']*data_30['total_grf']) / total_grf
+            control_lf = numpy.sum(data_30['controlLF']*data_30['lf_grf']) / lf_grf
+            control_rf = numpy.sum(data_30['controlRF']*data_30['rf_grf']) / rf_grf
+
+            # symmetry aggregation
+            symmetry = numpy.sum(data_30['symmetry']) / total_grf
+            symmetry_l = numpy.sum(data_30['symmetryL']) / lf_grf
+            symmetry_r = numpy.sum(data_30['symmetryR']) / rf_grf
+            hip_symmetry = numpy.sum(data_30['hipSymmetry']) / total_grf
+            hip_symmetry_l = numpy.sum(data_30['hipSymmetryL']) / lf_grf
+            hip_symmetry_r = numpy.sum(data_30['hipSymmetryR']) / rf_grf
+            ankle_symmetry = numpy.sum(data_30['ankleSymmetry']) / total_grf
+            ankle_symmetry_l = numpy.sum(data_30['ankleSymmetryL']) / lf_grf
+            ankle_symmetry_r = numpy.sum(data_30['ankleSymmetryR']) / rf_grf
+
+            # consistency aggregation
+            consistency = numpy.sum(data_30['consistency']) / total_grf
+            hip_consistency = numpy.sum(data_30['hipConsistency']) / total_grf
+            ankle_consistency = numpy.sum(data_30['ankleConsistency']) / total_grf
+            consistency_lf = numpy.sum(data_30['consistencyLF']) / lf_grf
+            consistency_rf = numpy.sum(data_30['consistencyRF']) / rf_grf
+            aggregated = OrderedDict()
+            aggregated['totalGRF'] = total_grf
+            aggregated['LFgRF'] = lf_grf
+            aggregated['RFgRF'] = rf_grf
+            aggregated['control'] = control
+            aggregated['hipControl'] = hip_control
+            aggregated['ankleControl'] = ankle_control
+            aggregated['controlLF'] = control_lf
+            aggregated['controlRF'] = control_rf
+            aggregated['symmetry'] = symmetry
+            aggregated['symmetryL'] = symmetry_l
+            aggregated['symmetryR'] = symmetry_r
+            aggregated['hipSymmetry'] = hip_symmetry
+            aggregated['hipSymmetryL'] = hip_symmetry_l
+            aggregated['hipSymmetryR'] = hip_symmetry_r
+            aggregated['ankleSymmetry'] = ankle_symmetry
+            aggregated['ankleSymmetryL'] = ankle_symmetry_l
+            aggregated['ankleSymmetryR'] = ankle_symmetry_r
+            aggregated['consistency'] = consistency
+            aggregated['hipConsistency'] = hip_consistency
+            aggregated['ankleConsistency'] = ankle_consistency
+            aggregated['consistencyLF'] = consistency_lf
+            aggregated['consistencyRF'] = consistency_rf
+            for key, value in aggregated.items():
+                print(value)
+                if numpy.isnan(value):
+                    aggregated[key] = None
+
 
             record_out = OrderedDict({'teamId': team_id})
             record_out['userId'] = user_id
@@ -184,6 +248,7 @@ def script_handler(file_name, input_data):
             record_out['tenMinuteMarker'] = int(start_time / numpy.timedelta64(1, '10m'))
             record_out['dataValues'] = data_values
             record_out['trainingGroups'] = training_group_id
+            record_out['aggregatedValues'] = aggregated
             # Write each record one at a time.
             # TODO(Stephen):
             record_ids.append(mongo_collection.insert_one(record_out).inserted_id)
