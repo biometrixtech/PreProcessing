@@ -139,10 +139,12 @@ if __name__ == '__main__':
         elif script == 'scoring':
             print('Running scoring()')
             from scoring import scoringProcess
-            output_file, boundaries = scoringProcess.script_handler(
+            ret = scoringProcess.script_handler(
                 input_data.get('Filenames', None),
                 input_data
             )
+            print(ret)
+            output_file, boundaries = ret
 
             # Chunk files for input to writemongo
             from chunk import chunk

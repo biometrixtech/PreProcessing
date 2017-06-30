@@ -18,20 +18,15 @@ from __future__ import print_function
 import logging
 import pandas as pd
 import numpy as np
-import psycopg2
-import psycopg2.extras
-import boto3
-from s3fs.core import S3FileSystem
 
 from controlScore import control_score
 from scoring import score
 import columnNames as cols
 
 logger = logging.getLogger()
-psycopg2.extras.register_uuid()
 
 
-def run_scoring(sensor_data, file_name, data, config):
+def run_scoring(sensor_data, historical_data, file_name, data, config):
     """Creates object attributes according to block analysis process.
 
     Args:
@@ -48,7 +43,6 @@ def run_scoring(sensor_data, file_name, data, config):
     _logger('Data Read')
     del sensor_data
 
-    user_id = data.get('UserId', None)
     # CONTROL SCORE
     (
         sdata['control'],
@@ -62,34 +56,12 @@ def run_scoring(sensor_data, file_name, data, config):
 #     SCORING
 #     Symmetry, Consistency, Destructive/Constructive Multiplier and
 #     Duration
-#     At this point we need to load the historical data for the subject
-#
-#     read historical data
-    try:
-        path = "{}/{}".format(config.ENVIRONMENT, user_id)
-        s3 = boto3.resource('s3')
-        objs = list(s3.Bucket(config.S3_BUCKET_HISTORY).objects.filter(Prefix=path))
-        if len(objs) == 1:
-            s3 = S3FileSystem(anon=False)
-            user_hist = pd.read_csv(s3.open('{}/{}'.format(config.S3_BUCKET_HISTORY, path), mode='rb'))
-            user_hist.columns = cols.columns_hist
-        elif len(sdata.LeX) > 50000:
-            user_hist = sdata
-        else:
-            _logger("There's no historical data and current data isn't long enough!")
-            # Can't complete scoring, delete data from movement table and exit
-            return "Fail!"
 
-    except Exception:
-        _logger("Cannot read historical user data from s3!")
-        raise
-        if config.AWS:
-            raise
-        else:
-            try:
-                user_hist = pd.read_csv(config.FP_SCORINGHIST + '/' + user_id)
-            except:
-                raise IOError("User history not found in s3/local directory")
+    # Read historical data
+    user_hist = pd.read_csv(historical_data, usecols=cols.column_user_hist)
+    if user_hist.shape[0] < 50000:
+        _logger("There's no historical data and current data isn't long enough!")
+        raise Exception("Cannot read historical user data!")
 
     _logger("user history captured")
 

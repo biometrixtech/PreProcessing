@@ -36,10 +36,39 @@ def script_handler(filenames, data):
             FP_SCORINGHIST='/net/efs/scoringhist',
             S3_BUCKET_HISTORY='biometrix-scoringhist'
         )
+
+        # Get the base filename
+        if len(filenames) > 1:
+            file_name = filenames[0].rsplit('-', 1)[0]
+        else:
+            file_name = filenames[0]
+
+        current_stream = cat_csv_files([os.path.join(config.FP_INPUT, f) for f in sorted(filenames)])
+
+        historical_filenames = data.get('HistoricalFiles', [])
+        if not isinstance(historical_filenames, list) or len(historical_filenames) == 0:
+            # No historical files
+            historical_filenames = []
+
+        historical_stream = cat_csv_files(
+            [os.path.join(config.FP_INPUT, f) for f in filenames] +
+            [os.path.join(config.FP_OUTPUT, f) for f in historical_filenames]
+        )
+
+        boundaries = runScoring.run_scoring(current_stream, historical_stream, file_name, data, config=config)
+        return file_name, boundaries
+
+    except Exception as e:
+        logger.info(e)
+        logger.info('Process did not complete successfully! See error below!')
+        raise
+
+
+def cat_csv_files(filenames):
         csv_data = []
         count = 0
-        for filename in sorted(filenames):
-            with open(os.path.join(config.FP_INPUT, filename), 'r') as f:
+        for filename in filenames:
+            with open(filename, 'r') as f:
                 lines = f.readlines()
                 if count == 0:
                     csv_data.extend([lines[0]])
@@ -48,22 +77,7 @@ def script_handler(filenames, data):
 
         print("{} rows".format(len(csv_data) - 1))
         csv_data = u"\n".join(csv_data)
-        stream = StringIO(csv_data)
-
-        # Get the base filename
-        if len(filenames) > 1:
-            file_name = filenames[0].rsplit('-', 1)[0]
-        else:
-            file_name = filenames[0]
-
-        fifteen_min_boundaries = runScoring.run_scoring(stream, file_name, data, config=config)
-        logger.info('Success')
-        return file_name, fifteen_min_boundaries
-
-    except Exception as e:
-        logger.info(e)
-        logger.info('Process did not complete successfully! See error below!')
-        raise
+        return StringIO(csv_data)
 
 if __name__ == '__main__':
     argv_file_name = json.loads(sys.argv[1])
