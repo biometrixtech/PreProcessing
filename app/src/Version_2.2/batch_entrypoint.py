@@ -103,6 +103,14 @@ if __name__ == '__main__':
             )
             send_success(meta_data, {})
 
+        elif script == 'cleanup':
+            print('Cleaning up intermediate files')
+            from cleanup import cleanup
+            cleanup.script_handler(
+                input_data.get('Filename')
+            )
+            send_success(meta_data, {})
+
     except Exception as e:
         send_failure(meta_data, e)
         raise
