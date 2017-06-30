@@ -1,4 +1,0 @@
-Report of ankle_rot_rf with 0.1 tolerance to erroneous Euler angle offsets.
-
-Test run on 14-12-2016.
-
