@@ -18,8 +18,6 @@ Config = namedtuple('Config', [
     'ENVIRONMENT',
     'FP_INPUT',
     'FP_OUTPUT',
-    'KMS_REGION',
-    'S3_REGION',
     'S3_BUCKET',
     'S3_KEY',
     'CHUNK_SIZE',
@@ -36,14 +34,12 @@ def script_handler(s3_bucket, s3_path, chunk_size=100000):
             ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT=None,
             FP_OUTPUT='/net/efs/downloadandchunk/output',
-            KMS_REGION='us-west-2',
-            S3_REGION='us-west-2',
             S3_BUCKET=s3_bucket,
             S3_KEY=s3_path,
             CHUNK_SIZE=chunk_size
         )
 
-        s3_client = boto3.client('s3', region_name=config.S3_REGION)
+        s3_client = boto3.client('s3')
 
         # Download file
         tmp_filename = '/tmp/' + config.S3_KEY

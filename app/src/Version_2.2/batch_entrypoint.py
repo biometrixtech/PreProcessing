@@ -9,7 +9,7 @@ import sys
 
 def send_success(meta, output):
     if 'TaskToken' in meta:
-        sfn_client = boto3.client('stepfunctions', region_name='us-east-1')
+        sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_success(
             taskToken=meta['TaskToken'],
             output=json.dumps({
@@ -29,7 +29,7 @@ def send_success(meta, output):
     
 def send_failure(meta, exception):
     if 'TaskToken' in meta:
-        sfn_client = boto3.client('stepfunctions', region_name='us-east-1')
+        sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_failure(
             taskToken=meta['TaskToken'],
             error="An exception was thrown",
@@ -112,6 +112,7 @@ if __name__ == '__main__':
             send_success(meta_data, {})
 
     except Exception as e:
+        print(e)
         send_failure(meta_data, e)
         raise
 
