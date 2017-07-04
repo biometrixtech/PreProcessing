@@ -41,7 +41,7 @@ def load_parameters(keys):
     keys_to_load = [key for key in keys if key.upper() not in os.environ]
     if len(keys_to_load) > 0:
         print('Retrieving configuration for [{}] from SSM'.format(", ".join(keys_to_load)))
-        ssm_client = boto3.client('ssm', region_name='us-east-1')
+        ssm_client = boto3.client('ssm')
         response = ssm_client.get_parameters(
             Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in keys_to_load],
             WithDecryption=True
