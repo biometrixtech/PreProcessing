@@ -29,8 +29,10 @@ Config = namedtuple('Config', [
 
 def script_handler(file_name, input_data):
     logger.info('Running writemongo on "{}"'.format(file_name))
+    logger.info("Definitely running")
 
     try:
+        logger.info("Loading config")
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
@@ -174,7 +176,7 @@ def script_handler(file_name, input_data):
                 'movementQualityScores',
                 'performanceVariables']
 
-        print("Beginning iteration over {} chunks".format(len(data_start)))
+        logger.info("Beginning iteration over {} chunks".format(len(data_start)))
 
         for i, j in zip(data_start, data_end):
             # subset data into 30s chunks
@@ -279,14 +281,14 @@ def script_handler(file_name, input_data):
             # TODO(Stephen): This is appended to the current collection
             record_ids.append(mongo_collection.insert_one(record_out).inserted_id)
 
-            print("Wrote a record")
+            logger.info("Wrote a record")
             # TODO(Stephen) This needs to be inserted into the second collection
             # record_ids_agg.append(mongo2_collection.insert_one(record_out_agg).inserted_id)
 
         #            all_docs.append(record_out)
         # TODO(Stephen): this is alternative way to insert all at once. Haven't tested the performance of one at a time vs all at once.
         #        record_id = mongo_collection.insert_many(all_docs).inserted_ids
-        print("Finished writing")
+        logger.info("Finished writing")
 
     except Exception as e:
         logger.info(e)
