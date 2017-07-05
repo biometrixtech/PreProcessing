@@ -49,6 +49,7 @@ def load_parameters(keys):
         params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
         # Export to environment
         for k, v in params.items():
+            print("Got value for {} from SSM".format(k))
             os.environ[k] = v
 
 
@@ -95,7 +96,14 @@ if __name__ == '__main__':
 
         elif script == 'writemongo':
             print('Uploading to mongodb database')
-            load_parameters(['MONGO_HOST', 'MONGO_USER', 'MONGO_PASSWORD', 'MONGO_DATABASE', 'MONGO_COLLECTION'])
+            load_parameters([
+                'MONGO_HOST',
+                'MONGO_USER',
+                'MONGO_PASSWORD',
+                'MONGO_DATABASE',
+                'MONGO_COLLECTION',
+                'MONGO_REPLICASET'
+            ])
             from writemongo import writemongo
             writemongo.script_handler(
                 input_data.get('Filename', None),

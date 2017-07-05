@@ -23,6 +23,7 @@ Config = namedtuple('Config', [
     'MONGO_PASSWORD',
     'MONGO_DATABASE',
     'MONGO_COLLECTION',
+    'MONGO_REPLICASET',
 ])
 
 
@@ -39,9 +40,10 @@ def script_handler(file_name, input_data):
             MONGO_PASSWORD=os.environ['MONGO_PASSWORD'],
             MONGO_DATABASE=os.environ['MONGO_DATABASE'],
             MONGO_COLLECTION=os.environ['MONGO_COLLECTION'],
+            MONGO_REPLICASET=os.environ['MONGO_REPLICASET']
         )
 
-        mongo_client = MongoClient(config.MONGO_HOST)
+        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
         mongo_database = mongo_client[config.MONGO_DATABASE]
 
         # Authenticate
