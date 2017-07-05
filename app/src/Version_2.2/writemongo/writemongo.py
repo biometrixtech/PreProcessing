@@ -83,7 +83,7 @@ def script_handler(file_name, input_data):
         training_session_log_id = input_data.get('TrainingSessionLogId', None)
         session_event_id = input_data.get('SessionEventId', None)
         session_type = input_data.get('SessionType', None)
-        record_ids = []
+        all_docs = []
         for i, j in zip(data_start, data_end):
             # subset data into 30s chunks
             data_30 = data.loc[(data.timeStamp >= i) & (data.timeStamp <= j),]
@@ -251,14 +251,11 @@ def script_handler(file_name, input_data):
             record_out['dataValues'] = data_values
             record_out['trainingGroups'] = training_group_id
             record_out['aggregatedValues'] = aggregated
-            # Write each record one at a time.
-            # TODO(Stephen):
-            record_ids.append(mongo_collection.insert_one(record_out).inserted_id)
-        #            all_docs.append(record_out)
-        # TODO(Stephen): this is alternative way to insert all at once. Haven't tested the performance of one at a time vs all at once.
-        #        record_id = mongo_collection.insert_many(all_docs).inserted_ids
 
+            all_docs.append(record_out)
 
+        # Write all the data to Mongo at once
+        mongo_collection.insert_many(all_docs)
 
     except Exception as e:
         logger.info(e)
