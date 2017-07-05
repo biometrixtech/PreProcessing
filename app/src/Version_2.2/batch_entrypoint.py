@@ -94,10 +94,21 @@ if __name__ == '__main__':
 
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
+
             from downloadAndChunk import downloadAndChunk
-            file_names = downloadAndChunk.script_handler(
+            tmp_filename = downloadAndChunk.script_handler(
                 input_data.get('S3Bucket', None),
                 input_data.get('S3Path', None))
+
+            from chunk import chunk
+            file_names = chunk.chunk_file(
+                tmp_filename,
+                '/net/efs/downloadandchunk/output',
+                100000
+            )
+
+            os.remove(tmp_filename)
+
             send_success(meta_data, {"Filenames": file_names})
 
         elif script == 'sessionprocess2':
@@ -123,7 +134,16 @@ if __name__ == '__main__':
                 input_data.get('Filenames', None),
                 input_data
             )
-            send_success(meta_data, {"Filename": output_file})
+
+            # Chunk files for input to writemongo
+            from chunk import chunk
+            file_names = chunk.chunk_file(
+                os.path.join('/net/efs/scoring/output', output_file),
+                '/net/efs/writemongo/input',
+                100000
+            )
+
+            send_success(meta_data, {"Filenames": file_names})
 
         elif script == 'writemongo':
             print('Uploading to mongodb database')
