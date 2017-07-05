@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from collections import namedtuple
 from pymongo import MongoClient
+from shutil import copyfile
 import logging
 import os
 import pandas
@@ -32,7 +33,6 @@ def script_handler(file_name, input_data):
     logger.info("Definitely running")
 
     try:
-        logger.info("Loading config")
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
@@ -53,8 +53,13 @@ def script_handler(file_name, input_data):
 
         mongo_collection = mongo_database[config.MONGO_COLLECTION]
 
-        data = pandas.read_csv(os.path.join(config.FP_INPUT, file_name))
-        # replace nans with nul
+        tmp_filename = os.path.join('/tmp', file_name)
+        copyfile(os.path.join(config.FP_INPUT, file_name), tmp_filename)
+        logger.info("Copied data file to local FS")
+        data = pandas.read_csv(tmp_filename)
+        os.remove(tmp_filename)
+        logger.info("Removed temporary file")
+
         # replace nans with null
         data = data.where((pandas.notnull(data)), None)
 
