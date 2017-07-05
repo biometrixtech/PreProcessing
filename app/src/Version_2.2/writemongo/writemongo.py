@@ -148,7 +148,7 @@ def script_handler(file_name, input_data):
 
         # Prep for 30s aggregation
         # grf
-        total_ind = numpy.array([k!=3 for k in data.phaseLF])
+        total_ind = numpy.array([k != 3 for k in data.phaseLF])
         lf_ind = numpy.array([k in [0, 1, 4] for k in data.phaseLF])
         rf_ind = numpy.array([k in [0, 2, 5] for k in data.phaseRF])
         data['total_grf'] = data['total'].fillna(value=numpy.nan) * total_ind
@@ -156,27 +156,29 @@ def script_handler(file_name, input_data):
         data['rf_grf'] = data['total'].fillna(value=numpy.nan) * rf_ind
 
         record_ids = []
-        record_ids_agg = []
+
+        keys = ['obsIndex',
+                'timeStamp',
+                'epochTime',
+                'msElapsed',
+                'sessionDuration',
+                'loadingLF',
+                'loadingRF',
+                'phaseLF',
+                'phaseRF',
+                'lfImpactPhase',
+                'rfImpactPhase',
+                'movementAttributes',
+                'groundReactionForce',
+                'movementQualityFeatures',
+                'movementQualityScores',
+                'performanceVariables']
+
+        print("Beginning iteration over {} chunks".format(len(data_start)))
+
         for i, j in zip(data_start, data_end):
             # subset data into 30s chunks
             data_30 = data.loc[(data.timeStamp >= i) & (data.timeStamp <= j),]
-
-            keys = ['obsIndex',
-                    'timeStamp',
-                    'epochTime',
-                    'msElapsed',
-                    'sessionDuration',
-                    'loadingLF',
-                    'loadingRF',
-                    'phaseLF',
-                    'phaseRF',
-                    'lfImpactPhase',
-                    'rfImpactPhase',
-                    'movementAttributes',
-                    'groundReactionForce',
-                    'movementQualityFeatures',
-                    'movementQualityScores',
-                    'performanceVariables']
 
             data_values = data_30[keys].to_dict(orient='records')
 
@@ -232,7 +234,7 @@ def script_handler(file_name, input_data):
 
             # data for collection with aggregated values only
             record_out_agg = OrderedDict({'teamId': team_id})
-            record_out_agg['userId'] =  user_id
+            record_out_agg['userId'] = user_id
             record_out_agg['sessionEventId'] = session_event_id
             record_out_agg['sessionType'] = session_type
             record_out_agg['trainingSessionLogId'] = training_session_log_id
@@ -276,14 +278,15 @@ def script_handler(file_name, input_data):
             # Write each record one at a time.
             # TODO(Stephen): This is appended to the current collection
             record_ids.append(mongo_collection.insert_one(record_out).inserted_id)
+
+            print("Wrote a record")
             # TODO(Stephen) This needs to be inserted into the second collection
             # record_ids_agg.append(mongo2_collection.insert_one(record_out_agg).inserted_id)
 
         #            all_docs.append(record_out)
         # TODO(Stephen): this is alternative way to insert all at once. Haven't tested the performance of one at a time vs all at once.
         #        record_id = mongo_collection.insert_many(all_docs).inserted_ids
-
-
+        print("Finished writing")
 
     except Exception as e:
         logger.info(e)
