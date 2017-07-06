@@ -56,7 +56,6 @@ def load_parameters(keys):
 
 def put_cloudwatch_metric(metric_name, value, unit):
     try:
-        print(os.environ)
         cloudwatch_client = boto3.client('cloudwatch')
         cloudwatch_client.put_metric_data(
             Namespace='Preprocessing',
@@ -65,7 +64,8 @@ def put_cloudwatch_metric(metric_name, value, unit):
                     'MetricName': metric_name,
                     'Dimensions': [
                         {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
-                        # {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JOB_QUEUE']},
+                        {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JQ_NAME']},
+                        {'Name': 'ComputeEnvironment', 'Value': os.environ['AWS_BATCH_CE_NAME']},
                         {'Name': 'Job', 'Value': script},
                     ],
                     'Timestamp': datetime.utcnow(),
