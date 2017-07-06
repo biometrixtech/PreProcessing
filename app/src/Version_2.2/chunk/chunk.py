@@ -20,15 +20,12 @@ def chunk_file(tmp_filename, output_dir, chunk_size):
     )
 
     # Strip the header from the file
-    os.system('tail -n +2 {tmp_filename} > {tmp_filename}-body'.format(tmp_filename=tmp_filename))
+    body_filename = tmp_filename + '-body'
+    os.system('tail -n +2 {tmp_filename} > {body_filename}'.format(tmp_filename=tmp_filename, body_filename=body_filename))
 
     # Divide file into chunks
-    body_filename = tmp_filename + '-body'
     if isinstance(chunk_size, list):
-        subprocess.call(
-            ['csplit', '-f', body_filename, '-b', '-%02d', tmp_filename] +
-            chunk_size
-        )
+        subprocess.call(['csplit', '-f', tmp_filename, '-b', '-%02d', body_filename] + [str(l) for l in chunk_size])
     else:
         subprocess.call([
             'split',
