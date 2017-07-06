@@ -5,6 +5,7 @@ from datetime import datetime
 import boto3
 import json
 import sys
+import time
 
 
 def send_success(meta, output):
@@ -13,17 +14,17 @@ def send_success(meta, output):
         sfn_client.send_task_success(
             taskToken=meta['TaskToken'],
             output=json.dumps({
-                "Meta": {
-                    "ExecutionArn": meta.get('ExecutionArn', None),
-                    "BatchJob": {
-                        "Id": '',
-                        "Name": ''
-                    },
-                    "TaskToken": meta.get('TaskToken')
-                },
+                "Meta": meta,
                 "Status": 'SUCCEEDED',
                 "Output": output
             })
+        )
+    if 'Profiling' in meta:
+        meta['Profiling']['EndTime'] = time.time()
+        put_cloudwatch_metric(
+            'BatchJobProcessTime',
+            float(meta_data['Profiling']['EndTime']) - float(meta_data['Profiling']['StartTime']),
+            'Seconds'
         )
 
     
@@ -53,6 +54,26 @@ def load_parameters(keys):
             os.environ[k] = v
 
 
+def put_cloudwatch_metric(metric_name, value, unit):
+    cloudwatch_client = boto3.client('cloudwatch')
+    cloudwatch_client.put_metric_data(
+        Namespace='Preprocessing',
+        MetricData=[
+            {
+                'MetricName': metric_name,
+                'Dimensions': [
+                    {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JOB_QUEUE']},
+                    {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
+                    {'Name': 'Job', 'Value': script},
+                ],
+                'Timestamp': datetime.utcnow(),
+                'Value': value,
+                'Unit': unit,
+            },
+        ]
+    )
+
+
 if __name__ == '__main__':
     input_data = meta_data = None
 
@@ -60,6 +81,10 @@ if __name__ == '__main__':
         script = sys.argv[1]
         input_data = json.loads(sys.argv[2])
         meta_data = json.loads(sys.argv[3])
+
+        if 'Profiling' in meta_data:
+            meta_data['Profiling']['StartTime'] = time.time()
+            put_cloudwatch_metric('BatchJobScheduleLatency', float(meta_data['Profiling']['StartTime']) - float(meta_data['Profiling']['ScheduleTime']), 'Seconds')
 
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
