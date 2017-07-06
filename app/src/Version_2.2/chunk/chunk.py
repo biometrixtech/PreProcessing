@@ -24,12 +24,18 @@ def chunk_file(tmp_filename, output_dir, chunk_size):
 
     # Divide file into chunks
     body_filename = tmp_filename + '-body'
-    subprocess.call([
-        'split',
-        '-l', str(chunk_size),
-        '-d', body_filename,
-        tmp_filename + '-',
-    ])
+    if isinstance(chunk_size, list):
+        subprocess.call(
+            ['csplit', '-f', body_filename, '-b', '-%02d', tmp_filename] +
+            chunk_size
+        )
+    else:
+        subprocess.call([
+            'split',
+            '-l', str(chunk_size),
+            '-d', body_filename,
+            tmp_filename + '-',
+        ])
 
     # Prepend the column headers to each file and copy to the EFS directory
     file_names = []

@@ -127,10 +127,17 @@ def run_scoring(sensor_data, file_name, data, config):
     # Output data
     fileobj = open(config.FP_OUTPUT + '/' + file_name, 'wb')
     sdata.to_csv(fileobj, index=False, na_rep='', columns=cols.column_scoring_out)
-    del sdata
     _logger("DONE WRITING OUTPUT FILE")
 
-    return "Success!"
+    # Calculate 15 minute cutoff points
+    sdata.set_index(pd.to_datetime(sdata.epoch_time, unit='ms'), drop=False, inplace=True)
+    groups = sdata.resample('15T')
+    data_end = groups.time_stamp.max()
+    # Off-by-two error occurs (probably one for the column headers, and one for splitting before/after a line?).  We also
+    # have to ignore the last split, which will end up out-of-range
+    boundaries = [x + 2 for x in np.where(sdata.time_stamp.isin(data_end))[0].tolist()][0:-1]
+
+    return boundaries
 
 
 def _logger(message):

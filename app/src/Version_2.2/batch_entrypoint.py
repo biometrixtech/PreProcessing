@@ -130,7 +130,7 @@ if __name__ == '__main__':
         elif script == 'scoring':
             print('Running scoring()')
             from scoring import scoringProcess
-            output_file = scoringProcess.script_handler(
+            output_file, boundaries = scoringProcess.script_handler(
                 input_data.get('Filenames', None),
                 input_data
             )
@@ -140,7 +140,7 @@ if __name__ == '__main__':
             file_names = chunk.chunk_file(
                 os.path.join('/net/efs/scoring/output', output_file),
                 '/net/efs/writemongo/input',
-                100000
+                boundaries
             )
 
             send_success(meta_data, {"Filenames": file_names})
