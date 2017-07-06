@@ -55,23 +55,28 @@ def load_parameters(keys):
 
 
 def put_cloudwatch_metric(metric_name, value, unit):
-    cloudwatch_client = boto3.client('cloudwatch')
-    cloudwatch_client.put_metric_data(
-        Namespace='Preprocessing',
-        MetricData=[
-            {
-                'MetricName': metric_name,
-                'Dimensions': [
-                    {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JOB_QUEUE']},
-                    {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
-                    {'Name': 'Job', 'Value': script},
-                ],
-                'Timestamp': datetime.utcnow(),
-                'Value': value,
-                'Unit': unit,
-            },
-        ]
-    )
+    try:
+        cloudwatch_client = boto3.client('cloudwatch')
+        cloudwatch_client.put_metric_data(
+            Namespace='Preprocessing',
+            MetricData=[
+                {
+                    'MetricName': metric_name,
+                    'Dimensions': [
+                        {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
+                        {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JOB_QUEUE']},
+                        {'Name': 'Job', 'Value': script},
+                    ],
+                    'Timestamp': datetime.utcnow(),
+                    'Value': value,
+                    'Unit': unit,
+                },
+            ]
+        )
+    except Exception as exception:
+        print("Could not put cloudwatch metric")
+        print(repr(exception))
+        # Continue
 
 
 if __name__ == '__main__':
