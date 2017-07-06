@@ -38,20 +38,28 @@ def send_failure(meta, exception):
         )
 
 
+def chunk_list(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
 def load_parameters(keys):
     keys_to_load = [key for key in keys if key.upper() not in os.environ]
     if len(keys_to_load) > 0:
         print('Retrieving configuration for [{}] from SSM'.format(", ".join(keys_to_load)))
         ssm_client = boto3.client('ssm')
-        response = ssm_client.get_parameters(
-            Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in keys_to_load],
-            WithDecryption=True
-        )
-        params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
-        # Export to environment
-        for k, v in params.items():
-            print("Got value for {} from SSM".format(k))
-            os.environ[k] = v
+
+        for key_batch in chunk_list(keys_to_load, 10):
+            response = ssm_client.get_parameters(
+                Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in key_batch],
+                WithDecryption=True
+            )
+            params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
+            # Export to environment
+            for k, v in params.items():
+                print("Got value for {} from SSM".format(k))
+                os.environ[k] = v
 
 
 def put_cloudwatch_metric(metric_name, value, unit):
@@ -148,12 +156,18 @@ if __name__ == '__main__':
         elif script == 'writemongo':
             print('Uploading to mongodb database')
             load_parameters([
-                'MONGO_HOST',
-                'MONGO_USER',
-                'MONGO_PASSWORD',
-                'MONGO_DATABASE',
-                'MONGO_COLLECTION',
-                'MONGO_REPLICASET'
+                'MONGO1_HOST',
+                'MONGO1_USER',
+                'MONGO1_PASSWORD',
+                'MONGO1_DATABASE',
+                'MONGO1_COLLECTION',
+                'MONGO1_REPLICASET',
+                'MONGO2_HOST',
+                'MONGO2_USER',
+                'MONGO2_PASSWORD',
+                'MONGO2_DATABASE',
+                'MONGO2_COLLECTION',
+                'MONGO2_REPLICASET',
             ])
             from writemongo import writemongo
             writemongo.script_handler(

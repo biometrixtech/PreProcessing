@@ -19,12 +19,18 @@ Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
     'FP_INPUT',
-    'MONGO_HOST',
-    'MONGO_USER',
-    'MONGO_PASSWORD',
-    'MONGO_DATABASE',
-    'MONGO_COLLECTION',
-    'MONGO_REPLICASET',
+    'MONGO1_HOST',
+    'MONGO1_USER',
+    'MONGO1_PASSWORD',
+    'MONGO1_DATABASE',
+    'MONGO1_COLLECTION',
+    'MONGO1_REPLICASET',
+    'MONGO2_HOST',
+    'MONGO2_USER',
+    'MONGO2_PASSWORD',
+    'MONGO2_DATABASE',
+    'MONGO2_COLLECTION',
+    'MONGO2_REPLICASET',
 ])
 
 
@@ -37,21 +43,38 @@ def script_handler(file_name, input_data):
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT='/net/efs/writemongo/input',
-            MONGO_HOST=os.environ['MONGO_HOST'],
-            MONGO_USER=os.environ['MONGO_USER'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE'],
-            MONGO_COLLECTION=os.environ['MONGO_COLLECTION'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET']
+            MONGO1_HOST=os.environ['MONGO1_HOST'],
+            MONGO1_USER=os.environ['MONGO1_USER'],
+            MONGO1_PASSWORD=os.environ['MONGO1_PASSWORD'],
+            MONGO1_DATABASE=os.environ['MONGO1_DATABASE'],
+            MONGO1_COLLECTION=os.environ['MONGO1_COLLECTION'],
+            MONGO1_REPLICASET=os.environ['MONGO1_REPLICASET'],
+            MONGO2_HOST=os.environ['MONGO2_HOST'],
+            MONGO2_USER=os.environ['MONGO2_USER'],
+            MONGO2_PASSWORD=os.environ['MONGO2_PASSWORD'],
+            MONGO2_DATABASE=os.environ['MONGO2_DATABASE'],
+            MONGO2_COLLECTION=os.environ['MONGO2_COLLECTION'],
+            MONGO2_REPLICASET=os.environ['MONGO2_REPLICASET']
         )
 
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
-        mongo_database = mongo_client[config.MONGO_DATABASE]
+        # first collection
+        mongo1_client = MongoClient(config.MONGO1_HOST, replicaset=config.MONGO1_REPLICASET)
+
+        mongo1_database = mongo1_client[config.MONGO1_DATABASE]
 
         # Authenticate
-        mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD, mechanism='SCRAM-SHA-1')
+        mongo1_database.authenticate(config.MONGO1_USER, config.MONGO1_PASSWORD, mechanism='SCRAM-SHA-1')
 
-        mongo_collection = mongo_database[config.MONGO_COLLECTION]
+        mongo1_collection = mongo1_database[config.MONGO1_COLLECTION]
+
+        # second collection
+        mongo2_client = MongoClient(config.MONGO2_HOST, replicaset=config.MONGO2_REPLICASET) 
+        mongo2_database = mongo2_client[config.MONGO2_DATABASE]
+
+        # Authenticate
+        mongo2_database.authenticate(config.MONGO2_USER, config.MONGO2_PASSWORD, mechanism='SCRAM-SHA-1')
+
+        mongo2_collection = mongo2_database[config.MONGO2_COLLECTION]
 
         tmp_filename = os.path.join('/tmp', file_name)
         copyfile(os.path.join(config.FP_INPUT, file_name), tmp_filename)
@@ -60,16 +83,7 @@ def script_handler(file_name, input_data):
         os.remove(tmp_filename)
         logger.info("Removed temporary file")
 
-        # replace nans with null
-        data = data.where((pandas.notnull(data)), None)
-
-        # resample data into 30s groups and extract start and end time for each
-        # each object in mongo is a group of 30s of data
-        data.set_index(pandas.to_datetime(data.epoch_time, unit='ms'), drop=False, inplace=True)
-        groups = data.resample('30S')
-        data_start = groups.time_stamp.min()
-        data_end = groups.time_stamp.max()
-
+        # rename columns to match mongo
         data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed', 'sessionDuration',
                         'loadingLF', 'loadingRF',
                         'phaseLF', 'phaseRF', 'lfImpactPhase', 'rfImpactPhase',
@@ -91,6 +105,30 @@ def script_handler(file_name, input_data):
         training_session_log_id = input_data.get('TrainingSessionLogId', None)
         session_event_id = input_data.get('SessionEventId', None)
         session_type = input_data.get('SessionType', None)
+        user_mass = input_data.get('UserMass', 155) * 4.4482
+
+        # Compute the max grf and totalAccel for each .5s window for use in program comp
+        data['half_sec'] = pandas.DatetimeIndex(pandas.to_datetime(data.epochTime, unit='ms')).round('500ms')
+        f = OrderedDict({'total': [numpy.max]})
+        f['totalAccel'] = [numpy.max]
+        
+        max30s = data.groupby('half_sec').agg(f)
+        max30s.columns = ['totalNormMax', 'totalAccelMax']
+        data = data.join(max30s, on='half_sec')
+        data.loc[:, 'totalNormMax'] = data.totalNormMax / user_mass * 1000000
+        
+        # replace nans with None
+        data = data.where((pandas.notnull(data)), None)
+        logger.info("Filtered out null values")
+
+        # resample data into 30s groups and extract start and end time for each
+        # each object in mongo is a group of 30s of data
+        data.set_index(pandas.to_datetime(data.epochTime, unit='ms'), drop=False, inplace=True)
+        groups = data.resample('30S')
+        data_start = groups.timeStamp.min()
+        data_end = groups.timeStamp.max()
+        logger.info("Resampled into 30s chunks")
+
         # create dict with movement Attribute columns and add as column
         mov_attrib_cols = ['stance',
                            'plane',
@@ -103,6 +141,7 @@ def script_handler(file_name, input_data):
 
         # create dict with grf columns and add as column
         grf_cols = ['total',
+                    'totalNormMax',
                     'LF',
                     'RF',
                     'constructive',
@@ -150,7 +189,8 @@ def script_handler(file_name, input_data):
                          'rateForceAbsorptionRF',
                          'rateForceProductionLF',
                          'rateForceProductionRF',
-                         'totalAccel']
+                         'totalAccel',
+                         'totalAccelMax']
         data.loc[:, 'performanceVariables'] = data[perf_var_cols].to_dict(orient='records')
 
         # Prep for 30s aggregation
@@ -163,6 +203,7 @@ def script_handler(file_name, input_data):
         data['rf_grf'] = data['total'].fillna(value=numpy.nan) * rf_ind
 
         record_ids = []
+        record_ids_agg = []
 
         keys = ['obsIndex',
                 'timeStamp',
@@ -185,12 +226,18 @@ def script_handler(file_name, input_data):
 
         for i, j in zip(data_start, data_end):
             # subset data into 30s chunks
-            data_30 = data.loc[(data.timeStamp >= i) & (data.timeStamp <= j),]
+            data_30 = data.loc[(data.timeStamp >= i) & (data.timeStamp <= j), ]
 
             data_values = data_30[keys].to_dict(orient='records')
 
-            date_time = datetime.datetime.strptime(data_30.timeStamp[0].split('.')[0],
-                                                   "%Y-%m-%d %H:%M:%S")
+            try:
+                date_time = datetime.datetime.strptime(str(pandas.DatetimeIndex(data_30.timeStamp).round('1s')[0]),
+                                                       "%Y-%m-%d %H:%M:%S")
+            except IndexError:
+                print("i: {}".format(i))
+                print("j: {}".format(j))
+                print(len(data_30))
+
             event_date = str(date_time.date())
             start_time = pandas.Timedelta(str(date_time.time()))
 
@@ -238,6 +285,7 @@ def script_handler(file_name, input_data):
             record_out['tenMinuteMarker'] = int(start_time / numpy.timedelta64(1, '10m'))
             record_out['dataValues'] = data_values
             record_out['trainingGroups'] = training_group_id
+            record_out['userMass'] = user_mass
 
             # data for collection with aggregated values only
             record_out_agg = OrderedDict({'teamId': team_id})
@@ -252,6 +300,7 @@ def script_handler(file_name, input_data):
             record_out_agg['twoMinuteMarker'] = int(start_time/numpy.timedelta64(1, '2m'))
             record_out_agg['tenMinuteMarker'] = int(start_time/numpy.timedelta64(1, '10m'))
             record_out_agg['trainingGroups'] = training_group_id
+            record_out_agg['userMass'] = user_mass
 
             record_out_agg['totalGRF'] = total_grf
             record_out_agg['LFgRF'] = lf_grf
@@ -284,11 +333,10 @@ def script_handler(file_name, input_data):
                     pass
             # Write each record one at a time.
             # TODO(Stephen): This is appended to the current collection
-            record_ids.append(mongo_collection.insert_one(record_out).inserted_id)
+            record_ids.append(mongo1_collection.insert_one(record_out).inserted_id)
+            record_ids_agg.append(mongo2_collection.insert_one(record_out_agg).inserted_id)
 
             logger.info("Wrote a record")
-            # TODO(Stephen) This needs to be inserted into the second collection
-            # record_ids_agg.append(mongo2_collection.insert_one(record_out_agg).inserted_id)
 
         #            all_docs.append(record_out)
         # TODO(Stephen): this is alternative way to insert all at once. Haven't tested the performance of one at a time vs all at once.
