@@ -201,6 +201,8 @@ def script_handler(file_name, input_data):
         data['total_grf'] = data['total'].fillna(value=numpy.nan) * total_ind
         data['lf_grf'] = data['total'].fillna(value=numpy.nan) * lf_ind
         data['rf_grf'] = data['total'].fillna(value=numpy.nan) * rf_ind
+        data['const_grf'] = data['constructive'].fillna(value=numpy.nan) * total_ind
+        data['dest_grf'] = data['destructive'].fillna(value=numpy.nan) * total_ind
 
         record_ids = []
         record_ids_agg = []
@@ -244,8 +246,16 @@ def script_handler(file_name, input_data):
             # 30s aggregation scores
             # grf
             total_grf = numpy.sum(data_30['total_grf'])
+            if total_grf == 0:
+                total_grf = 1
             lf_grf = numpy.sum(data_30['lf_grf'])
+            if lf_grf == 0:
+                lf_grf = 1
             rf_grf = numpy.sum(data_30['rf_grf'])
+            if rf_grf == 0:
+                rf_grf = 1
+            const_grf = numpy.sum(data_30['const_grf'])
+            dest_grf = numpy.sum(data_30['dest_grf'])
 
             # control aggregation
             control = numpy.sum(data_30['control']*data_30['total_grf']) / total_grf
@@ -305,6 +315,8 @@ def script_handler(file_name, input_data):
             record_out_agg['totalGRF'] = total_grf
             record_out_agg['LFgRF'] = lf_grf
             record_out_agg['RFgRF'] = rf_grf
+            record_out_agg['optimalGRF'] = const_grf
+            record_out_agg['irregularGRF'] = dest_grf
             record_out_agg['control'] = control
             record_out_agg['hipControl'] = hip_control
             record_out_agg['ankleControl'] = ankle_control
