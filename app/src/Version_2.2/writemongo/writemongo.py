@@ -105,6 +105,8 @@ def script_handler(file_name, input_data):
         training_session_log_id = input_data.get('TrainingSessionLogId', None)
         session_event_id = input_data.get('SessionEventId', None)
         session_type = input_data.get('SessionType', None)
+        if session_type is not None:
+            session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
 
         # Compute the max grf and totalAccel for each .5s window for use in program comp
