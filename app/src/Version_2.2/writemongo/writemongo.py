@@ -48,13 +48,13 @@ def script_handler(file_name, input_data):
             MONGO1_PASSWORD=os.environ['MONGO1_PASSWORD'],
             MONGO1_DATABASE=os.environ['MONGO1_DATABASE'],
             MONGO1_COLLECTION=os.environ['MONGO1_COLLECTION'],
-            MONGO1_REPLICASET=os.environ['MONGO1_REPLICASET'],
+            MONGO1_REPLICASET=os.environ['MONGO1_REPLICASET'] if os.environ['MONGO1_REPLICASET'] != '---' else None,
             MONGO2_HOST=os.environ['MONGO2_HOST'],
             MONGO2_USER=os.environ['MONGO2_USER'],
             MONGO2_PASSWORD=os.environ['MONGO2_PASSWORD'],
             MONGO2_DATABASE=os.environ['MONGO2_DATABASE'],
             MONGO2_COLLECTION=os.environ['MONGO2_COLLECTION'],
-            MONGO2_REPLICASET=os.environ['MONGO2_REPLICASET']
+            MONGO2_REPLICASET=os.environ['MONGO2_REPLICASET'] if os.environ['MONGO2_REPLICASET'] != '---' else None
         )
 
         # first collection

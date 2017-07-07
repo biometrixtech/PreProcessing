@@ -74,7 +74,7 @@ def send_batches_of_data(file_path, data, config, aws=True):
 
 
 def load_user_mass(data):
-    return float(data.get('UserMass', 70)) * 0.453592
+    return float(data.get('UserMass', 160)) * 0.453592
 
 
 def load_grf_model(config):
