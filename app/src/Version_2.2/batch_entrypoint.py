@@ -73,8 +73,8 @@ def put_cloudwatch_metric(metric_name, value, unit):
                     'MetricName': metric_name,
                     'Dimensions': [
                         {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
-                        {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JQ_NAME']},
-                        {'Name': 'ComputeEnvironment', 'Value': os.environ['AWS_BATCH_CE_NAME']},
+                        # {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JQ_NAME']},
+                        # {'Name': 'ComputeEnvironment', 'Value': os.environ['AWS_BATCH_CE_NAME']},
                         {'Name': 'Job', 'Value': script},
                     ],
                     'Timestamp': datetime.utcnow(),
