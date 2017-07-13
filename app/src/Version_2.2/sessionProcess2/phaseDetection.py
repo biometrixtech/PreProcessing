@@ -278,7 +278,8 @@ def _impact_detect(start_move, end_move, az, hz):
                     m = np.where(acc[k+1:k+win+1] == np.nanmax(acc[k+1:k+win+1]))[0][0]
                     # Check if the acc drops by defined threshold within drop_win
                     # it's detected as impact if this condition satisfies
-                    diff = [az[i+k+m+1]]*drop_win - az[i+k+m+2:i+k+m+2+drop_win]
+                    drop_win_1 = min([drop_win, len(az[i+k+m+2:])])
+                    diff = [az[i+k+m+1]]*drop_win_1 - az[i+k+m+2:i+k+m+2+drop_win_1]
                     if any(diff>=drop_thresh):
                         start_imp_ind = i+k+np.argmin(acc[k:k+win+ 1])
                         end_imp_ind = start_imp_ind + imp_len

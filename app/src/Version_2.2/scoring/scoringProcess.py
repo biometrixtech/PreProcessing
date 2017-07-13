@@ -38,7 +38,7 @@ def script_handler(filenames, data):
         )
         csv_data = []
         count = 0
-        for filename in filenames:
+        for filename in sorted(filenames):
             with open(os.path.join(config.FP_INPUT, filename), 'r') as f:
                 lines = f.readlines()
                 if count == 0:
@@ -56,9 +56,9 @@ def script_handler(filenames, data):
         else:
             file_name = filenames[0]
 
-        result = runScoring.run_scoring(stream, file_name, data, config=config)
-        logger.info('outcome:' + result)
-        return file_name
+        fifteen_min_boundaries = runScoring.run_scoring(stream, file_name, data, config=config)
+        logger.info('Success')
+        return file_name, fifteen_min_boundaries
 
     except Exception as e:
         logger.info(e)

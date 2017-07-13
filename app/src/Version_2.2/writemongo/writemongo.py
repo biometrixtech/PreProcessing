@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from collections import namedtuple
 from pymongo import MongoClient
+from shutil import copyfile
 import logging
 import os
 import pandas
@@ -18,50 +19,71 @@ Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
     'FP_INPUT',
-    'MONGO_HOST',
-    'MONGO_USER',
-    'MONGO_PASSWORD',
-    'MONGO_DATABASE',
-    'MONGO_COLLECTION',
-    'MONGO_REPLICASET',
+    'MONGO1_HOST',
+    'MONGO1_USER',
+    'MONGO1_PASSWORD',
+    'MONGO1_DATABASE',
+    'MONGO1_COLLECTION',
+    'MONGO1_REPLICASET',
+    'MONGO2_HOST',
+    'MONGO2_USER',
+    'MONGO2_PASSWORD',
+    'MONGO2_DATABASE',
+    'MONGO2_COLLECTION',
+    'MONGO2_REPLICASET',
 ])
 
 
 def script_handler(file_name, input_data):
     logger.info('Running writemongo on "{}"'.format(file_name))
+    logger.info("Definitely running")
 
     try:
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT='/net/efs/writemongo/input',
-            MONGO_HOST=os.environ['MONGO_HOST'],
-            MONGO_USER=os.environ['MONGO_USER'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE'],
-            MONGO_COLLECTION=os.environ['MONGO_COLLECTION'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET']
+            MONGO1_HOST=os.environ['MONGO1_HOST'],
+            MONGO1_USER=os.environ['MONGO1_USER'],
+            MONGO1_PASSWORD=os.environ['MONGO1_PASSWORD'],
+            MONGO1_DATABASE=os.environ['MONGO1_DATABASE'],
+            MONGO1_COLLECTION=os.environ['MONGO1_COLLECTION'],
+            MONGO1_REPLICASET=os.environ['MONGO1_REPLICASET'] if os.environ['MONGO1_REPLICASET'] != '---' else None,
+            MONGO2_HOST=os.environ['MONGO2_HOST'],
+            MONGO2_USER=os.environ['MONGO2_USER'],
+            MONGO2_PASSWORD=os.environ['MONGO2_PASSWORD'],
+            MONGO2_DATABASE=os.environ['MONGO2_DATABASE'],
+            MONGO2_COLLECTION=os.environ['MONGO2_COLLECTION'],
+            MONGO2_REPLICASET=os.environ['MONGO2_REPLICASET'] if os.environ['MONGO2_REPLICASET'] != '---' else None
         )
 
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
-        mongo_database = mongo_client[config.MONGO_DATABASE]
+        # first collection
+        mongo1_client = MongoClient(config.MONGO1_HOST, replicaset=config.MONGO1_REPLICASET)
+
+        mongo1_database = mongo1_client[config.MONGO1_DATABASE]
 
         # Authenticate
-        mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD, mechanism='SCRAM-SHA-1')
+        mongo1_database.authenticate(config.MONGO1_USER, config.MONGO1_PASSWORD, mechanism='SCRAM-SHA-1')
 
-        mongo_collection = mongo_database[config.MONGO_COLLECTION]
+        mongo1_collection = mongo1_database[config.MONGO1_COLLECTION]
 
-        data = pandas.read_csv(os.path.join(config.FP_INPUT, file_name))
-        # replace nans with nul
-        data = data.where((pandas.notnull(data)), None)
+        # second collection
+        mongo2_client = MongoClient(config.MONGO2_HOST, replicaset=config.MONGO2_REPLICASET) 
+        mongo2_database = mongo2_client[config.MONGO2_DATABASE]
 
-        # resample data into 30s groups and extract start and end time for each
-        # each object in mongo is a group of 30s of data
-        data.set_index(pandas.to_datetime(data.epoch_time, unit='ms'), drop=False, inplace=True)
-        groups = data.resample('30S')
-        data_start = groups.time_stamp.min()
-        data_end = groups.time_stamp.max()
+        # Authenticate
+        mongo2_database.authenticate(config.MONGO2_USER, config.MONGO2_PASSWORD, mechanism='SCRAM-SHA-1')
 
+        mongo2_collection = mongo2_database[config.MONGO2_COLLECTION]
+
+        tmp_filename = os.path.join('/tmp', file_name)
+        copyfile(os.path.join(config.FP_INPUT, file_name), tmp_filename)
+        logger.info("Copied data file to local FS")
+        data = pandas.read_csv(tmp_filename)
+        os.remove(tmp_filename)
+        logger.info("Removed temporary file")
+
+        # rename columns to match mongo
         data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed', 'sessionDuration',
                         'loadingLF', 'loadingRF',
                         'phaseLF', 'phaseRF', 'lfImpactPhase', 'rfImpactPhase',
@@ -83,106 +105,159 @@ def script_handler(file_name, input_data):
         training_session_log_id = input_data.get('TrainingSessionLogId', None)
         session_event_id = input_data.get('SessionEventId', None)
         session_type = input_data.get('SessionType', None)
+        if session_type is not None:
+            session_type = str(session_type)
+        user_mass = input_data.get('UserMass', 155) * 4.4482
+
+        # Compute the max grf and totalAccel for each .5s window for use in program comp
+        data['half_sec'] = pandas.DatetimeIndex(pandas.to_datetime(data.epochTime, unit='ms')).round('500ms')
+        f = OrderedDict({'total': [numpy.max]})
+        f['totalAccel'] = [numpy.max]
+        
+        max30s = data.groupby('half_sec').agg(f)
+        max30s.columns = ['totalNormMax', 'totalAccelMax']
+        data = data.join(max30s, on='half_sec')
+        data.loc[:, 'totalNormMax'] = data.totalNormMax / user_mass * 1000000
+        
+        # replace nans with None
+        data = data.where((pandas.notnull(data)), None)
+        logger.info("Filtered out null values")
+
+        # resample data into 30s groups and extract start and end time for each
+        # each object in mongo is a group of 30s of data
+        data.set_index(pandas.to_datetime(data.epochTime, unit='ms'), drop=False, inplace=True)
+        groups = data.resample('30S')
+        data_start = groups.timeStamp.min()
+        data_end = groups.timeStamp.max()
+        logger.info("Resampled into 30s chunks")
+
+        # create dict with movement Attribute columns and add as column
+        mov_attrib_cols = ['stance',
+                           'plane',
+                           'rot',
+                           'lat',
+                           'vert',
+                           'horz']
+        # TODO(Stephen): Couldn't find a fast way to create ordered dict without looping. Change this if you have something better.
+        data.loc[:, 'movementAttributes'] = data[mov_attrib_cols].to_dict(orient='records')
+
+        # create dict with grf columns and add as column
+        grf_cols = ['total',
+                    'totalNormMax',
+                    'LF',
+                    'RF',
+                    'constructive',
+                    'destructive',
+                    'destrMultiplier',
+                    'sessionGRFElapsed']
+        data.loc[:, 'groundReactionForce'] = data[grf_cols].to_dict(orient='records')
+
+        # create dict with MQ features columns and add as column
+        mq_feat_cols = ['contraHipDropLF',
+                        'contraHipDropRF',
+                        'ankleRotLF',
+                        'ankleRotRF',
+                        'footPositionLF',
+                        'footPositionRF',
+                        'landPatternLF',
+                        'landPatternRF',
+                        'landTime']
+        data.loc[:, 'movementQualityFeatures'] = data[mq_feat_cols].to_dict(orient='records')
+
+        # create dict with scores columns and add as column
+        scor_cols = ['symmetry',
+                     'symmetryL',
+                     'symmetryR',
+                     'hipSymmetry',
+                     'hipSymmetryL',
+                     'hipSymmetryR',
+                     'ankleSymmetry',
+                     'ankleSymmetryL',
+                     'ankleSymmetryR',
+                     'consistency',
+                     'hipConsistency',
+                     'ankleConsistency',
+                     'consistencyLF',
+                     'consistencyRF',
+                     'control',
+                     'hipControl',
+                     'ankleControl',
+                     'controlLF',
+                     'controlRF']
+        data.loc[:, 'movementQualityScores'] = data[scor_cols].to_dict(orient='records')
+
+        # create dict with performance variables columns and add as column
+        perf_var_cols = ['rateForceAbsorptionLF',
+                         'rateForceAbsorptionRF',
+                         'rateForceProductionLF',
+                         'rateForceProductionRF',
+                         'totalAccel',
+                         'totalAccelMax']
+        data.loc[:, 'performanceVariables'] = data[perf_var_cols].to_dict(orient='records')
+
+        # Prep for 30s aggregation
+        # grf
+        total_ind = numpy.array([k != 3 for k in data.phaseLF])
+        lf_ind = numpy.array([k in [0, 1, 4] for k in data.phaseLF])
+        rf_ind = numpy.array([k in [0, 2, 5] for k in data.phaseRF])
+        data['total_grf'] = data['total'].fillna(value=numpy.nan) * total_ind
+        data['lf_grf'] = data['total'].fillna(value=numpy.nan) * lf_ind
+        data['rf_grf'] = data['total'].fillna(value=numpy.nan) * rf_ind
+        data['const_grf'] = data['constructive'].fillna(value=numpy.nan) * total_ind
+        data['dest_grf'] = data['destructive'].fillna(value=numpy.nan) * total_ind
+
         record_ids = []
+        record_ids_agg = []
+
+        keys = ['obsIndex',
+                'timeStamp',
+                'epochTime',
+                'msElapsed',
+                'sessionDuration',
+                'loadingLF',
+                'loadingRF',
+                'phaseLF',
+                'phaseRF',
+                'lfImpactPhase',
+                'rfImpactPhase',
+                'movementAttributes',
+                'groundReactionForce',
+                'movementQualityFeatures',
+                'movementQualityScores',
+                'performanceVariables']
+
+        logger.info("Beginning iteration over {} chunks".format(len(data_start)))
+
         for i, j in zip(data_start, data_end):
             # subset data into 30s chunks
-            data_30 = data.loc[(data.timeStamp >= i) & (data.timeStamp <= j),]
-            # create dict with movement Attribute columns and add as column
-            mov_attrib_cols = ['stance',
-                               'plane',
-                               'rot',
-                               'lat',
-                               'vert',
-                               'horz']
-            # TODO(Stephen): Couldn't find a fast way to create ordered dict without looping. Change this if you have something better.
-            data_30.loc[:, 'movementAttributes'] = data_30[mov_attrib_cols].to_dict(orient='records')
-
-            # create dict with grf columns and add as column
-            grf_cols = ['total',
-                        'LF',
-                        'RF',
-                        'constructive',
-                        'destructive',
-                        'destrMultiplier',
-                        'sessionGRFElapsed']
-            data_30.loc[:, 'groundReactionForce'] = data_30[grf_cols].to_dict(orient='records')
-
-            # create dict with MQ features columns and add as column
-            mq_feat_cols = ['contraHipDropLF',
-                            'contraHipDropRF',
-                            'ankleRotLF',
-                            'ankleRotRF',
-                            'footPositionLF',
-                            'footPositionRF',
-                            'landPatternLF',
-                            'landPatternRF',
-                            'landTime']
-            data_30.loc[:, 'movementQualityFeatures'] = data_30[mq_feat_cols].to_dict(orient='records')
-
-            # create dict with scores columns and add as column
-            scor_cols = ['symmetry',
-                         'symmetryL',
-                         'symmetryR',
-                         'hipSymmetry',
-                         'hipSymmetryL',
-                         'hipSymmetryR',
-                         'ankleSymmetry',
-                         'ankleSymmetryL',
-                         'ankleSymmetryR',
-                         'consistency',
-                         'hipConsistency',
-                         'ankleConsistency',
-                         'consistencyLF',
-                         'consistencyRF',
-                         'control',
-                         'hipControl',
-                         'ankleControl',
-                         'controlLF',
-                         'controlRF']
-            data_30.loc[:, 'movementQualityScores'] = data_30[scor_cols].to_dict(orient='records')
-
-            # create dict with performance variables columns and add as column
-            perf_var_cols = ['rateForceAbsorptionLF',
-                             'rateForceAbsorptionRF',
-                             'rateForceProductionLF',
-                             'rateForceProductionRF',
-                             'totalAccel']
-            data_30.loc[:, 'performanceVariables'] = data_30[perf_var_cols].to_dict(orient='records')
-
-            keys = ['obsIndex',
-                    'timeStamp',
-                    'epochTime',
-                    'msElapsed',
-                    'sessionDuration',
-                    'loadingLF',
-                    'loadingRF',
-                    'phaseLF',
-                    'phaseRF',
-                    'lfImpactPhase',
-                    'rfImpactPhase',
-                    'movementAttributes',
-                    'groundReactionForce',
-                    'movementQualityFeatures',
-                    'movementQualityScores',
-                    'performanceVariables']
+            data_30 = data.loc[(data.timeStamp >= i) & (data.timeStamp <= j), ]
 
             data_values = data_30[keys].to_dict(orient='records')
 
-            date_time = datetime.datetime.strptime(data_30.timeStamp[0].split('.')[0],
-                                                   "%Y-%m-%d %H:%M:%S")
+            try:
+                date_time = datetime.datetime.strptime(str(pandas.DatetimeIndex(data_30.timeStamp).round('1s')[0]),
+                                                       "%Y-%m-%d %H:%M:%S")
+            except IndexError:
+                print("i: {}".format(i))
+                print("j: {}".format(j))
+                print(len(data_30))
+
             event_date = str(date_time.date())
             start_time = pandas.Timedelta(str(date_time.time()))
+
             # 30s aggregation scores
             # grf
-            total_ind = numpy.array([k!=3 for k in data_30.phaseLF])
-            lf_ind = numpy.array([k in [0, 1, 4] for k in data_30.phaseLF])
-            rf_ind = numpy.array([k in [0, 2, 5] for k in data_30.phaseRF])
-            data_30['total_grf'] = data_30['total'].fillna(value=numpy.nan) * total_ind
             total_grf = numpy.sum(data_30['total_grf'])
-            data_30['lf_grf'] = data_30['total'].fillna(value=numpy.nan) * lf_ind
+            if total_grf == 0:
+                total_grf = 1
             lf_grf = numpy.sum(data_30['lf_grf'])
-            data_30['rf_grf'] = data_30['total'].fillna(value=numpy.nan) * rf_ind
+            if lf_grf == 0:
+                lf_grf = 1
             rf_grf = numpy.sum(data_30['rf_grf'])
+            if rf_grf == 0:
+                rf_grf = 1
+            const_grf = numpy.sum(data_30['const_grf'])
+            dest_grf = numpy.sum(data_30['dest_grf'])
 
             # control aggregation
             control = numpy.sum(data_30['control']*data_30['total_grf']) / total_grf
@@ -208,34 +283,6 @@ def script_handler(file_name, input_data):
             ankle_consistency = numpy.sum(data_30['ankleConsistency']) / total_grf
             consistency_lf = numpy.sum(data_30['consistencyLF']) / lf_grf
             consistency_rf = numpy.sum(data_30['consistencyRF']) / rf_grf
-            aggregated = OrderedDict()
-            aggregated['totalGRF'] = total_grf
-            aggregated['LFgRF'] = lf_grf
-            aggregated['RFgRF'] = rf_grf
-            aggregated['control'] = control
-            aggregated['hipControl'] = hip_control
-            aggregated['ankleControl'] = ankle_control
-            aggregated['controlLF'] = control_lf
-            aggregated['controlRF'] = control_rf
-            aggregated['symmetry'] = symmetry
-            aggregated['symmetryL'] = symmetry_l
-            aggregated['symmetryR'] = symmetry_r
-            aggregated['hipSymmetry'] = hip_symmetry
-            aggregated['hipSymmetryL'] = hip_symmetry_l
-            aggregated['hipSymmetryR'] = hip_symmetry_r
-            aggregated['ankleSymmetry'] = ankle_symmetry
-            aggregated['ankleSymmetryL'] = ankle_symmetry_l
-            aggregated['ankleSymmetryR'] = ankle_symmetry_r
-            aggregated['consistency'] = consistency
-            aggregated['hipConsistency'] = hip_consistency
-            aggregated['ankleConsistency'] = ankle_consistency
-            aggregated['consistencyLF'] = consistency_lf
-            aggregated['consistencyRF'] = consistency_rf
-            for key, value in aggregated.items():
-                print(value)
-                if numpy.isnan(value):
-                    aggregated[key] = None
-
 
             record_out = OrderedDict({'teamId': team_id})
             record_out['userId'] = user_id
@@ -250,15 +297,65 @@ def script_handler(file_name, input_data):
             record_out['tenMinuteMarker'] = int(start_time / numpy.timedelta64(1, '10m'))
             record_out['dataValues'] = data_values
             record_out['trainingGroups'] = training_group_id
-            record_out['aggregatedValues'] = aggregated
+            record_out['userMass'] = user_mass
+
+            # data for collection with aggregated values only
+            record_out_agg = OrderedDict({'teamId': team_id})
+            record_out_agg['userId'] = user_id
+            record_out_agg['sessionEventId'] = session_event_id
+            record_out_agg['sessionType'] = session_type
+            record_out_agg['trainingSessionLogId'] = training_session_log_id
+            record_out_agg['eventDate'] = event_date
+            record_out_agg['dataStart'] = i
+            record_out_agg['dataEnd'] = j
+            record_out_agg['thirtySecondMarker'] = int(start_time/numpy.timedelta64(1, '30s'))
+            record_out_agg['twoMinuteMarker'] = int(start_time/numpy.timedelta64(1, '2m'))
+            record_out_agg['tenMinuteMarker'] = int(start_time/numpy.timedelta64(1, '10m'))
+            record_out_agg['trainingGroups'] = training_group_id
+            record_out_agg['userMass'] = user_mass
+
+            record_out_agg['totalGRF'] = total_grf
+            record_out_agg['LFgRF'] = lf_grf
+            record_out_agg['RFgRF'] = rf_grf
+            record_out_agg['optimalGRF'] = const_grf
+            record_out_agg['irregularGRF'] = dest_grf
+            record_out_agg['control'] = control
+            record_out_agg['hipControl'] = hip_control
+            record_out_agg['ankleControl'] = ankle_control
+            record_out_agg['controlLF'] = control_lf
+            record_out_agg['controlRF'] = control_rf
+            record_out_agg['symmetry'] = symmetry
+            record_out_agg['symmetryL'] = symmetry_l
+            record_out_agg['symmetryR'] = symmetry_r
+            record_out_agg['hipSymmetry'] = hip_symmetry
+            record_out_agg['hipSymmetryL'] = hip_symmetry_l
+            record_out_agg['hipSymmetryR'] = hip_symmetry_r
+            record_out_agg['ankleSymmetry'] = ankle_symmetry
+            record_out_agg['ankleSymmetryL'] = ankle_symmetry_l
+            record_out_agg['ankleSymmetryR'] = ankle_symmetry_r
+            record_out_agg['consistency'] = consistency
+            record_out_agg['hipConsistency'] = hip_consistency
+            record_out_agg['ankleConsistency'] = ankle_consistency
+            record_out_agg['consistencyLF'] = consistency_lf
+            record_out_agg['consistencyRF'] = consistency_rf
+
+            for key, value in record_out_agg.items():
+                try:
+                    if numpy.isnan(value):
+                        record_out_agg[key] = None
+                except TypeError:
+                    pass
             # Write each record one at a time.
-            # TODO(Stephen):
-            record_ids.append(mongo_collection.insert_one(record_out).inserted_id)
+            # TODO(Stephen): This is appended to the current collection
+            record_ids.append(mongo1_collection.insert_one(record_out).inserted_id)
+            record_ids_agg.append(mongo2_collection.insert_one(record_out_agg).inserted_id)
+
+            logger.info("Wrote a record")
+
         #            all_docs.append(record_out)
         # TODO(Stephen): this is alternative way to insert all at once. Haven't tested the performance of one at a time vs all at once.
         #        record_id = mongo_collection.insert_many(all_docs).inserted_ids
-
-
+        logger.info("Finished writing")
 
     except Exception as e:
         logger.info(e)

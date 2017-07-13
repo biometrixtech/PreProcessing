@@ -29,13 +29,20 @@ def send_success(meta, output):
 
     
 def send_failure(meta, exception):
-    if 'TaskToken' in meta:
+    task_token = meta.get('TaskTokenFailure', meta.get('TaskToken', None))
+    if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_failure(
-            taskToken=meta['TaskToken'],
+            taskToken=task_token,
             error="An exception was thrown",
             cause=repr(exception)
         )
+
+
+def chunk_list(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 
 def load_parameters(keys):
@@ -43,15 +50,17 @@ def load_parameters(keys):
     if len(keys_to_load) > 0:
         print('Retrieving configuration for [{}] from SSM'.format(", ".join(keys_to_load)))
         ssm_client = boto3.client('ssm')
-        response = ssm_client.get_parameters(
-            Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in keys_to_load],
-            WithDecryption=True
-        )
-        params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
-        # Export to environment
-        for k, v in params.items():
-            print("Got value for {} from SSM".format(k))
-            os.environ[k] = v
+
+        for key_batch in chunk_list(keys_to_load, 10):
+            response = ssm_client.get_parameters(
+                Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in key_batch],
+                WithDecryption=True
+            )
+            params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
+            # Export to environment
+            for k, v in params.items():
+                print("Got value for {} from SSM".format(k))
+                os.environ[k] = v
 
 
 def put_cloudwatch_metric(metric_name, value, unit):
@@ -64,8 +73,8 @@ def put_cloudwatch_metric(metric_name, value, unit):
                     'MetricName': metric_name,
                     'Dimensions': [
                         {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
-                        {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JQ_NAME']},
-                        {'Name': 'ComputeEnvironment', 'Value': os.environ['AWS_BATCH_CE_NAME']},
+                        # {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JQ_NAME']},
+                        # {'Name': 'ComputeEnvironment', 'Value': os.environ['AWS_BATCH_CE_NAME']},
                         {'Name': 'Job', 'Value': script},
                     ],
                     'Timestamp': datetime.utcnow(),
@@ -94,10 +103,21 @@ if __name__ == '__main__':
 
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
+
             from downloadAndChunk import downloadAndChunk
-            file_names = downloadAndChunk.script_handler(
+            tmp_filename = downloadAndChunk.script_handler(
                 input_data.get('S3Bucket', None),
                 input_data.get('S3Path', None))
+
+            from chunk import chunk
+            file_names = chunk.chunk_file(
+                tmp_filename,
+                '/net/efs/downloadandchunk/output',
+                100000
+            )
+
+            os.remove(tmp_filename)
+
             send_success(meta_data, {"Filenames": file_names})
 
         elif script == 'sessionprocess2':
@@ -119,21 +139,36 @@ if __name__ == '__main__':
         elif script == 'scoring':
             print('Running scoring()')
             from scoring import scoringProcess
-            output_file = scoringProcess.script_handler(
+            output_file, boundaries = scoringProcess.script_handler(
                 input_data.get('Filenames', None),
                 input_data
             )
-            send_success(meta_data, {"Filename": output_file})
+
+            # Chunk files for input to writemongo
+            from chunk import chunk
+            file_names = chunk.chunk_file(
+                os.path.join('/net/efs/scoring/output', output_file),
+                '/net/efs/writemongo/input',
+                boundaries
+            )
+
+            send_success(meta_data, {"Filenames": file_names})
 
         elif script == 'writemongo':
             print('Uploading to mongodb database')
             load_parameters([
-                'MONGO_HOST',
-                'MONGO_USER',
-                'MONGO_PASSWORD',
-                'MONGO_DATABASE',
-                'MONGO_COLLECTION',
-                'MONGO_REPLICASET'
+                'MONGO1_HOST',
+                'MONGO1_USER',
+                'MONGO1_PASSWORD',
+                'MONGO1_DATABASE',
+                'MONGO1_COLLECTION',
+                'MONGO1_REPLICASET',
+                'MONGO2_HOST',
+                'MONGO2_USER',
+                'MONGO2_PASSWORD',
+                'MONGO2_DATABASE',
+                'MONGO2_COLLECTION',
+                'MONGO2_REPLICASET',
             ])
             from writemongo import writemongo
             writemongo.script_handler(
