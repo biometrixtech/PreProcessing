@@ -100,7 +100,7 @@ def script_handler(file_name, input_data):
                         'stance', 'plane', 'rot', 'lat', 'vert', 'horz']
 
         team_id = input_data.get('TeamId', None)
-        training_group_id = [input_data.get('TrainingGroupId', None)]
+        training_group_id = input_data.get('TrainingGroupId', None)
         user_id = input_data.get('UserId', None)
         training_session_log_id = input_data.get('TrainingSessionLogId', None)
         session_event_id = input_data.get('SessionEventId', None)
