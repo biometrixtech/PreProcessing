@@ -22,6 +22,7 @@ import numpy as np
 from controlScore import control_score
 from scoring import score
 import columnNames as cols
+from exceptions import NoHistoricalDataException
 
 logger = logging.getLogger()
 
@@ -61,7 +62,7 @@ def run_scoring(sensor_data, historical_data, file_name, data, config):
     user_hist = pd.read_csv(historical_data, usecols=cols.column_user_hist)
     if user_hist.shape[0] < 50000:
         _logger("There's no historical data and current data isn't long enough!")
-        raise Exception("Cannot read historical user data!")
+        raise NoHistoricalDataException("Insufficient historical data, need 50000 rows, only got {}".format(len(user_hist.shape[0])))
 
     _logger("user history captured")
 
