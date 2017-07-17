@@ -275,22 +275,14 @@ def script_handler(file_name, input_data):
             hip_symmetry_r = numpy.sum(data_30['hipSymmetryR']) / rf_grf
             ankle_symmetry = numpy.sum(data_30['ankleSymmetry']) / total_grf
             ankle_symmetry_l = numpy.sum(data_30['ankleSymmetryL']) / lf_grf
-            if ankle_symmetry_l > 100:
-                ankle_symmetry_l = 100
             ankle_symmetry_r = numpy.sum(data_30['ankleSymmetryR']) / rf_grf
-            if ankle_symmetry_r > 100:
-                ankle_symmetry_r = 100
 
             # consistency aggregation
             consistency = numpy.sum(data_30['consistency']) / total_grf
             hip_consistency = numpy.sum(data_30['hipConsistency']) / total_grf
             ankle_consistency = numpy.sum(data_30['ankleConsistency']) / total_grf
             consistency_lf = numpy.sum(data_30['consistencyLF']) / lf_grf
-            if consistency_lf > 100:
-                consistency_lf = 100
             consistency_rf = numpy.sum(data_30['consistencyRF']) / rf_grf
-            if consistency_rf > 100:
-                consistency_rf = 100
 
             record_out = OrderedDict({'teamId': team_id})
             record_out['userId'] = user_id
@@ -347,10 +339,13 @@ def script_handler(file_name, input_data):
             record_out_agg['consistencyLF'] = consistency_lf
             record_out_agg['consistencyRF'] = consistency_rf
 
-            for key, value in record_out_agg.items():
+            for key in scor_cols:
+                value = record_out_agg[key]
                 try:
                     if numpy.isnan(value):
                         record_out_agg[key] = None
+                    elif value >= 100:
+                        record_out_agg[key] = 100
                 except TypeError:
                     pass
             # Write each record one at a time.
