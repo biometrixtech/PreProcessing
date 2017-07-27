@@ -32,7 +32,7 @@ def script_handler(s3_bucket, s3_key):
         tmp_filename = '/tmp/' + s3_key
         s3_client.download_file(
             s3_bucket,
-            config.ENVIRONMENT + '/' + s3_key,
+            s3_key,
             tmp_filename,
         )
         logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
