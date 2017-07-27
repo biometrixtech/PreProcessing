@@ -226,7 +226,7 @@ def run_session(data_in, file_name, mass, grf_fit, sc, hip_n_transform, aws=True
     grf = _filter_data(grf, cutoff=12)
 
     # set grf value below certain threshold to 0
-    grf[grf<=.1]=0
+    grf[grf <= .1] = np.nan
     # fill in nans for rows with missing predictors
     length = len(data_in)
     grf_temp = np.ones(length)

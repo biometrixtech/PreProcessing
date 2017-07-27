@@ -100,7 +100,7 @@ def script_handler(file_name, input_data):
                         'stance', 'plane', 'rot', 'lat', 'vert', 'horz']
 
         team_id = input_data.get('TeamId', None)
-        training_group_id = [input_data.get('TrainingGroupId', None)]
+        training_group_id = input_data.get('TrainingGroupId', None)
         user_id = input_data.get('UserId', None)
         training_session_log_id = input_data.get('TrainingSessionLogId', None)
         session_event_id = input_data.get('SessionEventId', None)
@@ -339,10 +339,13 @@ def script_handler(file_name, input_data):
             record_out_agg['consistencyLF'] = consistency_lf
             record_out_agg['consistencyRF'] = consistency_rf
 
-            for key, value in record_out_agg.items():
+            for key in scor_cols:
+                value = record_out_agg[key]
                 try:
                     if numpy.isnan(value):
                         record_out_agg[key] = None
+                    elif value >= 100:
+                        record_out_agg[key] = 100
                 except TypeError:
                     pass
             # Write each record one at a time.
