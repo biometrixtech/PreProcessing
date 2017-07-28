@@ -9,6 +9,7 @@ Created on Tue Jul 25 13:45:44 2017
 
 import numpy as np
 import pandas as pd
+from columnNames import incoming_from_accessory
 
 
 # timestamp calculation from first 5 bytes
@@ -132,13 +133,13 @@ def read_file(filename):
                              accel_r,
                              quat_r), axis=1)
 
-    incoming_from_accessory = ['epoch_time', 'corrupt',
-                               'magn_lf', 'corrupt_lf',
-                               'LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'LqW',
-                               'magn_h', 'corrupt_h',
-                               'HaX', 'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'HqW',
-                               'magn_rf', 'corrupt_lf',
-                               'RaX', 'RaY', 'RaZ', 'RqX', 'RqY', 'RqZ', 'RqW']
+    # incoming_from_accessory = ['epoch_time', 'corrupt',
+    #                            'magn_lf', 'corrupt_lf',
+    #                            'LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'LqW',
+    #                            'magn_h', 'corrupt_h',
+    #                            'HaX', 'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'HqW',
+    #                            'magn_rf', 'corrupt_lf',
+    #                            'RaX', 'RaY', 'RaZ', 'RqX', 'RqY', 'RqZ', 'RqW']
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
     return output_pd
 
