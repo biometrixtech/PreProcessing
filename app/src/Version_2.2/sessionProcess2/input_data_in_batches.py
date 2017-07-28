@@ -18,6 +18,7 @@ from keras.models import load_model
 import columnNames as cols
 import sessionProcessQueries as queries
 import runAnalytics
+from decode_data import read_file
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -39,7 +40,8 @@ def send_batches_of_data(file_path, data, config, aws=True):
 
     # read sensor data
     try:
-        sdata = pd.read_csv(config.FP_INPUT + '/' + file_path)
+        sdata = read_file(config.FP_INPUT + '/' + file_path)
+        # sdata = pd.read_csv(config.FP_INPUT + '/' + file_path)
     except:
         _logger("Cannot load data!", info=False)
         raise
