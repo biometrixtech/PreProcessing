@@ -110,10 +110,10 @@ if __name__ == '__main__':
                 input_data.get('S3Path', None))
 
             from chunk import chunk
-            file_names = chunk.chunk_file(
+            file_names = chunk.chunk_by_byte(
                 tmp_filename,
                 '/net/efs/downloadandchunk/output',
-                100000
+                100000 * 40  # 100,000 records, 40 bytes per record
             )
 
             os.remove(tmp_filename)
@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
             # Chunk files for input to writemongo
             from chunk import chunk
-            file_names = chunk.chunk_file(
+            file_names = chunk.chunk_by_line(
                 os.path.join('/net/efs/scoring/output', output_file),
                 '/net/efs/writemongo/input',
                 boundaries
