@@ -68,3 +68,9 @@ def chunk_by_byte(input_filename, output_dir, boundaries):
             input_filename,
             os.path.join(output_dir, input_filename + '-'),
         ])
+
+    # Get the filenames
+    file_names = glob.glob(os.path.join(output_dir, input_filename) + '-[0-9]*')
+
+    logger.info('Finished processing "{}" into {} chunks'.format(input_filename, len(file_names)))
+    return file_names
