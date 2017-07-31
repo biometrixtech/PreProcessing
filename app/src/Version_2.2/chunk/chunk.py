@@ -74,7 +74,7 @@ def chunk_by_byte(input_filename, output_dir, boundaries):
 
     # Find them again!
     file_names = []
-    for file in glob.glob(input_filename + '-[0-9]*'):
+    for file in glob.glob(output_filename + '-[0-9]*'):
         print("Found file {}".format(file))
         file_name = os.path.basename(file)
         file_names.append(file_name)
