@@ -78,7 +78,7 @@ def chunk_by_byte(input_filename, output_dir, boundaries):
         print("Found file {}".format(file))
         file_name = os.path.basename(file)
         file_names.append(file_name)
-        if filename == '04fb647b-e563-480c-a70c-a80c0436602f-02':
+        if file_name == '04fb647b-e563-480c-a70c-a80c0436602f-02':
             os.remove(file)
 
     print(file_names)
