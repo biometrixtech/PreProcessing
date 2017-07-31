@@ -58,8 +58,9 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
 
 def chunk_by_byte(input_filename, output_dir, boundaries):
     # Divide file into chunks
-    filename = os.path.basename(file_name)
+    filename = os.path.basename(input_filename)
     output_filename = output_dir + '/' + filename
+    print('output_filename: {}'.format(output_filename))
     if isinstance(boundaries, list):
         raise Exception("Not supported")
     else:
