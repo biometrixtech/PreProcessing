@@ -58,10 +58,8 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
 
 def chunk_by_byte(input_filename, output_dir, boundaries):
     # Divide file into chunks
-    print('output_dir: {}'.format(output_dir))
-    print('tmp_filename:{}'.format(input_filename))
-    print('output path:{}'.format(os.path.join(output_dir, input_filename)))
-    print('output path new format:{}'.format(output_dir + '/' + input_filename + '-'))
+    filename = os.path.basename(file_name)
+    output_filename = output_dir + '/' + filename
     if isinstance(boundaries, list):
         raise Exception("Not supported")
     else:
@@ -70,12 +68,12 @@ def chunk_by_byte(input_filename, output_dir, boundaries):
             '-b', str(boundaries),
             '-d',
             input_filename,
-            output_dir + '/' + input_filename + '-',
+            output_filename + '-',
         ])
 
     # Find them again!
     file_names = []
-    for file in glob.glob(os.path.join(output_dir, input_filename) + '-[0-9]*'):
+    for file in glob.glob(input_filename + '-[0-9]*'):
         print("Found file {}".format(file))
         file_name = os.path.basename(file)
         file_names.append(file_name)
