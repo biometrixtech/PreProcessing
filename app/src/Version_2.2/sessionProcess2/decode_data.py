@@ -32,8 +32,8 @@ def _decode_magn(magn_data, nrow):
     magn_magnitude = magn_magnitude * 32 # multiply by 32 to calculate magnitude in mGauss
 
     corrupt_enum = magn_temp & 7
-    return np.concatenate((corrupt_enum.reshape(-1, 1),
-                           magn_magnitude.reshape(-1, 1)), axis=1)
+    return np.concatenate((magn_magnitude.reshape(-1, 1),
+                           corrupt_enum.reshape(-1, 1)), axis=1)
 
 #AXL temporary value for the axl.5 bytes are used to
 #represent the 3 axes components of the accelerometer
