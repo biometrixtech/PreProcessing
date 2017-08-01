@@ -111,15 +111,15 @@ def read_file(filename):
     corrupt = data[:, 6].reshape(-1, 1)
 
     magn_l = _decode_magn(data[:, 7], nrows)
-    accel_l = _decode_accel(data[:, 8:13], nrows)
+    accel_l = _decode_accel(data[:, 8:13], nrows) / 1000
     quat_l = _decode_quat(data[:, 13:18], nrows)
 
     magn_h = _decode_magn(data[:, 18], nrows)
-    accel_h = _decode_accel(data[:, 19:24], nrows)
+    accel_h = _decode_accel(data[:, 19:24], nrows) / 1000
     quat_h = _decode_quat(data[:, 24:29], nrows)
 
     magn_r = _decode_magn(data[:, 29], nrows)
-    accel_r = _decode_accel(data[:, 30:35], nrows)
+    accel_r = _decode_accel(data[:, 30:35], nrows) / 1000
     quat_r = _decode_quat(data[:, 35:40], nrows)
 
     output = np.concatenate((timestamp, corrupt,
