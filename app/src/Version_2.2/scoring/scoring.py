@@ -205,19 +205,30 @@ def _con_fun(dist, double=False):
         comps = mix.fit_predict(dist.reshape(-1, 1))
         sample1 = np.sort(dist[comps == 0], 0)
         sample2 = np.sort(dist[comps == 1], 0)
-        
-        sq_dev1 = (sample1 - np.mean(sample1))**2
-        ratio1 = sq_dev1/(len(sample1)*np.var(sample1))
-        sq_dev2 = (sample2 - np.mean(sample2))**2
-        ratio2 = sq_dev2/(len(sample2)*np.var(sample2))
-        score1 = (1 - (ratio1 - min(ratio1))/(max(ratio1) - min(ratio1)))*100
-        score2 = (1 - (ratio2 - min(ratio2))/(max(ratio2) - min(ratio2)))*100
-        scores = np.hstack([score1, score2])
-        dist_comb = np.hstack([sample1, sample2])
-        dict_scores = dict(zip(dist_comb, scores))
-        dist_sorted = np.sort(dist_comb)
-        scores_sorted = [dict_scores.get(k, 0) for k in dist_sorted]
-        fn = UnivariateSpline(dist_sorted, scores_sorted)
+
+        if len(sample1) == 0 or len(sample2) == 0:
+            dist_sorted = np.sort(dist)
+            var = np.var(dist_sorted)
+            sq_dev = (dist_sorted-np.mean(dist_sorted))**2
+            # TODO(Dipesh): adjust limits with more data
+            ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
+            ratio = sq_dev/(len(dist)*var)
+            consistency_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
+            #extrapolation is done for values outside the range
+            fn = UnivariateSpline(dist_sorted, consistency_score)
+        else:
+            sq_dev1 = (sample1 - np.mean(sample1))**2
+            ratio1 = sq_dev1/(len(sample1)*np.var(sample1))
+            sq_dev2 = (sample2 - np.mean(sample2))**2
+            ratio2 = sq_dev2/(len(sample2)*np.var(sample2))
+            score1 = (1 - (ratio1 - min(ratio1))/(max(ratio1) - min(ratio1)))*100
+            score2 = (1 - (ratio2 - min(ratio2))/(max(ratio2) - min(ratio2)))*100
+            scores = np.hstack([score1, score2])
+            dist_comb = np.hstack([sample1, sample2])
+            dict_scores = dict(zip(dist_comb, scores))
+            dist_sorted = np.sort(dist_comb)
+            scores_sorted = [dict_scores.get(k, 0) for k in dist_sorted]
+            fn = UnivariateSpline(dist_sorted, scores_sorted)
     return fn
 
 
