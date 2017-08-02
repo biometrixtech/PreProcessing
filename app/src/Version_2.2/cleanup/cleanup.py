@@ -43,7 +43,7 @@ def script_handler(file_name):
             os.remove(os.path.basename(file))
 
         # Clean up sessionprocess2 output directory
-        for file in glob.glob(os.path.join(config.FP_SESSIONPROCESS_OUTPUT, file_name + '-[0-9]*')):
+        for file in glob.glob(os.path.join(config.FP_SCORING_OUTPUT, file_name + '-[0-9]*')):
             os.remove(os.path.basename(file))
 
         logger.info('Finished cleanup for {}'.format(file_name))
