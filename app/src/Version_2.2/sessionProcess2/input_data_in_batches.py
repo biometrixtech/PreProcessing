@@ -56,7 +56,9 @@ def send_batches_of_data(file_path, data, config, aws=True):
     size = len(sdata)
     sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
-    hip_n_transform = data.get('HipNTransform', [0.987955980423897, 0.129494511785864, 0.0839820262430614, -0.0110077895195965])
+    hip_n_transform = data.get('HipNTransform', None)
+    if not isinstance(hip_n_transform, list):
+        hip_n_transform = [0.987955980423897, 0.129494511785864, 0.0839820262430614, -0.0110077895195965]
     print('hip_n_transform: {}'.format(hip_n_transform))
 
     # Process the data
