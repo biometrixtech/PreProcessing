@@ -9,7 +9,7 @@ incoming_from_accessory = ['epoch_time', 'corrupt',
                            'LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'LqW', 
                            'magn_h', 'corrupt_h', 
                            'HaX', 'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'HqW', 
-                           'magn_rf', 'corrupt_lf', 
+                           'magn_rf', 'corrupt_rf', 
                            'RaX', 'RaY', 'RaZ', 'RqX', 'RqY', 'RqZ', 'RqW'] 
 
 column_session2_out = ['obs_index', 'time_stamp', 'epoch_time', 'ms_elapsed',
