@@ -181,13 +181,13 @@ def _con_fun(dist, double=False):
 
     #Limit historical data to 1.5M for memory issue (Will get rid later)
     sample_size = min([len(dist), 1500000])
-    dist = np.random.choice(dist, size=sample_size, replace=False)
     if len(dist) < 5:
         logger.info('Not enough data to create mapping function')
         dist_sorted = np.array([-1, -.5, 0, .5, 1])
         consistency_score = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
         fn = UnivariateSpline(dist_sorted, consistency_score)
     elif double is False:
+        dist = np.random.choice(dist, size=sample_size, replace=False)
         dist_sorted = np.sort(dist)
         var = np.var(dist_sorted)
         sq_dev = (dist_sorted-np.mean(dist_sorted))**2
@@ -198,6 +198,7 @@ def _con_fun(dist, double=False):
         #extrapolation is done for values outside the range
         fn = UnivariateSpline(dist_sorted, consistency_score)
     elif double is True:
+        dist = np.random.choice(dist, size=sample_size, replace=False)
         # If we expect the feature to have multiple modes, it's split into two
         # separate distribution using gaussian mixture model and scored
         # separately and combined
