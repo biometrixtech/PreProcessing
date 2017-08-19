@@ -14,6 +14,7 @@ import pandas as pd
 from scipy.interpolate import UnivariateSpline
 from sklearn.neighbors.kde import KernelDensity as kde
 from sklearn import mixture
+from exceptions import NotEnoughCMEValuesException
 
 logger = logging.getLogger()
 
@@ -150,17 +151,20 @@ def _create_distribution(data):
     tA = np.abs(np.array(data.total_accel))
     tA_norm = np.array(tA/np.nanmean(tA))
     scale = np.sqrt(tA_norm*mS_norm)
-    fn_hDL = _con_fun(np.array(data.contra_hip_drop_lf/(scale)))
-    fn_hDR = _con_fun(np.array(data.contra_hip_drop_rf/(scale)))
+    err = np.zeros(9)
+    fn_hDL, err[0] = _con_fun(np.array(data.contra_hip_drop_lf/(scale)))
+    fn_hDR, err[1] = _con_fun(np.array(data.contra_hip_drop_rf/(scale)))
 #    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
-    fn_aRL = _con_fun(np.array(data.ankle_rot_lf/(scale)), True)
-    fn_aRR = _con_fun(np.array(data.ankle_rot_rf/(scale)), True)
-    fn_lPL = _con_fun(np.array(data.land_pattern_lf/(scale)))
-    fn_lPR = _con_fun(np.array(data.land_pattern_rf/(scale)))
-    fn_lT = _con_fun(np.array(data.land_time/(scale)))
-    fn_fPL = _con_fun(np.array(data.foot_position_lf/(scale)))
-    fn_fPR = _con_fun(np.array(data.foot_position_rf/(scale)))
+    fn_aRL, err[2] = _con_fun(np.array(data.ankle_rot_lf/(scale)), True)
+    fn_aRR, err[3] = _con_fun(np.array(data.ankle_rot_rf/(scale)), True)
+    fn_lPL, err[4] = _con_fun(np.array(data.land_pattern_lf/(scale)))
+    fn_lPR, err[5] = _con_fun(np.array(data.land_pattern_rf/(scale)))
+    fn_lT, err[6] = _con_fun(np.array(data.land_time/(scale)))
+    fn_fPL, err[7] = _con_fun(np.array(data.foot_position_lf/(scale)))
+    fn_fPR, err[8] = _con_fun(np.array(data.foot_position_rf/(scale)))
 #    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
+    if np.sum(err) >= 5:
+        raise NotEnoughCMEValuesException("{} CMEs have no values. Can have at most 4!".format(int(np.sum(err))))
 
     return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT, fn_fPL, fn_fPR
 
@@ -181,44 +185,63 @@ def _con_fun(dist, double=False):
 
     #Limit historical data to 1.5M for memory issue (Will get rid later)
     sample_size = min([len(dist), 1500000])
-    dist = np.random.choice(dist, size=sample_size, replace=False)
-    if len(dist) < 5:
-        logger.info('Not enough data to create mapping function')
+    error = 0
+    try:
+        if len(dist) < 5:
+            logger.info('Not enough data to create mapping function')
+            dist_sorted = np.array([-1, -.5, 0, .5, 1])
+            consistency_score = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
+            fn = UnivariateSpline(dist_sorted, consistency_score)
+        elif double is False:
+            dist = np.random.choice(dist, size=sample_size, replace=False)
+            dist_sorted = np.sort(dist)
+            var = np.var(dist_sorted)
+            sq_dev = (dist_sorted-np.mean(dist_sorted))**2
+            # TODO(Dipesh): adjust limits with more data
+            ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
+            ratio = sq_dev/(len(dist)*var)
+            consistency_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
+            #extrapolation is done for values outside the range
+            fn = UnivariateSpline(dist_sorted, consistency_score)
+        elif double is True:
+            dist = np.random.choice(dist, size=sample_size, replace=False)
+            # If we expect the feature to have multiple modes, it's split into two
+            # separate distribution using gaussian mixture model and scored
+            # separately and combined
+            mix = mixture.GMM(n_components=2)
+            comps = mix.fit_predict(dist.reshape(-1, 1))
+            sample1 = np.sort(dist[comps == 0], 0)
+            sample2 = np.sort(dist[comps == 1], 0)
+
+            if len(sample1) == 0 or len(sample2) == 0:
+                dist_sorted = np.sort(dist)
+                var = np.var(dist_sorted)
+                sq_dev = (dist_sorted-np.mean(dist_sorted))**2
+                # TODO(Dipesh): adjust limits with more data
+                ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
+                ratio = sq_dev/(len(dist)*var)
+                consistency_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
+                #extrapolation is done for values outside the range
+                fn = UnivariateSpline(dist_sorted, consistency_score)
+            else:
+                sq_dev1 = (sample1 - np.mean(sample1))**2
+                ratio1 = sq_dev1/(len(sample1)*np.var(sample1))
+                sq_dev2 = (sample2 - np.mean(sample2))**2
+                ratio2 = sq_dev2/(len(sample2)*np.var(sample2))
+                score1 = (1 - (ratio1 - min(ratio1))/(max(ratio1) - min(ratio1)))*100
+                score2 = (1 - (ratio2 - min(ratio2))/(max(ratio2) - min(ratio2)))*100
+                scores = np.hstack([score1, score2])
+                dist_comb = np.hstack([sample1, sample2])
+                dict_scores = dict(zip(dist_comb, scores))
+                dist_sorted = np.sort(dist_comb)
+                scores_sorted = [dict_scores.get(k, 0) for k in dist_sorted]
+                fn = UnivariateSpline(dist_sorted, scores_sorted)
+    except:
         dist_sorted = np.array([-1, -.5, 0, .5, 1])
         consistency_score = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
         fn = UnivariateSpline(dist_sorted, consistency_score)
-    elif double is False:
-        dist_sorted = np.sort(dist)
-        var = np.var(dist_sorted)
-        sq_dev = (dist_sorted-np.mean(dist_sorted))**2
-        # TODO(Dipesh): adjust limits with more data
-        ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
-        ratio = sq_dev/(len(dist)*var)
-        consistency_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
-        #extrapolation is done for values outside the range
-        fn = UnivariateSpline(dist_sorted, consistency_score)
-    elif double is True:
-        # If we expect the feature to have multiple modes, it's split into two
-        # separate distribution using gaussian mixture model and scored
-        # separately and combined
-        mix = mixture.GMM(n_components=2)
-        comps = mix.fit_predict(dist.reshape(-1, 1))
-        sample1 = np.sort(dist[comps == 0], 0)
-        sample2 = np.sort(dist[comps == 1], 0)
-        
-        sq_dev1 = (sample1 - np.mean(sample1))**2
-        ratio1 = sq_dev1/(len(sample1)*np.var(sample1))
-        sq_dev2 = (sample2 - np.mean(sample2))**2
-        ratio2 = sq_dev2/(len(sample2)*np.var(sample2))
-        score1 = (1 - (ratio1 - min(ratio1))/(max(ratio1) - min(ratio1)))*100
-        score2 = (1 - (ratio2 - min(ratio2))/(max(ratio2) - min(ratio2)))*100
-        scores = np.hstack([score1, score2])
-        dist_comb = np.hstack([sample1, sample2])
-        dict_scores = dict(zip(dist_comb, scores))
-        dist_sorted = np.sort(dist_comb)
-        scores_sorted = [dict_scores.get(k, 0) for k in dist_sorted]
-        fn = UnivariateSpline(dist_sorted, scores_sorted)
-    return fn
+        error = 1
+    return fn, error
 
 
 def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
