@@ -141,6 +141,19 @@ def read_file(filename):
     #                            'magn_rf', 'corrupt_lf',
     #                            'RaX', 'RaY', 'RaZ', 'RqX', 'RqY', 'RqZ', 'RqW']
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
+    output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
+    output_pd['epoch_time'] = output_pd['epoch_time']. astype(long)
+    output_pd['corrupt'] = output_pd['corrupt']. astype(int)
+    output_pd['magn_lf'] = output_pd['magn_lf']. astype(int)
+    output_pd['corrupt_lf'] = output_pd['corrupt_lf']. astype(int)
+    output_pd['magn_h'] = output_pd['magn_h']. astype(int)
+    output_pd['corrupt_h'] = output_pd['corrupt_h']. astype(int)
+    output_pd['magn_rf'] = output_pd['magn_rf']. astype(int)
+    output_pd['corrupt_rf'] = output_pd['corrupt_rf']. astype(int)
+    ms_elapsed = np.ediff1d(timestamp, to_begin=10)
+    pos_timestamp = ms_elapsed>=0
+    output_pd = output_pd.iloc[pos_timestamp]
+    
     return output_pd
 
 
