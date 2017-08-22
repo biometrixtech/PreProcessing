@@ -16,9 +16,12 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(s3_bucket, s3_key):
+def script_handler(s3_bucket, s3_keys):
+    if len(s3_keys) == 0:
+        logger.info('downloadAndChunk() called, but with no files')
 
-    logger.info('Running downloadAndChunk on "{}/{}"'.format(s3_bucket, s3_key))
+    base_name = s3_keys[0].rsplit('_', 1)[0]
+    logger.info('Running downloadAndChunk on "{}/{}"'.format(s3_bucket, base_name))
 
     try:
         config = Config(
@@ -29,15 +32,23 @@ def script_handler(s3_bucket, s3_key):
         s3_client = boto3.client('s3')
 
         # Download file
-        tmp_filename = '/tmp/' + s3_key
-        s3_client.download_file(
-            s3_bucket,
-            s3_key,
-            tmp_filename,
-        )
-        logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
+        for s3_key in s3_keys:
+            tmp_filename = '/tmp/' + s3_key
+            s3_client.download_file(
+                s3_bucket,
+                s3_key,
+                tmp_filename,
+            )
+            logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
 
-        return tmp_filename
+        if len(s3_keys) == 1:
+            return '/tmp/{}'.format(s3_keys[0])
+        else:
+            # Concatenate the files together first
+            logger.info('Concatenating {} chunks'.format(len(s3_keys)))
+            for s3_key in s3_keys:
+                os.subprocess.run('cat /tmp/{} >> /tmp/{}'.format(s3_key, base_name), shell=True)
+            return '/tmp/{}'.format(base_name)
 
     except Exception as e:
         logger.info(e)
