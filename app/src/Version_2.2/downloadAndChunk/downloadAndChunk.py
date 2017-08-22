@@ -3,6 +3,7 @@ from __future__ import print_function
 from collections import namedtuple
 import boto3
 import logging
+import os
 import subprocess
 import sys
 
