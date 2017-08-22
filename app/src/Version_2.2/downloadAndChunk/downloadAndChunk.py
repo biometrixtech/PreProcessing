@@ -48,7 +48,7 @@ def script_handler(s3_bucket, s3_keys):
             # Concatenate the files together first
             logger.info('Concatenating {} chunks'.format(len(s3_keys)))
             for s3_key in s3_keys:
-                subprocess.run('cat /tmp/{} >> /tmp/{}'.format(s3_key, base_name), shell=True)
+                subprocess.check_call('cat /tmp/{} >> /tmp/{}'.format(s3_key, base_name), shell=True)
             return '/tmp/{}'.format(base_name)
 
     except Exception as e:
