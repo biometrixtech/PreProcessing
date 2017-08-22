@@ -3,7 +3,7 @@ from __future__ import print_function
 from collections import namedtuple
 import boto3
 import logging
-import os
+import subprocess
 import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -47,7 +47,7 @@ def script_handler(s3_bucket, s3_keys):
             # Concatenate the files together first
             logger.info('Concatenating {} chunks'.format(len(s3_keys)))
             for s3_key in s3_keys:
-                os.subprocess.run('cat /tmp/{} >> /tmp/{}'.format(s3_key, base_name), shell=True)
+                subprocess.run('cat /tmp/{} >> /tmp/{}'.format(s3_key, base_name), shell=True)
             return '/tmp/{}'.format(base_name)
 
     except Exception as e:
