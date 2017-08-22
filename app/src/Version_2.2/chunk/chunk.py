@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 
 def chunk_by_line(input_filename, output_dir, chunk_size):
     # Get the column headers (first line of first file)
-    header_filename = '{base_fn}-header'.format(base_fn=input_filename)
+    header_filename = '{base_fn}_header'.format(base_fn=input_filename)
     os.system(
         'head -n 1 {tmp_filename} > {header_filename}'.format(
             tmp_filename=input_filename,
@@ -20,24 +20,24 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
     )
 
     # Strip the header from the file
-    body_filename = input_filename + '-body'
+    body_filename = input_filename + '_body'
     os.system('tail -n +2 {tmp_filename} > {body_filename}'.format(tmp_filename=input_filename, body_filename=body_filename))
 
     # Divide file into chunks
     if isinstance(chunk_size, list):
-        subprocess.call(['csplit', '-f', input_filename, '-b', '-%02d', body_filename] + [str(l) for l in chunk_size])
+        subprocess.call(['csplit', '-f', input_filename, '-b', '_%02d', body_filename] + [str(l) for l in chunk_size])
     else:
         subprocess.call([
             'split',
             '-l', str(chunk_size),
             '-d',
             body_filename,
-            input_filename + '-',
+            input_filename + '_',
         ])
 
     # Prepend the column headers to each file and copy to the EFS directory
     file_names = []
-    for file in glob.glob(input_filename + '-[0-9]*'):
+    for file in glob.glob(input_filename + '_[0-9]*'):
         file_name = os.path.basename(file)
 
         with open(output_dir + '/' + file_name, 'w') as efs_output:
@@ -69,12 +69,12 @@ def chunk_by_byte(input_filename, output_dir, boundaries):
             '-b', str(boundaries),
             '-d',
             input_filename,
-            output_filename + '-',
+            output_filename + '_',
         ])
 
     # Find them again!
     file_names = []
-    for file in glob.glob(output_filename + '-[0-9]*'):
+    for file in glob.glob(output_filename + '_[0-9]*'):
         print("Found file {}".format(file))
         file_name = os.path.basename(file)
         file_names.append(file_name)

@@ -39,7 +39,7 @@ def script_handler(filenames, data):
 
         # Get the base filename
         if len(filenames) > 1:
-            file_name = filenames[0].rsplit('-', 1)[0]
+            file_name = filenames[0].rsplit('_', 1)[0]
         else:
             file_name = filenames[0]
 
