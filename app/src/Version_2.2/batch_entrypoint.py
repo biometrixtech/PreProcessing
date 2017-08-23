@@ -110,6 +110,10 @@ if __name__ == '__main__':
             s3_paths = [s3_basepath + suffix for suffix in input_data.get('S3Suffixes', [])]
             tmp_filename = downloadAndChunk.script_handler(s3_bucket, s3_paths)
 
+            # Upload combined file back to s3
+            s3_client = boto3.client('s3')
+            s3_client.upload_file(tmp_filename, s3_bucket, s3_basepath + 'combined')
+
             from chunk import chunk
             file_names = chunk.chunk_by_byte(
                 tmp_filename,
