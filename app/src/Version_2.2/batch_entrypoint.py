@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
             from downloadAndChunk import downloadAndChunk
             s3_bucket = input_data.get('S3Bucket', None)
-            s3_basepath = input_data.get('S3Basepath', None)
+            s3_basepath = input_data.get('S3BasePath', None)
             s3_paths = [s3_basepath + suffix for suffix in input_data.get('S3Suffixes', [])]
             tmp_filename = downloadAndChunk.script_handler(s3_bucket, s3_paths)
 
