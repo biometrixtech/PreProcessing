@@ -107,7 +107,7 @@ if __name__ == '__main__':
             from downloadAndChunk import downloadAndChunk
             s3_bucket = input_data.get('S3Bucket', None)
             s3_basepath = input_data.get('S3BasePath', None)
-            s3_paths = [s3_basepath + suffix for suffix in input_data.get('S3Suffixes', [])]
+            s3_paths = ["{}{:04d}".format(s3_basepath, i) for i in range(1, input_data.get('PartCount', []))] + [s3_basepath + "complete"]
             tmp_filename = downloadAndChunk.script_handler(s3_bucket, s3_paths)
 
             # Upload combined file back to s3
