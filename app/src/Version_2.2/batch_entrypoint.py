@@ -105,9 +105,14 @@ if __name__ == '__main__':
             print('Running downloadAndChunk()')
 
             from downloadAndChunk import downloadAndChunk
-            tmp_filename = downloadAndChunk.script_handler(
-                input_data.get('S3Bucket', None),
-                input_data.get('S3Paths', []))
+            s3_bucket = input_data.get('S3Bucket', None)
+            s3_basepath = input_data.get('S3BasePath', None)
+            s3_paths = ["{}{:04d}".format(s3_basepath, i) for i in range(1, input_data.get('PartCount', []))] + [s3_basepath + "complete"]
+            tmp_filename = downloadAndChunk.script_handler(s3_bucket, s3_paths)
+
+            # Upload combined file back to s3
+            s3_client = boto3.client('s3')
+            s3_client.upload_file(tmp_filename, s3_bucket, s3_basepath + 'combined')
 
             from chunk import chunk
             file_names = chunk.chunk_by_byte(

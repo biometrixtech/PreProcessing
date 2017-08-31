@@ -31,7 +31,6 @@ def script_handler(file_name):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT=None,
             FP_DOWNLOADANDCHUNK_OUTPUT='/net/efs/downloadandchunk/output',
             FP_SESSIONPROCESS_OUTPUT='/net/efs/sessionprocess2/output',
             FP_SCORING_OUTPUT='/net/efs/scoring/output',
