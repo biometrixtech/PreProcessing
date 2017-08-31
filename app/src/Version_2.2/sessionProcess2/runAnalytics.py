@@ -170,17 +170,11 @@ def run_session(data_in, file_name, mass, grf_fit, sc, hip_n_transform, aws=True
     hip_quat = np.hstack([data.HqW, data.HqX, data.HqY, data.HqZ])
     rf_quat = np.hstack([data.RqW, data.RqX, data.RqY, data.RqZ])
 
-    # isolate neutral quaternions
-    lf_neutral, hip_neutral, rf_neutral = _calculate_hip_neutral(hip_quat, hip_n_transform)
-
     # calculate movement attributes
     data.contra_hip_drop_lf, data.contra_hip_drop_rf, data.ankle_rot_lf,\
         data.ankle_rot_rf, data.foot_position_lf, data.foot_position_rf,\
-        = cmed.calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral,
-                                      hip_neutral, rf_neutral, data.phase_lf,\
-                                      data.phase_rf)
+        = cmed.calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, data.phase_lf, data.phase_rf)
     del lf_quat, hip_quat, rf_quat
-    del lf_neutral, hip_neutral, rf_neutral
     _logger('DONE WITH BALANCE CME!')
 
 #%%
@@ -297,38 +291,6 @@ def _filter_data(X, cutoff=12, fs=100, order=4):
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
     X_filt = filtfilt(b, a, X, axis=0)
     return X_filt
-
-def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
-    #%% Transform Data into Neutral Versions, for balanceCME Calculations
-
-   # define length, reshape transform value
-    length = len(hip_bf_quats)
-    hip_n_transform = np.array(hip_n_transform).reshape(-1, 4)
-
-   # divide static neutral and instantaneous hip data into axial components
-    static_hip_neut = qc.quat_to_euler(hip_n_transform)
-    neutral_hip_roll = static_hip_neut[0, 0]
-    neutral_hip_pitch = static_hip_neut[0, 1]
-
-    neutral_hip_roll = np.full((length, 1), neutral_hip_roll, float)
-    neutral_hip_pitch = np.full((length, 1), neutral_hip_pitch, float)
-    inst_hip_yaw = qc.quat_to_euler(hip_bf_quats)[:, 2].reshape(-1, 1)
-
-   # combine select data to define neutral hip data
-    hip_neutral_euls = np.hstack((neutral_hip_roll, neutral_hip_pitch,
-                                  inst_hip_yaw))
-
-   # define hip adjusted inertial frame using instantaneous hip yaw
-    hip_aif_euls = np.hstack((np.zeros((length, 2)), inst_hip_yaw))
-
-   # convert all Euler angles to quaternions and return as relevant output
-    hip_aif = qc.euler_to_quat(hip_aif_euls)
-    hip_neutral = qc.euler_to_quat(hip_neutral_euls)
-
-    lf_neutral = hip_aif # in perfectly neutral stance, lf bf := hip AIF
-    rf_neutral = hip_aif # in perfectly neutral stance, rf bf := hip AIF
-
-    return lf_neutral, hip_neutral, rf_neutral
 
 
 #%%
