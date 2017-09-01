@@ -104,6 +104,9 @@ if __name__ == '__main__':
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
 
+            if not os.path.isdir('/net/efs/downloadandchunk/output'):
+                raise Exception("/net/efs/downloadandchunk/output directory does not exist.  Has the EFS filesystem been initialised?")
+
             from downloadAndChunk import downloadAndChunk
             s3_bucket = input_data.get('S3Bucket', None)
             s3_basepath = input_data.get('S3BasePath', None)
