@@ -38,10 +38,7 @@ def script_handler(filenames, data):
         )
 
         # Get the base filename
-        if len(filenames) > 1:
-            file_name = filenames[0].rsplit('_', 1)[0]
-        else:
-            file_name = filenames[0]
+        file_name = filenames[0].split('_')[0]
 
         current_stream = cat_csv_files([os.path.join(config.FP_INPUT, f) for f in sorted(filenames)])
 
