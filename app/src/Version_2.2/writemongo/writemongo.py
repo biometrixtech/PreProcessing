@@ -247,42 +247,42 @@ def script_handler(file_name, input_data):
 
             # 30s aggregation scores
             # grf
-            total_grf = numpy.nansum(data_30['total_grf'])
+            total_grf = numpy.sum(data_30['total_grf'])
             if total_grf == 0:
                 total_grf = 1
-            lf_grf = numpy.nansum(data_30['lf_grf'])
+            lf_grf = numpy.sum(data_30['lf_grf'])
             if lf_grf == 0:
                 lf_grf = 1
-            rf_grf = numpy.nansum(data_30['rf_grf'])
+            rf_grf = numpy.sum(data_30['rf_grf'])
             if rf_grf == 0:
                 rf_grf = 1
             const_grf = numpy.nansum(data_30['const_grf'])
             dest_grf = numpy.nansum(data_30['dest_grf'])
 
             # control aggregation
-            control = numpy.nansum(data_30['control']*data_30['total_grf']) / total_grf
-            hip_control = numpy.nansum(data_30['hipControl']*data_30['total_grf']) / total_grf
-            ankle_control = numpy.nansum(data_30['ankleControl']*data_30['total_grf']) / total_grf
-            control_lf = numpy.nansum(data_30['controlLF']*data_30['lf_grf']) / lf_grf
-            control_rf = numpy.nansum(data_30['controlRF']*data_30['rf_grf']) / rf_grf
+            control = numpy.sum(data_30['control']*data_30['total_grf']) / total_grf
+            hip_control = numpy.sum(data_30['hipControl']*data_30['total_grf']) / total_grf
+            ankle_control = numpy.sum(data_30['ankleControl']*data_30['total_grf']) / total_grf
+            control_lf = numpy.sum(data_30['controlLF']*data_30['lf_grf']) / lf_grf
+            control_rf = numpy.sum(data_30['controlRF']*data_30['rf_grf']) / rf_grf
 
             # symmetry aggregation
-            symmetry = numpy.nansum(data_30['symmetry']) / total_grf
-            symmetry_l = numpy.nansum(data_30['symmetryL']) / lf_grf
-            symmetry_r = numpy.nansum(data_30['symmetryR']) / rf_grf
-            hip_symmetry = numpy.nansum(data_30['hipSymmetry']) / total_grf
-            hip_symmetry_l = numpy.nansum(data_30['hipSymmetryL']) / lf_grf
-            hip_symmetry_r = numpy.nansum(data_30['hipSymmetryR']) / rf_grf
-            ankle_symmetry = numpy.nansum(data_30['ankleSymmetry']) / total_grf
-            ankle_symmetry_l = numpy.nansum(data_30['ankleSymmetryL']) / lf_grf
-            ankle_symmetry_r = numpy.nansum(data_30['ankleSymmetryR']) / rf_grf
+            symmetry = numpy.sum(data_30['symmetry']) / total_grf
+            symmetry_l = numpy.sum(data_30['symmetryL']) / lf_grf
+            symmetry_r = numpy.sum(data_30['symmetryR']) / rf_grf
+            hip_symmetry = numpy.sum(data_30['hipSymmetry']) / total_grf
+            hip_symmetry_l = numpy.sum(data_30['hipSymmetryL']) / lf_grf
+            hip_symmetry_r = numpy.sum(data_30['hipSymmetryR']) / rf_grf
+            ankle_symmetry = numpy.sum(data_30['ankleSymmetry']) / total_grf
+            ankle_symmetry_l = numpy.sum(data_30['ankleSymmetryL']) / lf_grf
+            ankle_symmetry_r = numpy.sum(data_30['ankleSymmetryR']) / rf_grf
 
             # consistency aggregation
-            consistency = numpy.nansum(data_30['consistency']) / total_grf
-            hip_consistency = numpy.nansum(data_30['hipConsistency']) / total_grf
-            ankle_consistency = numpy.nansum(data_30['ankleConsistency']) / total_grf
-            consistency_lf = numpy.nansum(data_30['consistencyLF']) / lf_grf
-            consistency_rf = numpy.nansum(data_30['consistencyRF']) / rf_grf
+            consistency = numpy.sum(data_30['consistency']) / total_grf
+            hip_consistency = numpy.sum(data_30['hipConsistency']) / total_grf
+            ankle_consistency = numpy.sum(data_30['ankleConsistency']) / total_grf
+            consistency_lf = numpy.sum(data_30['consistencyLF']) / lf_grf
+            consistency_rf = numpy.sum(data_30['consistencyRF']) / rf_grf
 
             record_out = OrderedDict({'teamId': team_id})
             record_out['userId'] = user_id
