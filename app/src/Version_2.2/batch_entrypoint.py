@@ -34,7 +34,7 @@ def send_failure(meta, exception):
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_failure(
             taskToken=task_token,
-            error=type(exception),
+            error=type(exception).__name__,
             cause=repr(exception)
         )
 
