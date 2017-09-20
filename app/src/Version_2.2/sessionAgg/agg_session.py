@@ -63,9 +63,6 @@ def script_handler(file_name, input_data):
         os.remove(tmp_filename)
         logger.info("Removed temporary file")
 
-        # for testing only
-#        data = pandas.read_csv(file_name)
-
         # rename columns to match mongo
         data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed', 'sessionDuration',
                         'loadingLF', 'loadingRF',
@@ -94,18 +91,9 @@ def script_handler(file_name, input_data):
         date_time = datetime.datetime.strptime(str(pandas.DatetimeIndex(data['timeStamp']).round('1s')[0]),
                                                "%Y-%m-%d %H:%M:%S")
         event_date = date_time.date()
-        # testing only
-#        team_id = 'test_tg'
-#        training_group_id = 'test_tg'
-#        user_id = 'test_user'
-##        training_session_log_id = 'test_tslog'
-#        session_event_id = 'test_session'
-#        session_type = '1'
-#        user_mass = 77
 
         # Prep for session aggregation
         # grf
-        # indicator for when grf should be present
         total_ind = numpy.array([k != 3 for k in data['phaseLF']])
         lf_ind = numpy.array([k in [0, 1, 4] for k in data['phaseLF']])
         rf_ind = numpy.array([k in [0, 2, 5] for k in data['phaseRF']])
@@ -121,6 +109,7 @@ def script_handler(file_name, input_data):
         data['const_grf'] = data['constructive'].fillna(value=numpy.nan) * total_ind
         data['dest_grf'] = data['destructive'].fillna(value=numpy.nan) * total_ind
         data['perc_optimal'] = pandas.DataFrame(data['const_grf'] / (data['const_grf'] + data['dest_grf']))
+
         # accel
         data['irregularAccel'] = data['totalAccel'] * data['destrMultiplier']
 
@@ -128,6 +117,7 @@ def script_handler(file_name, input_data):
         total_grf = numpy.sum(data['total_grf'])
         const_grf = numpy.nansum(data['const_grf'])
         dest_grf = numpy.nansum(data['dest_grf'])
+        perc_optimal_session = const_grf / (const_grf + dest_grf)
         if total_grf == 0:
             total_grf = 1e-6
         lf_grf = numpy.sum(data['lf_grf'])
@@ -175,11 +165,15 @@ def script_handler(file_name, input_data):
         consistency_lf = numpy.sum(data['consistencyLF']) / lf_grf
         consistency_rf = numpy.sum(data['consistencyRF']) / rf_grf
 
+        # acceleration aggregation
         total_accel = numpy.sum(data['totalAccel'])
         irregular_accel = numpy.sum(data['irregularAccel'])
 
+        # fatigue analysis
         session_fatigue = _fatigue_analysis(data, var='perc_optimal')
 
+        # create ordered dictionary object
+        # current variables
         record_out = OrderedDict({'sessonId': session_event_id})
         record_out['sessionType'] = session_type
         record_out['phaseLF'] = None
@@ -203,6 +197,7 @@ def script_handler(file_name, input_data):
         record_out['planeProgramComposition'] = None
         record_out['stanceProgramComposition'] = None
 
+        # new variables
         record_out['percLeftGRF'] = perc_left_grf
         record_out['percRightGRF'] = perc_right_grf
         record_out['percDistr'] = perc_distr
@@ -226,8 +221,11 @@ def script_handler(file_name, input_data):
         record_out['ankleControl'] = ankle_control
         record_out['controlLF'] = control_lf
         record_out['controlRF'] = control_rf
+
+        record_out['percOptimal'] = perc_optimal_session
         record_out['sessionFatigue'] = session_fatigue
 
+        # enforce validity of scores
         scor_cols = ['symmetry',
                      'symmetryL',
                      'symmetryR',
@@ -256,7 +254,8 @@ def script_handler(file_name, input_data):
                     record_out[key] = 100
             except TypeError:
                 pass
-        # Write each record one at a time.
+
+        # Write the record to mongo
         record_id = mongo_collection.insert_one(record_out).inserted_id
 
         logger.info("Wrote a record")
@@ -269,76 +268,19 @@ def script_handler(file_name, input_data):
 
 
 def _fatigue_analysis(data, var):
+    """trend analysis on the variable desired
+    data: complete data set with all the variables
+    var: variable name for which fatigue analysis is desired
+    the variable is aggregated(mean) on two minute level and then linear fit is obtained on the
+    aggregated data
+    """
     data.set_index(pandas.to_datetime(data.epochTime, unit='ms'), drop=False, inplace=True)
     groups = data.resample('2T')
     series = groups[var].mean()
-#    from statsmodels.tsa.seasonal import seasonal_decompose
     series = numpy.array(series)
-#    series = series.values
-#    series = series[~numpy.isnan(series)]
-#    result = seasonal_decompose(series, model='additive', freq=1)
-#    series = result.trend
     series = series[~numpy.isnan(series)]
     coefficients = numpy.polyfit(range(len(series)), series, 1)
-#    print(coefficients[0])
-#    mse = residuals[0]/(len(series))
-#    nrmse = numpy.sqrt(mse)/(series.max() - series.min())
     return coefficients[0]*100
-#    print('Slope ' + str(coefficients[0]*100))
-#    print('NRMSE: ' + str(nrmse))
-#    print(result.trend)
-#    print(result.seasonal)
-#    print(result.resid)
-#    print(result.observed)
-#    print(series)
-#    result.plot()
-#    plt.show()
-
-def _compute_acwr(var, period, user_id, event_date):
-    """
-    var: variable name to calculate for
-    period: e.g. 1-day, 2-day,...10-day
-    """
-    mongo_collection = _connect_mongo(None)
-    total_days = period*4
-    start_date = event_date - total_days
-    start_date = '2017-03-16'
-    pipeline = [{'$match': {'userId': {'$eq': user_id},
-                            'eventDate': {'$gte': start_date, '$lte': event_date}}},
-                {'$group': {'_id': '$eventDate',
-                            var: {'$first': str('$'+var)}}}
-               ]
-
-    docs = list(mongo_collection.aggregate(pipeline))
-
-    hist_data = pandas.DataFrame(docs)
-    return hist_data
-
-def _connect_mongo(connection_string):
-    """
-    connection_string for the mongo collection
-    """
-#    connection_string = 'mongodb://statsUser:BioMx211@172.31.64.242,172.31.36.192,172.31.4.164:27017/?replicaSet=twoMinuteRS&authMechanism=SCRAM-SHA-1'
-#    client=MongoClient(connection_string)
-#    database = client['movementStats']
-#    mongo_collection = database['twoMinuteStats']
-
-    # twoMinuteStats
-#    mongo_client = MongoClient('172.31.64.242,172.31.36.192,172.31.4.164', replicaset='twoMinuteRS')
-#    mongo_database = mongo_client['movementStats']
-    # Authenticate
-#    mongo_database.authenticate('statsUser', 'BioMx211', mechanism='SCRAM-SHA-1')
-#    mongo_collection = mongo_database['twoMinuteStats']
-
-    # session
-    mongo_client = MongoClient('172.31.64.60,172.31.38.53,172.31.6.25', replicaset='sessionRS')
-    mongo_database = mongo_client['movementStats']
-    # Authenticate
-    mongo_database.authenticate('statsUser', 'BioMx211', mechanism='SCRAM-SHA-1')
-    mongo_collection = mongo_database['sessionStats']
-
-    return mongo_collection
-
     
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
