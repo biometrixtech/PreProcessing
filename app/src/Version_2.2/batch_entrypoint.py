@@ -187,6 +187,23 @@ if __name__ == '__main__':
             )
             send_success(meta_data, {})
 
+        elif script == 'aggregatesession':
+            print('Computing session aggregations')
+            load_parameters([
+                'MONGOSESSION_HOST',
+                'MONGOSESSION_USER',
+                'MONGOSESSION_PASSWORD',
+                'MONGOSESSION_DATABASE',
+                'MONGOSESSION_COLLECTION',
+                'MONGOSESSION_REPLICASET',
+            ])
+            from sessionAgg import agg_session
+            agg_session.script_handler(
+                input_data.get('Filename', None),
+                input_data
+            )
+            send_success(meta_data, {})
+
         elif script == 'cleanup':
             print('Cleaning up intermediate files')
             from cleanup import cleanup

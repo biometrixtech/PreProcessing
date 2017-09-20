@@ -97,8 +97,8 @@ def script_handler(file_name, input_data):
         total_ind = numpy.array([k != 3 for k in data['phaseLF']])
         lf_ind = numpy.array([k in [0, 1, 4] for k in data['phaseLF']])
         rf_ind = numpy.array([k in [0, 2, 5] for k in data['phaseRF']])
-        lf_ground = lf_ind * ~rf_ind # only lf in ground
-        rf_ground = ~lf_ind * rf_ind # only rf in ground
+        lf_ground = lf_ind * ~rf_ind  # only lf in ground
+        rf_ground = ~lf_ind * rf_ind  # only rf in ground
 
         data['total_grf'] = data['total'].fillna(value=numpy.nan) * total_ind
         data['lf_grf'] = data['total'].fillna(value=numpy.nan) * lf_ind
@@ -197,7 +197,7 @@ def script_handler(file_name, input_data):
         record_out['stanceProgramComposition'] = None
 
         # new variables
-        #grf distribution
+        # grf distribution
         record_out['percLeftGRF'] = perc_left_grf
         record_out['percRightGRF'] = perc_right_grf
         record_out['percDistr'] = perc_distr
@@ -272,9 +272,9 @@ def _fatigue_analysis(data, var):
     series = series[~numpy.isnan(series)]
     coefficients = numpy.polyfit(range(len(series)), series, 1)
     return coefficients[0]*100
-    
+
+
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
     import time
     start = time.time()
     os.environ['ENVIRONMENT'] = 'Dev'
@@ -284,7 +284,7 @@ if __name__ == '__main__':
     os.environ['MONGOSESSION_DATABASE'] = 'movementStats'
     os.environ['MONGOSESSION_COLLECTION'] = 'sessionStats_test2'
     os.environ['MONGOSESSION_REPLICASET'] = '---'
-    file_name = 'C:\\Users\\Administrator\\Desktop\\python_aggregation\\605a9a17-24bf-4fdc-b539-02adbb28a628'
-    perc_optimal = script_handler(file_name, input_data=None)
+    in_file_name = 'C:\\Users\\Administrator\\Desktop\\python_aggregation\\605a9a17-24bf-4fdc-b539-02adbb28a628'
+    perc_optimal = script_handler(in_file_name, input_data=None)
     print(time.time() - start)
 
