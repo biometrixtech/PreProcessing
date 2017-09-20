@@ -29,7 +29,7 @@ Config = namedtuple('Config', [
 
 
 def script_handler(file_name, input_data):
-    logger.info('Running writemongo on "{}"'.format(file_name))
+    logger.info('Running twoMinAgg on "{}"'.format(file_name))
     logger.info("Definitely running")
 
     try:
