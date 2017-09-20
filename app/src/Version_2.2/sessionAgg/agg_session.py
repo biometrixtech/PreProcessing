@@ -149,14 +149,8 @@ def script_handler(file_name, input_data):
 
         # symmetry aggregation
         symmetry = numpy.sum(data['symmetry']) / total_grf
-        symmetry_l = numpy.sum(data['symmetryL']) / lf_grf
-        symmetry_r = numpy.sum(data['symmetryR']) / rf_grf
         hip_symmetry = numpy.sum(data['hipSymmetry']) / total_grf
-        hip_symmetry_l = numpy.sum(data['hipSymmetryL']) / lf_grf
-        hip_symmetry_r = numpy.sum(data['hipSymmetryR']) / rf_grf
         ankle_symmetry = numpy.sum(data['ankleSymmetry']) / total_grf
-        ankle_symmetry_l = numpy.sum(data['ankleSymmetryL']) / lf_grf
-        ankle_symmetry_r = numpy.sum(data['ankleSymmetryR']) / rf_grf
 
         # consistency aggregation
         consistency = numpy.sum(data['consistency']) / total_grf
@@ -184,35 +178,37 @@ def script_handler(file_name, input_data):
         record_out['userId'] = user_id
         record_out['eventDate'] = str(event_date)
 
+        # grf
         record_out['totalGRF'] = total_grf
         record_out['optimalGRF'] = const_grf
         record_out['irregularGRF'] = dest_grf
         record_out['LFgRF'] = lf_grf
         record_out['RFgRF'] = rf_grf
+
+        # scores
         record_out['control'] = control
         record_out['consistency'] = consistency
         record_out['symmetry'] = symmetry
+
+        # blank placeholders for programcomp
         record_out['grfProgramComposition'] = None
         record_out['totalAccelProgramComposition'] = None
         record_out['planeProgramComposition'] = None
         record_out['stanceProgramComposition'] = None
 
         # new variables
+        #grf distribution
         record_out['percLeftGRF'] = perc_left_grf
         record_out['percRightGRF'] = perc_right_grf
         record_out['percDistr'] = perc_distr
 
+        # acceleration
         record_out['totalAccel'] = total_accel
         record_out['irregularAccel'] = irregular_accel
 
-        record_out['symmetryL'] = symmetry_l
-        record_out['symmetryR'] = symmetry_r
+        # scores
         record_out['hipSymmetry'] = hip_symmetry
-        record_out['hipSymmetryL'] = hip_symmetry_l
-        record_out['hipSymmetryR'] = hip_symmetry_r
         record_out['ankleSymmetry'] = ankle_symmetry
-        record_out['ankleSymmetryL'] = ankle_symmetry_l
-        record_out['ankleSymmetryR'] = ankle_symmetry_r
         record_out['hipConsistency'] = hip_consistency
         record_out['ankleConsistency'] = ankle_consistency
         record_out['consistencyLF'] = consistency_lf
@@ -222,19 +218,14 @@ def script_handler(file_name, input_data):
         record_out['controlLF'] = control_lf
         record_out['controlRF'] = control_rf
 
+        # fatigue data
         record_out['percOptimal'] = perc_optimal_session
         record_out['sessionFatigue'] = session_fatigue
 
         # enforce validity of scores
         scor_cols = ['symmetry',
-                     'symmetryL',
-                     'symmetryR',
                      'hipSymmetry',
-                     'hipSymmetryL',
-                     'hipSymmetryR',
                      'ankleSymmetry',
-                     'ankleSymmetryL',
-                     'ankleSymmetryR',
                      'consistency',
                      'hipConsistency',
                      'ankleConsistency',
