@@ -204,6 +204,23 @@ if __name__ == '__main__':
             )
             send_success(meta_data, {})
 
+        elif script == 'aggregatetwomin':
+            print('Computing two minute aggregations')
+            load_parameters([
+                'MONGOTWOMIN_HOST',
+                'MONGOTWOMIN_USER',
+                'MONGOTWOMIN_PASSWORD',
+                'MONGOTWOMIN_DATABASE',
+                'MONGOTWOMIN_COLLECTION',
+                'MONGOTWOMIN_REPLICASET',
+            ])
+            from twoMinuteAgg import agg_twomin
+            agg_twomin.script_handler(
+                input_data.get('Filename', None),
+                input_data
+            )
+            send_success(meta_data, {})
+
         elif script == 'cleanup':
             print('Cleaning up intermediate files')
             from cleanup import cleanup
