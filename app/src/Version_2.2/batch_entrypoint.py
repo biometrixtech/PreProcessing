@@ -190,12 +190,12 @@ if __name__ == '__main__':
         elif script == 'aggregatesession':
             print('Computing session aggregations')
             load_parameters([
-                'MONGOSESSION_HOST',
-                'MONGOSESSION_USER',
-                'MONGOSESSION_PASSWORD',
-                'MONGOSESSION_DATABASE',
-                'MONGOSESSION_COLLECTION',
-                'MONGOSESSION_REPLICASET',
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_COLLECTION_SESSION',
+                'MONGO_REPLICASET_SESSION',
             ])
             from sessionAgg import agg_session
             agg_session.script_handler(
@@ -207,15 +207,34 @@ if __name__ == '__main__':
         elif script == 'aggregatetwomin':
             print('Computing two minute aggregations')
             load_parameters([
-                'MONGOTWOMIN_HOST',
-                'MONGOTWOMIN_USER',
-                'MONGOTWOMIN_PASSWORD',
-                'MONGOTWOMIN_DATABASE',
-                'MONGOTWOMIN_COLLECTION',
-                'MONGOTWOMIN_REPLICASET',
+                'MONGO_HOST_TWOMIN',
+                'MONGO_USER_TWOMIN',
+                'MONGO_PASSWORD_TWOMIN',
+                'MONGO_DATABASE_TWOMIN',
+                'MONGO_COLLECTION_TWOMIN',
+                'MONGO_REPLICASET_TWOMIN',
             ])
             from twoMinuteAgg import agg_twomin
             agg_twomin.script_handler(
+                input_data.get('Filename', None),
+                input_data
+            )
+            send_success(meta_data, {})
+
+        elif script == 'aggregatedate':
+            print('Computing date aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_SESSION',
+                'MONGO_COLLECTION_DATE',
+            ])
+            from dateAggUser import agg_date_user
+
+            agg_date_user.script_handler(
                 input_data.get('Filename', None),
                 input_data
             )
