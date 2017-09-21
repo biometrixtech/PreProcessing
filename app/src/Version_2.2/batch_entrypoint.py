@@ -221,7 +221,7 @@ if __name__ == '__main__':
             )
             send_success(meta_data, {})
 
-        elif script == 'aggregatedate':
+        elif script == 'aggregatedateuser':
             print('Computing date aggregations')
             load_parameters([
                 'MONGO_HOST_SESSION',
@@ -235,8 +235,7 @@ if __name__ == '__main__':
             from dateAggUser import agg_date_user
 
             agg_date_user.script_handler(
-                input_data.get('Filename', None),
-                input_data
+                input_data.get('Filename', None)
             )
             send_success(meta_data, {})
 
