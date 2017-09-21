@@ -159,7 +159,7 @@ if __name__ == '__main__':
             from chunk import chunk
             file_names = chunk.chunk_by_line(
                 os.path.join('/net/efs/scoring/output', output_file),
-                '/net/efs/writemongo/input',
+                '/net/efs/scoring/output',
                 boundaries
             )
 

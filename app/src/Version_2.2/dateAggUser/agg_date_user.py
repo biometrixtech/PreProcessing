@@ -34,7 +34,7 @@ def script_handler(input_data):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/writemongo/input',
+            FP_INPUT='/net/efs/aggregate/input',
             MONGO_HOST=os.environ['MONGO_HOST_SESSION'],
             MONGO_USER=os.environ['MONGO_USER_SESSION'],
             MONGO_PASSWORD=os.environ['MONGO_PASSWORD_SESSION'],
