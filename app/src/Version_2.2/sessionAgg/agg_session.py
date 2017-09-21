@@ -168,7 +168,7 @@ def script_handler(file_name, input_data):
 
         # create ordered dictionary object
         # current variables
-        record_out = OrderedDict({'sessonId': session_event_id})
+        record_out = OrderedDict({'sessionId': session_event_id})
         record_out['sessionType'] = session_type
         record_out['phaseLF'] = None
         record_out['phaseRF'] = None
