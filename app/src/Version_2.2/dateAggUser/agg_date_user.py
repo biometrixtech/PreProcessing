@@ -65,6 +65,10 @@ def script_handler(input_data):
             session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
 
+        event_date = str(list(mongo_collection_session.find({'sessonId': session_event_id},
+                                                            {'eventDate': 1,
+                                                             '_id': 0}))[0]['eventDate'])
+
         # get all sessions
         sessions = _get_session_data(mongo_collection_session, user_id,
                                      event_date, session_type)
@@ -136,8 +140,7 @@ def script_handler(input_data):
         query = {'userId': user_id, 'eventDate': event_date}
         record_id = mongo_collection_date.update(query, record_out, upsert=True)
         logger.info("Wrote a record: {}".format(record_id))
-        
-        
+
     except Exception as e:
         logger.info(e)
         logger.info('Process did not complete successfully! See error below!')
@@ -167,7 +170,7 @@ def _get_hist_data(collection, period, user_id, event_date):
     docs = list(collection.find({'userId': {'$eq': user_id},
                                  'eventDate': {'$gte': start_date, '$lte': event_date}},
                                  {'userId': 1, 'eventDate': 1, 'totalGRF': 1,
-                                  '_id': 0}))
+                                 '_id': 0}))
 
     hist_data = pandas.DataFrame(docs)
     return hist_data
@@ -186,4 +189,3 @@ if __name__ == '__main__':
     os.environ['MONGOSESSION_REPLICASET'] = '---'
     perc_optimal = script_handler(input_data=None)
     print(time.time() - start)
-
