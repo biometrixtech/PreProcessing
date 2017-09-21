@@ -163,7 +163,7 @@ if __name__ == '__main__':
                 boundaries
             )
 
-            send_success(meta_data, {"Filenames": file_names})
+            send_success(meta_data, {"Filenames": file_names, "FullFilename": output_file})
 
         elif script == 'writemongo':
             print('Uploading to mongodb database')
@@ -236,7 +236,7 @@ if __name__ == '__main__':
             from dateAggUser import agg_date_user
 
             agg_date_user.script_handler(
-                input_data.get('Filename', None)
+                input_data
             )
             send_success(meta_data, {})
 
