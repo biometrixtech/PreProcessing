@@ -37,12 +37,12 @@ def script_handler(file_name, input_data):
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT='/net/efs/writemongo/input',
-            MONGO_HOST=os.environ['MONGOTWOMIN_HOST'],
-            MONGO_USER=os.environ['MONGOTWOMIN_USER'],
-            MONGO_PASSWORD=os.environ['MONGOTWOMIN_PASSWORD'],
-            MONGO_DATABASE=os.environ['MONGOTWOMIN_DATABASE'],
-            MONGO_COLLECTION=os.environ['MONGOTWOMIN_COLLECTION'],
-            MONGO_REPLICASET=os.environ['MONGOTWOMIN_REPLICASET'] if os.environ['MONGOTWOMIN_REPLICASET'] != '---' else None,
+            MONGO_HOST=os.environ['MONGO_HOST_TWOMIN'],
+            MONGO_USER=os.environ['MONGO_USER_TWOMIN'],
+            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_TWOMIN'],
+            MONGO_DATABASE=os.environ['MONGO_DATABASE_TWOMIN'],
+            MONGO_COLLECTION=os.environ['MONGO_COLLECTION_TWOMIN'],
+            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_TWOMIN'] if os.environ['MONGO_REPLICASET_TWOMIN'] != '---' else None,
         )
 
         # first collection
@@ -295,12 +295,12 @@ if __name__ == '__main__':
     import time
     start = time.time()
     os.environ['ENVIRONMENT'] = 'Dev'
-    os.environ['MONGOTWOMIN_HOST'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
-    os.environ['MONGOTWOMIN_USER'] = 'statsUser'
-    os.environ['MONGOTWOMIN_PASSWORD'] = 'BioMx211'
-    os.environ['MONGOTWOMIN_DATABASE'] = 'movementStats'
-    os.environ['MONGOTWOMIN_COLLECTION'] = 'twoMinuteStats_test2'
-    os.environ['MONGOTWOMIN_REPLICASET'] = '---'
+    os.environ['MONGO_HOST_TWOMIN'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
+    os.environ['MONGO_USER_TWOMIN'] = 'statsUser'
+    os.environ['MONGO_PASSWORD_TWOMIN'] = 'BioMx211'
+    os.environ['MONGO_DATABASE_TWOMIN'] = 'movementStats'
+    os.environ['MONGO_COLLECTION_TWOMIN'] = 'twoMinuteStats_test2'
+    os.environ['MONGO_REPLICASET_TWOMIN'] = '---'
     in_file_name = 'C:\\Users\\Administrator\\Desktop\\python_aggregation\\605a9a17-24bf-4fdc-b539-02adbb28a628'
     perc_optimal = script_handler(in_file_name, input_data=None)
     print(time.time() - start)

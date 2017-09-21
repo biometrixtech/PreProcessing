@@ -35,13 +35,13 @@ def script_handler(input_data):
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
             FP_INPUT='/net/efs/writemongo/input',
-            MONGO_HOST=os.environ['MONGOSESSION_HOST'],
-            MONGO_USER=os.environ['MONGOSESSION_USER'],
-            MONGO_PASSWORD=os.environ['MONGOSESSION_PASSWORD'],
-            MONGO_DATABASE=os.environ['MONGOSESSION_DATABASE'],
-            MONGO_COLLECTION_SESSION=os.environ['MONGOSESSION_COLLECTION'],
-            MONGO_COLLECTION_DATE=os.environ['MONGODATE_COLLECTION'],
-            MONGO_REPLICASET=os.environ['MONGOSESSION_REPLICASET'] if os.environ['MONGOSESSION_REPLICASET'] != '---' else None,
+            MONGO_HOST=os.environ['MONGO_HOST_SESSION'],
+            MONGO_USER=os.environ['MONGO_USER_SESSION'],
+            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_SESSION'],
+            MONGO_DATABASE=os.environ['MONGO_DATABASE_SESSION'],
+            MONGO_COLLECTION_SESSION=os.environ['MONGO_COLLECTION_SESSION'],
+            MONGO_COLLECTION_DATE=os.environ['MONGO_COLLECTION_DATE'],
+            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
         )
 
         # Connect to mongo
@@ -180,12 +180,12 @@ if __name__ == '__main__':
     import time
     start = time.time()
     os.environ['ENVIRONMENT'] = 'Dev'
-    os.environ['MONGOSESSION_HOST'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
-    os.environ['MONGOSESSION_USER'] = 'statsUser'
-    os.environ['MONGOSESSION_PASSWORD'] = 'BioMx211'
-    os.environ['MONGOSESSION_DATABASE'] = 'movementStats'
-    os.environ['MONGOSESSION_COLLECTION'] = 'sessionStats_test2'
-    os.environ['MONGODATE_COLLECTION'] = 'dateStats_test2'
-    os.environ['MONGOSESSION_REPLICASET'] = '---'
+    os.environ['MONGO_HOST_SESSION'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
+    os.environ['MONGO_USER_SESSION'] = 'statsUser'
+    os.environ['MONGO_PASSWORD_SESSION'] = 'BioMx211'
+    os.environ['MONGO_DATABASE_SESSION'] = 'movementStats'
+    os.environ['MONGO_COLLECTION_SESSION'] = 'sessionStats_test2'
+    os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test2'
+    os.environ['MONGO_REPLICASET_SESSION'] = '---'
     perc_optimal = script_handler(input_data=None)
     print(time.time() - start)
