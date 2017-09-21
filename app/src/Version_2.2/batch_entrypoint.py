@@ -200,7 +200,7 @@ if __name__ == '__main__':
             ])
             from sessionAgg import agg_session
             agg_session.script_handler(
-                input_data.get('Filename', None),
+                input_data['Filename'],
                 input_data
             )
             send_success(meta_data, {})
