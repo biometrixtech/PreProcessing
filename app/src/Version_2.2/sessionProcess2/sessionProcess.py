@@ -25,7 +25,19 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(filepath, data):
+def mkdir(path):
+    """
+    Create a directory, but don't fail if it already exists
+    :param path:
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+
+
+def script_handler(sensor_data_filename, filepath, data):
 
     logger.info('Received sessionProcess request for {}'.format(filepath))
 
@@ -33,13 +45,14 @@ def script_handler(filepath, data):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/sessionprocess2/input',
-            FP_OUTPUT='/net/efs/sessionprocess2/output',
+            FP_INPUT='/net/efs/preprocessing/{}/downloadandchunk'.format(sensor_data_filename),
+            FP_OUTPUT='/net/efs/preprocessing/{}/sessionprocess2'.format(sensor_data_filename),
             MS_MODEL_PATH='/net/efs/globalmodels',
             MS_MODEL=os.environ['MS_MODEL'],
             MS_SCALER_PATH='/net/efs/globalscalers',
             MS_SCALER=os.environ['MS_SCALER'],
         )
+        mkdir(config.FP_OUTPUT)
         result = idb.send_batches_of_data(filepath, data, config=config)
         logger.info('outcome:' + result)
         return 'success'

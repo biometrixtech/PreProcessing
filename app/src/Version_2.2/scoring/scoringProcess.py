@@ -18,12 +18,10 @@ Config = namedtuple('Config', [
     'ENVIRONMENT',
     'FP_INPUT',
     'FP_OUTPUT',
-    'FP_SCORINGHIST',
-    'S3_BUCKET_HISTORY',
 ])
 
 
-def script_handler(filenames, data):
+def script_handler(sensor_data_filename, filenames, data):
 
     logger.info('Received scoring request for {}'.format(", ".join(filenames)))
 
@@ -31,14 +29,9 @@ def script_handler(filenames, data):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/scoring/input',
-            FP_OUTPUT='/net/efs/scoring/output',
-            FP_SCORINGHIST='/net/efs/scoringhist',
-            S3_BUCKET_HISTORY='biometrix-scoringhist'
+            FP_INPUT='/net/efs/preprocessing/{}/sessionprocess2',
+            FP_OUTPUT='/net/efs/preprocessing/{}',
         )
-
-        # Get the base filename
-        file_name = filenames[0].split('_')[0]
 
         current_stream = cat_csv_files([os.path.join(config.FP_INPUT, f) for f in sorted(filenames)])
 
@@ -48,12 +41,19 @@ def script_handler(filenames, data):
             historical_filenames = []
 
         historical_stream = cat_csv_files(
-            [os.path.join(config.FP_INPUT, f) for f in filenames] +
-            [os.path.join(config.FP_OUTPUT, f) for f in historical_filenames]
+            [os.path.join('/net/efs/preprocessing', sensor_data_filename, 'sessionprocess2', f) for f in filenames] +
+            # FIXME this filepath is broken
+            [os.path.join('/net/efs/preprocessing', f, 'sessionprocess2', f) for f in historical_filenames]
         )
 
-        boundaries = runScoring.run_scoring(current_stream, historical_stream, file_name, data, config=config)
-        return file_name, boundaries
+        boundaries = runScoring.run_scoring(
+            current_stream,
+            historical_stream,
+            sensor_data_filename,
+            data,
+            os.path.join('/net/efs/preprocessing/{}/scoring'.format(sensor_data_filename))
+        )
+        return boundaries
 
     except Exception as e:
         logger.info(e)

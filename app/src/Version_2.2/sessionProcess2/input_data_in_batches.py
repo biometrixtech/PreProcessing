@@ -40,8 +40,7 @@ def send_batches_of_data(file_path, data, config, aws=True):
 
     # read sensor data
     try:
-        sdata = read_file(config.FP_INPUT + '/' + file_path)
-        # sdata = pd.read_csv(config.FP_INPUT + '/' + file_path)
+        sdata = read_file(os.path.join(config.FP_INPUT, file_path))
     except:
         _logger("Cannot load data!", info=False)
         raise
@@ -71,7 +70,7 @@ def send_batches_of_data(file_path, data, config, aws=True):
     output_data_batch = output_data_batch.round(5)
 
     # Output data
-    fileobj = open(config.FP_OUTPUT + '/' + file_path, 'wb')
+    fileobj = open(os.path.join(config.FP_OUTPUT, file_path), 'wb')
     output_data_batch.to_csv(fileobj, index=False, na_rep='', columns=cols.column_session2_out)
     del output_data_batch
 
