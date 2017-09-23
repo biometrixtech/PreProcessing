@@ -274,7 +274,7 @@ if __name__ == '__main__':
             print('Cleaning up intermediate files')
             from cleanup import cleanup
             cleanup.script_handler(
-                input_data.get('Filename')
+                working_directory
             )
             send_success(meta_data, {})
 
