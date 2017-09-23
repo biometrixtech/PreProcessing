@@ -54,7 +54,7 @@ def script_handler(working_directory, file_name, input_data):
 
         mongo_collection = mongo_database[config.MONGO_COLLECTION]
 
-        tmp_filename = os.path.join('/tmp', file_name)
+        tmp_filename = '/tmp/readfile'
         copyfile(os.path.join(working_directory, 'scoring_chunked', file_name), tmp_filename)
         logger.info("Copied data file to local FS")
         data = pandas.read_csv(tmp_filename)

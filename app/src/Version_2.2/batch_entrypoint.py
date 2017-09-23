@@ -215,8 +215,6 @@ if __name__ == '__main__':
 
         elif script == 'aggregatesession':
             print('Computing session aggregations')
-            sensor_data_filename = input_data.get('SensorDataFilename')
-            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
             load_parameters([
                 'MONGO_HOST_SESSION',
                 'MONGO_USER_SESSION',
@@ -228,7 +226,6 @@ if __name__ == '__main__':
             from sessionAgg import agg_session
             agg_session.script_handler(
                 working_directory,
-                input_data['Filename'],
                 input_data
             )
             send_success(meta_data, {})

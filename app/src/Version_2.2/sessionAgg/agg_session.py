@@ -27,8 +27,8 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(working_directory, file_name, input_data):
-    logger.info('Running session aggregation  on "{}"'.format(file_name))
+def script_handler(working_directory, input_data):
+    logger.info('Running session aggregation  on "{}"'.format(working_directory.split('/')[-1]))
 
     try:
         config = Config(
@@ -53,8 +53,8 @@ def script_handler(working_directory, file_name, input_data):
 
         mongo_collection = mongo_database[config.MONGO_COLLECTION]
 
-        tmp_filename = os.path.join('/tmp', file_name)
-        copyfile(os.path.join(working_directory, 'scoring_chunked', file_name), tmp_filename)
+        tmp_filename = '/tmp/readfile'
+        copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)
         logger.info("Copied data file to local FS")
         data = pandas.read_csv(tmp_filename)
         os.remove(tmp_filename)

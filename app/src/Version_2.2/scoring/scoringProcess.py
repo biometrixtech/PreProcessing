@@ -16,8 +16,6 @@ logger.info('Loading sessionProcess')
 Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
-    'FP_INPUT',
-    'FP_OUTPUT',
 ])
 
 
@@ -29,8 +27,6 @@ def script_handler(working_directory, filenames, data):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/preprocessing/{}/sessionprocess2',
-            FP_OUTPUT='/net/efs/preprocessing/{}',
         )
 
         current_stream = cat_csv_files([os.path.join(working_directory, 'sessionprocess2', f) for f in sorted(filenames)])

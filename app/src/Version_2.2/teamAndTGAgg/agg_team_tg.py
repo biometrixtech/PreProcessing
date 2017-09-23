@@ -16,7 +16,6 @@ logger.setLevel(logging.INFO)
 Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
-    'FP_INPUT',
     'MONGO_HOST_SESSION',
     'MONGO_USER_SESSION',
     'MONGO_PASSWORD_SESSION',
@@ -45,7 +44,6 @@ def script_handler(input_data):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/aggregate/input',
             MONGO_HOST_SESSION=os.environ['MONGO_HOST_SESSION'],
             MONGO_USER_SESSION=os.environ['MONGO_USER_SESSION'],
             MONGO_PASSWORD_SESSION=os.environ['MONGO_PASSWORD_SESSION'],
@@ -94,6 +92,7 @@ def script_handler(input_data):
         logger.info('Process did not complete successfully! See error below!')
         raise
 
+
 def _get_tg_agg_status(collection):
     docs = list(collection.find({'needsAggregation': True},
                                 {'trainingGroupId': 1,
@@ -101,6 +100,7 @@ def _get_tg_agg_status(collection):
                                  '_id': 0}))
     tgs = pandas.DataFrame(docs)
     return tgs
+
 
 def _get_team_agg_status(collection):
     docs = list(collection.find({'needsAggregation': True},
