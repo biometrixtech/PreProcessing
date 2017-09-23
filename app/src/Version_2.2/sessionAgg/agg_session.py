@@ -18,7 +18,6 @@ logger.setLevel(logging.INFO)
 Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
-    'FP_INPUT',
     'MONGO_HOST',
     'MONGO_USER',
     'MONGO_PASSWORD',
@@ -28,15 +27,13 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(file_name, input_data):
+def script_handler(working_directory, file_name, input_data):
     logger.info('Running session aggregation  on "{}"'.format(file_name))
-    logger.info("Definitely running")
 
     try:
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/aggregate/input',
             MONGO_HOST=os.environ['MONGO_HOST_SESSION'],
             MONGO_USER=os.environ['MONGO_USER_SESSION'],
             MONGO_PASSWORD=os.environ['MONGO_PASSWORD_SESSION'],
@@ -57,7 +54,7 @@ def script_handler(file_name, input_data):
         mongo_collection = mongo_database[config.MONGO_COLLECTION]
 
         tmp_filename = os.path.join('/tmp', file_name)
-        copyfile(os.path.join(config.FP_INPUT, file_name), tmp_filename)
+        copyfile(os.path.join(working_directory, 'scoring_chunked', file_name), tmp_filename)
         logger.info("Copied data file to local FS")
         data = pandas.read_csv(tmp_filename)
         os.remove(tmp_filename)

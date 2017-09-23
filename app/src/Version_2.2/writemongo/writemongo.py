@@ -18,7 +18,6 @@ logger.setLevel(logging.INFO)
 Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
-    'FP_INPUT',
     'MONGO1_HOST',
     'MONGO1_USER',
     'MONGO1_PASSWORD',
@@ -34,7 +33,7 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(file_name, input_data):
+def script_handler(working_directory, file_name, input_data):
     logger.info('Running writemongo on "{}"'.format(file_name))
     logger.info("Definitely running")
 
@@ -42,7 +41,6 @@ def script_handler(file_name, input_data):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/writemongo/input',
             MONGO1_HOST=os.environ['MONGO1_HOST'],
             MONGO1_USER=os.environ['MONGO1_USER'],
             MONGO1_PASSWORD=os.environ['MONGO1_PASSWORD'],
@@ -76,8 +74,8 @@ def script_handler(file_name, input_data):
 
         mongo2_collection = mongo2_database[config.MONGO2_COLLECTION]
 
-        tmp_filename = os.path.join('/tmp', file_name)
-        copyfile(os.path.join(config.FP_INPUT, file_name), tmp_filename)
+        tmp_filename = os.path.join('/tmp', file_name + '_scoring_chunked')
+        copyfile(os.path.join(working_directory, 'scoring_chunked', file_name), tmp_filename)
         logger.info("Copied data file to local FS")
         data = pandas.read_csv(tmp_filename)
         os.remove(tmp_filename)
