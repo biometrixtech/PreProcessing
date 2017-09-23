@@ -16,8 +16,6 @@ logger.info('Loading sessionProcess')
 Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
-    'FP_INPUT',
-    'FP_OUTPUT',
     'MS_MODEL_PATH',
     'MS_MODEL',
     'MS_SCALER_PATH',
@@ -37,23 +35,26 @@ def mkdir(path):
             raise
 
 
-def script_handler(sensor_data_filename, filepath, data):
+def script_handler(working_directory, file_name, data):
 
-    logger.info('Received sessionProcess request for {}'.format(filepath))
+    logger.info('Received sessionProcess request for {}'.format(file_name))
 
     try:
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/preprocessing/{}/downloadandchunk'.format(sensor_data_filename),
-            FP_OUTPUT='/net/efs/preprocessing/{}/sessionprocess2'.format(sensor_data_filename),
             MS_MODEL_PATH='/net/efs/globalmodels',
             MS_MODEL=os.environ['MS_MODEL'],
             MS_SCALER_PATH='/net/efs/globalscalers',
             MS_SCALER=os.environ['MS_SCALER'],
         )
-        mkdir(config.FP_OUTPUT)
-        result = idb.send_batches_of_data(filepath, data, config=config)
+        mkdir(os.path.join(working_directory, 'sessionprocess2'))
+        result = idb.send_batches_of_data(
+            os.path.join(working_directory, 'downloadandchunk', file_name),
+            os.path.join(working_directory, 'sessionprocess2', file_name),
+            data,
+            config=config
+        )
         logger.info('outcome:' + result)
         return 'success'
 

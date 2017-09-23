@@ -27,12 +27,12 @@ from exceptions import NoHistoricalDataException
 logger = logging.getLogger()
 
 
-def run_scoring(sensor_data, historical_data, file_name, data, output_filename):
+def run_scoring(sensor_data, historical_data, data, output_filename):
     """Creates object attributes according to block analysis process.
 
     Args:
         sensor_data: File handle / StringIO
-        file_name
+        :param historical_data:
         output_filename: Full filepath
 
     Returns:

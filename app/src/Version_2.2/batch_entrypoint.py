@@ -115,6 +115,9 @@ if __name__ == '__main__':
             meta_data['Profiling']['StartTime'] = time.time()
             put_cloudwatch_metric('BatchJobScheduleLatency', float(meta_data['Profiling']['StartTime']) - float(meta_data['Profiling']['ScheduleTime']), 'Seconds')
 
+        sensor_data_filename = input_data.get('SensorDataFilename')
+        working_directory = os.path.join('/net/efs/preprocessing', sensor_data_filename)
+
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
 
@@ -132,14 +135,13 @@ if __name__ == '__main__':
             s3_client.upload_file(tmp_combined_file, s3_bucket, s3_basepath + 'combined')
 
             # Create the working directory
-            working_directory = os.path.join('/net/efs/preprocessing', s3_basepath)
             mkdir(working_directory)
 
             from chunk import chunk
-            mkdir(os.path.join(working_directory, 'downloadandchunk_chunked'))
+            mkdir(os.path.join(working_directory, 'downloadandchunk'))
             file_names = chunk.chunk_by_byte(
                 tmp_combined_file,
-                os.path.join(working_directory, 'downloadandchunk_chunked'),
+                os.path.join(working_directory, 'downloadandchunk'),
                 100000 * 40  # 100,000 records, 40 bytes per record
             )
 
@@ -154,7 +156,7 @@ if __name__ == '__main__':
             os.environ['KERAS_BACKEND'] = 'theano'
             from sessionProcess2 import sessionProcess
             sessionProcess.script_handler(
-                input_data.get('SensorDataFilename'),
+                working_directory,
                 input_data.get('Filename', None),
                 input_data
             )
@@ -166,11 +168,9 @@ if __name__ == '__main__':
 
         elif script == 'scoring':
             print('Running scoring()')
-            sensor_data_filename = input_data.get('SensorDataFilename')
-            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
             from scoring import scoringProcess
             ret = scoringProcess.script_handler(
-                sensor_data_filename,
+                working_directory,
                 input_data.get('Filenames', None),
                 input_data
             )
