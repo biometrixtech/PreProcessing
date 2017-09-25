@@ -8,6 +8,7 @@ import pandas
 import numpy
 import sys
 from collections import OrderedDict
+from datetime import datetime, timedelta
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
@@ -69,40 +70,77 @@ def script_handler(input_data):
                                                             {'eventDate': 1,
                                                              '_id': 0}))[0]['eventDate'])
 
-        # get all sessions
-        sessions = _get_session_data(mongo_collection_session, user_id,
-                                     event_date, session_type)
-        # aggregate grf
-        total_grf = numpy.sum(sessions.totalGRF)
-        const_grf = numpy.sum(sessions.optimalGRF)
-        dest_grf = numpy.sum(sessions.irregularGRF)
+        # get aggregated data for all sessions sessions for current_day
+        current_day = _get_session_data(mongo_collection_session, user_id,
+                                        event_date, session_type)
 
-        # aggregate scores
-        control = numpy.sum(sessions.control * sessions.totalGRF) / total_grf
-        consistency = numpy.sum(sessions.consistency * sessions.totalGRF) / total_grf
-        symmetry = numpy.sum(sessions.symmetry * sessions.totalGRF) / total_grf
+        # grab maximum required historical data
+        hist_records = _get_hist_data(mongo_collection_date, user_id,
+                                      event_date, period=10)
 
-        hist_data = _get_hist_data(mongo_collection_date, 1, user_id, event_date)
+        current = pandas.DataFrame({'eventDate': event_date,
+                                    'totalAccel': current_day['totalAccel'],
+                                    'totalGRF': current_day['totalGRF']},
+                                   index=[str(datetime.strptime(event_date, '%Y-%m-%d').date())])
+
+        # create a pandas dataframe with entry for every day in the history
+        event_date_dt = datetime.strptime(event_date, '%Y-%m-%d').date()
+        total_days = 40
+        # initialize empty dataframe with 40 rows (maximum history)
+        index = pandas.date_range(event_date_dt-timedelta(total_days),
+                                  periods=total_days, freq='D').date.astype(str)
+
+        columns = ['eventDate', 'totalGRF', 'totalAccel']
+        hist_data = pandas.DataFrame(index=index, columns=columns)
+        hist_data.eventDate = index
+        hist_data = hist_data.fillna(0)
+        if len(hist_records) != 0:
+            # If data is present, for any of the previous 40 days, insert that to data frame
+            # convert read data into pandas dataframe and remove duplicates and sort
+            # TODO: removing duplicates should be unnecessary as data should already be unique in mongo
+            hist = pandas.DataFrame(hist_records)
+            hist.drop_duplicates(subset='eventDate', keep='first', inplace=True)
+            hist.sort_values(by='eventDate', inplace=True)
+            hist.reset_index(drop=True, inplace=True)
+
+            # for days with available data in mongo, insert the actual data
+            count = 0
+            for i in hist.eventDate:
+                i = str(datetime.strptime(i, '%Y-%m-%d').date())
+                if count == 0:
+                    # assign nan to every data before the first date data is available for
+                    hist_data.loc[hist_data.eventDate < i, 'totalGRF'] = numpy.nan
+                    hist_data.loc[hist_data.eventDate < i, 'totalAccel'] = numpy.nan
+
+                count += 1
+                subset = hist.loc[hist.eventDate == i, :]
+                hist_data.loc[hist_data.eventDate == i, 'eventDate'] = subset['eventDate'].values[0]
+                hist_data.loc[hist_data.eventDate == i, 'totalGRF'] = subset['totalGRF'].values[0]
+                hist_data.loc[hist_data.eventDate == i, 'totalAccel'] = subset['control'].values[0]
+            # append current day's data to the end
+            hist_data = hist_data.append(current)
+        else:
+            # if no hist data available, mark as nan and append current day
+            hist_data.totalGRF = numpy.nan
+            hist_data.totalAccel = numpy.nan
+            hist_data = hist_data.append(current)
 
         # create ordered dictionary object
         # current variables
         record_out = OrderedDict({'teamId': team_id})
-        record_out['teamId'] = team_id
         record_out['userId'] = user_id
         record_out['eventDate'] = str(event_date)
         record_out['sessionType'] = session_type
 
         # grf
-        record_out['totalGRF'] = total_grf
-        record_out['optimalGRF'] = const_grf
-        record_out['irregularGRF'] = dest_grf
-#        record_out['LFgRF'] = lf_grf
-#        record_out['RFgRF'] = rf_grf
+        record_out['totalGRF'] = current_day['totalGRF']
+        record_out['optimalGRF'] = current_day['optimalGRF']
+        record_out['irregularGRF'] = current_day['irregularGRF']
 
         # scores
-        record_out['control'] = control
-        record_out['consistency'] = consistency
-        record_out['symmetry'] = symmetry
+        record_out['control'] = current_day['control']
+        record_out['consistency'] = current_day['consistency']
+        record_out['symmetry'] = current_day['symmetry']
 
         # blank placeholders for programcomp
         record_out['grfProgramComposition'] = None
@@ -111,35 +149,42 @@ def script_handler(input_data):
         record_out['stanceProgramComposition'] = None
         record_out['trainingGroups'] = training_group_id
 
+
         # new variables
         record_out['userMass'] = user_mass
-#        # grf distribution
-        # record_out['percLeftGRF'] = perc_left_grf
-        # record_out['percRightGRF'] = perc_right_grf
-        # record_out['percDistr'] = perc_distr
-#
-#        # acceleration
-#        record_out['totalAccel'] = total_accel
-#        record_out['irregularAccel'] = irregular_accel
-#
-#        # scores
-#        record_out['hipSymmetry'] = hip_symmetry
-#        record_out['ankleSymmetry'] = ankle_symmetry
-#        record_out['hipConsistency'] = hip_consistency
-#        record_out['ankleConsistency'] = ankle_consistency
-#        record_out['consistencyLF'] = consistency_lf
-#        record_out['consistencyRF'] = consistency_rf
-#        record_out['hipControl'] = hip_control
-#        record_out['ankleControl'] = ankle_control
-#        record_out['controlLF'] = control_lf
-#        record_out['controlRF'] = control_rf
-#
-#        # fatigue data
-#        record_out['percOptimal'] = perc_optimal_session
-#        record_out['sessionFatigue'] = session_fatigue
+
+        # grf distribution
+        record_out['percLeftGRF'] = current_day['percLeftGRF']
+        record_out['percRightGRF'] = current_day['percRightGRF']
+        record_out['percDistr'] = current_day['percDistr']
+
+        # acceleration
+        record_out['totalAccel'] = current_day['totalAccel']
+        record_out['irregularAccel'] = current_day['irregularAccel']
+
+        # scores
+        record_out['hipSymmetry'] = current_day['hipSymmetry']
+        record_out['ankleSymmetry'] = current_day['ankleSymmetry']
+        record_out['hipConsistency'] = current_day['hipConsistency']
+        record_out['ankleConsistency'] = current_day['ankleConsistency']
+        record_out['consistencyLF'] = current_day['consistencyLF']
+        record_out['consistencyRF'] = current_day['consistencyRF']
+        record_out['hipControl'] = current_day['hipControl']
+        record_out['ankleControl'] = current_day['ankleControl']
+        record_out['controlLF'] = current_day['controlLF']
+        record_out['controlRF'] = current_day['controlRF']
+
+        # fatigue data
+        record_out['percOptimal'] = current_day['percOptimal']
+
+        # ACWR
+        for i in numpy.arange(1, 11, 1):
+            acwr = _compute_awcr(hist_data, 'grf', i, event_date)
+            record_out['ACWRGRF' + str(i)] = acwr.totalGRF
+            record_out['ACWRTotalAccel' + str(i)] = acwr.totalAccel
         query = {'userId': user_id, 'eventDate': event_date}
-        record_id = mongo_collection_date.update(query, record_out, upsert=True)
-        logger.info("Wrote a record: {}".format(record_id))
+        mongo_collection_date.update_one(query, {'$set': record_out}, upsert=True)
+        logger.info("Finished writing date!")
 
     except Exception as e:
         logger.info(e)
@@ -148,32 +193,135 @@ def script_handler(input_data):
 
 
 def _get_session_data(collection, user_id, event_date, session_type):
+    """ Get aggregated data for the sessions (of given session_type) by the user for given date
+    Aggregation is done using mongo api
+    Returns:
+        dictionary with aggregated values for the day
+    """
     pipeline = [{'$match': {'userId': {'$eq': user_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}}}
+                            'sessionType': {'$eq': session_type}
+                           }
+                },
+                {'$group': {'_id': {'userId': "$userId"},
+                            'teamId': {'$first': '$teamId'},
+                            'userId': {'$first': '$userId'},
+                            'eventDate': {'$first': '$eventDate'},
+                            'sessionType': {'$first': '$sessionType'},
+                            'totalGRF': {'$sum': '$totalGRF'},
+                            'optimalGRF': {'$sum': '$optimalGRF'},
+                            'irregularGRF': {'$sum': '$irregularGRF'},
+                            'control': {'$sum': {'$multiply': ['$control', '$totalGRF']}},
+                            'consistency': {'$sum': {'$multiply': ['$consistency', '$totalGRF']}},
+                            'symmetry': {'$sum': {'$multiply': ['$symmetry', '$totalGRF']}},
+                            'trainingGroups': {'$first': '$trainingGroups'},
+                            'LFgRF': {'$sum': '$LFgRF'},
+                            'RFgRF': {'$sum': '$RFgRF'},
+                            'singleLegGRF': {'$sum': '$singleLegGRF'},
+                            'percLeftGRF': {'$sum': {'$multiply': ['$percLeftGRF', '$singleLegGRF']}},
+                            'percRightGRF': {'$sum': {'$multiply': ['$percRightGRF', '$singleLegGRF']}},
+                            'totalAccel': {'$sum': '$totalAccel'},
+                            'irregularAccel': {'$sum': '$irregularAccel'},
+                            'hipSymmetry': {'$sum': {'$multiply': ['$hipSymmetry', '$totalGRF']}},
+                            'ankleSymmetry': {'$sum': {'$multiply': ['$ankleSymmetry', '$totalGRF']}},
+                            'hipConsistency': {'$sum': {'$multiply': ['$hipConsistency', '$totalGRF']}},
+                            'ankleConsistency': {'$sum': {'$multiply': ['$ankleConsistency', '$totalGRF']}},
+                            'consistencyLF': {'$sum': {'$multiply': ['$consistencyLF', '$LFgRF']}},
+                            'consistencyRF': {'$sum': {'$multiply': ['$consistencyRF', '$RFgRF']}},
+                            'hipControl': {'$sum': {'$multiply': ['$hipControl', '$totalGRF']}},
+                            'ankleControl': {'$sum': {'$multiply': ['$ankleControl', '$totalGRF']}},
+                            'controlLF': {'$sum': {'$multiply': ['$controlLF', '$LFgRF']}},
+                            'controlRF': {'$sum': {'$multiply': ['$controlRF', '$RFgRF']}}
+                           }
+                },
+                {'$project':{'_id': 0,
+                             'userId':1,
+                             'totalGRF': 1,
+                             'optimalGRF':1,
+                             'irregularGRF':1,
+                             'control': {'$divide': ['$control', '$totalGRF']},
+                             'consistency': {'$divide': ['$consistency', '$totalGRF']},
+                             'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
+                             'trainingGroups': 1,
+                             'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                             'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
+                             'percDistr': {'$abs': {'$multiply': [{'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}]}, 100]}},
+                             'totalAccel': 1,
+                             'irregularAccel': 1,
+                             'LFgRF': 1,
+                             'RFgRF': 1,
+                             'percOptimal': {'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]},
+                             'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
+                             'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
+                             'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
+                             'ankleConsistency': {'$divide': ['$ankleConsistency', '$totalGRF']},
+                             'consistencyLF': {'$divide': ['$consistencyLF', '$LFgRF']},
+                             'consistencyRF': {'$divide': ['$consistencyRF', '$RFgRF']},
+                             'hipControl': {'$divide': ['$hipControl', '$totalGRF']},
+                             'ankleControl': {'$divide': ['$ankleControl', '$totalGRF']},
+                             'controlLF': {'$divide': ['$controlLF', '$LFgRF']},
+                             'controlRF': {'$divide': ['$controlRF', '$RFgRF']}
+                            }
+                }
                ]
-
     docs = list(collection.aggregate(pipeline))
 
-    sessions = pandas.DataFrame(docs)
-    return sessions
+    return docs[0]
 
 
-def _get_hist_data(collection, period, user_id, event_date):
+def _get_hist_data(collection, user_id, event_date, period):
     """
-    var: variable name to calculate for
-    period: e.g. 1-day, 2-day,...10-day
+    Get max historical data for acwr computation
+    currently only returning totalGRF and totalAccel
+    Days with no data have value 0
     """
-#    total_days = period*4
-#    start_date = event_date - total_days
-    start_date = '2017-03-16'
+    total_days = period * 4
+    event_date_dt = datetime.strptime(event_date, '%Y-%m-%d').date()
+    start_date = str(event_date_dt - timedelta(days=total_days))
+    # get history excluding current day
     docs = list(collection.find({'userId': {'$eq': user_id},
-                                 'eventDate': {'$gte': start_date, '$lte': event_date}},
-                                 {'userId': 1, 'eventDate': 1, 'totalGRF': 1,
+                                 'eventDate': {'$gte': start_date, '$lt': event_date}},
+                                {'userId': 1,
+                                 'eventDate': 1,
+                                 'totalGRF': 1,
+                                 'control': 1,
                                  '_id': 0}))
+    return docs
 
-    hist_data = pandas.DataFrame(docs)
-    return hist_data
+
+def _compute_awcr(hist, var, period, event_date):
+    """compute acute chronic workload ration for all the variables
+        acwr is defined as acute/chronic where
+        acute = sum(workload) for current period
+        chronic = avg(period_workload) for 4 previous periods
+    """
+    # TODO: probably don't need this with actual data(there should be no duplication)
+    hist.drop_duplicates(subset='eventDate', keep='first', inplace=True)
+    # get the start and end dates of acute and chronic data
+    acute_period_end = datetime.strptime(event_date, '%Y-%m-%d').date()
+    acute_period_start = acute_period_end - timedelta(days=period - 1)
+
+    # current period is currently included in chronic
+    chronic_period_end = acute_period_end
+    chronic_period_start = chronic_period_end - timedelta(days=4*period-1)
+
+    # subset acute data and compute acute value
+    acute_data = hist.loc[(hist.eventDate >= str(acute_period_start)) &\
+                          (hist.eventDate <= str(acute_period_end))]
+    acute = acute_data.sum()
+
+    # subset chronic data and compute chronic value
+    chronic_data = hist.loc[(hist.eventDate >= str(chronic_period_start)) &\
+                             (hist.eventDate <= str(chronic_period_end))]
+
+    # rolling sum on period (0 for missing days)
+    rolling_sum = chronic_data.rolling(period, min_periods=1).sum()
+    chronic = rolling_sum.mean()
+
+    acwr = acute/chronic
+
+    return acwr
 
 
 if __name__ == '__main__':
@@ -187,5 +335,5 @@ if __name__ == '__main__':
     os.environ['MONGO_COLLECTION_SESSION'] = 'sessionStats_test2'
     os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test2'
     os.environ['MONGO_REPLICASET_SESSION'] = '---'
-    perc_optimal = script_handler(input_data=None)
+    script_handler(input_data=None)
     print(time.time() - start)
