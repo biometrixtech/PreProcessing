@@ -3,6 +3,7 @@
 import os
 from datetime import datetime
 import boto3
+import errno
 import json
 import sys
 import time
@@ -90,6 +91,18 @@ def put_cloudwatch_metric(metric_name, value, unit):
         # Continue
 
 
+def mkdir(path):
+    """
+    Create a directory, but don't fail if it already exists
+    :param path:
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+
+
 if __name__ == '__main__':
     input_data = meta_data = None
 
@@ -102,30 +115,37 @@ if __name__ == '__main__':
             meta_data['Profiling']['StartTime'] = time.time()
             put_cloudwatch_metric('BatchJobScheduleLatency', float(meta_data['Profiling']['StartTime']) - float(meta_data['Profiling']['ScheduleTime']), 'Seconds')
 
+        sensor_data_filename = input_data.get('SensorDataFilename')
+        working_directory = os.path.join('/net/efs/preprocessing', sensor_data_filename)
+
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
 
-            if not os.path.isdir('/net/efs/downloadandchunk/output'):
-                raise Exception("/net/efs/downloadandchunk/output directory does not exist.  Has the EFS filesystem been initialised?")
+            if not os.path.isdir('/net/efs/preprocessing'):
+                raise Exception("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
 
             from downloadAndChunk import downloadAndChunk
             s3_bucket = input_data.get('S3Bucket', None)
             s3_basepath = input_data.get('S3BasePath', None)
             s3_paths = ["{}{:04d}".format(s3_basepath, i) for i in range(0, input_data.get('PartCount', []))] + [s3_basepath + "complete"]
-            tmp_filename = downloadAndChunk.script_handler(s3_bucket, s3_paths)
+            tmp_combined_file = downloadAndChunk.script_handler(s3_bucket, s3_paths)
 
             # Upload combined file back to s3
             s3_client = boto3.client('s3')
-            s3_client.upload_file(tmp_filename, s3_bucket, s3_basepath + 'combined')
+            s3_client.upload_file(tmp_combined_file, s3_bucket, s3_basepath + 'combined')
+
+            # Create the working directory
+            mkdir(working_directory)
 
             from chunk import chunk
+            mkdir(os.path.join(working_directory, 'downloadandchunk'))
             file_names = chunk.chunk_by_byte(
-                tmp_filename,
-                '/net/efs/downloadandchunk/output',
+                tmp_combined_file,
+                os.path.join(working_directory, 'downloadandchunk'),
                 100000 * 40  # 100,000 records, 40 bytes per record
             )
 
-            os.remove(tmp_filename)
+            os.remove(tmp_combined_file)
 
             send_success(meta_data, {"Filenames": file_names})
 
@@ -136,6 +156,7 @@ if __name__ == '__main__':
             os.environ['KERAS_BACKEND'] = 'theano'
             from sessionProcess2 import sessionProcess
             sessionProcess.script_handler(
+                working_directory,
                 input_data.get('Filename', None),
                 input_data
             )
@@ -148,25 +169,28 @@ if __name__ == '__main__':
         elif script == 'scoring':
             print('Running scoring()')
             from scoring import scoringProcess
-            ret = scoringProcess.script_handler(
+            boundaries = scoringProcess.script_handler(
+                working_directory,
                 input_data.get('Filenames', None),
                 input_data
             )
-            print(ret)
-            output_file, boundaries = ret
+            print(boundaries)
 
             # Chunk files for input to writemongo
             from chunk import chunk
+            mkdir(os.path.join(working_directory, 'scoring_chunked'))
             file_names = chunk.chunk_by_line(
-                os.path.join('/net/efs/scoring/output', output_file),
-                '/net/efs/scoring/output',
+                os.path.join(working_directory, 'scoring'),
+                os.path.join(working_directory, 'scoring_chunked'),
                 boundaries
             )
 
-            send_success(meta_data, {"Filenames": file_names, "FullFilename": output_file})
+            send_success(meta_data, {"Filenames": file_names})
 
         elif script == 'writemongo':
             print('Uploading to mongodb database')
+            sensor_data_filename = input_data.get('SensorDataFilename')
+            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
             load_parameters([
                 'MONGO1_HOST',
                 'MONGO1_USER',
@@ -183,7 +207,8 @@ if __name__ == '__main__':
             ])
             from writemongo import writemongo
             writemongo.script_handler(
-                input_data.get('Filename', None),
+                working_directory,
+                input_data['Filename'],
                 input_data
             )
             send_success(meta_data, {})
@@ -200,13 +225,15 @@ if __name__ == '__main__':
             ])
             from sessionAgg import agg_session
             agg_session.script_handler(
-                input_data['Filename'],
+                working_directory,
                 input_data
             )
             send_success(meta_data, {})
 
         elif script == 'aggregatetwomin':
             print('Computing two minute aggregations')
+            sensor_data_filename = input_data.get('SensorDataFilename')
+            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
             load_parameters([
                 'MONGO_HOST_TWOMIN',
                 'MONGO_USER_TWOMIN',
@@ -217,6 +244,7 @@ if __name__ == '__main__':
             ])
             from twoMinuteAgg import agg_twomin
             agg_twomin.script_handler(
+                working_directory,
                 input_data.get('Filename', None),
                 input_data
             )
@@ -224,6 +252,8 @@ if __name__ == '__main__':
 
         elif script == 'aggregatedateuser':
             print('Computing date aggregations')
+            sensor_data_filename = input_data.get('SensorDataFilename')
+            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
             load_parameters([
                 'MONGO_HOST_SESSION',
                 'MONGO_USER_SESSION',
@@ -244,7 +274,7 @@ if __name__ == '__main__':
             print('Cleaning up intermediate files')
             from cleanup import cleanup
             cleanup.script_handler(
-                input_data.get('Filename')
+                working_directory
             )
             send_success(meta_data, {})
 

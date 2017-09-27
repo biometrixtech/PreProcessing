@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import errno
 import logging
 import os
 from collections import namedtuple
@@ -16,8 +17,6 @@ logger.info('Loading sessionProcess')
 Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
-    'FP_INPUT',
-    'FP_OUTPUT',
     'MS_MODEL_PATH',
     'MS_MODEL',
     'MS_SCALER_PATH',
@@ -25,22 +24,38 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(filepath, data):
+def mkdir(path):
+    """
+    Create a directory, but don't fail if it already exists
+    :param path:
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
 
-    logger.info('Received sessionProcess request for {}'.format(filepath))
+
+def script_handler(working_directory, file_name, data):
+
+    logger.info('Received sessionProcess request for {}'.format(file_name))
 
     try:
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/sessionprocess2/input',
-            FP_OUTPUT='/net/efs/sessionprocess2/output',
             MS_MODEL_PATH='/net/efs/globalmodels',
             MS_MODEL=os.environ['MS_MODEL'],
             MS_SCALER_PATH='/net/efs/globalscalers',
             MS_SCALER=os.environ['MS_SCALER'],
         )
-        result = idb.send_batches_of_data(filepath, data, config=config)
+        mkdir(os.path.join(working_directory, 'sessionprocess2'))
+        result = idb.send_batches_of_data(
+            os.path.join(working_directory, 'downloadandchunk', file_name),
+            os.path.join(working_directory, 'sessionprocess2', file_name),
+            data,
+            config=config
+        )
         logger.info('outcome:' + result)
         return 'success'
 
