@@ -195,6 +195,9 @@ def script_handler(working_directory, input_data):
 
         # new variables
         # grf distribution
+        record_out['leftGRF'] = lf_only_grf
+        record_out['rightGRF'] = rf_only_grf
+        record_out['singleLegGRF'] = lf_rf_grf
         record_out['percLeftGRF'] = perc_left_grf
         record_out['percRightGRF'] = perc_right_grf
         record_out['percDistr'] = perc_distr
