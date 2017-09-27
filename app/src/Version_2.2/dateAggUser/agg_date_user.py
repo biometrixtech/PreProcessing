@@ -153,6 +153,9 @@ def script_handler(input_data):
         record_out['userMass'] = user_mass
 
         # grf distribution
+        record_out['LFgRF'] = current_day['LFgRF']
+        record_out['RFgRF'] = current_day['RFgRF']
+        record_out['singleLegGRF'] = current_day['singleLegGRF']
         record_out['percLeftGRF'] = current_day['percLeftGRF']
         record_out['percRightGRF'] = current_day['percRightGRF']
         record_out['percDistr'] = current_day['percDistr']
