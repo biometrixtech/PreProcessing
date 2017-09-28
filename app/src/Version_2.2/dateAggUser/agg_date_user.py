@@ -64,7 +64,7 @@ def script_handler(input_data):
             session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
 
-        event_date = input_data.get['eventDate']
+        event_date = input_data.get('eventDate')
         # event_date = str(list(mongo_collection_session.find({'sessonId': session_event_id},
         #                                                     {'eventDate': 1,
         #                                                      '_id': 0}))[0]['eventDate'])
