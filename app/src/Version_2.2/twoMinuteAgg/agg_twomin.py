@@ -198,7 +198,7 @@ def script_handler(working_directory, file_name, input_data):
             # create ordered dictionary object
             # current variables
             record_out = OrderedDict({'twoMinuteIndex': two_min_index})
-            record_out['sessonId'] = session_event_id
+            record_out['sessionId'] = session_event_id
             record_out['sessionType'] = session_type
             record_out['timeStart'] = i
             record_out['phaseLF'] = None
@@ -238,6 +238,9 @@ def script_handler(working_directory, file_name, input_data):
             # new variables
             # grf
             record_out['userMass'] = user_mass
+            record_out['leftGRF'] = lf_only_grf
+            record_out['rightGRF'] = rf_only_grf
+            record_out['singleLegGRF'] = lf_rf_grf
             record_out['percLeftGRF'] = perc_left_grf
             record_out['percRightGRF'] = perc_right_grf
             record_out['percDistr'] = perc_distr
