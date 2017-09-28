@@ -4,11 +4,11 @@ from collections import namedtuple
 from pymongo import MongoClient
 import logging
 import os
-import pandas
-import numpy
+#import pandas
+#import numpy
 import sys
 from collections import OrderedDict
-from vars_in_mongo import athlete_vars, team_vars
+from vars_in_mongo import athlete_vars, team_vars, team_twomin_vars, athlete_twomin_vars
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
@@ -88,10 +88,12 @@ def script_handler(input_data):
         # connect to all relevant collections
         mongo_collection_date = mongo_database_session[config.MONGO_COLLECTION_DATE]
         mongo_collection_dateteam = mongo_database_session[config.MONGO_COLLECTION_DATETEAM]
-        mongo_collection_session = mongo_database_session[config.MONGO_COLLECTION_SESSION]
+#        mongo_collection_progcomp = mongo_database_session[config.MONGO_COLLECTION_PROGCOMP]
+
+        mongo_collection_twomin = mongo_database_twomin[config.MONGO_COLLECTION_TWOMIN]
+        mongo_collection_twominteam = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTEAM]
         
         team_id = input_data.get('TeamId', None)
-        session_event_id = input_data.get('SessionEventId', None)
         session_type = input_data.get('SessionType', None)
         if session_type is not None:
             session_type = str(session_type)
