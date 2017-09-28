@@ -98,26 +98,42 @@ def script_handler(input_data):
         session_type = input_data.get('SessionType', None)
         if session_type is not None:
             session_type = str(session_type)
-
         event_date = input_data.get('eventDate')
-        # event_date = str(list(mongo_collection_session.find({'sessionId': session_event_id},
-        #                                                     {'eventDate': 1,
-        #                                                      '_id': 0}))[0]['eventDate'])
-        team_data = _aggregate_team(mongo_collection_date, team_id, event_date, session_type)
 
+        # get twoMinute aggregated team data
+        team_two_min = _aggregate_team_twomin(mongo_collection_twomin, team_id, event_date, session_type)
+        for two_min in team_two_min:
+            # for each two minute record, sort the variables in order
+            two_min_record = OrderedDict()
+            for two_min_var in team_twomin_vars:
+                try:
+                    two_min_record[two_min_var] = two_min[two_min_var]
+                except KeyError:
+                    two_min_record[two_min_var] = None
+            query = {'teamId': team_id, 'eventDate': event_date,
+                     'twoMinuteIndex': two_min['twoMinuteIndex']}
+            # upsert the single collection to mongo (currently replace look into update as well)
+            mongo_collection_twominteam.replace_one(query, two_min_record, upsert=True)
+
+        # get date level aggregated data for team (minus prog comp)
+        team_date = _aggregate_team(mongo_collection_date, team_id, event_date, session_type)
+
+        # Add program composition lists to team data
         prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
         for var in prog_comps:
             out_var = var+'ProgramComposition'
-            team_data[out_var] = _aggregate_team_progcomp(mongo_collection_progcomp_test, var,
+            team_date[out_var] = _aggregate_team_progcomp(mongo_collection_progcomp_test, var,
                                                           team_id='f87e1deb-f022-4223-acaa-4926b6094343',
                                                           event_date=event_date, session_type=session_type)
+        # For team date data, sort the variables in order
         record_out = OrderedDict()
         for team_var in team_vars:
             try:
-                record_out[team_var] = team_data[team_var]
+                record_out[team_var] = team_date[team_var]
             except KeyError:
                 record_out[team_var] = None
-            
+
+        # Upsert the date aggregated collection to mongo (currently replace)
         query = {'teamId': team_id, 'eventDate': event_date}
         mongo_collection_dateteam.replace_one(query, record_out, upsert=True)
 
@@ -125,6 +141,110 @@ def script_handler(input_data):
         logger.info(e)
         logger.info('Process did not complete successfully! See error below!')
         raise
+
+
+def _aggregate_team_twomin(collection, team_id, event_date, session_type):
+    pipeline = [{'$match': {'teamId': {'$eq': team_id},
+                            'eventDate': {'$eq': event_date},
+                            'sessionType': {'$eq': session_type}
+                           }
+                },
+                {'$group': {'_id': {'teamId': "$teamId",
+                                    'twoMinuteIndex': '$twoMinuteIndex'},
+                            'teamId': {'$first': '$teamId'},
+                            'eventDate': {'$first': '$eventDate'},
+                            'sessionType': {'$first': '$sessionType'},
+                            'twoMinuteIndex': {'$first': '$twoMinuteIndex'},
+                            'totalGRF': {'$sum': '$totalGRF'},
+                            'optimalGRF': {'$sum': '$optimalGRF'},
+                            'irregularGRF': {'$sum': '$irregularGRF'},
+                            'control': {'$sum': {'$multiply': ['$control', '$totalGRF']}},
+                            'consistency': {'$sum': {'$multiply': ['$consistency', '$totalGRF']}},
+                            'symmetry': {'$sum': {'$multiply': ['$symmetry', '$totalGRF']}},
+                            'userCount': {'$sum': 1},
+                            'LFgRF': {'$sum': '$LFgRF'},
+                            'RFgRF': {'$sum': '$RFgRF'},
+                            'singleLegGRF': {'$sum': '$singleLegGRF'},
+                            'percLeftGRF': {'$sum': {'$multiply': ['$percLeftGRF', '$singleLegGRF']}},
+                            'percRightGRF': {'$sum': {'$multiply': ['$percRightGRF', '$singleLegGRF']}},
+                            'totalAccel': {'$sum': '$totalAccel'},
+                            'irregularAccel': {'$sum': '$irregularAccel'},
+                            'hipSymmetry': {'$sum': {'$multiply': ['$hipSymmetry', '$totalGRF']}},
+                            'ankleSymmetry': {'$sum': {'$multiply': ['$ankleSymmetry', '$totalGRF']}},
+                            'hipConsistency': {'$sum': {'$multiply': ['$hipConsistency', '$totalGRF']}},
+                            'ankleConsistency': {'$sum': {'$multiply': ['$ankleConsistency', '$totalGRF']}},
+                            'consistencyLF': {'$sum': {'$multiply': ['$consistencyLF', '$LFgRF']}},
+                            'consistencyRF': {'$sum': {'$multiply': ['$consistencyRF', '$RFgRF']}},
+                            'hipControl': {'$sum': {'$multiply': ['$hipControl', '$totalGRF']}},
+                            'ankleControl': {'$sum': {'$multiply': ['$ankleControl', '$totalGRF']}},
+                            'controlLF': {'$sum': {'$multiply': ['$controlLF', '$LFgRF']}},
+                            'controlRF': {'$sum': {'$multiply': ['$controlRF', '$RFgRF']}}
+                           }
+                },
+                {'$project':{'_id': 0,
+                             'teamId':1,
+                             'userId': None,
+                             'eventDate': 1,
+                             'sessionType': 1,
+                             'twoMinuteIndex': 1,
+                             'totalGRF': {'$divide': ['$totalGRF', '$userCount']},
+                             'optimalGRF': {'$divide': ['$optimalGRF', '$userCount']},
+                             'irregularGRF': {'$divide': ['$irregularGRF', '$userCount']},
+                             'control': {'$divide': ['$control', '$totalGRF']},
+                             'consistency': {'$divide': ['$consistency', '$totalGRF']},
+                             'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
+                             'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                             'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
+                             'percDistr': {'$abs': {'$multiply': [{'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}]}, 100]}},
+                             'totalAccel': 1,
+                             'irregularAccel': 1,
+                             'LFgRF': 1,
+                             'RFgRF': 1,
+                             'percOptimal': {'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]},
+                             'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
+                             'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
+                             'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
+                             'ankleConsistency': {'$divide': ['$ankleConsistency', '$totalGRF']},
+                             'consistencyLF': {'$divide': ['$consistencyLF', '$LFgRF']},
+                             'consistencyRF': {'$divide': ['$consistencyRF', '$RFgRF']},
+                             'hipControl': {'$divide': ['$hipControl', '$totalGRF']},
+                             'ankleControl': {'$divide': ['$ankleControl', '$totalGRF']},
+                             'controlLF': {'$divide': ['$controlLF', '$LFgRF']},
+                             'controlRF': {'$divide': ['$controlRF', '$RFgRF']}
+                            }
+                }
+               ]
+    # get all the two minute aggregated records for the team and sort by twoMinIndex
+    team_stats = list(collection.aggregate(pipeline))
+    team_stats = sorted(team_stats, key=lambda k: k['twoMinuteIndex'])
+    team_all = []
+    for two_min in team_stats:
+        # for each twoMinuteIndex, get the list of all athlete records
+        TwoMinIndex = two_min['twoMinuteIndex']
+        ath_pipeline = [{'$match': {'teamId': {'$eq': team_id},
+                                    'eventDate': {'$eq': event_date},
+                                    'sessionType': {'$eq': session_type},
+                                    'twoMinuteIndex': {'$eq': TwoMinIndex}
+                                   }
+                        },
+                       ]
+        ath_stats = list(collection.aggregate(ath_pipeline))
+        # sort each athlete record to proper order of variables
+        ath_stats_sorted = []
+        for athlete in ath_stats:
+            single_ath = OrderedDict()
+            for ath_2min_var in athlete_twomin_vars:
+                single_ath[ath_2min_var] = athlete[ath_2min_var]
+            # remove some variables from athlete data
+            single_ath['sessionId'] = None
+            single_ath['timeStart'] = None
+            single_ath['trainingGroups'] = None
+            ath_stats_sorted.append(single_ath)
+        two_min['AthleteStats'] = ath_stats_sorted
+        # return team data with athlete added
+        team_all.append(two_min)
+    return team_stats
 
 
 def _aggregate_team_progcomp(collection, var, team_id, event_date, session_type):
