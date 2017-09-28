@@ -59,7 +59,6 @@ def script_handler(input_data):
             MONGO_REPLICASET_TWOMIN=os.environ['MONGO_REPLICASET_TWOMIN'] if os.environ['MONGO_REPLICASET_TWOMIN'] != '---' else None,
             MONGO_COLLECTION_TWOMIN=os.environ['MONGO_COLLECTION_TWOMIN'],
             MONGO_COLLECTION_TWOMINTEAM=os.environ['MONGO_COLLECTION_TWOMINTEAM'],
-            MONGO_COLLECTION_TWOMINTG=os.environ['MONGO_COLLECTION_TWOMINTG'],
         )
 
         # Connect to session mongo
@@ -200,6 +199,7 @@ def _aggregate_team_twomin(collection, team_id, event_date, session_type):
                              'irregularAccel': 1,
                              'LFgRF': 1,
                              'RFgRF': 1,
+                             'singleLegGRF': 1,
                              'percOptimal': {'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]},
                              'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
                              'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
@@ -238,9 +238,9 @@ def _aggregate_team_twomin(collection, team_id, event_date, session_type):
             # remove some variables from athlete data
             single_ath['sessionId'] = None
             single_ath['timeStart'] = None
-            single_ath['trainingGroups'] = None
+#            single_ath['trainingGroups'] = None
             ath_stats_sorted.append(single_ath)
-        two_min['AthleteStats'] = ath_stats_sorted
+        two_min['athleteStats'] = ath_stats_sorted
         # return team data with athlete added
         team_all.append(two_min)
     return team_stats
@@ -341,6 +341,7 @@ def _aggregate_team(collection, team_id, event_date, session_type):
                              'irregularAccel': 1,
                              'LFgRF': 1,
                              'RFgRF': 1,
+                             'singleLegGRF': 1,
                              'percOptimal': {'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]},
                              'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
                              'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
@@ -376,6 +377,15 @@ def _aggregate_team(collection, team_id, event_date, session_type):
 if __name__ == '__main__':
     import time
     start = time.time()
+    input_data = OrderedDict()
+    input_data['TeamId'] = 'test_team'
+    input_data['TrainingGroupId'] = ['test_tg1', 'test_tg2']
+    input_data['UserId'] = 'test_user'
+    input_data['SessionEventId'] = 'test_session'
+    input_data['SessionType'] = '1'
+    input_data['UserMass'] = 77
+    input_data['eventDate'] = '2017-03-20'
+
     os.environ['ENVIRONMENT'] = 'Dev'
     os.environ['MONGO_HOST_SESSION'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
     os.environ['MONGO_USER_SESSION'] = 'statsUser'
@@ -384,6 +394,8 @@ if __name__ == '__main__':
     os.environ['MONGO_REPLICASET_SESSION'] = '---'
     os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test2'
     os.environ['MONGO_COLLECTION_DATETEAM'] = 'dateStatsTeam_test2'
+    os.environ['MONGO_COLLECTION_DATETG'] = 'dateStatsTG_test2'
+    os.environ['MONGO_COLLECTION_PROGCOMP'] = 'progCompDateStats_test2'
     os.environ['MONGO_HOST_TWOMIN'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
     os.environ['MONGO_USER_TWOMIN'] = 'statsUser'
     os.environ['MONGO_PASSWORD_TWOMIN'] = 'BioMx211'
@@ -392,5 +404,5 @@ if __name__ == '__main__':
     os.environ['MONGO_COLLECTION_TWOMIN'] = 'twoMinuteStats_test2'
     os.environ['MONGO_COLLECTION_TWOMINTEAM'] = 'twoMinuteStatsTeam_test2'
 
-    script_handler(input_data=None)
+    result = script_handler(input_data)
     print(time.time() - start)
