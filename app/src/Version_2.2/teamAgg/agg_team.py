@@ -26,7 +26,6 @@ Config = namedtuple('Config', [
     'MONGO_COLLECTION_SESSION',
     'MONGO_COLLECTION_DATE',
     'MONGO_COLLECTION_DATETEAM',
-    'MONGO_COLLECTION_DATETG',
     'MONGO_COLLECTION_PROGCOMP',
     'MONGO_HOST_TWOMIN',
     'MONGO_USER_TWOMIN',
@@ -55,7 +54,6 @@ def script_handler(input_data):
             MONGO_COLLECTION_SESSION=os.environ['MONGO_COLLECTION_SESSION'],
             MONGO_COLLECTION_DATE=os.environ['MONGO_COLLECTION_DATE'],
             MONGO_COLLECTION_DATETEAM=os.environ['MONGO_COLLECTION_DATETEAM'],
-            MONGO_COLLECTION_DATETG=os.environ['MONGO_COLLECTION_DATETG'],
             MONGO_COLLECTION_PROGCOMP=os.environ['MONGO_COLLECTION_PROGCOMP'],
             MONGO_HOST_TWOMIN=os.environ['MONGO_HOST_TWOMIN'],
             MONGO_USER_TWOMIN=os.environ['MONGO_USER_TWOMIN'],
@@ -101,9 +99,10 @@ def script_handler(input_data):
         if session_type is not None:
             session_type = str(session_type)
 
-        event_date = str(list(mongo_collection_session.find({'sessionId': session_event_id},
-                                                            {'eventDate': 1,
-                                                             '_id': 0}))[0]['eventDate'])
+        event_date = input_data.get('eventDate')
+        # event_date = str(list(mongo_collection_session.find({'sessionId': session_event_id},
+        #                                                     {'eventDate': 1,
+        #                                                      '_id': 0}))[0]['eventDate'])
         team_data = _aggregate_team(mongo_collection_date, team_id, event_date, session_type)
 
         prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
@@ -266,9 +265,6 @@ if __name__ == '__main__':
     os.environ['MONGO_REPLICASET_SESSION'] = '---'
     os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test2'
     os.environ['MONGO_COLLECTION_DATETEAM'] = 'dateStatsTeam_test2'
-    os.environ['MONGO_COLLECTION_DATETG'] = 'dateStatsTG_test2'
-    os.environ['MONGO_COLLECTION_TEAMAGGSTATUS'] = 'teamAggStatus_tmp3'
-    os.environ['MONGO_COLLECTION_TGAGGSTATUS'] = 'trainingGroupAggStatus_tmp3'
     os.environ['MONGO_HOST_TWOMIN'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
     os.environ['MONGO_USER_TWOMIN'] = 'statsUser'
     os.environ['MONGO_PASSWORD_TWOMIN'] = 'BioMx211'
@@ -276,7 +272,6 @@ if __name__ == '__main__':
     os.environ['MONGO_REPLICASET_TWOMIN'] = '---'
     os.environ['MONGO_COLLECTION_TWOMIN'] = 'twoMinuteStats_test2'
     os.environ['MONGO_COLLECTION_TWOMINTEAM'] = 'twoMinuteStatsTeam_test2'
-    os.environ['MONGO_COLLECTION_TWOMINTG'] = 'twoMinuteStatsTG_test2'
 
     script_handler(input_data=None)
     print(time.time() - start)
