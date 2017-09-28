@@ -23,7 +23,6 @@ Config = namedtuple('Config', [
     'MONGO_PASSWORD_SESSION',
     'MONGO_DATABASE_SESSION',
     'MONGO_REPLICASET_SESSION',
-    'MONGO_COLLECTION_SESSION',
     'MONGO_COLLECTION_DATE',
     'MONGO_COLLECTION_DATETEAM',
     'MONGO_COLLECTION_PROGCOMP',
@@ -34,12 +33,11 @@ Config = namedtuple('Config', [
     'MONGO_REPLICASET_TWOMIN',
     'MONGO_COLLECTION_TWOMIN',
     'MONGO_COLLECTION_TWOMINTEAM',
-    'MONGO_COLLECTION_TWOMINTG',
 ])
 
 
 def script_handler(input_data):
-    logger.info("Running team and training groups aggregation")
+    logger.info("Running team aggregation")
 
     try:
         config = Config(
@@ -51,7 +49,6 @@ def script_handler(input_data):
             MONGO_PASSWORD_SESSION=os.environ['MONGO_PASSWORD_SESSION'],
             MONGO_DATABASE_SESSION=os.environ['MONGO_DATABASE_SESSION'],
             MONGO_REPLICASET_SESSION=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
-            MONGO_COLLECTION_SESSION=os.environ['MONGO_COLLECTION_SESSION'],
             MONGO_COLLECTION_DATE=os.environ['MONGO_COLLECTION_DATE'],
             MONGO_COLLECTION_DATETEAM=os.environ['MONGO_COLLECTION_DATETEAM'],
             MONGO_COLLECTION_PROGCOMP=os.environ['MONGO_COLLECTION_PROGCOMP'],
@@ -82,11 +79,11 @@ def script_handler(input_data):
                                            mechanism='SCRAM-SHA-1')
 # TODO: replace this testing part to read from correct collection
         # read from prod for testing
-        mongo_client = MongoClient('172.31.64.60,172.31.38.53,172.31.6.25', replicaset='sessionRS')
-        mongo_database = mongo_client['movementStats']
-        # Authenticate
-        mongo_database.authenticate('statsUser', 'BioMx211', mechanism='SCRAM-SHA-1')
-        mongo_collection_progcomp_test = mongo_database['progCompDateStats']
+        # mongo_client = MongoClient('172.31.64.60,172.31.38.53,172.31.6.25', replicaset='sessionRS')
+        # mongo_database = mongo_client['movementStats']
+        # # Authenticate
+        # mongo_database.authenticate('statsUser', 'BioMx211', mechanism='SCRAM-SHA-1')
+        # mongo_collection_progcomp_test = mongo_database['progCompDateStats']
 
         # connect to all relevant collections
         mongo_collection_date = mongo_database_session[config.MONGO_COLLECTION_DATE]
@@ -119,12 +116,12 @@ def script_handler(input_data):
         team_date = _aggregate_team(mongo_collection_date, team_id, event_date, session_type)
 
         # Add program composition lists to team data
-        prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
-        for var in prog_comps:
-            out_var = var+'ProgramComposition'
-            team_date[out_var] = _aggregate_team_progcomp(mongo_collection_progcomp_test, var,
-                                                          team_id='f87e1deb-f022-4223-acaa-4926b6094343',
-                                                          event_date=event_date, session_type=session_type)
+        # prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
+        # for var in prog_comps:
+        #     out_var = var+'ProgramComposition'
+        #     team_date[out_var] = _aggregate_team_progcomp(mongo_collection_progcomp, var,
+        #                                                   team_id=team_id, event_date=event_date,
+        #                                                   session_type=session_type)
         # For team date data, sort the variables in order
         record_out = OrderedDict()
         for team_var in team_vars:
