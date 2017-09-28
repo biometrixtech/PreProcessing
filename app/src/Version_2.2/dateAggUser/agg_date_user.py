@@ -58,16 +58,12 @@ def script_handler(input_data):
         team_id = input_data.get('TeamId', None)
         training_group_id = input_data.get('TrainingGroupId', None)
         user_id = input_data.get('UserId', None)
-        session_event_id = input_data.get('SessionEventId', None)
         session_type = input_data.get('SessionType', None)
         if session_type is not None:
             session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
 
         event_date = input_data.get('eventDate')
-        # event_date = str(list(mongo_collection_session.find({'sessonId': session_event_id},
-        #                                                     {'eventDate': 1,
-        #                                                      '_id': 0}))[0]['eventDate'])
 
         # get aggregated data for all sessions sessions for current_day
         current_day = _get_session_data(mongo_collection_session, user_id,
@@ -253,6 +249,7 @@ def _get_session_data(collection, user_id, event_date, session_type):
                              'irregularAccel': 1,
                              'LFgRF': 1,
                              'RFgRF': 1,
+                             'singleLegGRF': 1,
                              'percOptimal': {'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]},
                              'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
                              'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
@@ -329,6 +326,15 @@ def _compute_awcr(hist, var, period, event_date):
 if __name__ == '__main__':
     import time
     start = time.time()
+    input_data = OrderedDict()
+    input_data['TeamId'] = 'test_team'
+    input_data['TrainingGroupId'] = ['test_tg1', 'test_tg2']
+    input_data['UserId'] = 'test_user'
+    input_data['SessionEventId'] = 'test_session'
+    input_data['SessionType'] = '1'
+    input_data['UserMass'] = 77
+    input_data['eventDate'] = '2017-03-20'
+
     os.environ['ENVIRONMENT'] = 'Dev'
     os.environ['MONGO_HOST_SESSION'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
     os.environ['MONGO_USER_SESSION'] = 'statsUser'

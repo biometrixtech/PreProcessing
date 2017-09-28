@@ -295,6 +295,15 @@ def script_handler(working_directory, file_name, input_data):
 if __name__ == '__main__':
     import time
     start = time.time()
+    input_data = OrderedDict()
+    input_data['TeamId'] = 'test_team'
+    input_data['TrainingGroupId'] = ['test_tg1', 'test_tg2']
+    input_data['UserId'] = 'test_user'
+    input_data['SessionEventId'] = 'test_session'
+    input_data['SessionType'] = '1'
+    input_data['UserMass'] = 77
+    input_data['eventDate'] = '2017-03-20'
+
     os.environ['ENVIRONMENT'] = 'Dev'
     os.environ['MONGO_HOST_TWOMIN'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
     os.environ['MONGO_USER_TWOMIN'] = 'statsUser'
@@ -303,6 +312,6 @@ if __name__ == '__main__':
     os.environ['MONGO_COLLECTION_TWOMIN'] = 'twoMinuteStats_test2'
     os.environ['MONGO_REPLICASET_TWOMIN'] = '---'
     in_file_name = 'C:\\Users\\Administrator\\Desktop\\python_aggregation\\605a9a17-24bf-4fdc-b539-02adbb28a628'
-    perc_optimal = script_handler(in_file_name, input_data=None)
+    perc_optimal = script_handler(in_file_name, input_data)
     print(time.time() - start)
 
