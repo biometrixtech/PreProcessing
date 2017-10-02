@@ -106,20 +106,45 @@ def script_handler(working_directory, input_data):
                              'irregularGRF',
                              'totalAccel',
                              'msElapsed']
+
+        agg_vars = ['total', 'constructive', 'destructive', 'totalAccel', 'msElapsed']
+
         # replace nans with None
         data = data.where((pandas.notnull(data)), None)
         logger.info("Filtered out null values")
         total_ind = numpy.array([k != 3 for k in data.phaseLF])
-#        lf_ind = numpy.array([k in [0, 1, 4] for k in data.phaseLF])
-#        rf_ind = numpy.array([k in [0, 2, 5] for k in data.phaseRF])
         data['total_grf'] = data['total'].fillna(value=numpy.nan) * total_ind
+
+        # get the program compositions
+        data_out['grfProgramComposition'] = _grf_prog_comp(data, data_out['userMass'], agg_vars,
+                                                           prog_comp_columns)
+        data_out['totalAccelProgramComposition'] = _accel_prog_comp(data, agg_vars, prog_comp_columns)
+
+        record_out = OrderedDict()
+        for prog_var in prog_comp_vars:
+            try:
+                record_out[prog_var] = data_out[prog_var]
+            except KeyError:
+                record_out[prog_var] = None
+
+        query = {'sessionId': data_out['sessionId']}
+        mongo_collection.replace_one(query, record_out, upsert=True)
+
+        logger.info("Finished writing record")
+
+    except Exception as e:
+        logger.info(e)
+        logger.info('Process did not complete successfully! See error below!')
+        raise
+
+def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         grf_bins = numpy.array([0, 1.40505589, 1.68606707, 1.96707825, 2.24808943, 2.52910061,
                                 2.81011179, 3.09112296, 3.37213414, 3.65314532, 100])
         grf_labels = range(10)
         agg_vars = ['total', 'constructive', 'destructive', 'totalAccel', 'msElapsed']
         prog_comp = data.groupby(pandas.cut(data["totalNormMax"], grf_bins, labels=grf_labels))
         prog_comp_grf = pandas.DataFrame()
-        prog_comp_grf['min'] = numpy.array(grf_bins[0:10]) * data_out['userMass']
+        prog_comp_grf['min'] = numpy.array(grf_bins[0:10]) * user_mass
         prog_comp_grf['max'] = None
         prog_comp_grf['binNumber'] = grf_labels
         for pc_var in agg_vars:
@@ -132,8 +157,10 @@ def script_handler(working_directory, input_data):
             for var in prog_comp_columns:
                 sorted_bin[var] = data_bin[var]
             grf_sorted.append(sorted_bin)
-        data_out['grfProgramComposition'] = grf_sorted
+        return grf_sorted
 
+
+def _accel_prog_comp(data, agg_vars, prog_comp_columns):
         accel_bins = numpy.array([0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 200.0, 325.0, 10000])
         accel_labels = range(10)
         prog_comp = data.groupby(pandas.cut(data["totalAccelMax"], accel_bins, labels=accel_labels))
@@ -151,23 +178,7 @@ def script_handler(working_directory, input_data):
             for var in prog_comp_columns:
                 sorted_bin[var] = data_bin[var]
             accel_sorted.append(sorted_bin)
-        data_out['totalAccelProgramComposition'] = accel_sorted
-        record_out = OrderedDict()
-        for prog_var in prog_comp_vars:
-            try:
-                record_out[prog_var] = data_out[prog_var]
-            except KeyError:
-                record_out[prog_var] = None
-
-        query = {'sessionId': data_out['sessionId']}
-        mongo_collection.replace_one(query, record_out, upsert=True)
-
-        logger.info("Finished writing record")
-
-    except Exception as e:
-        logger.info(e)
-        logger.info('Process did not complete successfully! See error below!')
-        raise
+        return accel_sorted
 
 
 if __name__ == '__main__':
