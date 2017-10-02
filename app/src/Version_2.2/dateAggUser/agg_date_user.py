@@ -63,7 +63,7 @@ def script_handler(input_data):
             session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
 
-        event_date = input_data.get('eventDate')
+        event_date = input_data.get('EventDate')
 
         # get aggregated data for all sessions sessions for current_day
         current_day = _get_session_data(mongo_collection_session, user_id,

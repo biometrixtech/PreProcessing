@@ -95,7 +95,7 @@ def script_handler(input_data):
         session_type = input_data.get('SessionType', None)
         if session_type is not None:
             session_type = str(session_type)
-        event_date = input_data.get('eventDate')
+        event_date = input_data.get('EventDate')
 
         for tg_id in training_group_ids:
             # get twoMinute aggregated TG data

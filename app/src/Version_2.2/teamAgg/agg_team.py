@@ -96,7 +96,7 @@ def script_handler(input_data):
         session_type = input_data.get('SessionType', None)
         if session_type is not None:
             session_type = str(session_type)
-        event_date = input_data.get('eventDate')
+        event_date = input_data.get('EventDate')
 
         # get twoMinute aggregated team data
         team_two_min = _aggregate_team_twomin(mongo_collection_twomin, team_id, event_date, session_type)
