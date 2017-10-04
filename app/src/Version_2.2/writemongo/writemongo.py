@@ -247,13 +247,13 @@ def script_handler(working_directory, file_name, input_data):
             # grf
             total_grf = numpy.sum(data_30['total_grf'])
             if total_grf == 0:
-                total_grf = 1
+                total_grf = 1e-6
             lf_grf = numpy.sum(data_30['lf_grf'])
             if lf_grf == 0:
-                lf_grf = 1
+                lf_grf = 1e-6
             rf_grf = numpy.sum(data_30['rf_grf'])
             if rf_grf == 0:
-                rf_grf = 1
+                rf_grf = 1e-6
             const_grf = numpy.nansum(data_30['const_grf'])
             dest_grf = numpy.nansum(data_30['dest_grf'])
 
