@@ -25,7 +25,7 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(working_directory, input_data):
+def script_handler(input_data):
     logger.info('Running session aggregation  on "{}"'.format(working_directory.split('/')[-1]))
 
     try:
