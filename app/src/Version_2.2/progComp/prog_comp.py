@@ -28,7 +28,7 @@ Config = namedtuple('Config', [
 
 
 def script_handler(working_directory, input_data):
-    logger.info('Running session aggregation  on "{}"'.format(working_directory.split('/')[-1]))
+    logger.info('Running program composition aggregation  on "{}"'.format(working_directory.split('/')[-1]))
 
     try:
         config = Config(
