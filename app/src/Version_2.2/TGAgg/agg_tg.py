@@ -86,7 +86,7 @@ def script_handler(input_data):
         # connect to all relevant collections
         mongo_collection_date = mongo_database_session[config.MONGO_COLLECTION_DATE]
         mongo_collection_datetg = mongo_database_session[config.MONGO_COLLECTION_DATETG]
-#        mongo_collection_progcomp = mongo_database_session[config.MONGO_COLLECTION_PROGCOMP]
+       mongo_collection_progcomp = mongo_database_session[config.MONGO_COLLECTION_PROGCOMP]
 
         mongo_collection_twomin = mongo_database_twomin[config.MONGO_COLLECTION_TWOMIN]
         mongo_collection_twomintg = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTG]
@@ -119,12 +119,12 @@ def script_handler(input_data):
             tg_date = _aggregate_tg(mongo_collection_date, tg_id, event_date, session_type)
     
             # Add program composition lists to team data
-#            prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
-#            for var in prog_comps:
-#                out_var = var+'ProgramComposition'
-#                tg_date[out_var] = _aggregate_tg_progcomp(mongo_collection_progcomp, var,
-#                                                              tg_id='f87e1deb-f022-4223-acaa-4926b6094343',
-#                                                              event_date=event_date, session_type=session_type)
+           prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
+           for var in prog_comps:
+               out_var = var+'ProgramComposition'
+               tg_date[out_var] = _aggregate_tg_progcomp(mongo_collection_progcomp, var,
+                                                             tg_id='f87e1deb-f022-4223-acaa-4926b6094343',
+                                                             event_date=event_date, session_type=session_type)
             # For TG date data, sort the variables in order
             record_out = OrderedDict()
             for tg_var in tg_vars:

@@ -87,7 +87,7 @@ def script_handler(input_data):
         # connect to all relevant collections
         mongo_collection_date = mongo_database_session[config.MONGO_COLLECTION_DATE]
         mongo_collection_dateteam = mongo_database_session[config.MONGO_COLLECTION_DATETEAM]
-#        mongo_collection_progcomp = mongo_database_session[config.MONGO_COLLECTION_PROGCOMP]
+       mongo_collection_progcomp = mongo_database_session[config.MONGO_COLLECTION_PROGCOMP]
 
         mongo_collection_twomin = mongo_database_twomin[config.MONGO_COLLECTION_TWOMIN]
         mongo_collection_twominteam = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTEAM]
@@ -117,12 +117,12 @@ def script_handler(input_data):
         team_date = _aggregate_team(mongo_collection_date, team_id, event_date, session_type)
 
         # Add program composition lists to team data
-        # prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
-        # for var in prog_comps:
-        #     out_var = var+'ProgramComposition'
-        #     team_date[out_var] = _aggregate_team_progcomp(mongo_collection_progcomp, var,
-        #                                                   team_id=team_id, event_date=event_date,
-        #                                                   session_type=session_type)
+        prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
+        for var in prog_comps:
+            out_var = var+'ProgramComposition'
+            team_date[out_var] = _aggregate_team_progcomp(mongo_collection_progcomp, var,
+                                                          team_id=team_id, event_date=event_date,
+                                                          session_type=session_type)
         # For team date data, sort the variables in order
         record_out = OrderedDict()
         for team_var in team_vars:
