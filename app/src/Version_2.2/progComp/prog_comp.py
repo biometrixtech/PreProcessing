@@ -7,7 +7,6 @@ import logging
 import os
 import pandas
 import numpy
-import datetime
 import sys
 from collections import OrderedDict
 
@@ -54,12 +53,12 @@ def script_handler(working_directory, input_data):
 
         mongo_collection = mongo_database[config.MONGO_COLLECTION]
 
-        tmp_filename = '/tmp/readfile'
-        copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)
-        logger.info("Copied data file to local FS")
-        data = pandas.read_csv(tmp_filename)
-        os.remove(tmp_filename)
-        logger.info("Removed temporary file")
+       tmp_filename = '/tmp/readfile'
+       copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)
+       logger.info("Copied data file to local FS")
+       data = pandas.read_csv(tmp_filename)
+       os.remove(tmp_filename)
+       logger.info("Removed temporary file")
 
         # rename columns to match mongo
         data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed', 'sessionDuration',
@@ -115,10 +114,12 @@ def script_handler(working_directory, input_data):
         total_ind = numpy.array([k != 3 for k in data.phaseLF])
         data['total_grf'] = data['total'].fillna(value=numpy.nan) * total_ind
 
-        # get the program compositions
+        # get program compositions
         data_out['grfProgramComposition'] = _grf_prog_comp(data, data_out['userMass'], agg_vars,
                                                            prog_comp_columns)
         data_out['totalAccelProgramComposition'] = _accel_prog_comp(data, agg_vars, prog_comp_columns)
+        data_out['planeProgramComposition'] = _plane_prog_comp(data, agg_vars, prog_comp_columns)
+        data_out['stanceProgramComposition'] = _stance_prog_comp(data, agg_vars, prog_comp_columns)
 
         record_out = OrderedDict()
         for prog_var in prog_comp_vars:
@@ -136,6 +137,7 @@ def script_handler(working_directory, input_data):
         logger.info(e)
         logger.info('Process did not complete successfully! See error below!')
         raise
+
 
 def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         grf_bins = numpy.array([0, 1.40505589, 1.68606707, 1.96707825, 2.24808943, 2.52910061,
@@ -155,7 +157,11 @@ def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         for data_bin in grf:
             sorted_bin = OrderedDict()
             for var in prog_comp_columns:
-                sorted_bin[var] = data_bin[var]
+                if var=='binNumber':
+                    sorted_bin[var] = int(data_bin[var])
+                else:
+                    sorted_bin[var] = data_bin[var]
+
             grf_sorted.append(sorted_bin)
         return grf_sorted
 
@@ -176,9 +182,83 @@ def _accel_prog_comp(data, agg_vars, prog_comp_columns):
         for data_bin in accel:
             sorted_bin = OrderedDict()
             for var in prog_comp_columns:
-                sorted_bin[var] = data_bin[var]
+                if var=='binNumber':
+                    sorted_bin[var] = int(data_bin[var])
+                else:
+                    sorted_bin[var] = data_bin[var]
+
             accel_sorted.append(sorted_bin)
         return accel_sorted
+
+
+def _plane_prog_comp(data, agg_vars, prog_comp_columns):
+        plane_inds = numpy.arange(16)
+        plane_bins = numpy.arange(5)
+        pc = data.groupby(by='plane')
+        pc_plane = pandas.DataFrame()
+        pc_plane['min'] = None
+        pc_plane['max'] = None
+        pc_plane['binNumber'] = plane_inds
+        for pc_var in agg_vars:
+            pc_plane[pc_var] = pc[pc_var].sum()
+        pc_plane.columns = prog_comp_columns
+        stat_bins = [0]
+        rot_bins = [1, 5, 6, 7, 11, 12, 13, 15]
+        lat_bins = [2, 5, 8, 9, 11, 12, 14, 15]
+        vert_bins = [3, 6, 8, 10, 11, 13, 14, 15]
+        horz_bins = [4, 7, 9, 10, 12, 13, 14, 15]
+        stat = pc_plane[numpy.array([i in stat_bins for i in pc_plane.binNumber])]
+        rot = pc_plane[numpy.array([i in rot_bins for i in pc_plane.binNumber])]
+        lat = pc_plane[numpy.array([i in lat_bins for i in pc_plane.binNumber])]
+        vert = pc_plane[numpy.array([i in vert_bins for i in pc_plane.binNumber])]
+        horz = pc_plane[numpy.array([i in horz_bins for i in pc_plane.binNumber])]
+        prog_comp = pandas.DataFrame()
+        prog_comp = prog_comp.append(stat.sum(), ignore_index=True)
+        prog_comp = prog_comp.append(rot.sum(), ignore_index=True)
+        prog_comp = prog_comp.append(lat.sum(), ignore_index=True)
+        prog_comp = prog_comp.append(vert.sum(), ignore_index=True)
+        prog_comp = prog_comp.append(horz.sum(), ignore_index=True)
+        prog_comp['binNumber'] = plane_bins
+
+        plane = prog_comp.to_dict(orient='records')
+        plane_sorted = []
+        for data_bin in plane:
+            sorted_bin = OrderedDict()
+            for var in prog_comp_columns:
+                if numpy.isnan(data_bin[var]):
+                    sorted_bin[var] = None
+                elif var=='binNumber':
+                    sorted_bin[var] = int(data_bin[var])
+                else:
+                    sorted_bin[var] = data_bin[var]
+            plane_sorted.append(sorted_bin)
+        return plane_sorted
+
+
+def _stance_prog_comp(data, agg_vars, prog_comp_columns):
+        stance_bins = numpy.arange(6)
+        pc = data.groupby(by='stance')
+        pc_stance = pandas.DataFrame()
+        pc_stance['min'] = None
+        pc_stance['max'] = None
+        pc_stance['binNumber'] = stance_bins
+        for pc_var in agg_vars:
+            pc_stance[pc_var] = pc[pc_var].sum()
+        pc_stance.columns = prog_comp_columns
+
+        stance = pc_stance.to_dict(orient='records')
+        stance_sorted = []
+        for data_bin in stance:
+            sorted_bin = OrderedDict()
+            for var in prog_comp_columns:
+                if numpy.isnan(data_bin[var]):
+                    sorted_bin[var] = None
+                elif var=='binNumber':
+                    sorted_bin[var] = int(data_bin[var])
+                else:
+                    sorted_bin[var] = data_bin[var]
+            stance_sorted.append(sorted_bin)
+        return stance_sorted
 
 
 if __name__ == '__main__':
@@ -200,6 +280,6 @@ if __name__ == '__main__':
     os.environ['MONGO_DATABASE_SESSION'] = 'movementStats'
     os.environ['MONGO_COLLECTION_PROGCOMP'] = 'progCompStats_test2'
     os.environ['MONGO_REPLICASET_SESSION'] = '---'
-    in_file_name = 'C:\\Users\\Administrator\\Desktop\\python_aggregation\\605a9a17-24bf-4fdc-b539-02adbb28a628'
-    script_handler(in_file_name, input_data)
+    file_name = 'C:\\Users\\Administrator\\Desktop\\python_aggregation\\605a9a17-24bf-4fdc-b539-02adbb28a628'
+    prog_comp = script_handler(file_name, input_data)
     print(time.time() - start)
