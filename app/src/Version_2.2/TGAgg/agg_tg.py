@@ -8,6 +8,8 @@ import pandas
 import numpy
 import sys
 from collections import OrderedDict
+from datetime import datetime, timedelta
+
 from vars_in_mongo import athlete_vars, tg_vars, tg_twomin_vars, athlete_twomin_vars
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -51,7 +53,7 @@ def script_handler(input_data):
             MONGO_REPLICASET_SESSION=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
             MONGO_COLLECTION_DATE=os.environ['MONGO_COLLECTION_DATE'],
             MONGO_COLLECTION_DATETG=os.environ['MONGO_COLLECTION_DATETG'],
-            MONGO_COLLECTION_PROGCOMP=os.environ['MONGO_COLLECTION_PROGCOMP'],
+            MONGO_COLLECTION_PROGCOMP=os.environ['MONGO_COLLECTION_PROGCOMPDATE'],
             MONGO_HOST_TWOMIN=os.environ['MONGO_HOST_TWOMIN'],
             MONGO_USER_TWOMIN=os.environ['MONGO_USER_TWOMIN'],
             MONGO_PASSWORD_TWOMIN=os.environ['MONGO_PASSWORD_TWOMIN'],
@@ -86,7 +88,7 @@ def script_handler(input_data):
         # connect to all relevant collections
         mongo_collection_date = mongo_database_session[config.MONGO_COLLECTION_DATE]
         mongo_collection_datetg = mongo_database_session[config.MONGO_COLLECTION_DATETG]
-       mongo_collection_progcomp = mongo_database_session[config.MONGO_COLLECTION_PROGCOMP]
+        mongo_collection_progcomp = mongo_database_session[config.MONGO_COLLECTION_PROGCOMP]
 
         mongo_collection_twomin = mongo_database_twomin[config.MONGO_COLLECTION_TWOMIN]
         mongo_collection_twomintg = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTG]
@@ -117,14 +119,66 @@ def script_handler(input_data):
     
             # get date level aggregated data for TG (minus prog comp)
             tg_date = _aggregate_tg(mongo_collection_date, tg_id, event_date, session_type)
+
+            # grab maximum required historical data
+            hist_records = _get_hist_data(mongo_collection_datetg, tg_id,
+                                          event_date, period=10)
     
+            current = pandas.DataFrame({'eventDate': event_date,
+                                        'totalAccel': tg_date['totalAccel'],
+                                        'totalGRF': tg_date['totalGRF']},
+                                       index=[str(datetime.strptime(event_date, '%Y-%m-%d').date())])
+    
+            # create a pandas dataframe with entry for every day in the history
+            event_date_dt = datetime.strptime(event_date, '%Y-%m-%d').date()
+            total_days = 40
+            # initialize empty dataframe with 40 rows (maximum history)
+            index = pandas.date_range(event_date_dt-timedelta(total_days),
+                                      periods=total_days, freq='D').date.astype(str)
+    
+            columns = ['eventDate', 'totalGRF', 'totalAccel']
+            hist_data = pandas.DataFrame(index=index, columns=columns)
+            hist_data.eventDate = index
+            hist_data = hist_data.fillna(0)
+            if len(hist_records) != 0:
+                # If data is present, for any of the previous 40 days, insert that to data frame
+                # convert read data into pandas dataframe and remove duplicates and sort
+                # TODO: removing duplicates should be unnecessary as data should already be unique in mongo
+                hist = pandas.DataFrame(hist_records)
+                hist.drop_duplicates(subset='eventDate', keep='first', inplace=True)
+                hist.sort_values(by='eventDate', inplace=True)
+                hist.reset_index(drop=True, inplace=True)
+    
+                # for days with available data in mongo, insert the actual data
+                count = 0
+                for i in hist.eventDate:
+                    i = str(datetime.strptime(i, '%Y-%m-%d').date())
+                    if count == 0:
+                        # assign nan to every data before the first date data is available for
+                        hist_data.loc[hist_data.eventDate < i, 'totalGRF'] = numpy.nan
+                        hist_data.loc[hist_data.eventDate < i, 'totalAccel'] = numpy.nan
+    
+                    count += 1
+                    subset = hist.loc[hist.eventDate == i, :]
+                    hist_data.loc[hist_data.eventDate == i, 'eventDate'] = subset['eventDate'].values[0]
+                    hist_data.loc[hist_data.eventDate == i, 'totalGRF'] = subset['totalGRF'].values[0]
+                    hist_data.loc[hist_data.eventDate == i, 'totalAccel'] = subset['control'].values[0]
+                # append current day's data to the end
+                hist_data = hist_data.append(current)
+            else:
+                # if no hist data available, mark as nan and append current day
+                hist_data.totalGRF = numpy.nan
+                hist_data.totalAccel = numpy.nan
+                hist_data = hist_data.append(current)
+
             # Add program composition lists to team data
-           prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
-           for var in prog_comps:
-               out_var = var+'ProgramComposition'
-               tg_date[out_var] = _aggregate_tg_progcomp(mongo_collection_progcomp, var,
-                                                             tg_id='f87e1deb-f022-4223-acaa-4926b6094343',
-                                                             event_date=event_date, session_type=session_type)
+            prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
+            for var in prog_comps:
+                out_var = var+'ProgramComposition'
+                tg_date[out_var] = _aggregate_tg_progcomp(mongo_collection_progcomp, var,
+                                                           tg_id=tg_id,
+                                                           event_date=event_date,
+                                                           session_type=session_type)
             # For TG date data, sort the variables in order
             record_out = OrderedDict()
             for tg_var in tg_vars:
@@ -132,7 +186,12 @@ def script_handler(input_data):
                     record_out[tg_var] = tg_date[tg_var]
                 except KeyError:
                     record_out[tg_var] = None
-    
+            # ACWR
+            for i in numpy.arange(1, 11, 1):
+                acwr = _compute_awcr(hist_data, 'grf', i, event_date)
+                record_out['ACWRGRF' + str(i)] = acwr.totalGRF
+                record_out['ACWRTotalAccel' + str(i)] = acwr.totalAccel
+
             # Upsert the date aggregated collection to mongo (currently replace)
             query = {'trainingGroupId': tg_id, 'eventDate': event_date}
             mongo_collection_datetg.replace_one(query, record_out, upsert=True)
@@ -194,14 +253,22 @@ def _aggregate_tg_twomin(collection, tg_id, event_date, session_type):
                              'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
                              'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
                              'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
-                             'percDistr': {'$abs': {'$multiply': [{'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}]}, 100]}},
+                             'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}
+                                                                     ]
+                                                       }
+                                              },
                              'totalAccel': 1,
                              'irregularAccel': 1,
                              'LFgRF': 1,
                              'RFgRF': 1,
                              'singleLegGRF': 1,
-                             'percOptimal': {'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]},
+                             'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
+                                                          ]
+                                            },
+                             'percIrregular': {'$multiply': [{'$divide': ['$irregularGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
+                                                          ]
+                                            },
                              'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
                              'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
                              'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
@@ -282,6 +349,12 @@ def _aggregate_tg_progcomp(collection, var, tg_id, event_date, session_type):
         single_bin['irregularGRF'] = doc['irregularGRF']
         single_bin['totalAcceleration'] = doc['totalAcceleration']
         single_bin['msElapsed'] = doc['msElapsed']
+        if doc['totalGRF'] == 0 or doc['totalGRF'] is None:
+            single_bin['percOptimal'] = None
+            single_bin['percIrregular'] = None
+        else:
+            single_bin['percOptimal'] = doc['optimalGRF'] / doc['totalGRF'] * 100
+            single_bin['percIrregular'] = doc['irregularGRF'] / doc['totalGRF'] * 100
         bins.append(single_bin)
 
     return sorted(bins, key=lambda k: k['binNumber'])
@@ -311,6 +384,7 @@ def _aggregate_tg(collection, tg_id, event_date, session_type):
                             'singleLegGRF': {'$sum': '$singleLegGRF'},
                             'percLeftGRF': {'$sum': {'$multiply': ['$percLeftGRF', '$singleLegGRF']}},
                             'percRightGRF': {'$sum': {'$multiply': ['$percRightGRF', '$singleLegGRF']}},
+                            'fatigue': {'$avg': '$fatigue'},
                             'totalAccel': {'$sum': '$totalAccel'},
                             'irregularAccel': {'$sum': '$irregularAccel'},
                             'hipSymmetry': {'$sum': {'$multiply': ['$hipSymmetry', '$totalGRF']}},
@@ -338,14 +412,23 @@ def _aggregate_tg(collection, tg_id, event_date, session_type):
                              'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
                              'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
                              'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
-                             'percDistr': {'$abs': {'$multiply': [{'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}]}, 100]}},
+                             'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}
+                                                                     ]
+                                                       }
+                                              },
                              'totalAccel': 1,
                              'irregularAccel': 1,
                              'LFgRF': 1,
                              'RFgRF': 1,
                              'singleLegGRF': 1,
-                             'percOptimal': {'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]},
+                             'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
+                                                          ]
+                                            },
+                             'percIrregular': {'$multiply': [{'$divide': ['$irregularGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
+                                                          ]
+                                            },
+                             'fatigue': 1,
                              'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
                              'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
                              'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
@@ -380,6 +463,60 @@ def _aggregate_tg(collection, tg_id, event_date, session_type):
     return tg_stats
 
 
+def _get_hist_data(collection, tg_id, event_date, period):
+    """
+    Get max historical data for acwr computation
+    currently only returning totalGRF and totalAccel
+    Days with no data have value 0
+    """
+    total_days = period * 4
+    event_date_dt = datetime.strptime(event_date, '%Y-%m-%d').date()
+    start_date = str(event_date_dt - timedelta(days=total_days))
+    # get history excluding current day
+    docs = list(collection.find({'trainingGroups': {'$eq': tg_id},
+                                 'eventDate': {'$gte': start_date, '$lt': event_date}},
+                                {'userId': 1,
+                                 'eventDate': 1,
+                                 'totalGRF': 1,
+                                 'control': 1,
+                                 '_id': 0}))
+    return docs
+
+
+def _compute_awcr(hist, var, period, event_date):
+    """compute acute chronic workload ration for all the variables
+        acwr is defined as acute/chronic where
+        acute = sum(workload) for current period
+        chronic = avg(period_workload) for 4 previous periods
+    """
+    # TODO: probably don't need this with actual data(there should be no duplication)
+    hist.drop_duplicates(subset='eventDate', keep='first', inplace=True)
+    # get the start and end dates of acute and chronic data
+    acute_period_end = datetime.strptime(event_date, '%Y-%m-%d').date()
+    acute_period_start = acute_period_end - timedelta(days=period - 1)
+
+    # current period is currently included in chronic
+    chronic_period_end = acute_period_end
+    chronic_period_start = chronic_period_end - timedelta(days=4*period-1)
+
+    # subset acute data and compute acute value
+    acute_data = hist.loc[(hist.eventDate >= str(acute_period_start)) &\
+                          (hist.eventDate <= str(acute_period_end))]
+    acute = acute_data.sum()
+
+    # subset chronic data and compute chronic value
+    chronic_data = hist.loc[(hist.eventDate >= str(chronic_period_start)) &\
+                             (hist.eventDate <= str(chronic_period_end))]
+
+    # rolling sum on period (0 for missing days)
+    rolling_sum = chronic_data.rolling(period, min_periods=1).sum()
+    chronic = rolling_sum.mean()
+
+    acwr = acute/chronic
+
+    return acwr
+
+
 if __name__ == '__main__':
     import time
     start = time.time()
@@ -390,8 +527,8 @@ if __name__ == '__main__':
     input_data['UserId'] = 'test_user'
     input_data['SessionEventId'] = 'test_session'
     input_data['SessionType'] = '1'
-    input_data['UserMass'] = 77
-    input_data['eventDate'] = '2017-03-20'
+    input_data['UserMass'] = 155
+    input_data['EventDate'] = '2017-03-20'
 
     os.environ['ENVIRONMENT'] = 'Dev'
     os.environ['MONGO_HOST_SESSION'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
@@ -399,18 +536,18 @@ if __name__ == '__main__':
     os.environ['MONGO_PASSWORD_SESSION'] = 'BioMx211'
     os.environ['MONGO_DATABASE_SESSION'] = 'movementStats'
     os.environ['MONGO_REPLICASET_SESSION'] = '---'
-    os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test2'
-    os.environ['MONGO_COLLECTION_DATETEAM'] = 'dateStatsTeam_test2'
-    os.environ['MONGO_COLLECTION_DATETG'] = 'dateStatsTG_test2'
-    os.environ['MONGO_COLLECTION_PROGCOMP'] = 'progCompDateStats_test2'
+    os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test3'
+    os.environ['MONGO_COLLECTION_DATETEAM'] = 'dateStatsTeam_test3'
+    os.environ['MONGO_COLLECTION_DATETG'] = 'dateStatsTG_test3'
+    os.environ['MONGO_COLLECTION_PROGCOMP'] = 'progCompDateStats_test3'
     os.environ['MONGO_HOST_TWOMIN'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
     os.environ['MONGO_USER_TWOMIN'] = 'statsUser'
     os.environ['MONGO_PASSWORD_TWOMIN'] = 'BioMx211'
     os.environ['MONGO_DATABASE_TWOMIN'] = 'movementStats'
     os.environ['MONGO_REPLICASET_TWOMIN'] = '---'
-    os.environ['MONGO_COLLECTION_TWOMIN'] = 'twoMinuteStats_test2'
-    os.environ['MONGO_COLLECTION_TWOMINTEAM'] = 'twoMinuteStatsTeam_test2'
-    os.environ['MONGO_COLLECTION_TWOMINTG'] = 'twoMinuteStatsTG_test2'
+    os.environ['MONGO_COLLECTION_TWOMIN'] = 'twoMinuteStats_test3'
+    os.environ['MONGO_COLLECTION_TWOMINTEAM'] = 'twoMinuteStatsTeam_test3'
+    os.environ['MONGO_COLLECTION_TWOMINTG'] = 'twoMinuteStatsTG_test3'
 
     result = script_handler(input_data)
     print(time.time() - start)
