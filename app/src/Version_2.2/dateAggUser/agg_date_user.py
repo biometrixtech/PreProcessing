@@ -154,7 +154,7 @@ def script_handler(input_data):
         record_out['singleLegGRF'] = current_day['singleLegGRF']
         record_out['percLeftGRF'] = current_day['percLeftGRF']
         record_out['percRightGRF'] = current_day['percRightGRF']
-        record_out['percDistr'] = current_day['percDistr']
+        record_out['percLRGRFDiff'] = current_day['percLRGRFDiff']
 
         # acceleration
         record_out['totalAccel'] = current_day['totalAccel']
@@ -174,6 +174,8 @@ def script_handler(input_data):
 
         # fatigue data
         record_out['percOptimal'] = current_day['percOptimal']
+        record_out['percIrregular'] = current_day['percIrregular']
+        record_out['fatigue'] = current_day['fatigue']
 
         # ACWR
         for i in numpy.arange(1, 11, 1):
@@ -181,7 +183,7 @@ def script_handler(input_data):
             record_out['ACWRGRF' + str(i)] = acwr.totalGRF
             record_out['ACWRTotalAccel' + str(i)] = acwr.totalAccel
         query = {'userId': user_id, 'eventDate': event_date}
-        mongo_collection_date.update_one(query, {'$set': record_out}, upsert=True)
+        mongo_collection_date.replace_one(query, record_out, upsert=True)
         logger.info("Finished writing date!")
 
     except Exception as e:
@@ -218,6 +220,7 @@ def _get_session_data(collection, user_id, event_date, session_type):
                             'singleLegGRF': {'$sum': '$singleLegGRF'},
                             'percLeftGRF': {'$sum': {'$multiply': ['$percLeftGRF', '$singleLegGRF']}},
                             'percRightGRF': {'$sum': {'$multiply': ['$percRightGRF', '$singleLegGRF']}},
+                            'fatigue': {'$avg': '$sessionFatigue'},
                             'totalAccel': {'$sum': '$totalAccel'},
                             'irregularAccel': {'$sum': '$irregularAccel'},
                             'hipSymmetry': {'$sum': {'$multiply': ['$hipSymmetry', '$totalGRF']}},
@@ -243,14 +246,23 @@ def _get_session_data(collection, user_id, event_date, session_type):
                              'trainingGroups': 1,
                              'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
                              'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
-                             'percDistr': {'$abs': {'$multiply': [{'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}]}, 100]}},
+                             'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}
+                                                                     ]
+                                                       }
+                                              },
                              'totalAccel': 1,
                              'irregularAccel': 1,
                              'LFgRF': 1,
                              'RFgRF': 1,
                              'singleLegGRF': 1,
-                             'percOptimal': {'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]},
+                             'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
+                                                          ]
+                                            },
+                             'percIrregular': {'$multiply': [{'$divide': ['$irregularGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
+                                                          ]
+                                            },
+                             'fatigue': 1,
                              'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
                              'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
                              'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
@@ -332,16 +344,16 @@ if __name__ == '__main__':
     input_data['UserId'] = 'test_user'
     input_data['SessionEventId'] = 'test_session'
     input_data['SessionType'] = '1'
-    input_data['UserMass'] = 77
-    input_data['eventDate'] = '2017-03-20'
+    input_data['UserMass'] = 155
+    input_data['EventDate'] = '2017-03-20'
 
     os.environ['ENVIRONMENT'] = 'Dev'
     os.environ['MONGO_HOST_SESSION'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
     os.environ['MONGO_USER_SESSION'] = 'statsUser'
     os.environ['MONGO_PASSWORD_SESSION'] = 'BioMx211'
     os.environ['MONGO_DATABASE_SESSION'] = 'movementStats'
-    os.environ['MONGO_COLLECTION_SESSION'] = 'sessionStats_test2'
-    os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test2'
+    os.environ['MONGO_COLLECTION_SESSION'] = 'sessionStats_test3'
+    os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test3'
     os.environ['MONGO_REPLICASET_SESSION'] = '---'
-    script_handler(input_data=None)
+    script_handler(input_data)
     print(time.time() - start)

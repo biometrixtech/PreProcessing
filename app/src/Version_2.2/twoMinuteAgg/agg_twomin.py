@@ -148,7 +148,7 @@ def script_handler(working_directory, file_name, input_data):
             optimal_accumulated_grf += const_grf
             dest_grf = numpy.nansum(data_2m['dest_grf'])
             irregular_accumulated_grf += dest_grf
-            perc_optimal_session = const_grf / (const_grf + dest_grf)
+            perc_optimal_twomin = const_grf / (const_grf + dest_grf)
             if total_grf == 0:
                 total_grf = 1e-6
             lf_grf = numpy.sum(data_2m['lf_grf'])
@@ -168,9 +168,9 @@ def script_handler(working_directory, file_name, input_data):
             lf_rf_grf = lf_only_grf + rf_only_grf
 
             # grf aggregation
-            perc_left_grf = lf_only_grf / lf_rf_grf
-            perc_right_grf = rf_only_grf / lf_rf_grf
-            perc_distr = numpy.abs(perc_left_grf - perc_right_grf) * 100
+            perc_left_grf = lf_only_grf / lf_rf_grf * 100
+            perc_right_grf = rf_only_grf / lf_rf_grf * 100
+            perc_distr = numpy.abs(perc_left_grf - perc_right_grf)
             # control aggregation
             control = numpy.sum(data_2m['control']*data_2m['total_grf']) / total_grf
             hip_control = numpy.sum(data_2m['hipControl']*data_2m['total_grf']) / total_grf
@@ -243,7 +243,7 @@ def script_handler(working_directory, file_name, input_data):
             record_out['singleLegGRF'] = lf_rf_grf
             record_out['percLeftGRF'] = perc_left_grf
             record_out['percRightGRF'] = perc_right_grf
-            record_out['percDistr'] = perc_distr
+            record_out['percLRGRFDiff'] = perc_distr
 
             # acceleration
             record_out['totalAccel'] = total_accel
@@ -254,7 +254,8 @@ def script_handler(working_directory, file_name, input_data):
             record_out['ankleControl'] = ankle_control
 
             # fatigue
-            record_out['percOptimal'] = perc_optimal_session
+            record_out['percOptimal'] = perc_optimal_twomin * 100
+            record_out['percIrregular'] = (1 - perc_optimal_twomin) * 100
 
             # enforce validity of scores
             scor_cols = ['symmetry',
@@ -281,8 +282,8 @@ def script_handler(working_directory, file_name, input_data):
                     pass
 
             # Write the record to mongo
-            record_ids.append(mongo_collection.insert_one(record_out).inserted_id)
-#            break
+            query = {'sessionId': session_event_id, 'twoMinuteIndex': two_min_index}
+            mongo_collection.replace_one(query, record_out, upsert=True)
 
             logger.info("Wrote a record")
         return record_ids

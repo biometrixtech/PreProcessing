@@ -7,7 +7,7 @@ import logging
 import os
 import pandas
 import numpy
-import datetime
+#import datetime
 import sys
 from collections import OrderedDict
 
@@ -85,9 +85,7 @@ def script_handler(working_directory, input_data):
         if session_type is not None:
             session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
-        date_time = datetime.datetime.strptime(str(pandas.DatetimeIndex(data['timeStamp']).round('1s')[0]),
-                                               "%Y-%m-%d %H:%M:%S")
-        event_date = date_time.date()
+        event_date = input_data.get('EventDate')
 
         # Prep for session aggregation
         # grf
@@ -134,9 +132,9 @@ def script_handler(working_directory, input_data):
         lf_rf_grf = lf_only_grf + rf_only_grf
 
         # grf aggregation
-        perc_left_grf = lf_only_grf / lf_rf_grf
-        perc_right_grf = rf_only_grf / lf_rf_grf
-        perc_distr = numpy.abs(perc_left_grf - perc_right_grf) * 100
+        perc_left_grf = lf_only_grf / lf_rf_grf * 100
+        perc_right_grf = rf_only_grf / lf_rf_grf * 100
+        perc_distr = numpy.abs(perc_left_grf - perc_right_grf)
         # control aggregation
         control = numpy.sum(data['control']*data['total_grf']) / total_grf
         hip_control = numpy.sum(data['hipControl']*data['total_grf']) / total_grf
@@ -200,7 +198,7 @@ def script_handler(working_directory, input_data):
         record_out['singleLegGRF'] = lf_rf_grf
         record_out['percLeftGRF'] = perc_left_grf
         record_out['percRightGRF'] = perc_right_grf
-        record_out['percDistr'] = perc_distr
+        record_out['percLRGRFDiff'] = perc_distr
 
         # acceleration
         record_out['totalAccel'] = total_accel
@@ -219,7 +217,8 @@ def script_handler(working_directory, input_data):
         record_out['controlRF'] = control_rf
 
         # fatigue data
-        record_out['percOptimal'] = perc_optimal_session
+        record_out['percOptimal'] = perc_optimal_session * 100
+        record_out['percIrregular'] = (1 - perc_optimal_session) * 100
         record_out['sessionFatigue'] = session_fatigue
 
         # enforce validity of scores
@@ -247,10 +246,11 @@ def script_handler(working_directory, input_data):
                 pass
 
         # Write the record to mongo
-        record_id = mongo_collection.insert_one(record_out).inserted_id
+        query = {'sessionId': session_event_id, 'eventDate': str(event_date)}
+        mongo_collection.replace_one(query, record_out, upsert=True)
 
-        logger.info("Wrote a record")
-        return record_id
+        logger.info("Wrote session record")
+#        return record_id
 
     except Exception as e:
         logger.info(e)
