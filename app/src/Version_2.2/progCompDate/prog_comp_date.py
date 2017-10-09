@@ -90,7 +90,6 @@ def script_handler(input_data):
             except KeyError:
                 record_out[prog_var] = None
 
-#        return record_out
         # Upsert the date aggregated collection to mongo (currently replace)
         query = {'userId': user_id, 'eventDate': event_date}
         mongo_collection_progcompdate.replace_one(query, record_out, upsert=True)
@@ -112,6 +111,7 @@ def _aggregate_progcomp(collection, var, user_id, event_date, session_type):
                 },
                 {'$unwind': prog_var},
                 {'$group': {'_id': {'binNumber': prog_var+".binNumber"},
+                            'sessionCount': {'$sum': 1},
                             'binNumber': {'$first': prog_var+".binNumber"},
                             'min': {'$first': prog_var+'.min'},
                             'max': {'$first': prog_var+'.max'},
@@ -120,7 +120,7 @@ def _aggregate_progcomp(collection, var, user_id, event_date, session_type):
                             'irregularGRF': {'$avg': prog_var+'.irregularGRF'},
                             'totalAcceleration': {'$avg': prog_var+'.totalAcceleration'},
                             'msElapsed': {'$avg': prog_var+'.msElapsed'}
-                           }
+                            }
                 }
                ]
     docs = list(collection.aggregate(pipeline))
@@ -134,6 +134,12 @@ def _aggregate_progcomp(collection, var, user_id, event_date, session_type):
         single_bin['irregularGRF'] = doc['irregularGRF']
         single_bin['totalAcceleration'] = doc['totalAcceleration']
         single_bin['msElapsed'] = doc['msElapsed']
+        if doc['totalGRF'] == 0 or doc['totalGRF'] is None:
+            single_bin['percOptimal'] = None
+            single_bin['percIrregular'] = None
+        else:
+            single_bin['percOptimal'] = doc['optimalGRF'] / doc['totalGRF'] * 100
+            single_bin['percIrregular'] = doc['irregularGRF'] / doc['totalGRF'] * 100
         bins.append(single_bin)
 
     return sorted(bins, key=lambda k: k['binNumber'])
@@ -159,5 +165,5 @@ if __name__ == '__main__':
     os.environ['MONGO_COLLECTION_PROGCOMPDATE'] = 'progCompDateStats_test2'
     os.environ['MONGO_REPLICASET_SESSION'] = '---'
     file_name = 'C:\\Users\\Administrator\\Desktop\\python_aggregation\\605a9a17-24bf-4fdc-b539-02adbb28a628'
-    prog_comp = script_handler(file_name, input_data)
+    prog_comp = script_handler(input_data)
     print(time.time() - start)

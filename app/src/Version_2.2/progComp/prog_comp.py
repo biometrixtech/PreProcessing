@@ -103,8 +103,10 @@ def script_handler(working_directory, input_data):
                              'totalGRF',
                              'optimalGRF',
                              'irregularGRF',
-                             'totalAccel',
-                             'msElapsed']
+                             'totalAcceleration',
+                             'msElapsed',
+                             'percOptimal',
+                             'percIrregular']
 
         agg_vars = ['total', 'constructive', 'destructive', 'totalAccel', 'msElapsed']
 
@@ -112,7 +114,7 @@ def script_handler(working_directory, input_data):
         data = data.where((pandas.notnull(data)), None)
         logger.info("Filtered out null values")
         total_ind = numpy.array([k != 3 for k in data.phaseLF])
-        data['total_grf'] = data['total'].fillna(value=numpy.nan) * total_ind
+        data['total'] = data['total'].fillna(value=numpy.nan) * total_ind
 
         # get program compositions
         data_out['grfProgramComposition'] = _grf_prog_comp(data, data_out['userMass'], agg_vars,
@@ -151,6 +153,8 @@ def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         prog_comp_grf['binNumber'] = grf_labels
         for pc_var in agg_vars:
             prog_comp_grf[pc_var] = prog_comp[pc_var].sum()
+        prog_comp_grf['percOptimal'] = prog_comp_grf['constructive'] / prog_comp_grf['total'] * 100
+        prog_comp_grf['percIrregular'] = prog_comp_grf['destructive'] / prog_comp_grf['total'] * 100
         prog_comp_grf.columns = prog_comp_columns
         grf = prog_comp_grf.to_dict(orient='records')
         grf_sorted = []
@@ -176,6 +180,8 @@ def _accel_prog_comp(data, agg_vars, prog_comp_columns):
         prog_comp_accel['binNumber'] = accel_labels
         for pc_var in agg_vars:
             prog_comp_accel[pc_var] = prog_comp[pc_var].sum()
+        prog_comp_accel['percOptimal'] = prog_comp_accel['constructive'] / prog_comp_accel['total'] * 100
+        prog_comp_accel['percIrregular'] = prog_comp_accel['destructive'] / prog_comp_accel['total'] * 100
         prog_comp_accel.columns = prog_comp_columns
         accel = prog_comp_accel.to_dict(orient='records')
         accel_sorted = []
@@ -201,6 +207,8 @@ def _plane_prog_comp(data, agg_vars, prog_comp_columns):
         pc_plane['binNumber'] = plane_inds
         for pc_var in agg_vars:
             pc_plane[pc_var] = pc[pc_var].sum()
+        pc_plane['percOptimal'] = pc_plane['constructive'] / pc_plane['total'] * 100
+        pc_plane['percIrregular'] = pc_plane['destructive'] / pc_plane['total'] * 100
         pc_plane.columns = prog_comp_columns
         stat_bins = [0]
         rot_bins = [1, 5, 6, 7, 11, 12, 13, 15]
@@ -218,6 +226,8 @@ def _plane_prog_comp(data, agg_vars, prog_comp_columns):
         prog_comp = prog_comp.append(lat.sum(), ignore_index=True)
         prog_comp = prog_comp.append(vert.sum(), ignore_index=True)
         prog_comp = prog_comp.append(horz.sum(), ignore_index=True)
+        prog_comp['percOptimal'] = prog_comp['optimalGRF'] / prog_comp['totalGRF'] * 100
+        prog_comp['percIrregular'] = prog_comp['irregularGRF'] / prog_comp['totalGRF'] * 100
         prog_comp['binNumber'] = plane_bins
 
         plane = prog_comp.to_dict(orient='records')
@@ -244,6 +254,8 @@ def _stance_prog_comp(data, agg_vars, prog_comp_columns):
         pc_stance['binNumber'] = stance_bins
         for pc_var in agg_vars:
             pc_stance[pc_var] = pc[pc_var].sum()
+        pc_stance['percOptimal'] = pc_stance['constructive'] / pc_stance['total'] * 100
+        pc_stance['percIrregular'] = pc_stance['destructive'] / pc_stance['total'] * 100
         pc_stance.columns = prog_comp_columns
 
         stance = pc_stance.to_dict(orient='records')
