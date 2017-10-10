@@ -296,7 +296,7 @@ def _get_hist_data(collection, user_id, event_date, period):
                                 {'userId': 1,
                                  'eventDate': 1,
                                  'totalGRF': 1,
-                                 'control': 1,
+                                 'totalAccel': 1,
                                  '_id': 0}))
     return docs
 

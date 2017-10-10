@@ -467,10 +467,9 @@ def _get_hist_data(collection, team_id, event_date, period):
     # get history excluding current day
     docs = list(collection.find({'teamId': {'$eq': team_id},
                                  'eventDate': {'$gte': start_date, '$lt': event_date}},
-                                {'userId': 1,
-                                 'eventDate': 1,
+                                {'eventDate': 1,
                                  'totalGRF': 1,
-                                 'control': 1,
+                                 'totalAccel': 1,
                                  '_id': 0}))
     return docs
 
