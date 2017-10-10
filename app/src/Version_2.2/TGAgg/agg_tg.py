@@ -170,6 +170,7 @@ def script_handler(input_data):
                 hist_data.totalGRF = numpy.nan
                 hist_data.totalAccel = numpy.nan
                 hist_data = hist_data.append(current)
+            hist_data = hist_data.dropna(subset=['totalAccel', 'totalGRF'])
 
             # Add program composition lists to team data
             prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
