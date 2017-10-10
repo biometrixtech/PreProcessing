@@ -159,7 +159,7 @@ def script_handler(input_data):
                 subset = hist.loc[hist.eventDate == i, :]
                 hist_data.loc[hist_data.eventDate == i, 'eventDate'] = subset['eventDate'].values[0]
                 hist_data.loc[hist_data.eventDate == i, 'totalGRF'] = subset['totalGRF'].values[0]
-                hist_data.loc[hist_data.eventDate == i, 'totalAccel'] = subset['control'].values[0]
+                hist_data.loc[hist_data.eventDate == i, 'totalAccel'] = subset['totalAccel'].values[0]
             # append current day's data to the end
             hist_data = hist_data.append(current)
         else:
