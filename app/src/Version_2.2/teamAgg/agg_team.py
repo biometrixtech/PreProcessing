@@ -136,7 +136,7 @@ def script_handler(input_data):
         columns = ['eventDate', 'totalGRF', 'totalAccel']
         hist_data = pandas.DataFrame(index=index, columns=columns)
         hist_data.eventDate = index
-        hist_data = hist_data.fillna(0)
+#        hist_data = hist_data.fillna(0)
         if len(hist_records) != 0:
             # If data is present, for any of the previous 40 days, insert that to data frame
             # convert read data into pandas dataframe and remove duplicates and sort
@@ -184,10 +184,10 @@ def script_handler(input_data):
             except KeyError:
                 record_out[team_var] = None
         # ACWR
-        for i in numpy.arange(1, 11, 1):
-            acwr = _compute_awcr(hist_data, 'grf', i, event_date)
-            record_out['ACWRGRF' + str(i)] = acwr.totalGRF
-            record_out['ACWRTotalAccel' + str(i)] = acwr.totalAccel
+        i = 7
+        acwr = _compute_awcr(hist_data, i, event_date)
+        record_out['ACWRGRF' + str(i)] = acwr.totalGRF
+        record_out['ACWRTotalAccel' + str(i)] = acwr.totalAccel
         # Upsert the date aggregated collection to mongo (currently replace)
         query = {'teamId': team_id, 'eventDate': event_date}
         mongo_collection_dateteam.replace_one(query, record_out, upsert=True)
@@ -474,7 +474,7 @@ def _get_hist_data(collection, team_id, event_date, period):
     return docs
 
 
-def _compute_awcr(hist, var, period, event_date):
+def _compute_awcr(hist, period, event_date):
     """compute acute chronic workload ration for all the variables
         acwr is defined as acute/chronic where
         acute = sum(workload) for current period
@@ -494,19 +494,21 @@ def _compute_awcr(hist, var, period, event_date):
     acute_data = hist.loc[(hist.eventDate >= str(acute_period_start)) &\
                           (hist.eventDate <= str(acute_period_end))]
     acute = acute_data.sum()
+    acute.totalAccel = acute.totalAccel / acute_data.shape[0] * period
+    acute.totalGRF = acute.totalGRF / acute_data.shape[0] * period
 
     # subset chronic data and compute chronic value
     chronic_data = hist.loc[(hist.eventDate >= str(chronic_period_start)) &\
                              (hist.eventDate <= str(chronic_period_end))]
-
-    # rolling sum on period (0 for missing days)
-    rolling_sum = chronic_data.rolling(period, min_periods=1).sum()
-    chronic = rolling_sum.mean()
+    chronic = chronic_data.sum()
+    chronic.totalAccel = chronic.totalAccel / chronic_data.shape[0] * period
+    chronic.totalGRF = chronic.totalGRF / chronic_data.shape[0] * period
+    del acute['eventDate']
+    del chronic['eventDate']
 
     acwr = acute/chronic
 
     return acwr
-
 
 
 if __name__ == '__main__':
