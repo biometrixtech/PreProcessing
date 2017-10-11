@@ -163,6 +163,7 @@ if __name__ == '__main__':
             send_success(meta_data, {})
 
         elif script == 'noop':
+            print('Noop job')
             # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
             send_success(meta_data, {})
 
@@ -223,7 +224,7 @@ if __name__ == '__main__':
             send_success(meta_data, {})
 
         elif script == 'aggregatedateuser':
-            print('Computing date aggregations')
+            print('Computing date-user aggregations')
             load_parameters([
                 'MONGO_HOST_SESSION',
                 'MONGO_USER_SESSION',
@@ -241,7 +242,7 @@ if __name__ == '__main__':
             send_success(meta_data, {})
 
         elif script == 'aggregateprogcomp':
-            print('Computing date aggregations')
+            print('Computing program composition aggregations')
             load_parameters([
                 'MONGO_HOST_SESSION',
                 'MONGO_USER_SESSION',
@@ -258,7 +259,7 @@ if __name__ == '__main__':
             send_success(meta_data, {})
 
         elif script == 'aggregateprogcompdate':
-            print('Computing date aggregations')
+            print('Computing program composition date aggregations')
             load_parameters([
                 'MONGO_HOST_SESSION',
                 'MONGO_USER_SESSION',
