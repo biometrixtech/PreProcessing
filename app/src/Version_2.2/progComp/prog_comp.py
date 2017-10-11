@@ -53,12 +53,12 @@ def script_handler(working_directory, input_data):
 
         mongo_collection = mongo_database[config.MONGO_COLLECTION]
 
-       tmp_filename = '/tmp/readfile'
-       copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)
-       logger.info("Copied data file to local FS")
-       data = pandas.read_csv(tmp_filename)
-       os.remove(tmp_filename)
-       logger.info("Removed temporary file")
+        tmp_filename = '/tmp/readfile'
+        copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)
+        logger.info("Copied data file to local FS")
+        data = pandas.read_csv(tmp_filename)
+        os.remove(tmp_filename)
+        logger.info("Removed temporary file")
 
         # rename columns to match mongo
         data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed', 'sessionDuration',

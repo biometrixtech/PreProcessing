@@ -187,32 +187,6 @@ if __name__ == '__main__':
 
             send_success(meta_data, {"Filenames": file_names})
 
-        elif script == 'writemongo':
-            print('Uploading to mongodb database')
-            sensor_data_filename = input_data.get('SensorDataFilename')
-            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
-            load_parameters([
-                'MONGO1_HOST',
-                'MONGO1_USER',
-                'MONGO1_PASSWORD',
-                'MONGO1_DATABASE',
-                'MONGO1_COLLECTION',
-                'MONGO1_REPLICASET',
-                'MONGO2_HOST',
-                'MONGO2_USER',
-                'MONGO2_PASSWORD',
-                'MONGO2_DATABASE',
-                'MONGO2_COLLECTION',
-                'MONGO2_REPLICASET',
-            ])
-            from writemongo import writemongo
-            writemongo.script_handler(
-                working_directory,
-                input_data['Filename'],
-                input_data
-            )
-            send_success(meta_data, {})
-
         elif script == 'aggregatesession':
             print('Computing session aggregations')
             load_parameters([
@@ -232,8 +206,6 @@ if __name__ == '__main__':
 
         elif script == 'aggregatetwomin':
             print('Computing two minute aggregations')
-            sensor_data_filename = input_data.get('SensorDataFilename')
-            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
             load_parameters([
                 'MONGO_HOST_TWOMIN',
                 'MONGO_USER_TWOMIN',
@@ -252,8 +224,6 @@ if __name__ == '__main__':
 
         elif script == 'aggregatedateuser':
             print('Computing date aggregations')
-            sensor_data_filename = input_data.get('SensorDataFilename')
-            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
             load_parameters([
                 'MONGO_HOST_SESSION',
                 'MONGO_USER_SESSION',
@@ -270,6 +240,41 @@ if __name__ == '__main__':
             )
             send_success(meta_data, {})
 
+        elif script == 'aggregateprogcomp':
+            print('Computing date aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_PROGCOMP',
+            ])
+            from progComp import prog_comp
+
+            prog_comp.script_handler(
+                input_data
+            )
+            send_success(meta_data, {})
+
+        elif script == 'aggregateprogcompdate':
+            print('Computing date aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_PROGCOMP',
+                'MONGO_COLLECTION_PROGCOMPDATE',
+            ])
+            from progCompDate import prog_comp_date
+
+            prog_comp_date.script_handler(
+                input_data
+            )
+            send_success(meta_data, {})
+
         elif script == 'cleanup':
             print('Cleaning up intermediate files')
             from cleanup import cleanup
@@ -277,6 +282,9 @@ if __name__ == '__main__':
                 working_directory
             )
             send_success(meta_data, {})
+
+        else:
+            raise Exception("Unknown batchjob '{}'".format(script))
 
     except Exception as e:
         print(e)
