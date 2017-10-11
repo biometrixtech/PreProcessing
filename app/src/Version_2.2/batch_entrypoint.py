@@ -254,6 +254,7 @@ if __name__ == '__main__':
             from progComp import prog_comp
 
             prog_comp.script_handler(
+                working_directory,
                 input_data
             )
             send_success(meta_data, {})
