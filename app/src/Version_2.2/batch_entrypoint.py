@@ -277,6 +277,32 @@ if __name__ == '__main__':
             )
             send_success(meta_data, {})
 
+        elif script == 'aggregateteam':
+            print('Computing team aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_DATE',
+                'MONGO_COLLECTION_DATETEAM',
+                'MONGO_COLLECTION_PROGCOMPDATE',
+                'MONGO_HOST_TWOMIN',
+                'MONGO_USER_TWOMIN',
+                'MONGO_PASSWORD_TWOMIN',
+                'MONGO_DATABASE_TWOMIN',
+                'MONGO_REPLICASET_TWOMIN',
+                'MONGO_COLLECTION_TWOMIN',
+                'MONGO_COLLECTION_TWOMINTEAM',
+            ])
+            from teamAgg import agg_team
+
+            agg_team.script_handler(
+                input_data
+            )
+            send_success(meta_data, {})
+
         elif script == 'cleanup':
             print('Cleaning up intermediate files')
             from cleanup import cleanup
