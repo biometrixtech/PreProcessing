@@ -303,6 +303,32 @@ if __name__ == '__main__':
             )
             send_success(meta_data, {})
 
+        elif script == 'aggregatetraininggroup':
+            print('Computing training group aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_DATE',
+                'MONGO_COLLECTION_DATETG',
+                'MONGO_COLLECTION_PROGCOMP',
+                'MONGO_HOST_TWOMIN',
+                'MONGO_USER_TWOMIN',
+                'MONGO_PASSWORD_TWOMIN',
+                'MONGO_DATABASE_TWOMIN',
+                'MONGO_REPLICASET_TWOMIN',
+                'MONGO_COLLECTION_TWOMIN',
+                'MONGO_COLLECTION_TWOMINTG',
+            ])
+            from TGAgg import agg_tg
+
+            agg_tg.script_handler(
+                input_data
+            )
+            send_success(meta_data, {})
+
         elif script == 'cleanup':
             print('Cleaning up intermediate files')
             from cleanup import cleanup
