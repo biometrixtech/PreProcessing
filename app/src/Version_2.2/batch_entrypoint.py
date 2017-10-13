@@ -21,6 +21,14 @@ def send_success(meta, output):
                 "Output": output
             })
         )
+    if 'LinearityGroup' in meta:
+        sqs_client = boto3.client('sqs')
+        response = sqs_client.delete_message(
+            QueueUrl=meta['LinearityGroup']['QueueUrl'],
+            ReceiptHandle=meta['LinearityGroup']['ReceiptHandle']
+        )
+        print(response)
+
     if 'Profiling' in meta:
         meta['Profiling']['EndTime'] = time.time()
         put_cloudwatch_metric(
@@ -119,6 +127,8 @@ if __name__ == '__main__':
         script = sys.argv[1]
         input_data = json.loads(sys.argv[2])
         meta_data = json.loads(sys.argv[3])
+
+        print(meta_data)
 
         if 'Profiling' in meta_data:
             meta_data['Profiling']['StartTime'] = time.time()
