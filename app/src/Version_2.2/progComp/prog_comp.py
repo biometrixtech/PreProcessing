@@ -111,8 +111,8 @@ def script_handler(working_directory, input_data):
         agg_vars = ['total', 'constructive', 'destructive', 'totalAccel', 'msElapsed']
 
         # replace nans with None
-        data = data.where((pandas.notnull(data)), None)
-        logger.info("Filtered out null values")
+        # data = data.where((pandas.notnull(data)), None)
+        # logger.info("Filtered out null values")
         total_ind = numpy.array([k != 3 for k in data.phaseLF])
         data['total'] = data['total'].fillna(value=numpy.nan) * total_ind
 

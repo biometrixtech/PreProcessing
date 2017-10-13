@@ -90,8 +90,8 @@ def script_handler(working_directory, file_name, input_data):
         event_date = date_time.date()
 
         # replace nans with None
-        data = data.where((pandas.notnull(data)), None)
-        print("Filtered out null values")
+        # data = data.where((pandas.notnull(data)), None)
+        # print("Filtered out null values")
 
         # resample data into 2m groups and extract start and end time for each
         # each object in mongo is a group of 30s of data
