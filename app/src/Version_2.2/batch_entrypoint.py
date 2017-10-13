@@ -41,6 +41,15 @@ def send_failure(meta, exception):
         )
 
 
+def send_heartbeat(meta):
+    task_token = meta.get('TaskTokenFailure', meta.get('TaskToken', None))
+    if task_token is not None:
+        sfn_client = boto3.client('stepfunctions')
+        sfn_client.send_task_heartbeat(
+            taskToken=task_token,
+        )
+
+
 def chunk_list(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
@@ -314,6 +323,7 @@ if __name__ == '__main__':
                 'MONGO_COLLECTION_DATE',
                 'MONGO_COLLECTION_DATETG',
                 'MONGO_COLLECTION_PROGCOMP',
+                'MONGO_COLLECTION_PROGCOMPDATE',
                 'MONGO_HOST_TWOMIN',
                 'MONGO_USER_TWOMIN',
                 'MONGO_PASSWORD_TWOMIN',
