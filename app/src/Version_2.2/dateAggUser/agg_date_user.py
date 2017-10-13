@@ -71,54 +71,26 @@ def script_handler(input_data):
 
         # grab maximum required historical data
         hist_records = _get_hist_data(mongo_collection_date, user_id,
-                                      event_date, period=10)
+                                      event_date, period=7)
 
         current = pandas.DataFrame({'eventDate': event_date,
                                     'totalAccel': current_day['totalAccel'],
                                     'totalGRF': current_day['totalGRF']},
                                    index=[str(datetime.strptime(event_date, '%Y-%m-%d').date())])
 
-        # create a pandas dataframe with entry for every day in the history
-        event_date_dt = datetime.strptime(event_date, '%Y-%m-%d').date()
-        total_days = 40
-        # initialize empty dataframe with 40 rows (maximum history)
-        index = pandas.date_range(event_date_dt-timedelta(total_days),
-                                  periods=total_days, freq='D').date.astype(str)
-
-        columns = ['eventDate', 'totalGRF', 'totalAccel']
-        hist_data = pandas.DataFrame(index=index, columns=columns)
-        hist_data.eventDate = index
-        # hist_data = hist_data.fillna(0)
         if len(hist_records) != 0:
-            # If data is present, for any of the previous 40 days, insert that to data frame
+            # convert historical data into pandas dataframe and add current day
             # convert read data into pandas dataframe and remove duplicates and sort
-            # TODO: removing duplicates should be unnecessary as data should already be unique in mongo
+            # TODO: removing dups should be unnecessary as data should already be unique in mongo
             hist = pandas.DataFrame(hist_records)
             hist.drop_duplicates(subset='eventDate', keep='first', inplace=True)
             hist.sort_values(by='eventDate', inplace=True)
             hist.reset_index(drop=True, inplace=True)
 
-            # for days with available data in mongo, insert the actual data
-            count = 0
-            for i in hist.eventDate:
-                i = str(datetime.strptime(i, '%Y-%m-%d').date())
-                if count == 0:
-                    # assign nan to every data before the first date data is available for
-                    hist_data.loc[hist_data.eventDate < i, 'totalGRF'] = numpy.nan
-                    hist_data.loc[hist_data.eventDate < i, 'totalAccel'] = numpy.nan
-
-                count += 1
-                subset = hist.loc[hist.eventDate == i, :]
-                hist_data.loc[hist_data.eventDate == i, 'eventDate'] = subset['eventDate'].values[0]
-                hist_data.loc[hist_data.eventDate == i, 'totalGRF'] = subset['totalGRF'].values[0]
-                hist_data.loc[hist_data.eventDate == i, 'totalAccel'] = subset['totalAccel'].values[0]
-            # append current day's data to the end
-            hist_data = hist_data.append(current)
+            hist = hist.append(current)
+            hist.index = hist.eventDate
         else:
-            # if no hist data available, mark as nan and append current day
-            hist_data.totalGRF = numpy.nan
-            hist_data.totalAccel = numpy.nan
-            hist_data = hist_data.append(current)
+            hist = current
 
         # create ordered dictionary object
         # current variables
@@ -179,7 +151,7 @@ def script_handler(input_data):
 
         # ACWR
         i = 7
-        acwr = _compute_awcr(hist_data, i, event_date)
+        acwr = _compute_awcr(hist, i, event_date)
         record_out['ACWRGRF' + str(i)] = acwr.totalGRF
         record_out['ACWRTotalAccel' + str(i)] = acwr.totalAccel
         query = {'userId': user_id, 'eventDate': event_date}
@@ -327,13 +299,19 @@ def _compute_awcr(hist, period, event_date):
     # subset chronic data and compute chronic value
     chronic_data = hist.loc[(hist.eventDate >= str(chronic_period_start)) &\
                              (hist.eventDate <= str(chronic_period_end))]
-    chronic = chronic_data.sum()
-    chronic.totalAccel = chronic.totalAccel / chronic_data.shape[0] * period
-    chronic.totalGRF = chronic.totalGRF / chronic_data.shape[0] * period
-    del acute['eventDate']
-    del chronic['eventDate']
+    data_start_date = datetime.strptime(chronic_data.eventDate[0], '%Y-%m-%d').date()
+    diff = chronic_period_end - data_start_date
+    if diff.days >= 10 and chronic_data.shape[0] >= 4:
+        chronic = chronic_data.sum()
+        chronic.totalAccel = chronic.totalAccel / chronic_data.shape[0] * period
+        chronic.totalGRF = chronic.totalGRF / chronic_data.shape[0] * period
+        del acute['eventDate']
+        del chronic['eventDate']
 
-    acwr = acute/chronic
+        acwr = acute/chronic
+    else:
+        acwr = pandas.Series({'totalAccel': None,
+                              'totalGRF': None})
 
     return acwr
 
