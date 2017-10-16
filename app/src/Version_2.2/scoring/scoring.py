@@ -63,30 +63,22 @@ def score(data, user_hist, grf_scale):
     #divide each feature value by (totalAccel*mechStress) to control
     #for these performance variables
     # TODO (Dipesh) need to find better control
-#    scale = mS_norm*tA
     scale = np.sqrt(tA_norm*mS_norm)
     hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(scale)
     hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(scale)
-#    hR = np.array(data.hip_rot).reshape(-1, )/(mS*tA)
     aRL = np.array(data.ankle_rot_lf).reshape(-1, )/(scale)
     aRR = np.array(data.ankle_rot_rf).reshape(-1, )/(scale)
     lPL = np.array(data.land_pattern_lf).reshape(-1, )/(scale)
     lPR = np.array(data.land_pattern_rf).reshape(-1, )/(scale)
     lT = np.array(data.land_time).reshape(-1, )/(scale)
-    fPL = np.array(data.foot_position_lf).reshape(-1,)/(scale)
-    fPR = np.array(data.foot_position_rf).reshape(-1,)/(scale)
 
     control = np.array(data.control).reshape(-1, )
     #Create mapping functions for consistency using historical user data
-    fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT,\
-                                fn_fPL, fn_fPR = _create_distribution(user_hist)
+    fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT = _create_distribution(user_hist)
     logger.info("Distributions for consistency created")
     consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry =\
-                                                   _ankle(aRL, aRR, lPL, lPR,
-                                                          lT, fPL, fPR,
-                                                          fn_aRL, fn_aRR,
-                                                          fn_lPL, fn_lPR, fn_lT,
-                                                          fn_fPL, fn_fPR)
+                                                   _ankle(aRL, aRR, lPL, lPR, lT,
+                                                          fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT)
     logger.info("Ankle scoring completed")
     hip_consistency, hip_symmetry = _hip(hDL, hDR, fn_hDL, fn_hDR)
     logger.info("Hip scoring completed")
@@ -154,19 +146,15 @@ def _create_distribution(data):
     err = np.zeros(9)
     fn_hDL, err[0] = _con_fun(np.array(data.contra_hip_drop_lf/(scale)))
     fn_hDR, err[1] = _con_fun(np.array(data.contra_hip_drop_rf/(scale)))
-#    fn_hR = _con_fun(np.array(data.hip_rot/(tA*mS)))
     fn_aRL, err[2] = _con_fun(np.array(data.ankle_rot_lf/(scale)), True)
     fn_aRR, err[3] = _con_fun(np.array(data.ankle_rot_rf/(scale)), True)
     fn_lPL, err[4] = _con_fun(np.array(data.land_pattern_lf/(scale)))
     fn_lPR, err[5] = _con_fun(np.array(data.land_pattern_rf/(scale)))
     fn_lT, err[6] = _con_fun(np.array(data.land_time/(scale)))
-    fn_fPL, err[7] = _con_fun(np.array(data.foot_position_lf/(scale)))
-    fn_fPR, err[8] = _con_fun(np.array(data.foot_position_rf/(scale)))
-#    fn_lTR = _con_fun(np.array(data.land_time_r/(tA*mS)))
-    if np.sum(err) >= 5:
-        raise NotEnoughCMEValuesException("{} CMEs have no values. Can have at most 4!".format(int(np.sum(err))))
+    if np.sum(err) >= 4:
+        raise NotEnoughCMEValuesException("{} CMEs have no values. Can have at most 3!".format(int(np.sum(err))))
 
-    return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT, fn_fPL, fn_fPR
+    return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT
 
 
 def _con_fun(dist, double=False):
@@ -244,8 +232,7 @@ def _con_fun(dist, double=False):
     return fn, error
 
 
-def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
-           fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT, fn_fPL, fn_fPR):
+def _ankle(aRL, aRR, lPL, lPR, lT, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT):
     """Calculates consistency and symmetry score for each ankle features and
     averages the score for each ankle.
     Args:
@@ -253,7 +240,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         aRR : ankle_rot_r
         lPL : land_pattern_l
         lPR : land_pattern_r
-        lTL : land_time
+        lT : land_time
         fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT : mapping functions
     Returns:
         consistency_lf: consistency averaged over left ankle features
@@ -268,20 +255,17 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
     score_lPL = fn_lPL(lPL)
     score_lPR = fn_lPR(lPR)
 
-    score_fPL = fn_fPL(fPL)
-    score_fPR = fn_fPR(fPR)
-
     score_lT = fn_lT(lT)
 
     #Combine scores for left ankle
-    cons_scores_l = np.vstack([score_aRL, score_lPL, score_fPL])
+    cons_scores_l = np.vstack([score_aRL, score_lPL])
     #interpolation function is set to extrapolate which might
     #result in negative scores.
     cons_scores_l[cons_scores_l > 100] = 100 #set scores higher than 100 to 100
     cons_scores_l[cons_scores_l <= 0] = 0 #set negative scores to 0
 
     #Combine score for right ankle
-    cons_scores_r = np.vstack([score_aRR, score_lPR, score_fPR])
+    cons_scores_r = np.vstack([score_aRR, score_lPR])
     cons_scores_r[cons_scores_r > 100] = 100
     cons_scores_r[cons_scores_r <= 0] = 0
 
@@ -310,20 +294,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         ankle_rot_score[ankle_rot_score > 100] = 100
         ankle_rot_score[ankle_rot_score <= 0] = 0
     logger.info("ankle rotation symmetry complete")
-    ##Symmetry for foot position
-    if all(np.isnan(fPL)) or all(np.isnan(fPR)):
-        foot_pos_score = np.zeros(len(fPL))*np.nan
-    elif len(fPL[np.isfinite(fPL)]) < 5 or len(fPR[np.isfinite(fPR)]) < 5:
-        foot_pos_score = np.zeros(len(fPL))*np.nan
-    else:
-        l_fn_pos, r_fn_pos = _symmetry_score(fPL, fPR)
-        score_pos_l = l_fn_pos(fPL)
-        score_pos_r = r_fn_pos(fPR)
-        scores_pos = np.vstack([score_pos_l, score_pos_r])
-        foot_pos_score = np.nanmean(scores_pos, 0)
-        foot_pos_score[foot_pos_score > 100] = 100
-        foot_pos_score[foot_pos_score <= 0] = 0
-    logger.info("foot position symmetry complete")
+
     # Symmetry score for landing pattern
     if all(np.isnan(lPL)) or all(np.isnan(lPR)):
         ankle_pat_score = np.zeros(len(lPL))*np.nan
@@ -362,8 +333,7 @@ def _ankle(aRL, aRR, lPL, lPR, lT, fPL, fPR,
         ankle_tim_score[ankle_tim_score <= 0] = 0
     logger.info("landing time symmetry complete")
     # Aggregate symmetry scores for all four movement features
-    ankle_scores = np.vstack([ankle_rot_score, foot_pos_score,
-                              ankle_pat_score, ankle_tim_score])
+    ankle_scores = np.vstack([ankle_rot_score, ankle_pat_score, ankle_tim_score])
     ankle_symmetry = np.nanmean(ankle_scores, 0)
 
     return consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry
@@ -374,8 +344,7 @@ def _hip(hDL, hDR, fn_hDL, fn_hDR):
     Args:
         hDL : hip_drop_l
         hDR : hip_drop_r
-        hR : hip_rot
-        fn_hDL,fn_hDR,fn_hR : mapping functions for hDL, hDR and hR
+        fn_hDL,fn_hDR: mapping functions for hDL, hDR
     Returns:
         hip_consistency: consistency averaged over all hip features (num 0-100)
         hip_symmetry: symmetry averaged over all hip features (num 0-100)
@@ -383,7 +352,6 @@ def _hip(hDL, hDR, fn_hDL, fn_hDR):
     #Call individual interpolation function for each feature
     con_score_hDL = fn_hDL(hDL)
     con_score_hDR = fn_hDR(hDR)
-#    con_score_hR = fn_hR(hR)
 
     con_scores = np.vstack([con_score_hDL, con_score_hDR])
     #interpolation function is set to extrapolate which might result in
@@ -435,8 +403,6 @@ def _symmetry_score(dist_l, dist_r):
     #using constant for now
     band_left = 1.06*np.std(dist_l1)*(len(dist_l1))**(-.2)
     band_right = 1.06*np.std(dist_r1)*(len(dist_r1))**(-.2)
-#    band_left = .05
-#    band_right = .05
     kernel_density_l = kde(kernel='gaussian', bandwidth=band_left, rtol=1E-3,
                            atol=1E-3).fit(dist_l1)
     kernel_density_r = kde(kernel='gaussian', bandwidth=band_right, rtol=1E-3,
