@@ -27,13 +27,13 @@ from exceptions import NoHistoricalDataException
 logger = logging.getLogger()
 
 
-def run_scoring(sensor_data, historical_data, file_name, data, config):
+def run_scoring(sensor_data, historical_data, data, output_filename):
     """Creates object attributes according to block analysis process.
 
     Args:
         sensor_data: File handle / StringIO
-        file_name
-        config: Config object
+        :param historical_data:
+        output_filename: Full filepath
 
     Returns:
         result: string signifying success or failure.
@@ -98,7 +98,7 @@ def run_scoring(sensor_data, historical_data, file_name, data, config):
     sdata['ankle_symmetry_r'] = np.nan
 
     # Output data
-    fileobj = open(config.FP_OUTPUT + '/' + file_name, 'wb')
+    fileobj = open(output_filename, 'wb')
     sdata.to_csv(fileobj, index=False, na_rep='', columns=cols.column_scoring_out)
     _logger("DONE WRITING OUTPUT FILE")
 

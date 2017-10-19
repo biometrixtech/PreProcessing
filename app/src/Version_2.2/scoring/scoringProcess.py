@@ -16,14 +16,10 @@ logger.info('Loading sessionProcess')
 Config = namedtuple('Config', [
     'AWS',
     'ENVIRONMENT',
-    'FP_INPUT',
-    'FP_OUTPUT',
-    'FP_SCORINGHIST',
-    'S3_BUCKET_HISTORY',
 ])
 
 
-def script_handler(filenames, data):
+def script_handler(working_directory, filenames, data):
 
     logger.info('Received scoring request for {}'.format(", ".join(filenames)))
 
@@ -31,16 +27,9 @@ def script_handler(filenames, data):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/scoring/input',
-            FP_OUTPUT='/net/efs/scoring/output',
-            FP_SCORINGHIST='/net/efs/scoringhist',
-            S3_BUCKET_HISTORY='biometrix-scoringhist'
         )
 
-        # Get the base filename
-        file_name = filenames[0].split('_')[0]
-
-        current_stream = cat_csv_files([os.path.join(config.FP_INPUT, f) for f in sorted(filenames)])
+        current_stream = cat_csv_files([os.path.join(working_directory, 'sessionprocess2', f) for f in sorted(filenames)])
 
         historical_filenames = data.get('HistoricalFiles', [])
         if not isinstance(historical_filenames, list) or len(historical_filenames) == 0:
@@ -48,12 +37,18 @@ def script_handler(filenames, data):
             historical_filenames = []
 
         historical_stream = cat_csv_files(
-            [os.path.join(config.FP_INPUT, f) for f in filenames] +
-            [os.path.join(config.FP_OUTPUT, f) for f in historical_filenames]
+            [os.path.join(working_directory, 'sessionprocess2', f) for f in filenames] +
+            # FIXME this filepath is broken
+            [os.path.join('/net/efs/preprocessing', f, 'sessionprocess2', f) for f in historical_filenames]
         )
 
-        boundaries = runScoring.run_scoring(current_stream, historical_stream, file_name, data, config=config)
-        return file_name, boundaries
+        boundaries = runScoring.run_scoring(
+            current_stream,
+            historical_stream,
+            data,
+            os.path.join(working_directory, 'scoring')
+        )
+        return boundaries
 
     except Exception as e:
         logger.info(e)
