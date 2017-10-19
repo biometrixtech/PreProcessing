@@ -267,11 +267,12 @@ def _fatigue_analysis(data, var):
     """
     data.set_index(pandas.to_datetime(data.epochTime, unit='ms'), drop=False, inplace=True)
     groups = data.resample('2T')
-    series = groups[var].mean()
+    series = groups[var].mean() * 100
     series = numpy.array(series)
     series = series[~numpy.isnan(series)]
     coefficients = numpy.polyfit(range(len(series)), series, 1)
-    return coefficients[0]*100
+    fatigue = coefficients[0] * len(series)
+    return fatigue
 
 
 if __name__ == '__main__':

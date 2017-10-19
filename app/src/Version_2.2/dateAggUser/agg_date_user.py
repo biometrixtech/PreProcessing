@@ -71,11 +71,11 @@ def script_handler(input_data):
 
         # grab maximum required historical data
         hist_records = _get_hist_data(mongo_collection_date, user_id,
-                                      event_date, period=7)
+                                      event_date, session_type, period=7)
 
         current = pandas.DataFrame({'eventDate': event_date,
-                                    'totalAccel': current_day['totalAccel'],
-                                    'totalGRF': current_day['totalGRF']},
+                                    'totalGRF': current_day['totalGRF'],
+                                    'totalAccel': current_day['totalAccel']},
                                    index=[str(datetime.strptime(event_date, '%Y-%m-%d').date())])
 
         if len(hist_records) != 0:
@@ -253,7 +253,7 @@ def _get_session_data(collection, user_id, event_date, session_type):
     return docs[0]
 
 
-def _get_hist_data(collection, user_id, event_date, period):
+def _get_hist_data(collection, user_id, event_date, session_type, period):
     """
     Get max historical data for acwr computation
     currently only returning totalGRF and totalAccel
@@ -264,9 +264,9 @@ def _get_hist_data(collection, user_id, event_date, period):
     start_date = str(event_date_dt - timedelta(days=total_days))
     # get history excluding current day
     docs = list(collection.find({'userId': {'$eq': user_id},
+                                 'sessionType': {'$eq': session_type},
                                  'eventDate': {'$gte': start_date, '$lt': event_date}},
-                                {'userId': 1,
-                                 'eventDate': 1,
+                                {'eventDate': 1,
                                  'totalGRF': 1,
                                  'totalAccel': 1,
                                  '_id': 0}))
