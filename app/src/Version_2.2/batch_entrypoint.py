@@ -21,6 +21,14 @@ def send_success(meta, output):
                 "Output": output
             })
         )
+    if 'LinearityGroup' in meta:
+        sqs_client = boto3.client('sqs')
+        response = sqs_client.delete_message(
+            QueueUrl=meta['LinearityGroup']['QueueUrl'],
+            ReceiptHandle=meta['LinearityGroup']['ReceiptHandle']
+        )
+        print(response)
+
     if 'Profiling' in meta:
         meta['Profiling']['EndTime'] = time.time()
         put_cloudwatch_metric(
@@ -38,6 +46,15 @@ def send_failure(meta, exception):
             taskToken=task_token,
             error=type(exception).__name__,
             cause=traceback.format_exc()
+        )
+
+
+def send_heartbeat(meta):
+    task_token = meta.get('TaskTokenFailure', meta.get('TaskToken', None))
+    if task_token is not None:
+        sfn_client = boto3.client('stepfunctions')
+        sfn_client.send_task_heartbeat(
+            taskToken=task_token,
         )
 
 
@@ -163,6 +180,7 @@ if __name__ == '__main__':
             send_success(meta_data, {})
 
         elif script == 'noop':
+            print('Noop job')
             # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
             send_success(meta_data, {})
 
@@ -187,28 +205,144 @@ if __name__ == '__main__':
 
             send_success(meta_data, {"Filenames": file_names})
 
-        elif script == 'writemongo':
-            print('Uploading to mongodb database')
-            sensor_data_filename = input_data.get('SensorDataFilename')
-            working_directory = os.path.join('/net/efs/preprocessing/{}'.format(sensor_data_filename))
+        elif script == 'aggregatesession':
+            print('Computing session aggregations')
             load_parameters([
-                'MONGO1_HOST',
-                'MONGO1_USER',
-                'MONGO1_PASSWORD',
-                'MONGO1_DATABASE',
-                'MONGO1_COLLECTION',
-                'MONGO1_REPLICASET',
-                'MONGO2_HOST',
-                'MONGO2_USER',
-                'MONGO2_PASSWORD',
-                'MONGO2_DATABASE',
-                'MONGO2_COLLECTION',
-                'MONGO2_REPLICASET',
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_COLLECTION_SESSION',
+                'MONGO_REPLICASET_SESSION',
             ])
-            from writemongo import writemongo
-            writemongo.script_handler(
+            from sessionAgg import agg_session
+            agg_session.script_handler(
                 working_directory,
-                input_data['Filename'],
+                input_data
+            )
+            send_success(meta_data, {})
+
+        elif script == 'aggregatetwomin':
+            print('Computing two minute aggregations')
+            load_parameters([
+                'MONGO_HOST_TWOMIN',
+                'MONGO_USER_TWOMIN',
+                'MONGO_PASSWORD_TWOMIN',
+                'MONGO_DATABASE_TWOMIN',
+                'MONGO_COLLECTION_TWOMIN',
+                'MONGO_REPLICASET_TWOMIN',
+            ])
+            from twoMinuteAgg import agg_twomin
+            agg_twomin.script_handler(
+                working_directory,
+                input_data.get('Filename', None),
+                input_data
+            )
+            send_success(meta_data, {})
+
+        elif script == 'aggregatedateuser':
+            print('Computing date-user aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_SESSION',
+                'MONGO_COLLECTION_DATE',
+            ])
+            from dateAggUser import agg_date_user
+
+            agg_date_user.script_handler(
+                input_data
+            )
+            send_success(meta_data, {})
+
+        elif script == 'aggregateprogcomp':
+            print('Computing program composition aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_PROGCOMP',
+            ])
+            from progComp import prog_comp
+
+            prog_comp.script_handler(
+                working_directory,
+                input_data
+            )
+            send_success(meta_data, {})
+
+        elif script == 'aggregateprogcompdate':
+            print('Computing program composition date aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_PROGCOMP',
+                'MONGO_COLLECTION_PROGCOMPDATE',
+            ])
+            from progCompDate import prog_comp_date
+
+            prog_comp_date.script_handler(
+                input_data
+            )
+            send_success(meta_data, {})
+
+        elif script == 'aggregateteam':
+            print('Computing team aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_DATE',
+                'MONGO_COLLECTION_DATETEAM',
+                'MONGO_COLLECTION_PROGCOMPDATE',
+                'MONGO_HOST_TWOMIN',
+                'MONGO_USER_TWOMIN',
+                'MONGO_PASSWORD_TWOMIN',
+                'MONGO_DATABASE_TWOMIN',
+                'MONGO_REPLICASET_TWOMIN',
+                'MONGO_COLLECTION_TWOMIN',
+                'MONGO_COLLECTION_TWOMINTEAM',
+            ])
+            from teamAgg import agg_team
+
+            agg_team.script_handler(
+                input_data
+            )
+            send_success(meta_data, {})
+
+        elif script == 'aggregatetraininggroup':
+            print('Computing training group aggregations')
+            load_parameters([
+                'MONGO_HOST_SESSION',
+                'MONGO_USER_SESSION',
+                'MONGO_PASSWORD_SESSION',
+                'MONGO_DATABASE_SESSION',
+                'MONGO_REPLICASET_SESSION',
+                'MONGO_COLLECTION_DATE',
+                'MONGO_COLLECTION_DATETG',
+                'MONGO_COLLECTION_PROGCOMP',
+                'MONGO_COLLECTION_PROGCOMPDATE',
+                'MONGO_HOST_TWOMIN',
+                'MONGO_USER_TWOMIN',
+                'MONGO_PASSWORD_TWOMIN',
+                'MONGO_DATABASE_TWOMIN',
+                'MONGO_REPLICASET_TWOMIN',
+                'MONGO_COLLECTION_TWOMIN',
+                'MONGO_COLLECTION_TWOMINTG',
+            ])
+            from TGAgg import agg_tg
+
+            agg_tg.script_handler(
                 input_data
             )
             send_success(meta_data, {})
@@ -220,6 +354,9 @@ if __name__ == '__main__':
                 working_directory
             )
             send_success(meta_data, {})
+
+        else:
+            raise Exception("Unknown batchjob '{}'".format(script))
 
     except Exception as e:
         print(e)

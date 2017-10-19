@@ -31,7 +31,11 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
     # Divide file into chunks
     tmp_chunk_dir = os.path.join('/tmp', input_filename)
     if isinstance(chunk_size, list):
-        subprocess.call(['csplit', '-f', tmp_chunk_dir, '-b', '_%02d', body_filename] + [str(l) for l in chunk_size])
+        if len(chunk_size) == 0:
+            # Special case the scenario where we have no boundaries, and hence only expect one output file
+            subprocess.call(['cp', body_filename, tmp_chunk_dir + '_00'])
+        else:
+            subprocess.call(['csplit', '-f', tmp_chunk_dir, '-b', '_%02d', body_filename] + [str(l) for l in chunk_size])
     else:
         subprocess.call([
             'split',

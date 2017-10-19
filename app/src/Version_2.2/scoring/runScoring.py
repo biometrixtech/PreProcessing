@@ -104,7 +104,7 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
 
     # Calculate 15 minute cutoff points
     sdata.set_index(pd.to_datetime(sdata.epoch_time, unit='ms'), drop=False, inplace=True)
-    groups = sdata.resample('15T')
+    groups = sdata.resample('16T')
     data_end = groups.time_stamp.max()
     # Off-by-two error occurs (probably one for the column headers, and one for splitting before/after a line?).  We also
     # have to ignore the last split, which will end up out-of-range

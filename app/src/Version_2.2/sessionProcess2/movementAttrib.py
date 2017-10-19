@@ -123,11 +123,11 @@ def plane_analysis(hip_acc, hip_eul, ms_elapsed):
     rot = rot.reshape(-1, 1)
 
     # Characterize proportion of motion of each type
-    motion_proportion = hip_acc/accel_mag
+    motion_proportion = np.abs(hip_acc**2/accel_mag**2)
     del hip_acc  # not used in further computations
     lat = motion_proportion[:, 0].reshape(-1, 1)
-    vert = motion_proportion[:, 1].reshape(-1, 1)
-    horz = motion_proportion[:, 2].reshape(-1, 1)
+    horz = motion_proportion[:, 1].reshape(-1, 1)
+    vert = motion_proportion[:, 2].reshape(-1, 1)
     del motion_proportion  # not used in further computations
 
     # give binaries value according to instantaneous percentages of each
