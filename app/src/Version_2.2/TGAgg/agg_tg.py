@@ -446,7 +446,7 @@ def _get_hist_data(collection, tg_id, event_date, session_type, period):
     start_date = str(event_date_dt - timedelta(days=total_days))
     # get history excluding current day
     docs = list(collection.find({'trainingGroups': {'$eq': tg_id},
-                                 'sessionType': {'eq': session_type}
+                                 'sessionType': {'eq': session_type},
                                  'eventDate': {'$gte': start_date, '$lt': event_date}},
                                 {'eventDate': 1,
                                  'totalGRF': 1,
