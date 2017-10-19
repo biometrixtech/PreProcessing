@@ -18,8 +18,8 @@ ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
 
 # Install python dependencies
 COPY cache/pip /root/.cache/pip
-COPY app/src/Version_2.2/pip_requirements .
+COPY app/src/pip_requirements .
 RUN pip install -r pip_requirements
 
 # Copy application code
-COPY ./app/src/Version_2.2 .
+COPY ./app/src .
