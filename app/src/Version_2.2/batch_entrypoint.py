@@ -120,13 +120,19 @@ def mkdir(path):
             raise
 
 
-if __name__ == '__main__':
+def main():
     input_data = meta_data = None
 
     try:
         script = sys.argv[1]
         input_data = json.loads(sys.argv[2])
         meta_data = json.loads(sys.argv[3])
+
+        if script == 'noop':
+            print('Noop job')
+            # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
+            send_success(meta_data, {})
+            exit(0)
 
         if 'Profiling' in meta_data:
             meta_data['Profiling']['StartTime'] = time.time()
@@ -177,11 +183,6 @@ if __name__ == '__main__':
                 input_data.get('Filename', None),
                 input_data
             )
-            send_success(meta_data, {})
-
-        elif script == 'noop':
-            print('Noop job')
-            # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
             send_success(meta_data, {})
 
         elif script == 'scoring':
@@ -370,3 +371,6 @@ def json_serial(obj):
         serial = obj.isoformat()
         return serial
     raise TypeError("Type not serializable")
+
+if __name__ == '__main__':
+    main()
