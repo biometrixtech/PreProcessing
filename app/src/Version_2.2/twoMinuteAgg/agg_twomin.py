@@ -148,6 +148,10 @@ def script_handler(working_directory, file_name, input_data):
             optimal_accumulated_grf += const_grf
             dest_grf = numpy.nansum(data_2m['dest_grf'])
             irregular_accumulated_grf += dest_grf
+            if const_grf == 0:
+                const_grf = 1e-6
+            if dest_grf == 0:
+                dest_grf = 1e-6
             perc_optimal_twomin = const_grf / (const_grf + dest_grf)
             if total_grf == 0:
                 total_grf = 1e-6
