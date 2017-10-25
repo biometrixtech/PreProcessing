@@ -33,7 +33,7 @@ def send_success(meta, output):
         meta['Profiling']['EndTime'] = time.time()
         put_cloudwatch_metric(
             'BatchJobProcessTime',
-            float(meta_data['Profiling']['EndTime']) - float(meta_data['Profiling']['StartTime']),
+            float(meta['Profiling']['EndTime']) - float(meta['Profiling']['StartTime']),
             'Seconds'
         )
 
