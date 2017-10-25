@@ -88,9 +88,10 @@ def script_handler(working_directory, input_data):
         data_out['eventDate'] = input_data.get('EventDate', None)
 
         # Compute the max grf and totalAccel for each .5s window for use in program comp
+        data['totalAccelUnscaled'] = data['totalAccel'] / data['msElapsed'] * 100000
         data['half_sec'] = pandas.DatetimeIndex(pandas.to_datetime(data.epochTime, unit='ms')).round('500ms')
         f = OrderedDict({'total': [numpy.max]})
-        f['totalAccel'] = [numpy.max]
+        f['totalAccelUnscaled'] = [numpy.max]
         
         max_half_sec = data.groupby('half_sec').agg(f)
         max_half_sec.columns = ['totalNormMax', 'totalAccelMax']
@@ -156,7 +157,7 @@ def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         prog_comp_grf['percOptimal'] = prog_comp_grf['constructive'] / prog_comp_grf['total'] * 100
         prog_comp_grf['percIrregular'] = prog_comp_grf['destructive'] / prog_comp_grf['total'] * 100
         prog_comp_grf.columns = prog_comp_columns
-        prog_comp_grf = prog_comp_grf.where((pandas.notnull(prog_comp_grf)), None) 
+        prog_comp_grf = prog_comp_grf.where((pandas.notnull(prog_comp_grf)), None)
         grf = prog_comp_grf.to_dict(orient='records')
         grf_sorted = []
         for data_bin in grf:
