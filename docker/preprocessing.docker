@@ -5,21 +5,37 @@ USER root
 RUN mkdir /net /net/efs
 WORKDIR /opt/biometrix/preprocessing
 
-# Install packages
-RUN apt-get update && apt-get install -y \
-    nfs-common \
-    python-pip \
-  && apt-get clean
-
 # Set up entrypoint
 COPY ./docker/entrypoint.sh .
 RUN chmod a+x /opt/biometrix/preprocessing/entrypoint.sh
 ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
 
-# Install python dependencies
-COPY cache/pip /root/.cache/pip
-COPY app/src/Version_2.2/pip_requirements .
-RUN pip install -r pip_requirements
-
 # Copy application code
 COPY ./app/src/Version_2.2 .
+
+# Install packages
+COPY cache/pip /root/.cache/pip
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nfs-common \
+        python-pip && \
+    apt-get clean && \
+    pip install -r pip_requirements
+
+RUN /usr/bin/yes | pip uninstall pip && \
+    apt-get remove -y \
+        build-essential \
+        cpp-4.9 \
+        gcc-4.9 \
+        git \
+        mysql-common \
+        perl \
+        python-pip \
+        subversion && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf \
+        /root/.cache \
+        /usr/share/man \
+        /usr/share/doc \
+        /usr/share/locale && \
+    find /usr/local/lib/python2.7/ -name "*.py" -type f -delete
