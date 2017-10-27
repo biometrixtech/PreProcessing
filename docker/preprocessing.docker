@@ -1,9 +1,72 @@
-FROM python:2.7
+FROM python:2.7-alpine3.6
 
 # Set up users and directories
 USER root
 RUN mkdir /net /net/efs
 WORKDIR /opt/biometrix/preprocessing
+
+# Install packages
+RUN     apk update && \
+#
+        # For mounting the EFS filesystem
+        apk add --no-cache nfs-utils && \
+#
+        # Build dependencies, will remove later
+        apk add --no-cache --virtual .build-deps \
+            # For general building
+            build-base \
+            # For scipy
+            gfortran \
+            # For numpy
+            lapack-dev \
+            # For psycopg
+            postgresql-dev \
+        && \
+        # For h5py
+        apk add --no-cache --virtual .build-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5-dev && \
+        ln -s /usr/include/locale.h /usr/include/xlocale.h && \
+#
+        # Need to install numpy before scipy
+        pip install -v \
+            numpy==1.12.1 \
+        && \
+        pip install -v \
+            backports.weakref==1.0rc1 \
+            bleach==1.5.0 \
+            botocore==1.5.73 \
+            docutils==0.13.1 \
+            funcsigs==1.0.2 \
+            futures==3.1.1 \
+            html5lib==0.9999999 \
+            jmespath==0.9.3 \
+            Markdown==2.2.0 \
+            mock==2.0.0 \
+            pbr==3.1.1 \
+            protobuf==3.3.0 \
+            python-dateutil==2.6.0 \
+            pytz==2017.2 \
+            PyYAML==3.12 \
+            s3transfer==0.1.10 \
+            six==1.10.0 \
+            virtualenv==15.1.0 \
+            Werkzeug==0.12.2 \
+            boto3==1.4.4 \
+            enum34==1.1.6 \
+            psycopg2==2.7.1 \
+            pymongo==3.4.0 \
+            s3fs==0.1.1 \
+            h5py==2.7.0 \
+            pandas==0.19.2 \
+            scipy==0.18.1 \
+            scikit-learn==0.18.1 \
+            Theano==0.9.0 \
+            Keras==2.0.4 \
+        && \
+#
+        # Remove build dependencies, and clean up stuff
+        apk del .build-deps && \
+        rm -rf /root/.cache && \
+        find /usr/local/lib/python2.7/ -name "*.py" -type f -delete
 
 # Set up entrypoint
 COPY ./docker/entrypoint.sh .
@@ -12,30 +75,3 @@ ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
 
 # Copy application code
 COPY ./app/src/Version_2.2 .
-
-# Install packages
-COPY cache/pip /root/.cache/pip
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        nfs-common \
-        python-pip && \
-    apt-get clean && \
-    pip install -r pip_requirements
-
-RUN /usr/bin/yes | pip uninstall pip && \
-    apt-get remove -y \
-        build-essential \
-        cpp-4.9 \
-        gcc-4.9 \
-        git \
-        mysql-common \
-        perl \
-        python-pip \
-        subversion && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf \
-        /root/.cache \
-        /usr/share/man \
-        /usr/share/doc \
-        /usr/share/locale && \
-    find /usr/local/lib/python2.7/ -name "*.py" -type f -delete
