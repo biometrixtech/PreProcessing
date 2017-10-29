@@ -1,5 +1,4 @@
-ARG base_image=python:2.7-alpine3.6
-FROM $base_image
+FROM python:2.7-alpine3.6
 
 # Set up users and directories
 USER root
