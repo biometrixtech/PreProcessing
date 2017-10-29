@@ -1,8 +1,9 @@
-FROM python:2.7-alpine3.6
+ARG base_image=python:2.7-alpine3.6
+FROM $base_image
 
 # Set up users and directories
 USER root
-RUN mkdir /net /net/efs
+RUN [ -d /net ] || mkdir /net /net/efs
 WORKDIR /opt/biometrix/preprocessing
 
 # Install packages
@@ -36,7 +37,7 @@ RUN     apk update && \
         && \
         # For h5py
         apk add --no-cache --virtual .build-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5-dev && \
-        ln -s /usr/include/locale.h /usr/include/xlocale.h && \
+        (test -L /usr/include/xlocale.h || ln -s /usr/include/locale.h /usr/include/xlocale.h) && \
 #
         # Need to install numpy before scipy
         pip install \
