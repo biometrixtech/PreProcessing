@@ -9,7 +9,19 @@ WORKDIR /opt/biometrix/preprocessing
 RUN     apk update && \
 #
         # For mounting the EFS filesystem
-        apk add --no-cache nfs-utils && \
+        apk add --no-cache \
+            # Provides the non-busybox version of `split` and `csplit` which have more functionality
+            coreutils \
+            # Allows mounting NFS directories
+            nfs-utils \
+            # Needed for operation of numpy
+            openblas \
+            # Needed for operation of psycopg
+            libpq \
+            # Needed for operation of scipy
+            libstdc++ \
+        && \
+        apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5 && \
 #
         # Build dependencies, will remove later
         apk add --no-cache --virtual .build-deps \
@@ -18,7 +30,7 @@ RUN     apk update && \
             # For scipy
             gfortran \
             # For numpy
-            lapack-dev \
+            openblas-dev \
             # For psycopg
             postgresql-dev \
         && \
@@ -27,10 +39,10 @@ RUN     apk update && \
         ln -s /usr/include/locale.h /usr/include/xlocale.h && \
 #
         # Need to install numpy before scipy
-        pip install -v \
+        pip install \
             numpy==1.12.1 \
         && \
-        pip install -v \
+        pip install \
             backports.weakref==1.0rc1 \
             bleach==1.5.0 \
             botocore==1.5.73 \
@@ -65,8 +77,7 @@ RUN     apk update && \
 #
         # Remove build dependencies, and clean up stuff
         apk del .build-deps && \
-        rm -rf /root/.cache && \
-        find /usr/local/lib/python2.7/ -name "*.py" -type f -delete
+        rm -rf /root/.cache
 
 # Set up entrypoint
 COPY ./docker/entrypoint.sh .
@@ -75,3 +86,4 @@ ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
 
 # Copy application code
 COPY ./app/src/Version_2.2 .
+
