@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # Mount the EFS directory
 echo "Mounting NFS directory"
