@@ -92,8 +92,6 @@ def put_cloudwatch_metric(metric_name, value, unit):
                     'MetricName': metric_name,
                     'Dimensions': [
                         {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
-                        # {'Name': 'JobQueue', 'Value': os.environ['AWS_BATCH_JQ_NAME']},
-                        # {'Name': 'ComputeEnvironment', 'Value': os.environ['AWS_BATCH_CE_NAME']},
                         {'Name': 'Job', 'Value': script},
                     ],
                     'Timestamp': datetime.utcnow(),
@@ -121,7 +119,7 @@ def mkdir(path):
 
 
 def main():
-    input_data = meta_data = None
+    global script, input_data, meta_data
 
     try:
         script = sys.argv[1]
@@ -373,4 +371,5 @@ def json_serial(obj):
     raise TypeError("Type not serializable")
 
 if __name__ == '__main__':
+    script = input_data = meta_data = None
     main()
