@@ -128,15 +128,15 @@ def main():
         input_data = json.loads(sys.argv[2])
         meta_data = json.loads(sys.argv[3])
 
+        if 'Profiling' in meta_data:
+            meta_data['Profiling']['StartTime'] = time.time()
+            put_cloudwatch_metric('BatchJobScheduleLatency', float(meta_data['Profiling']['StartTime']) - float(meta_data['Profiling']['ScheduleTime']), 'Seconds')
+
         if script == 'noop':
             print('Noop job')
             # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
             send_success(meta_data, {})
             exit(0)
-
-        if 'Profiling' in meta_data:
-            meta_data['Profiling']['StartTime'] = time.time()
-            put_cloudwatch_metric('BatchJobScheduleLatency', float(meta_data['Profiling']['StartTime']) - float(meta_data['Profiling']['ScheduleTime']), 'Seconds')
 
         sensor_data_filename = input_data.get('SensorDataFilename')
         working_directory = os.path.join('/net/efs/preprocessing', sensor_data_filename)
