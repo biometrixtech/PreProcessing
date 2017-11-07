@@ -1,36 +1,41 @@
 from __future__ import print_function
 
 from collections import namedtuple
-import boto3
 import logging
 import os
-import subprocess
 import sys
+
+from decode_data import read_file
+from placement_detection import detect_placement
+from transform_calculation import compute_transform
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-Config = namedtuple('Config', [
-    'AWS',
-    'ENVIRONMENT',
-])
+#Config = namedtuple('Config', [
+#    'AWS',
+#    'ENVIRONMENT',
+#])
 
 
-def script_handler(s3_bucket, s3_keys):
-    if len(s3_keys) == 0:
-        logger.info('downloadAndChunk() called, but with no files')
-
-    base_name = s3_keys[0].rsplit('_', 1)[0]
-    logger.info('Running downloadAndChunk on "{}/{}"'.format(s3_bucket, base_name))
+def script_handler(working_directory, file_name):
+#    logger.info('Running placement and transform on "{}/{}"'.format(file_name))
 
     try:
-        config = Config(
-            AWS=False,
-            ENVIRONMENT=os.environ['ENVIRONMENT'],
-        )
+#        config = Config(
+#            AWS=False,
+#            ENVIRONMENT=os.environ['ENVIRONMENT'],
+#        )
 
-        filepath = os.path.join(working_directory, 'downloadandchunk', file_name)
+#        filepath = os.path.join(working_directory, 'downloadandchunk', file_name)
+        filepath = file_name
+        count = 100 * 60
+        data = read_file(filepath, count)
+        placement = detect_placement(data)
+        qstill = compute_transform(data)
+        
+        return data, placement, qstill
 
     except Exception as e:
         logger.info(e)
@@ -39,5 +44,6 @@ def script_handler(s3_bucket, s3_keys):
 
 
 if __name__ == '__main__':
-    input_file_name = sys.argv[1]
-    script_handler('biometrix-sessioncontainer2', input_file_name)
+#    input_file_name = sys.argv[1]
+    input_file_name = 'test_file'
+    data, placement, qstill = script_handler(working_directory=None, file_name=input_file_name)

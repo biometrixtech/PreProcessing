@@ -102,37 +102,37 @@ def _decode_quat(quat_data, nrows):
         quats[bad_norm, :] = quats[bad_norm, :]/norm[bad_norm].reshape(-1, 1)
     return quats
 
-def read_file(filename):
+def read_file(filename, lines):
     line_size = 40
-    data = np.fromfile(filename, dtype=np.uint8).reshape(-1, line_size)
+    data = np.fromfile(filename, dtype=np.uint8, count=lines * line_size).reshape(-1, line_size)
     nrows = data.shape[0]
 
     timestamp = _decode_timestamp(data[:, 0:5], nrows).reshape(-1, 1)
-    corrupt = data[:, 6].reshape(-1, 1)
+#    corrupt = data[:, 6].reshape(-1, 1)
 
-    # magn_1 = _decode_magn(data[:, 7], nrows)
-    accel_1 = _decode_accel(data[:, 8:13], nrows) / 1000 * 9.80665
-    quat_1 = _decode_quat(data[:, 13:18], nrows)
+    # magn_0 = _decode_magn(data[:, 7], nrows)
+    accel_0 = _decode_accel(data[:, 8:13], nrows) / 1000 * 9.80665
+    quat_0 = _decode_quat(data[:, 13:18], nrows)
 
-    # magn_2 = _decode_magn(data[:, 18], nrows)
-    accel_2 = _decode_accel(data[:, 19:24], nrows) / 1000 * 9.80665
-    quat_2 = _decode_quat(data[:, 24:29], nrows)
+    # magn_1 = _decode_magn(data[:, 18], nrows)
+    accel_1 = _decode_accel(data[:, 19:24], nrows) / 1000 * 9.80665
+    quat_1 = _decode_quat(data[:, 24:29], nrows)
 
-    # magn_3 = _decode_magn(data[:, 29], nrows)
-    accel_3 = _decode_accel(data[:, 30:35], nrows) / 1000 * 9.80665
-    quat_3 = _decode_quat(data[:, 35:40], nrows)
+    # magn_1 = _decode_magn(data[:, 29], nrows)
+    accel_2 = _decode_accel(data[:, 30:35], nrows) / 1000 * 9.80665
+    quat_2 = _decode_quat(data[:, 35:40], nrows)
 
     output = np.concatenate((timestamp,
                              # corrupt,
+                             # magn_0,
+                             accel_0,
+                             quat_0,
                              # magn_1,
                              accel_1,
                              quat_1,
                              # magn_2,
                              accel_2,
-                             quat_2,
-                             # magn_3,
-                             accel_3,
-                             quat_3), axis=1)
+                             quat_2), axis=1)
 
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
     output_pd['epoch_time'] = output_pd['epoch_time']. astype(long)
