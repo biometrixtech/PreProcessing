@@ -102,7 +102,7 @@ def _decode_quat(quat_data, nrows):
         quats[bad_norm, :] = quats[bad_norm, :]/norm[bad_norm].reshape(-1, 1)
     return quats
 
-def read_file(filename):
+def read_file(filename, placement):
     line_size = 40
     data = np.fromfile(filename, dtype=np.uint8).reshape(-1, line_size)
     nrows = data.shape[0]
@@ -110,37 +110,30 @@ def read_file(filename):
     timestamp = _decode_timestamp(data[:, 0:5], nrows).reshape(-1, 1)
     corrupt = data[:, 6].reshape(-1, 1)
 
-    magn_l = _decode_magn(data[:, 7], nrows)
-    accel_l = _decode_accel(data[:, 8:13], nrows) / 1000 * 9.80665
-    quat_l = _decode_quat(data[:, 13:18], nrows)
+    sensors = {}
+    sensors['magn_0'] = _decode_magn(data[:, 7], nrows)
+    sensors['accel_0'] = _decode_accel(data[:, 8:13], nrows) / 1000 * 9.80665
+    sensors['quat_0'] = _decode_quat(data[:, 13:18], nrows)
 
-    magn_h = _decode_magn(data[:, 18], nrows)
-    accel_h = _decode_accel(data[:, 19:24], nrows) / 1000 * 9.80665
-    quat_h = _decode_quat(data[:, 24:29], nrows)
+    sensors['magn_1'] = _decode_magn(data[:, 18], nrows)
+    sensors['accel_1'] = _decode_accel(data[:, 19:24], nrows) / 1000 * 9.80665
+    sensors['quat_1'] = _decode_quat(data[:, 24:29], nrows)
 
-    magn_r = _decode_magn(data[:, 29], nrows)
-    accel_r = _decode_accel(data[:, 30:35], nrows) / 1000 * 9.80665
-    quat_r = _decode_quat(data[:, 35:40], nrows)
+    sensors['magn_2'] = _decode_magn(data[:, 29], nrows)
+    sensors['accel_2'] = _decode_accel(data[:, 30:35], nrows) / 1000 * 9.80665
+    sensors['quat_2'] = _decode_quat(data[:, 35:40], nrows)
 
     output = np.concatenate((timestamp, corrupt,
-                             magn_l,
-                             accel_l,
-                             quat_l,
-                             magn_h,
-                             accel_h,
-                             quat_h,
-                             magn_r,
-                             accel_r,
-                             quat_r), axis=1)
+                             sensors['magn_' + placement[0]],
+                             sensors['accel_' + placement[0]],
+                             sensors['quat_' + placement[0]],
+                             sensors['magn_' + placement[1]],
+                             sensors['accel_' + placement[1]],
+                             sensors['quat_' + placement[1]],
+                             sensors['magn_' + placement[2]],
+                             sensors['accel_' + placement[2]],
+                             sensors['quat_' + placement[2]]), axis=1)
 
-    # incoming_from_accessory = ['epoch_time', 'corrupt',
-    #                            'magn_lf', 'corrupt_lf',
-    #                            'LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'LqW',
-    #                            'magn_h', 'corrupt_h',
-    #                            'HaX', 'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'HqW',
-    #                            'magn_rf', 'corrupt_lf',
-    #                            'RaX', 'RaY', 'RaZ', 'RqX', 'RqY', 'RqZ', 'RqW']
-    output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
     output_pd['epoch_time'] = output_pd['epoch_time']. astype(long)
     output_pd['corrupt'] = output_pd['corrupt']. astype(int)

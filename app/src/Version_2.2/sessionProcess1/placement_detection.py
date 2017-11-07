@@ -8,10 +8,10 @@ import quatConvs as qc
 def detect_placement(data):
     """Detect placement of sensors using accleration and pitch
     """
+    data = shift_accel(data)
     walking = detect_activity(data)
     data = data.loc[walking[0]:walking[1], :]
     data.reset_index(inplace=True)
-    data = shift_accel(data)
     hip = hips_vs_feet(data)
     if hip == 0:
         qW1 = data.qW1.values.reshape(-1, 1)
@@ -93,14 +93,44 @@ def detect_placement(data):
             right = 1
             left = 0
 
-    return [left, hip, right]
+    return str(left) + str(hip) + str(right)
 
 
 def detect_activity(data):
     """Detect part of data with activity for placement detection
     """
-    start = 0
-    end = len(data)
+    thresh = 5.  # threshold to detect balance phase
+    bal_win = 100 # sampling window to determine balance phase
+    min_mov = 100
+    acc_mag_0 = np.sqrt(data.aX0**2 + data.aY0**2 + data.aZ0**2)
+    acc_mag_1 = np.sqrt(data.aX1**2 + data.aY1**2 + data.aZ1**2)
+    acc_mag_2 = np.sqrt(data.aX2**2 + data.aY2**2 + data.aZ2**2)
+    total_acc_mag = acc_mag_0 + acc_mag_1 + acc_mag_2
+
+    dummy_balphase = []  # dummy variable to store indexes of balance phase
+
+    abs_acc = total_acc_mag  # creating an array of absolute acceleration values
+    len_acc = len(total_acc_mag)  # length of acceleration value
+    
+
+    for i in range(len_acc-bal_win):
+        # check if all the points within bal_win of current point are within
+        # movement threshold
+        if len(np.where(abs_acc[i:i+bal_win] <= thresh)[0]) == bal_win:
+            dummy_balphase += range(i, i+bal_win)
+
+    # determine the unique indexes in the dummy list
+    start_bal = []    
+    start_bal = np.unique(dummy_balphase)
+    start_bal = np.sort(start_bal)
+    start_bal = start_bal.tolist()  # convert from numpy array to list
+    # delete variables that are of no use in further compuations
+    del dummy_balphase
+    change = np.where(np.ediff1d(start_bal) > min_mov)[0]
+
+    start = start_bal[change[0]] - 200
+    end = start + 1700
+
     return start, end
 
 
@@ -141,6 +171,8 @@ def hips_vs_feet(data):
         hip = 1
     elif np.max(ratio) == ratio[2] and ratio[2] >= 1.5:
         hip = 2
+    else:
+        raise(ValueError)
 
     return hip
 
