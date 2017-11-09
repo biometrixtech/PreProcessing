@@ -172,7 +172,7 @@ def main():
 
         elif script == 'calculatenorms':
             print('Running calculatenorms()')
-            from sessionProcess1 import transform_and_placement
+            from transform_and_placement import transform_and_placement
             ret = transform_and_placement.script_handler(
                 working_directory,
                 input_data.get('Filename', None)
