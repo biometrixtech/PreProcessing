@@ -170,8 +170,8 @@ def main():
 
             send_success(meta_data, {"Filenames": file_names})
 
-        elif script == 'calculatenorms':
-            print('Running calculatenorms()')
+        elif script == 'transformandplacement':
+            print('Running transformandplacement()')
             from transform_and_placement import transform_and_placement
             ret = transform_and_placement.script_handler(
                 working_directory,
