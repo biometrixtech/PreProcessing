@@ -10,6 +10,7 @@ def detect_placement(data):
     data.reset_index(inplace=True)
     data = shift_accel(data)
     start, end = detect_activity(data)
+    print(start, end)
     data = data.loc[start[0]:end[0], :]
     data.reset_index(inplace=True)
     hip_sensor_id = identify_hip_sensor(data)
@@ -167,6 +168,8 @@ def identify_hip_sensor(data):
     ratio[0] = np.min([sum_sq_1, sum_sq_2]) / sum_sq_0
     ratio[1] = np.min([sum_sq_0, sum_sq_2]) / sum_sq_1
     ratio[2] = np.min([sum_sq_0, sum_sq_1]) / sum_sq_2
+
+    print(ratio)
 
     if np.max(ratio) == ratio[0] and ratio[0] >= 1.5:
         return 0
