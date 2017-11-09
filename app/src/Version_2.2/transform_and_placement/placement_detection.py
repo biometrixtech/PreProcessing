@@ -7,12 +7,11 @@ import quatConvs as qc
 def detect_placement(data):
     """Detect placement of sensors using accleration and pitch
     """
-    data.reset_index(inplace=True)
+    data.reset_index(inplace=True, drop=True)
     data = shift_accel(data)
     start, end = detect_activity(data)
-    print(start, end)
     data = data.loc[start[0]:end[0], :]
-    data.reset_index(inplace=True)
+    data.reset_index(inplace=True, drop=True)
     hip_sensor_id = identify_hip_sensor(data)
 
     # based on the hip detected, assign other two sensors as foot1 and foot2
@@ -102,7 +101,7 @@ def detect_activity(data):
     len_acc = len(total_acc_mag)  # length of acceleration value
     
 
-    for i in range(len_acc-bal_win):
+    for i in range(len_acc-bal_win+1):
         # check if all the points within bal_win of current point are within
         # movement threshold
         if len(np.where(abs_acc[i:i+bal_win] <= thresh)[0]) == bal_win:
@@ -117,11 +116,17 @@ def detect_activity(data):
     del dummy_balphase
     min_thresh_mov = 300 # threshold for min number of samples 
                         # required to be classified as false movement phase
-    for i in range(len(start_bal) - 1):
-        diff = start_bal[i+1] - start_bal[i]
-        if 1 < diff <= min_thresh_mov:
-            for j in range(1, diff+1):
-                start_bal.append(start_bal[i]+j)
+    for i in range(len(start_bal)):
+        if i == 0:
+            diff = start_bal[i]
+            if 1 < diff <= min_thresh_mov:
+                for j in range(0, diff):
+                    start_bal.append(j)
+        else:
+            diff = start_bal[i] - start_bal[i-1]
+            if 1 < diff <= min_thresh_mov:
+                for j in range(1, diff+1):
+                    start_bal.append(start_bal[i-1]+j)
     mov = np.ones(len(data))
     mov[start_bal] = 0
     change = np.ediff1d(mov, to_begin=0)
@@ -130,13 +135,21 @@ def detect_activity(data):
 
     # if data ends with movement, assign final point as end of movement
     if len(start) != len(end):
-        end = np.append(end, len(data))
+        end = np.append(end, len(data)-1)
 
     start = start - 100
-    for i in range(len(end)):
-        end[i] = min([end[i], start[i] + 1100])
 
-    return start, end
+    if len(end) == 0: # check if any still portion was detected
+        raise Exception('Moving portion of data cannot be detected')
+    else:
+        detected = False
+        for i in range(len(end)):
+            end[i] = min([end[i], start[i] + 1100])
+            if end[i] - start[i] > 700:
+                detected = True
+                return start[i], end[i] # return the first section of data where we have enough points
+    if not detected:
+        raise Exception('Moving portion with enough points cannot be detected')
 
 
 def shift_accel(data):

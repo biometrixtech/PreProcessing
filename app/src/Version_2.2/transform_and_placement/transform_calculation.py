@@ -4,18 +4,18 @@ import numpy as np
 
 
 def compute_transform(data):
-    data.reset_index(inplace=True)
+    data.reset_index(inplace=True, drop=True)
     start, end = detect_still(data)
     data = data.loc[start:end, :]
-    data.reset_index(inplace=True)
+    data.reset_index(inplace=True, drop=True)
     return [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]
 
 
 def detect_still(data):
     """Detect part of data with activity for placement detection
     """
-    thresh = 2.  # threshold to detect balance phase
-    bal_win = 300  # sampling window to determine balance phase
+    thresh = 3.  # threshold to detect balance phase
+    bal_win = 150  # sampling window to determine balance phase
     acc_mag_0 = np.sqrt(data.aX0 ** 2 + data.aY0 ** 2 + data.aZ0 ** 2)
     acc_mag_1 = np.sqrt(data.aX1 ** 2 + data.aY1 ** 2 + data.aZ1 ** 2)
     acc_mag_2 = np.sqrt(data.aX2 ** 2 + data.aY2 ** 2 + data.aZ2 ** 2)
@@ -26,7 +26,7 @@ def detect_still(data):
     abs_acc = total_acc_mag  # creating an array of absolute acceleration values
     len_acc = len(total_acc_mag)  # length of acceleration value
 
-    for i in range(len_acc - bal_win):
+    for i in range(len_acc - bal_win + 1):
         # check if all the points within bal_win of current point are within
         # movement threshold
         if len(np.where(abs_acc[i:i + bal_win] <= thresh)[0]) == bal_win:
@@ -35,10 +35,9 @@ def detect_still(data):
     # determine the unique indexes in the dummy list
     start_bal = np.unique(dummy_balphase)
     start_bal = np.sort(start_bal)
-
     still = np.zeros(len(data))
     still[start_bal] = 1
-    change = np.ediff1d(still, to_begin=1)
+    change = np.ediff1d(still, to_begin=still[0])
     start = np.where(change == 1)[0]
     end = np.where(change == -1)[0]
 
@@ -46,8 +45,10 @@ def detect_still(data):
     if len(start) != len(end):
         end = np.append(end, len(data))
 
-    start = start
-    for i in range(len(end)):
-        end[i] = min([end[i], start[i] + 300])
-
-    return start[0], end[0]
+    if len(end) == 0: # check if any still portion was detected
+        raise Exception('Still portion of data cannot be detected')
+    else:
+        for i in range(len(end)):
+            end[i] = min([end[i], start[i] + 300])
+            if end[i] - start[i] > 150:
+                return start[i], end[i] # return the first section of data where we have enough points
