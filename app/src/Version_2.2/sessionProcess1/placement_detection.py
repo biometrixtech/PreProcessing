@@ -4,7 +4,6 @@ import numpy as np
 import quatConvs as qc
 
 
-
 def detect_placement(data):
     """Detect placement of sensors using accleration and pitch
     """
@@ -13,46 +12,22 @@ def detect_placement(data):
     start, end = detect_activity(data)
     data = data.loc[start[0]:end[0], :]
     data.reset_index(inplace=True)
-    hip = hips_vs_feet(data)
+    hip_sensor_id = identify_hip_sensor(data)
 
     # based on the hip detected, assign other two sensors as foot1 and foot2
-    if hip == 0:
-        qW1 = data.qW1.values.reshape(-1, 1)
-        qX1 = data.qX1.values.reshape(-1, 1)
-        qY1 = data.qY1.values.reshape(-1, 1)
-        qZ1 = data.qZ1.values.reshape(-1, 1)
+    if hip_sensor_id == 0:
+        quat1_w = data.qW1.values.reshape(-1, 1)
+        quat1_x = data.qX1.values.reshape(-1, 1)
+        quat1_y = data.qY1.values.reshape(-1, 1)
+        quat1_z = data.qZ1.values.reshape(-1, 1)
 
-        qW2 = data.qW2.values.reshape(-1, 1)
-        qX2 = data.qX2.values.reshape(-1, 1)
-        qY2 = data.qY2.values.reshape(-1, 1)
-        qZ2 = data.qZ2.values.reshape(-1, 1)
+        quat2_w = data.qW2.values.reshape(-1, 1)
+        quat2_x = data.qX2.values.reshape(-1, 1)
+        quat2_y = data.qY2.values.reshape(-1, 1)
+        quat2_z = data.qZ2.values.reshape(-1, 1)
 
-        quats_1 = np.concatenate((qW1, qX1, qY1, qZ1), axis=1)
-        quats_2 = np.concatenate((qW2, qX2, qY2, qZ2), axis=1)
-
-        euls_1 = qc.quat_to_euler(quats_1)
-        euls_2 = qc.quat_to_euler(quats_2)
-
-        pitch_foot1 = euls_1[:, 1]
-        pitch_foot2 = euls_2[:, 1]
-
-        left_0, right_0 = left_vs_right(pitch_foot1, pitch_foot2)
-        right = right_0
-        left = left_0
-
-    elif hip == 1:
-        qW1 = data.qW0.values.reshape(-1, 1)
-        qX1 = data.qX0.values.reshape(-1, 1)
-        qY1 = data.qY0.values.reshape(-1, 1)
-        qZ1 = data.qZ0.values.reshape(-1, 1)
-
-        qW2 = data.qW2.values.reshape(-1, 1)
-        qX2 = data.qX2.values.reshape(-1, 1)
-        qY2 = data.qY2.values.reshape(-1, 1)
-        qZ2 = data.qZ2.values.reshape(-1, 1)
-
-        quats_1 = np.concatenate((qW1, qX1, qY1, qZ1), axis=1)
-        quats_2 = np.concatenate((qW2, qX2, qY2, qZ2), axis=1)
+        quats_1 = np.concatenate((quat1_w, quat1_x, quat1_y, quat1_z), axis=1)
+        quats_2 = np.concatenate((quat2_w, quat2_x, quat2_y, quat2_z), axis=1)
 
         euls_1 = qc.quat_to_euler(quats_1)
         euls_2 = qc.quat_to_euler(quats_2)
@@ -60,27 +35,21 @@ def detect_placement(data):
         pitch_foot1 = euls_1[:, 1]
         pitch_foot2 = euls_2[:, 1]
 
-        left_0, right_0 = left_vs_right(pitch_foot1, pitch_foot2)
-        if right_0 == 1:
-            right = 0
-            left = 2
-        else:
-            right = 2
-            left = 0
+        return [1, 0, 2] if is_foot1_left(pitch_foot1, pitch_foot2) else [2, 0, 1]
 
-    elif hip == 2:
-        qW1 = data.qW0.values.reshape(-1, 1)
-        qX1 = data.qX0.values.reshape(-1, 1)
-        qY1 = data.qY0.values.reshape(-1, 1)
-        qZ1 = data.qZ0.values.reshape(-1, 1)
+    elif hip_sensor_id == 1:
+        quat1_w = data.qW0.values.reshape(-1, 1)
+        quat1_x = data.qX0.values.reshape(-1, 1)
+        quat1_y = data.qY0.values.reshape(-1, 1)
+        quat1_z = data.qZ0.values.reshape(-1, 1)
 
-        qW2 = data.qW1.values.reshape(-1, 1)
-        qX2 = data.qX1.values.reshape(-1, 1)
-        qY2 = data.qY1.values.reshape(-1, 1)
-        qZ2 = data.qZ1.values.reshape(-1, 1)
+        quat2_w = data.qW2.values.reshape(-1, 1)
+        quat2_x = data.qX2.values.reshape(-1, 1)
+        quat2_y = data.qY2.values.reshape(-1, 1)
+        quat2_z = data.qZ2.values.reshape(-1, 1)
 
-        quats_1 = np.concatenate((qW1, qX1, qY1, qZ1), axis=1)
-        quats_2 = np.concatenate((qW2, qX2, qY2, qZ2), axis=1)
+        quats_1 = np.concatenate((quat1_w, quat1_x, quat1_y, quat1_z), axis=1)
+        quats_2 = np.concatenate((quat2_w, quat2_x, quat2_y, quat2_z), axis=1)
 
         euls_1 = qc.quat_to_euler(quats_1)
         euls_2 = qc.quat_to_euler(quats_2)
@@ -88,15 +57,32 @@ def detect_placement(data):
         pitch_foot1 = euls_1[:, 1]
         pitch_foot2 = euls_2[:, 1]
 
-        left_0, right_0 = left_vs_right(pitch_foot1, pitch_foot2)
-        if right_0 == 1:
-            right = 0
-            left = 1
-        else:
-            right = 1
-            left = 0
+        return [0, 1, 2] if is_foot1_left(pitch_foot1, pitch_foot2) else [2, 1, 0]
 
-    return str(left) + str(hip) + str(right)
+    elif hip_sensor_id == 2:
+        quat1_w = data.qW0.values.reshape(-1, 1)
+        quat1_x = data.qX0.values.reshape(-1, 1)
+        quat1_y = data.qY0.values.reshape(-1, 1)
+        quat1_z = data.qZ0.values.reshape(-1, 1)
+
+        quat2_w = data.qW1.values.reshape(-1, 1)
+        quat2_x = data.qX1.values.reshape(-1, 1)
+        quat2_y = data.qY1.values.reshape(-1, 1)
+        quat2_z = data.qZ1.values.reshape(-1, 1)
+
+        quats_1 = np.concatenate((quat1_w, quat1_x, quat1_y, quat1_z), axis=1)
+        quats_2 = np.concatenate((quat2_w, quat2_x, quat2_y, quat2_z), axis=1)
+
+        euls_1 = qc.quat_to_euler(quats_1)
+        euls_2 = qc.quat_to_euler(quats_2)
+
+        pitch_foot1 = euls_1[:, 1]
+        pitch_foot2 = euls_2[:, 1]
+
+        return [0, 2, 1] if is_foot1_left(pitch_foot1, pitch_foot2) else [1, 2, 0]
+
+    else:
+        raise Exception('Could not idenfity left from right')
 
 
 def detect_activity(data):
@@ -170,7 +156,7 @@ def shift_accel(data):
     return data
 
 
-def hips_vs_feet(data):
+def identify_hip_sensor(data):
     """use sum of square of acceleration during movement to detect hips from feet
     """
     sum_sq_0 = np.nansum(data.aX0**2 + data.aY0**2 + data.aZ0**2) / 1000
@@ -183,33 +169,23 @@ def hips_vs_feet(data):
     ratio[2] = np.min([sum_sq_0, sum_sq_1]) / sum_sq_2
 
     if np.max(ratio) == ratio[0] and ratio[0] >= 1.5:
-        hip = 0
+        return 0
     elif np.max(ratio) == ratio[1] and ratio[1] >= 1.5:
-        hip = 1
+        return 1
     elif np.max(ratio) == ratio[2] and ratio[2] >= 1.5:
-        hip = 2
+        return 2
     else:
         raise(ValueError) # placeholder for inability to detect hips vs feet
 
-    return hip
 
-
-def left_vs_right(pitch_foot1, pitch_foot2):
+def is_foot1_left(pitch_foot1, pitch_foot2):
     """Use raw pitch value and the direction of change to detect left vs right foot
     """
     # TODO: placeholder logic for now, needs update
     mean1 = np.nanmean(pitch_foot1[0:100])
     mean2 = np.nanmean(pitch_foot2[0:100])
 
-    diff1 = np.nansum(pitch_foot1[100:] - mean1)
-    diff2 = np.nansum(pitch_foot2[100:] - mean2)
+    diff1 = np.nansum(pitch_foot1 - mean1)
+    diff2 = np.nansum(pitch_foot2 - mean2)
 
-    if diff2 > diff1:
-        right = 2
-        left = 1
-    elif diff1 > diff2:
-        right = 1
-        left = 2
-    else:
-        raise(ValueError) #placeholder for inability to detect right vs left
-    return left, right
+    return diff2 > diff1
