@@ -23,19 +23,13 @@ def script_handler(working_directory, file_name):
 #    logger.info('Running placement and transform on "{}/{}"'.format(file_name))
 
     try:
-#        config = Config(
-#            AWS=False,
-#            ENVIRONMENT=os.environ['ENVIRONMENT'],
-#        )
-
-#        filepath = os.path.join(working_directory, 'downloadandchunk', file_name)
-        filepath = file_name
+        filepath = os.path.join(working_directory, 'downloadandchunk', file_name)
         count = 100 * 60
         data = read_file(filepath, count)
         placement = detect_placement(data)
         qstill = compute_transform(data)
         
-        return data, placement, qstill
+        return {'Placement': placement, 'Normalisation': qstill}
 
     except Exception as e:
         logger.info(e)

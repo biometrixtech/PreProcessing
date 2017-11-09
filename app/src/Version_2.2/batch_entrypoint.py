@@ -170,6 +170,15 @@ def main():
 
             send_success(meta_data, {"Filenames": file_names})
 
+        elif script == 'calculatenorms':
+            print('Running calculatenorms()')
+            from sessionProcess1 import transform_and_placement
+            ret = transform_and_placement.script_handler(
+                working_directory,
+                input_data.get('Filename', None)
+            )
+            send_success(meta_data, ret)
+
         elif script == 'sessionprocess2':
             print('Running sessionprocess2()')
             load_parameters(['MS_MODEL', 'MS_SCALER'])
