@@ -124,15 +124,15 @@ def read_file(filename, placement):
     sensors['quat_2'] = _decode_quat(data[:, 35:40], nrows)
 
     output = np.concatenate((timestamp, corrupt,
-                             sensors['magn_' + placement[0]],
-                             sensors['accel_' + placement[0]],
-                             sensors['quat_' + placement[0]],
-                             sensors['magn_' + placement[1]],
-                             sensors['accel_' + placement[1]],
-                             sensors['quat_' + placement[1]],
-                             sensors['magn_' + placement[2]],
-                             sensors['accel_' + placement[2]],
-                             sensors['quat_' + placement[2]]), axis=1)
+                             sensors['magn_' + str(placement[0])],
+                             sensors['accel_' + str(placement[0])],
+                             sensors['quat_' + str(placement[0])],
+                             sensors['magn_' + str(placement[1])],
+                             sensors['accel_' + str(placement[1])],
+                             sensors['quat_' + str(placement[1])],
+                             sensors['magn_' + str(placement[2])],
+                             sensors['accel_' + str(placement[2])],
+                             sensors['quat_' + str(placement[2])]), axis=1)
 
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
     output_pd['epoch_time'] = output_pd['epoch_time']. astype(long)
