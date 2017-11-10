@@ -182,8 +182,6 @@ def identify_hip_sensor(data):
     ratio[1] = np.min([sum_sq_0, sum_sq_2]) / sum_sq_1
     ratio[2] = np.min([sum_sq_0, sum_sq_1]) / sum_sq_2
 
-    print(ratio)
-
     if np.max(ratio) == ratio[0] and ratio[0] >= 1.5:
         return 0
     elif np.max(ratio) == ratio[1] and ratio[1] >= 1.5:
@@ -191,7 +189,7 @@ def identify_hip_sensor(data):
     elif np.max(ratio) == ratio[2] and ratio[2] >= 1.5:
         return 2
     else:
-        raise(ValueError) # placeholder for inability to detect hips vs feet
+        raise ValueError('Unable to detect hips vs feet')
 
 
 def is_foot1_left(pitch_foot1, pitch_foot2):

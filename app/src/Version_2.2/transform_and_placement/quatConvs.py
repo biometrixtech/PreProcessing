@@ -43,27 +43,24 @@ def quat_to_euler(q):
     c[c > .5] = .5
     c[c < -.5] = -.5
     theta = np.arcsin(2*c)
-    
-    
+
     # ROLL COMPONENT
     a = 1-2*q[:, 1]**2-2*q[:, 2]**2
     b = 2*(q[:, 2]*q[:, 3])+2*q[:, 0]*q[:, 1]
     phi = np.arctan2(b, a)
     
     if any(c > .4995):
-        print "theta is 90"
+        print("theta is 90")
         psi[c > .4995] = np.nan
         theta[c > .4995] = np.nan
         phi[c > .4995] = np.nan
     elif any(c < -.4995):
-        print "theta is -90"
+        print("theta is -90")
         psi[c < -.4995] = np.nan
         theta[c < -.4995] = np.nan
         phi[c < -.4995] = np.nan
-    elif any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
-             < np.array([[1e-8]*4]), axis=1) == 4):
-        ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
-                     < np.array([[1e-8]*4]), axis=1) == 4
+    elif any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) < np.array([[1e-8]*4]), axis=1) == 4):
+        ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) < np.array([[1e-8]*4]), axis=1) == 4
         psi[ind] = 0
         theta[ind] = np.pi
         phi[ind] = 0
@@ -76,10 +73,10 @@ def euler_to_quat(euler_data):
     ZYX config.
 
     Args:
-        Euler angles consisting of the following angles in order
-        psi: euler angle measuring rotaion about x axis (roll)
-        theta: euler angle measuring rotaion about y axis (pitch)
-        phi: euler angle measuring rotaion about z axis (yaw)
+        euler_data: Euler angles consisting of the following angles in order
+            psi: euler angle measuring rotaion about x axis (roll)
+            theta: euler angle measuring rotaion about y axis (pitch)
+            phi: euler angle measuring rotaion about z axis (yaw)
 
     Returns:
         single (WXYZ) quaternion transformation of given euler angles
