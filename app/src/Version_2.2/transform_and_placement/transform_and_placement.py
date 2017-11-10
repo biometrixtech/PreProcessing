@@ -20,9 +20,17 @@ def script_handler(working_directory, file_name):
         count = 100 * 60
         data = read_file(filepath, count)
         placement = detect_placement(data)
-        qstill = compute_transform(data)
+        body_frame_transforms = compute_transform(data, placement)
+        print(body_frame_transforms)
         
-        return {'Placement': placement, 'Normalisation': qstill}
+        return {
+            'Placement': placement,
+            'Normalisation': {
+                'Left': body_frame_transforms[0],
+                'Hip': body_frame_transforms[1],
+                'Right': body_frame_transforms[2],
+            }
+        }
 
     except Exception as e:
         logger.info(e)

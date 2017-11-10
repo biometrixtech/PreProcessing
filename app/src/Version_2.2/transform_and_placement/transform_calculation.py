@@ -1,14 +1,48 @@
 from __future__ import print_function
 
+import math
 import numpy as np
+from quatConvs import euler_to_quat, quat_to_euler
+from quatOps import quat_conj, quat_avg
 
 
-def compute_transform(data):
+def compute_transform(data, placement):
     data.reset_index(inplace=True, drop=True)
     start, end = detect_still(data)
     data = data.loc[start:end, :]
     data.reset_index(inplace=True, drop=True)
-    return [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]
+
+    quat0 = np.hstack([data.qW0, data.qX0, data.qY0, data.qZ0]).reshape(-1, 4)
+    quat1 = np.hstack([data.qW1, data.qX1, data.qY1, data.qZ1]).reshape(-1, 4)
+    quat2 = np.hstack([data.qW2, data.qX2, data.qY2, data.qZ2]).reshape(-1, 4)
+
+    left_quaternions = quat0 if placement[0] == 0 else quat1 if placement[0] == 1 else quat2
+    hip_quaternions = quat0 if placement[1] == 0 else quat1 if placement[1] == 1 else quat2
+    right_quaternions = quat0 if placement[2] == 0 else quat1 if placement[2] == 1 else quat2
+
+    return compute_transform_from_average(
+        quat_avg(left_quaternions),
+        quat_avg(hip_quaternions),
+        quat_avg(right_quaternions)
+    )
+
+
+def compute_transform_from_average(left_quaternion, hip_quaternion, right_quaternion):
+    # Force the foot yaw values to be zero, and conjugate the body frame transform
+    left_body_frame_quaternion = quat_conj(quat_force_euler_angle(left_quaternion, psi=0))
+    hip_body_frame_quaternion = quat_conj(quat_force_euler_angle(hip_quaternion, psi=0))
+    right_body_frame_quaternion = quat_conj(quat_force_euler_angle(right_quaternion, psi=0))
+
+    # The neutral quaternion is a yaw rotation of pi/2 + the neutral yaw value
+    hip_euler = quat_to_euler(hip_quaternion)
+    hip_yaw_value = hip_euler[:, 2]
+    hip_neutral_euler = np.array([[0, 0, hip_yaw_value - math.pi / 2]])
+    hip_neutral_quaternion = quat_conj(euler_to_quat(hip_neutral_euler))
+
+    return (left_body_frame_quaternion.tolist()[0],
+            hip_body_frame_quaternion.tolist()[0],
+            right_body_frame_quaternion.tolist()[0],
+            hip_neutral_quaternion.tolist()[0])
 
 
 def detect_still(data):
@@ -52,3 +86,15 @@ def detect_still(data):
             end[i] = min([end[i], start[i] + 300])
             if end[i] - start[i] > 150:
                 return start[i], end[i] # return the first section of data where we have enough points
+
+
+def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
+    euler_angles = quat_to_euler(quaternion)
+    if phi is not None:
+        euler_angles[:, 0] = phi
+    if theta is not None:
+        euler_angles[:, 1] = theta
+    if psi is not None:
+        euler_angles[:, 2] = psi
+    return euler_to_quat(euler_angles)
+
