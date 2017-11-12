@@ -176,7 +176,7 @@ def detect_activity(data):
 
     if len(end) == 0:
         # No moving portion was detected
-        raise Exception('Moving portion of data could not be detected')
+        raise PlacementDetectionException('Moving portion of data could not be detected')
 
     # Return the first section of data where we have enough points
     for i in range(len(end)):
@@ -184,7 +184,7 @@ def detect_activity(data):
         if end[i] - start[i] > 700:
             return start[i], end[i]
 
-    raise Exception('Moving portion with enough points could not be detected')
+    raise PlacementDetectionException('Moving portion with enough points could not be detected')
 
 
 def shift_accel(data):
@@ -253,6 +253,4 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
     elif skew1 > 0.65 and skew2 < -0.65:
         return False  # foot2 is left, foot1 is right
     else:
-        # FIXME
-        return skew1 < skew2
         raise PlacementDetectionException('Could not detect left vs right from skew values 1={}, 2={}'.format(skew1, skew2))

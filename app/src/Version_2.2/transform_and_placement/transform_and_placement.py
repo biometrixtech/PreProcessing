@@ -19,7 +19,13 @@ def script_handler(working_directory, file_name):
         filepath = os.path.join(working_directory, 'downloadandchunk', file_name)
         count = 100 * 60
         data = read_file(filepath, count)
-        placement = detect_placement(data)
+
+        try:
+            placement = detect_placement(data)
+        except:
+            # FIXME
+            placement = [0, 1, 2]
+
         body_frame_transforms = compute_transform(data, placement)
         print(body_frame_transforms)
         
