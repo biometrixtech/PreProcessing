@@ -253,4 +253,6 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
     elif skew1 > 0.65 and skew2 < -0.65:
         return False  # foot2 is left, foot1 is right
     else:
+        # FIXME
+        return skew1 < skew2
         raise PlacementDetectionException('Could not detect left vs right from skew values 1={}, 2={}'.format(skew1, skew2))
