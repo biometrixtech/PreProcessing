@@ -5,6 +5,7 @@ from scipy.stats import skew
 
 import quatConvs as qc
 import quatOps as qo
+from exceptions import PlacementDetectionException
 
 
 def detect_placement(data):
@@ -117,7 +118,8 @@ def detect_placement(data):
         return [0, 2, 1] if is_foot1_left(pitch_foot1, pitch_foot2) else [1, 2, 0]
 
     else:
-        raise Exception('Could not idenfity left from right')
+        # Unreachable
+        raise Exception()
 
 
 def detect_activity(data):
@@ -237,7 +239,7 @@ def identify_hip_sensor(data):
     elif np.max(ratio) == ratio[2] and ratio[2] >= 1.1:
         return 2
     else:
-        raise Exception('Could not detect hip vs feet')
+        raise PlacementDetectionException('Could not detect hip sensor from ratios {}'.format(ratio))
 
 
 def is_foot1_left(pitch_foot1, pitch_foot2):
@@ -251,4 +253,4 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
     elif skew1 > 0.65 and skew2 < -0.65:
         return False  # foot2 is left, foot1 is right
     else:
-        raise Exception('Could not detect left vs right')
+        raise PlacementDetectionException('Could not detect left vs right from skew values 1={}, 2={}'.format(skew1, skew2))
