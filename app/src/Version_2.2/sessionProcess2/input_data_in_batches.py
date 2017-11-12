@@ -10,14 +10,11 @@ import logging
 import pickle
 import os
 
-import pandas as pd
 import numpy as np
-import psycopg2
 import psycopg2.extras
 from keras.models import load_model
 
 import columnNames as cols
-import sessionProcessQueries as queries
 import runAnalytics
 from decode_data import read_file
 
@@ -25,19 +22,16 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def send_batches_of_data(input_filepath, output_filepath, data, config, aws=True):
-    
-    global AWS
-    AWS = aws
+def send_batches_of_data(input_filepath, output_filepath, data, config):
 
-    _logger("STARTED PROCESSING!")
+    logger.info("STARTED PROCESSING!")
 
     # GRF
     # load model
     grf_fit = load_grf_model(config=config)
     sc = load_grf_scaler(config=config)
 
-    _logger("LOADING DATA")
+    logger.info("LOADING DATA")
 
     # read sensor data
     sdata = read_file(input_filepath, data.get('Placement'))
@@ -80,22 +74,12 @@ def load_user_mass(data):
 
 def load_grf_model(config):
     path = os.path.join(config.MS_MODEL_PATH, config.MS_MODEL)
-    _logger("Loading grf model from {}".format(path))
+    logger.info("Loading grf model from {}".format(path))
     return load_model(path)
 
 
 def load_grf_scaler(config):
     path = os.path.join(config.MS_SCALER_PATH, config.MS_SCALER)
-    _logger("Loading grf scaler from {}".format(path))
+    logger.info("Loading grf scaler from {}".format(path))
     with open(path) as model_file:
         return pickle.load(model_file)
-
-
-def _logger(message, info=True):
-    if AWS:
-        if info:
-            logger.info(message)
-        else:
-            logger.warning(message)
-    else:
-        print message
