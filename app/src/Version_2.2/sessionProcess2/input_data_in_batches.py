@@ -4,6 +4,7 @@ Created on Fri Jan 27 07:40:55 2017
 
 @author: ankurmanikandan
 """
+from __future__ import print_function
 
 import logging
 import pickle
@@ -39,15 +40,11 @@ def send_batches_of_data(input_filepath, output_filepath, data, config, aws=True
     _logger("LOADING DATA")
 
     # read sensor data
-    try:
-        sdata = read_file(input_filepath)
-    except:
-        _logger("Cannot load data!", info=False)
-        raise
+    sdata = read_file(input_filepath, data.get('Placement'))
     if len(sdata) == 0:
-        _logger("Sensor data is empty!", info=False)
+        logger.warning("Sensor data is empty!", info=False)
         return "Fail!"
-    _logger("DATA LOADED!")
+    logger.info("DATA LOADED!")
 
     # read user mass
     mass = load_user_mass(data)
@@ -55,15 +52,15 @@ def send_batches_of_data(input_filepath, output_filepath, data, config, aws=True
     size = len(sdata)
     sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
-    hip_n_transform = data.get('HipNTransform', None)
+    hip_n_transform = data.get('Normalisation', {}).get('Neutral', None)
     if not isinstance(hip_n_transform, list) or len(hip_n_transform) == 0:
-        hip_n_transform = [0.987955980423897, 0.129494511785864, 0.0839820262430614, -0.0110077895195965]
+        raise Exception('No neutral normalisation quaternion')
     print('hip_n_transform: {}'.format(hip_n_transform))
 
     # Process the data
     # and pass it as argument to run_session as
-    # run_session(sdata, None, mass, grf_fit, sc, hip_n_transform, AWS)
-    output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, hip_n_transform, AWS)
+    # run_session(sdata, None, mass, grf_fit, sc, hip_n_transform)
+    output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, hip_n_transform)
 
     # Prepare data for dumping
     output_data_batch = output_data_batch.replace('None', '')
