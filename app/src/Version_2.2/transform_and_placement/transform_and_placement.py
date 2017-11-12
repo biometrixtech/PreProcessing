@@ -35,6 +35,7 @@ def script_handler(working_directory, file_name):
                 'Left': body_frame_transforms[0],
                 'Hip': body_frame_transforms[1],
                 'Right': body_frame_transforms[2],
+                'Neutral': body_frame_transforms[3],
             }
         }
 
