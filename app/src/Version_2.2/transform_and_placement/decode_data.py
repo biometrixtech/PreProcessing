@@ -146,6 +146,8 @@ def read_file(filename, lines):
     ms_elapsed = np.ediff1d(timestamp, to_begin=10)
     pos_timestamp = ms_elapsed>=0
     output_pd = output_pd.iloc[pos_timestamp]
+    output_pd = output_pd.loc[100:, :]
+    output_pd.reset_index(inplace=True, drop=True)
     
     return output_pd
 
