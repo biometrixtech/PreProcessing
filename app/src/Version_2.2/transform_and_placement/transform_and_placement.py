@@ -32,12 +32,12 @@ def script_handler(working_directory, file_name):
         
         return {
             'Placement': placement,
-            'Normalisation': {
+            'BodyFrameTransforms': {
                 'Left': body_frame_transforms[0],
                 'Hip': body_frame_transforms[1],
                 'Right': body_frame_transforms[2],
-                'Neutral': body_frame_transforms[3],
-            }
+            },
+            'HipNeutralYaw': body_frame_transforms[3]
         }
 
     except Exception as e:

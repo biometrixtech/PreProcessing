@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 
 import errno
@@ -8,10 +9,12 @@ import pickle
 import sys
 from collections import namedtuple
 from keras.models import load_model
+from math import sqrt
 
 import columnNames as cols
 import runAnalytics
 from decode_data import read_file
+from .quatOps import quat_conj, quat_prod, quat_multi_prod, vect_rot, quat_force_euler_angle
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
@@ -57,6 +60,81 @@ def load_grf_scaler(config):
         return pickle.load(model_file)
 
 
+def make_quaternion_array(quaternion, length):
+    return np.array([quaternion for i in range(length)])
+
+
+def apply_quaternion_normalisation(sdata, bf_transforms, hip_neutral_transform):
+    # Number of records
+    row_count = sdata.shape[0]
+
+    # Create arrays of the normalisation quaternions
+    q_bftransform_left = make_quaternion_array(bf_transforms['Left'], row_count)
+    q_bftransform_hip = make_quaternion_array(bf_transforms['Hip'], row_count)
+    q_bftransform_right = make_quaternion_array(bf_transforms['Right'], row_count)
+    q_neutraltransform_hip = make_quaternion_array(hip_neutral_transform, row_count)
+
+    # Extract the position quaternions from the frames
+    q_sensor_left = np.hstack([sdata.LqW, sdata.LqX, sdata.LqY, sdata.LqZ]).reshape(-1, 4)
+    q_sensor_hip = np.hstack([sdata.HqW, sdata.HqX, sdata.HqY, sdata.HqZ]).reshape(-1, 4)
+    q_sensor_right = np.hstack([sdata.RqW, sdata.RqX, sdata.RqY, sdata.RqZ]).reshape(-1, 4)
+
+    # Apply body frame transform to normalise pitch and roll
+    q_bf_left = quat_prod(q_sensor_left, q_bftransform_left)
+    q_bf_hip = quat_prod(q_sensor_hip, q_bftransform_hip)
+    q_bf_right = quat_prod(q_sensor_right, q_bftransform_right)
+
+    # Rotate left foot by 180º
+    yaw_180 = make_quaternion_array([0, 0, 0, 1], row_count)
+    q_bf_left = quat_prod(q_bf_left, yaw_180)
+
+    # Rotate hip sensor by 90º plus the hip neutral transform
+    yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, sqrt(2)/2], row_count)
+    q_bf_hip = quat_multi_prod(q_bf_hip, yaw_90, q_neutraltransform_hip)
+
+    # Isolate the yaw component of the instantaneous sensor orientations
+    q_bf_yaw_left = quat_force_euler_angle(q_bf_left, phi=0, theta=0)
+    q_bf_yaw_hip = quat_force_euler_angle(q_bf_hip, phi=0, theta=0)
+    q_bf_yaw_right = quat_force_euler_angle(q_bf_right, phi=0, theta=0)
+
+    # Extract the sensor-frame acceleration values and create imaginary quaternions
+    acc_sensor_left = np.hstack([sdata.LaX, sdata.LaY, sdata.LaZ]).reshape(-1, 3)
+    acc_sensor_hip = np.hstack([sdata.HaX, sdata.HaY, sdata.HaZ]).reshape(-1, 3)
+    acc_sensor_right = np.hstack([sdata.RaX, sdata.RaY, sdata.RaZ]).reshape(-1, 3)
+
+    # Transform left sensor
+    acc_aiftransform_left = quat_prod(quat_conj(q_bf_yaw_left), q_sensor_left)
+    acc_aif_left = vect_rot(acc_sensor_left, acc_aiftransform_left)
+
+    # Apply hip transformation
+    acc_aiftransform_hip = quat_multi_prod(
+        quat_conj(q_bf_yaw_hip),
+        q_neutraltransform_hip,
+        q_sensor_hip,
+    )
+    acc_aif_hip = vect_rot(acc_sensor_hip, acc_aiftransform_hip)
+
+    # Transform right sensor
+    acc_aiftransform_right = quat_prod(quat_conj(q_bf_yaw_right), q_sensor_right)
+    acc_aif_right = vect_rot(acc_sensor_right, acc_aiftransform_right)
+
+    # Re-insert the updated values
+    sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
+    sdata.loc[:, ['HqW', 'HqX', 'HqY', 'HqZ']] = q_bf_hip
+    sdata.loc[:, ['RqW', 'RqX', 'RqY', 'RqZ']] = q_bf_right
+    sdata.loc[:, ['LaX', 'LaY', 'LaZ']] = acc_aif_left
+    sdata.loc[:, ['HaX', 'HaY', 'HaZ']] = acc_aif_hip
+    sdata.loc[:, ['RaX', 'RaY', 'RaZ']] = acc_aif_right
+
+    return sdata
+
+
+def apply_acceleration_normalisation(sdata):
+    # Remove the effects of gravity
+    sdata.HaZ -= 9.80665
+    return sdata
+
+
 def script_handler(working_directory, file_name, data):
 
     logger.info('Received sessionProcess request for {}'.format(file_name))
@@ -88,6 +166,21 @@ def script_handler(working_directory, file_name, data):
             return "Fail!"
         logger.info("DATA LOADED!")
 
+        # Apply normalisation transforms
+        sdata = apply_quaternion_normalisation(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
+        sdata = apply_acceleration_normalisation(sdata)
+
+        # Output debug CSV
+        fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_rawtransform')), 'wb')
+        sdata.to_csv(fileobj, na_rep='', columns=[
+            'LqW', 'LqX', 'LqY', 'LqZ',
+            'HqW', 'HqX', 'HqY', 'HqZ',
+            'RqW', 'RqX', 'RqY', 'RqZ',
+            'LaX', 'LaY', 'LaZ',
+            'HaX', 'HaY', 'HaZ',
+            'RaX', 'RaY', 'RaZ',
+        ])
+
         # read user mass
         mass = load_user_mass(data)
 
@@ -102,7 +195,7 @@ def script_handler(working_directory, file_name, data):
         # Process the data
         # and pass it as argument to run_session as
         # run_session(sdata, None, mass, grf_fit, sc, hip_n_transform)
-        output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc, hip_n_transform)
+        output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc)
 
         # Prepare data for dumping
         output_data_batch = output_data_batch.replace('None', '')

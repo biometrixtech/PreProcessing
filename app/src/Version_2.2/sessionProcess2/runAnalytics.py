@@ -36,7 +36,7 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def run_session(data_in, file_name, mass, grf_fit, sc, hip_n_transform):
+def run_session(data_in, file_name, mass, grf_fit, sc):
     """Creates object attributes according to session analysis process.
 
     Args:
@@ -47,7 +47,6 @@ def run_session(data_in, file_name, mass, grf_fit, sc, hip_n_transform):
         mass: user's mass in kg
         grf_fit: keras fitted model for grf prediction
         sc: scaler model to scale data
-        hip_n_transform: tranform values to compute neutral components
         aws: Boolean indicator for whether we're running locally or on amazon
             aws
     
