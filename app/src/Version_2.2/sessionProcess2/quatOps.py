@@ -142,12 +142,11 @@ def vect_rot(v, q):
 
     # Prepare values for rotation
     # Convert 3D matrix to "quaternion" form
-    V = np.hstack((np.zeros((len(v), 1)), v))
-    del v
-    q = quat_norm(q) # Normalize the rotation quaternion
+    v = np.hstack((np.zeros((len(v), 1)), v))
+    q = quat_norm(q)  # Normalize the rotation quaternion
 
     # rotate vector as rot_vect = QVQ^(-1) and extract 3D values
-    rot_vect = quat_prod(_vector_quat_prod(quat_conj(q), V), q)
+    rot_vect = quat_prod(_vector_quat_prod(quat_conj(q), v), q)
     rot_vect = rot_vect[:, 1:]
 
     return rot_vect
