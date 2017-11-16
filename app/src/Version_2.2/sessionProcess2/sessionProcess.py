@@ -101,10 +101,15 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     acc_sensor_left = np.hstack([sdata.LaX, sdata.LaY, sdata.LaZ]).reshape(-1, 3)
     acc_sensor_hip = np.hstack([sdata.HaX, sdata.HaY, sdata.HaZ]).reshape(-1, 3)
     acc_sensor_right = np.hstack([sdata.RaX, sdata.RaY, sdata.RaZ]).reshape(-1, 3)
+    print('acc_sensor_left = {}'.format(acc_sensor_left[1,:] * 1000 / 9.80655))
+    print('acc_sensor_hip = {}'.format(acc_sensor_hip[1,:] * 1000 / 9.80655))
+    print('acc_sensor_right = {}'.format(acc_sensor_right[1,:] * 1000 / 9.80655))
 
     # Transform left sensor
     acc_aiftransform_left = quat_prod(quat_conj(q_bf_yaw_left), q_sensor_left)
+    print('acc_aiftransform_left = {}'.format(acc_aiftransform_left[1,:]))
     acc_aif_left = vect_rot(acc_sensor_left, quat_conj(acc_aiftransform_left))
+    print('acc_aif_left = {}'.format(acc_aif_left[1,:] * 1000 / 9.80655))
 
     # Apply hip transformation
     acc_aiftransform_hip = quat_multi_prod(
@@ -112,11 +117,15 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
         q_neutraltransform_hip,
         q_sensor_hip,
     )
+    print('acc_aiftransform_left = {}'.format(acc_aiftransform_left[1,:]))
     acc_aif_hip = vect_rot(acc_sensor_hip, quat_conj(acc_aiftransform_hip))
+    print('acc_aif_hip = {}'.format(acc_aif_hip[1,:] * 1000 / 9.80655))
 
     # Transform right sensor
     acc_aiftransform_right = quat_prod(quat_conj(q_bf_yaw_right), q_sensor_right)
+    print('acc_aiftransform_left = {}'.format(acc_aiftransform_left[1,:]))
     acc_aif_right = vect_rot(acc_sensor_right, quat_conj(acc_aiftransform_right))
+    print('acc_aif_right = {}'.format(acc_aif_right[1,:] * 1000 / 9.80655))
 
     # Re-insert the updated values
     sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
@@ -166,18 +175,29 @@ def script_handler(working_directory, file_name, data):
             return "Fail!"
         logger.info("DATA LOADED!")
 
+        # Output debug CSV
+        fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_pretransform')), 'wb')
+        sdata.to_csv(fileobj, na_rep='', columns=[
+            'LqW', 'LqX', 'LqY', 'LqZ',
+            'LaX', 'LaY', 'LaZ',
+            'HqW', 'HqX', 'HqY', 'HqZ',
+            'HaX', 'HaY', 'HaZ',
+            'RqW', 'RqX', 'RqY', 'RqZ',
+            'RaX', 'RaY', 'RaZ',
+        ])
+
         # Apply normalisation transforms
         sdata = apply_data_transformations(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
         sdata = apply_acceleration_normalisation(sdata)
 
         # Output debug CSV
-        fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_rawtransform')), 'wb')
+        fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
         sdata.to_csv(fileobj, na_rep='', columns=[
             'LqW', 'LqX', 'LqY', 'LqZ',
-            'HqW', 'HqX', 'HqY', 'HqZ',
-            'RqW', 'RqX', 'RqY', 'RqZ',
             'LaX', 'LaY', 'LaZ',
+            'HqW', 'HqX', 'HqY', 'HqZ',
             'HaX', 'HaY', 'HaZ',
+            'RqW', 'RqX', 'RqY', 'RqZ',
             'RaX', 'RaY', 'RaZ',
         ])
 
