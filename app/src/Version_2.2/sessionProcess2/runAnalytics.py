@@ -31,6 +31,7 @@ import phaseDetection as phase
 from detectImpactPhaseIntervals import detect_start_end_imp_phase
 import quatConvs as qc
 import prePreProcessing as ppp
+from extractGeometry import extract_geometry
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -72,25 +73,31 @@ def run_session(data_in, file_name, mass, grf_fit, sc):
     # ms_elapsed and datetime
     data.time_stamp, data.ms_elapsed = ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
 
-    # Compute euler angles
+    # Compute euler angles, geometric interpretation of data as appropriate
     lf_quats = np.hstack([data.LqW, data.LqX, data.LqY,
                           data.LqZ]).reshape(-1, 4)
     lf_euls = qc.quat_to_euler(lf_quats)
-    data.LeX = lf_euls[:, 0].reshape(-1, 1)
-    data.LeY = lf_euls[:, 1].reshape(-1, 1)
     data.LeZ = lf_euls[:, 2].reshape(-1, 1)
+    del(lf_euls)
 
     hip_quats = np.hstack([data.HqW, data.HqX, data.HqY, data.HqZ]).reshape(-1, 4)
     h_euls = qc.quat_to_euler(hip_quats)
-    data.HeX = h_euls[:, 0].reshape(-1, 1)
-    data.HeY = h_euls[:, 1].reshape(-1, 1)
     data.HeZ = h_euls[:, 2].reshape(-1, 1)
+    del(h_euls)
 
     rf_quats = np.hstack([data.RqW, data.RqX, data.RqY, data.RqZ]).reshape(-1, 4)
     rf_euls = qc.quat_to_euler(rf_quats)
-    data.ReX = rf_euls[:, 0].reshape(-1, 1)
-    data.ReY = rf_euls[:, 1].reshape(-1, 1)
     data.ReZ = rf_euls[:, 2].reshape(-1, 1)
+    del(rf_euls)
+
+    adduction_L, flexion_L, adduction_H, flexion_H, adduction_R, flexion_R = extract_geometry(lf_quats, hip_quats, rf_quats)
+
+    data.LeX = adduction_L.reshape(-1, 1)
+    data.LeY = flexion_L.reshape(-1, 1)
+    data.HeX = adduction_H.reshape(-1, 1)
+    data.HeY = flexion_H.reshape(-1, 1)
+    data.ReX = adduction_R.reshape(-1, 1)
+    data.ReY = flexion_R.reshape(-1, 1)
 
 #%%
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
