@@ -64,7 +64,7 @@ def make_quaternion_array(quaternion, length):
     return np.array([quaternion for i in range(length)])
 
 
-def apply_quaternion_normalisation(sdata, bf_transforms, hip_neutral_transform):
+def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     # Number of records
     row_count = sdata.shape[0]
 
@@ -75,9 +75,9 @@ def apply_quaternion_normalisation(sdata, bf_transforms, hip_neutral_transform):
     q_neutraltransform_hip = make_quaternion_array(hip_neutral_transform, row_count)
 
     # Extract the position quaternions from the frames
-    q_sensor_left = np.hstack([sdata.LqW, sdata.LqX, sdata.LqY, sdata.LqZ]).reshape(-1, 4)
-    q_sensor_hip = np.hstack([sdata.HqW, sdata.HqX, sdata.HqY, sdata.HqZ]).reshape(-1, 4)
-    q_sensor_right = np.hstack([sdata.RqW, sdata.RqX, sdata.RqY, sdata.RqZ]).reshape(-1, 4)
+    q_sensor_left = sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1, 4)
+    q_sensor_hip = sdata.loc[:, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1, 4)
+    q_sensor_right = sdata.loc[:, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1, 4)
 
     # Apply body frame transform to normalise pitch and roll
     q_bf_left = quat_prod(q_sensor_left, q_bftransform_left)
@@ -89,7 +89,7 @@ def apply_quaternion_normalisation(sdata, bf_transforms, hip_neutral_transform):
     q_bf_left = quat_prod(q_bf_left, yaw_180)
 
     # Rotate hip sensor by 90º plus the hip neutral transform
-    yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, sqrt(2)/2], row_count)
+    yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, -sqrt(2)/2], row_count)
     q_bf_hip = quat_multi_prod(q_bf_hip, yaw_90, q_neutraltransform_hip)
 
     # Isolate the yaw component of the instantaneous sensor orientations
@@ -104,7 +104,7 @@ def apply_quaternion_normalisation(sdata, bf_transforms, hip_neutral_transform):
 
     # Transform left sensor
     acc_aiftransform_left = quat_prod(quat_conj(q_bf_yaw_left), q_sensor_left)
-    acc_aif_left = vect_rot(acc_sensor_left, acc_aiftransform_left)
+    acc_aif_left = vect_rot(acc_sensor_left, quat_conj(acc_aiftransform_left))
 
     # Apply hip transformation
     acc_aiftransform_hip = quat_multi_prod(
@@ -112,11 +112,11 @@ def apply_quaternion_normalisation(sdata, bf_transforms, hip_neutral_transform):
         q_neutraltransform_hip,
         q_sensor_hip,
     )
-    acc_aif_hip = vect_rot(acc_sensor_hip, acc_aiftransform_hip)
+    acc_aif_hip = vect_rot(acc_sensor_hip, quat_conj(acc_aiftransform_hip))
 
     # Transform right sensor
     acc_aiftransform_right = quat_prod(quat_conj(q_bf_yaw_right), q_sensor_right)
-    acc_aif_right = vect_rot(acc_sensor_right, acc_aiftransform_right)
+    acc_aif_right = vect_rot(acc_sensor_right, quat_conj(acc_aiftransform_right))
 
     # Re-insert the updated values
     sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
@@ -167,7 +167,7 @@ def script_handler(working_directory, file_name, data):
         logger.info("DATA LOADED!")
 
         # Apply normalisation transforms
-        sdata = apply_quaternion_normalisation(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
+        sdata = apply_data_transformations(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
         sdata = apply_acceleration_normalisation(sdata)
 
         # Output debug CSV
@@ -187,14 +187,8 @@ def script_handler(working_directory, file_name, data):
         size = len(sdata)
         sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
-        hip_n_transform = data.get('Normalisation', {}).get('Neutral', None)
-        if not isinstance(hip_n_transform, list) or len(hip_n_transform) == 0:
-            raise Exception('No neutral normalisation quaternion')
-        print('hip_n_transform: {}'.format(hip_n_transform))
-
         # Process the data
         # and pass it as argument to run_session as
-        # run_session(sdata, None, mass, grf_fit, sc, hip_n_transform)
         output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc)
 
         # Prepare data for dumping
