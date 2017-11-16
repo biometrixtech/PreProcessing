@@ -120,6 +120,7 @@ def mkdir(path):
 
 def main():
     global script, input_data, meta_data
+    meta_data = {}  # In case an exception is thrown when decoding input_data
 
     try:
         script = sys.argv[1]
