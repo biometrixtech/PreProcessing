@@ -4,6 +4,7 @@ from __future__ import print_function
 import errno
 import logging
 import numpy as np
+import pandas as pd
 import os
 import pickle
 import sys
@@ -169,26 +170,29 @@ def script_handler(working_directory, file_name, data):
         logger.info("LOADING DATA")
 
         # read sensor data
-        sdata = read_file(os.path.join(working_directory, 'downloadandchunk', file_name), data.get('Placement'))
-        if len(sdata) == 0:
-            logger.warning("Sensor data is empty!", info=False)
-            return "Fail!"
-        logger.info("DATA LOADED!")
+        if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+            sdata = pd.read_csv(os.path.join(working_directory, 'downloadandchunk', file_name))
+        else:
+            sdata = read_file(os.path.join(working_directory, 'downloadandchunk', file_name), data.get('Placement'))
+            if len(sdata) == 0:
+                logger.warning("Sensor data is empty!", info=False)
+                return "Fail!"
+            logger.info("DATA LOADED!")
 
-        # Output debug CSV
-        fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_pretransform')), 'wb')
-        sdata.to_csv(fileobj, na_rep='', columns=[
-            'LqW', 'LqX', 'LqY', 'LqZ',
-            'LaX', 'LaY', 'LaZ',
-            'HqW', 'HqX', 'HqY', 'HqZ',
-            'HaX', 'HaY', 'HaZ',
-            'RqW', 'RqX', 'RqY', 'RqZ',
-            'RaX', 'RaY', 'RaZ',
-        ])
+            # Output debug CSV
+            fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_pretransform')), 'wb')
+            sdata.to_csv(fileobj, na_rep='', columns=[
+                'LqW', 'LqX', 'LqY', 'LqZ',
+                'LaX', 'LaY', 'LaZ',
+                'HqW', 'HqX', 'HqY', 'HqZ',
+                'HaX', 'HaY', 'HaZ',
+                'RqW', 'RqX', 'RqY', 'RqZ',
+                'RaX', 'RaY', 'RaZ',
+            ])
 
-        # Apply normalisation transforms
-        sdata = apply_data_transformations(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
-        sdata = apply_acceleration_normalisation(sdata)
+            # Apply normalisation transforms
+            sdata = apply_data_transformations(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
+            sdata = apply_acceleration_normalisation(sdata)
 
         # Output debug CSV
         fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
@@ -209,7 +213,9 @@ def script_handler(working_directory, file_name, data):
 
         # Process the data
         # and pass it as argument to run_session as
-        output_data_batch = runAnalytics.run_session(sdata, None, mass, grf_fit, sc)
+        file_version = data.get('SensorDataFileVersion', '2.3')
+        hip_n_transform = data.get('HipNTransform', None)
+        output_data_batch = runAnalytics.run_session(sdata, file_version, mass, grf_fit, sc, hip_n_transform)
 
         # Prepare data for dumping
         output_data_batch = output_data_batch.replace('None', '')
