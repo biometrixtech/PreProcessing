@@ -37,14 +37,14 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def run_session(data_in, file_name, mass, grf_fit, sc):
+def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     """Creates object attributes according to session analysis process.
 
     Args:
         data_in: raw data object with attributes of:
             epoch_time, corrupt_magn, missing_type, LaX, LaY, LaZ, LqX, LqY,
             LqZ, HaX, HaY, HaZ, HqX, HqY, HqZ, RaX, RaY, RaZ, RqX, RqY, RqZ
-        file_name: sensor_data_filename in DB
+        file_version: file format and type version (matching accessory sensor dev)
         mass: user's mass in kg
         grf_fit: keras fitted model for grf prediction
         sc: scaler model to scale data
@@ -163,10 +163,24 @@ def run_session(data_in, file_name, mass, grf_fit, sc):
     rf_quat = np.hstack([data.RqW, data.RqX, data.RqY, data.RqZ])
 
     # calculate movement attributes
-    data.contra_hip_drop_lf, data.contra_hip_drop_rf, data.ankle_rot_lf,\
-        data.ankle_rot_rf, data.foot_position_lf, data.foot_position_rf,\
-        = cmed.calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, data.phase_lf, data.phase_rf)
-    del lf_quat, hip_quat, rf_quat
+    if file_version == '1.0':
+        import balanceCMEV1 as cmedv1
+        # isolate neutral quaternions
+        lf_neutral, hip_neutral, rf_neutral = _calculate_hip_neutral(hip_quat, hip_n_transform)
+
+        # calculate movement attributes
+        data.contra_hip_drop_lf, data.contra_hip_drop_rf, data.ankle_rot_lf,\
+            data.ankle_rot_rf, data.foot_position_lf, data.foot_position_rf,\
+            = cmedv1.calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, lf_neutral,
+                                          hip_neutral, rf_neutral, data.phase_lf,\
+                                          data.phase_rf)
+        del lf_quat, hip_quat, rf_quat
+        del lf_neutral, hip_neutral, rf_neutral
+    else:
+        data.contra_hip_drop_lf, data.contra_hip_drop_rf, data.ankle_rot_lf,\
+            data.ankle_rot_rf, data.foot_position_lf, data.foot_position_rf,\
+            = cmed.calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, data.phase_lf, data.phase_rf)
+        del lf_quat, hip_quat, rf_quat
     logger.info('DONE WITH BALANCE CME!')
 
     # IMPACT CME
@@ -270,3 +284,38 @@ def _filter_data(x, cutoff=12, fs=100, order=4):
     normal_cutoff = cutoff/nyq
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
     return filtfilt(b, a, x, axis=0)
+
+
+def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
+    #%% Transform Data into Neutral Versions, for balanceCME Calculations
+
+   # define length, reshape transform value
+    length = len(hip_bf_quats)
+    hip_n_transform = np.array(hip_n_transform).reshape(-1, 4)
+
+   # divide static neutral and instantaneous hip data into axial components
+    static_hip_neut = qc.quat_to_euler(hip_n_transform)
+    neutral_hip_roll = static_hip_neut[0, 0]
+    neutral_hip_pitch = static_hip_neut[0, 1]
+
+    neutral_hip_roll = np.full((length, 1), neutral_hip_roll, float)
+    neutral_hip_pitch = np.full((length, 1), neutral_hip_pitch, float)
+    inst_hip_yaw = qc.quat_to_euler(hip_bf_quats)[:, 2].reshape(-1, 1)
+
+   # combine select data to define neutral hip data
+    hip_neutral_euls = np.hstack((neutral_hip_roll, neutral_hip_pitch,
+                                  inst_hip_yaw))
+
+   # define hip adjusted inertial frame using instantaneous hip yaw
+    hip_aif_euls = np.hstack((np.zeros((length, 2)), inst_hip_yaw))
+
+   # convert all Euler angles to quaternions and return as relevant output
+    hip_aif = qc.euler_to_quat(hip_aif_euls)
+    hip_neutral = qc.euler_to_quat(hip_neutral_euls)
+
+    lf_neutral = hip_aif # in perfectly neutral stance, lf bf := hip AIF
+    rf_neutral = hip_aif # in perfectly neutral stance, rf bf := hip AIF
+
+    return lf_neutral, hip_neutral, rf_neutral
+
+
