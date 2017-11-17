@@ -149,7 +149,10 @@ def main():
             from downloadAndChunk import downloadAndChunk
             s3_bucket = input_data.get('S3Bucket', None)
             s3_basepath = input_data.get('S3BasePath', None)
-            s3_paths = ["{}{:04d}".format(s3_basepath, i) for i in range(0, input_data.get('PartCount', []))] + [s3_basepath + "complete"]
+            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+                s3_paths = [s3_basepath]
+            else:
+                s3_paths = ["{}{:04d}".format(s3_basepath, i) for i in range(0, input_data.get('PartCount', []))] + [s3_basepath + "complete"]
             tmp_combined_file = downloadAndChunk.script_handler(s3_bucket, s3_paths)
 
             # Upload combined file back to s3
