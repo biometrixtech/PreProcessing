@@ -164,11 +164,18 @@ def main():
 
             from chunk import chunk
             mkdir(os.path.join(working_directory, 'downloadandchunk'))
-            file_names = chunk.chunk_by_byte(
-                tmp_combined_file,
-                os.path.join(working_directory, 'downloadandchunk'),
-                100000 * 40  # 100,000 records, 40 bytes per record
-            )
+            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+                file_names = chunk.chunk_by_line(
+                    tmp_combined_file,
+                    os.path.join(working_directory, 'downloadandchunk'),
+                    100000 # 100000 records per chunk
+                    )
+            else:
+                file_names = chunk.chunk_by_byte(
+                    tmp_combined_file,
+                    os.path.join(working_directory, 'downloadandchunk'),
+                    100000 * 40  # 100,000 records, 40 bytes per record
+                )
 
             os.remove(tmp_combined_file)
 
