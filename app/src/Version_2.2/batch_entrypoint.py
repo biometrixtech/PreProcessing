@@ -173,11 +173,22 @@ def main():
 
         elif script == 'transformandplacement':
             print('Running transformandplacement()')
-            from transform_and_placement import transform_and_placement
-            ret = transform_and_placement.script_handler(
-                working_directory,
-                input_data.get('Filename', None)
-            )
+            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+                ret =  {
+                    'Placement': [0, 1, 2],
+                    'BodyFrameTransforms': {
+                        'Left': [1, 0, 0, 0],
+                        'Hip': [1, 0, 0, 0],
+                        'Right': [1, 0, 0, 0],
+                    },
+                    'HipNeutralYaw': [1, 0, 0, 0]
+                }
+            else:
+                from transform_and_placement import transform_and_placement
+                ret = transform_and_placement.script_handler(
+                    working_directory,
+                    input_data.get('Filename', None)
+                )
             send_success(meta_data, ret)
 
         elif script == 'sessionprocess2':
