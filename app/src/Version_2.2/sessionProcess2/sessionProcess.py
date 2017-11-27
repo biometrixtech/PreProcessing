@@ -114,9 +114,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     # Rotate hip sensor by 90º plus the hip neutral transform, find the body
     # frame of the hip data
     yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, -sqrt(2)/2], row_count)    
-    q_bf_hip = quat_prod(q_bftransform_hip, yaw_90)
-    q_bf_hip = quat_prod(q_sensor_hip, q_bf_hip)
-    q_bf_hip = quat_prod(q_neutraltransform_hip, q_bf_hip)
+    q_bf_hip = quat_multi_prod(q_neutraltransform_hip, q_sensor_hip, q_bftransform_hip, yaw_90)
 
     # Isolate the yaw component of the instantaneous sensor orientations
     q_bf_yaw_left = quat_force_euler_angle(q_bf_left, phi=0, theta=0)
