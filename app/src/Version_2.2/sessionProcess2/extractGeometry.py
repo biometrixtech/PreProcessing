@@ -142,7 +142,7 @@ def extract_geometry(qL, qH, qR):
             # Found a window - search for the values at the boundaries
             bound2_index = i
             
-            while z_cross_H[bound2_index] == 1 and z_cross_H[bound2_index + 1] == 1and bound2_index < (len(z_cross_H) - 2):
+            while z_cross_H[bound2_index] == 1 and z_cross_H[bound2_index + 1] == 1 and bound2_index < (len(z_cross_H) - 2):
                     bound2_index = bound2_index + 1    
     
             if flexion_H[i] < 0:
