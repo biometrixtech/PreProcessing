@@ -120,6 +120,7 @@ def mkdir(path):
 
 def main():
     global script, input_data, meta_data
+    meta_data = {}  # In case an exception is thrown when decoding input_data
 
     try:
         script = sys.argv[1]
@@ -169,6 +170,15 @@ def main():
             os.remove(tmp_combined_file)
 
             send_success(meta_data, {"Filenames": file_names})
+
+        elif script == 'transformandplacement':
+            print('Running transformandplacement()')
+            from transform_and_placement import transform_and_placement
+            ret = transform_and_placement.script_handler(
+                working_directory,
+                input_data.get('Filename', None)
+            )
+            send_success(meta_data, ret)
 
         elif script == 'sessionprocess2':
             print('Running sessionprocess2()')

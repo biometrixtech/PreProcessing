@@ -88,9 +88,10 @@ def script_handler(working_directory, input_data):
         data_out['eventDate'] = input_data.get('EventDate', None)
 
         # Compute the max grf and totalAccel for each .5s window for use in program comp
+        data['totalAccelUnscaled'] = data['totalAccel'] / data['msElapsed'] * 100000
         data['half_sec'] = pandas.DatetimeIndex(pandas.to_datetime(data.epochTime, unit='ms')).round('500ms')
         f = OrderedDict({'total': [numpy.max]})
-        f['totalAccel'] = [numpy.max]
+        f['totalAccelUnscaled'] = [numpy.max]
         
         max_half_sec = data.groupby('half_sec').agg(f)
         max_half_sec.columns = ['totalNormMax', 'totalAccelMax']
@@ -156,16 +157,18 @@ def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         prog_comp_grf['percOptimal'] = prog_comp_grf['constructive'] / prog_comp_grf['total'] * 100
         prog_comp_grf['percIrregular'] = prog_comp_grf['destructive'] / prog_comp_grf['total'] * 100
         prog_comp_grf.columns = prog_comp_columns
+        prog_comp_grf = prog_comp_grf.where((pandas.notnull(prog_comp_grf)), None)
         grf = prog_comp_grf.to_dict(orient='records')
         grf_sorted = []
         for data_bin in grf:
+            if data_bin['totalGRF'] is None:
+                continue
             sorted_bin = OrderedDict()
             for var in prog_comp_columns:
                 if var=='binNumber':
                     sorted_bin[var] = int(data_bin[var])
                 else:
                     sorted_bin[var] = data_bin[var]
-
             grf_sorted.append(sorted_bin)
         return grf_sorted
 
@@ -183,16 +186,18 @@ def _accel_prog_comp(data, agg_vars, prog_comp_columns):
         prog_comp_accel['percOptimal'] = prog_comp_accel['constructive'] / prog_comp_accel['total'] * 100
         prog_comp_accel['percIrregular'] = prog_comp_accel['destructive'] / prog_comp_accel['total'] * 100
         prog_comp_accel.columns = prog_comp_columns
+        prog_comp_accel = prog_comp_accel.where((pandas.notnull(prog_comp_accel)), None)
         accel = prog_comp_accel.to_dict(orient='records')
         accel_sorted = []
         for data_bin in accel:
+            if data_bin['totalGRF'] is None:
+                continue
             sorted_bin = OrderedDict()
             for var in prog_comp_columns:
                 if var=='binNumber':
                     sorted_bin[var] = int(data_bin[var])
                 else:
                     sorted_bin[var] = data_bin[var]
-
             accel_sorted.append(sorted_bin)
         return accel_sorted
 
@@ -233,6 +238,8 @@ def _plane_prog_comp(data, agg_vars, prog_comp_columns):
         plane = prog_comp.to_dict(orient='records')
         plane_sorted = []
         for data_bin in plane:
+            if numpy.isnan(data_bin['percOptimal']):
+                continue
             sorted_bin = OrderedDict()
             for var in prog_comp_columns:
                 if numpy.isnan(data_bin[var]):
@@ -261,6 +268,8 @@ def _stance_prog_comp(data, agg_vars, prog_comp_columns):
         stance = pc_stance.to_dict(orient='records')
         stance_sorted = []
         for data_bin in stance:
+            if numpy.isnan(data_bin['percOptimal']):
+                continue
             sorted_bin = OrderedDict()
             for var in prog_comp_columns:
                 if numpy.isnan(data_bin[var]):
@@ -271,6 +280,7 @@ def _stance_prog_comp(data, agg_vars, prog_comp_columns):
                     sorted_bin[var] = data_bin[var]
             stance_sorted.append(sorted_bin)
         return stance_sorted
+
 
 
 if __name__ == '__main__':

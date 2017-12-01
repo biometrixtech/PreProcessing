@@ -84,8 +84,9 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
     ) = score(sdata, user_hist, grf_scale)
     del user_hist
     _logger("DONE WITH SCORING!")
-
+    accel_scale = 100000
     sdata.grf = sdata.grf / grf_scale
+    sdata.total_accel = sdata.total_accel * sdata.ms_elapsed / accel_scale
     # Round the data to 6th decimal point
     sdata = sdata.round(6)
 
