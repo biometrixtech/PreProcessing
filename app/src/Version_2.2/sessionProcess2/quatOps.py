@@ -8,6 +8,7 @@ Created on Wed Sep 28 17:42:39 2016
 # import relevant packages
 import numpy as np
 
+from .quatConvs import quat_to_euler, euler_to_quat
 
 """
 ############################################################################
@@ -52,6 +53,7 @@ def quat_prod(q1, q2):
 
     return prod
 
+
 def _vector_quat_prod(q1, q2):
 
     """
@@ -82,6 +84,14 @@ def _vector_quat_prod(q1, q2):
 
     return prod
 
+
+def quat_multi_prod(*quaternions):
+    if len(quaternions) == 0:
+        raise ValueError('Must supply at least one argument')
+    elif len(quaternions) == 1:
+        return quaternions[0]
+    else:
+        return quat_prod(quaternions[0], quat_multi_prod(*quaternions[1:]))
 
 
 def quat_norm(q):
@@ -132,12 +142,11 @@ def vect_rot(v, q):
 
     # Prepare values for rotation
     # Convert 3D matrix to "quaternion" form
-    V = np.hstack((np.zeros((len(v), 1)), v))
-    del v
-    q = quat_norm(q) # Normalize the rotation quaternion
+    v = np.hstack((np.zeros((len(v), 1)), v))
+    q = quat_norm(q)  # Normalize the rotation quaternion
 
     # rotate vector as rot_vect = QVQ^(-1) and extract 3D values
-    rot_vect = quat_prod(_vector_quat_prod(quat_conj(q), V), q)
+    rot_vect = quat_prod(_vector_quat_prod(quat_conj(q), v), q)
     rot_vect = rot_vect[:, 1:]
 
     return rot_vect
@@ -174,4 +183,15 @@ def quat_avg(data):
     avg_quat = quat_norm(avg_quat)
 
     return avg_quat
+
+
+def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
+    euler_angles = quat_to_euler(quaternion)
+    if phi is not None:
+        euler_angles[:, 0] = phi
+    if theta is not None:
+        euler_angles[:, 1] = theta
+    if psi is not None:
+        euler_angles[:, 2] = psi
+    return euler_to_quat(euler_angles)
 

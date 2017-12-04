@@ -5,7 +5,7 @@ import os
 import sys
 
 from decode_data import read_file
-from placement_detection import detect_placement
+from placement_detection import detect_placement, shift_accel
 from transform_calculation import compute_transform
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -19,6 +19,7 @@ def script_handler(working_directory, file_name):
         filepath = os.path.join(working_directory, 'downloadandchunk', file_name)
         count = 100 * 60
         data = read_file(filepath, count)
+        shift_accel(data)
 
         try:
             placement = detect_placement(data)
@@ -31,12 +32,12 @@ def script_handler(working_directory, file_name):
         
         return {
             'Placement': placement,
-            'Normalisation': {
+            'BodyFrameTransforms': {
                 'Left': body_frame_transforms[0],
                 'Hip': body_frame_transforms[1],
                 'Right': body_frame_transforms[2],
-                'Neutral': body_frame_transforms[3],
-            }
+            },
+            'HipNeutralYaw': body_frame_transforms[3]
         }
 
     except Exception as e:

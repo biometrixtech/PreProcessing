@@ -120,6 +120,7 @@ def mkdir(path):
 
 def main():
     global script, input_data, meta_data
+    meta_data = {}  # In case an exception is thrown when decoding input_data
 
     try:
         script = sys.argv[1]
@@ -148,7 +149,10 @@ def main():
             from downloadAndChunk import downloadAndChunk
             s3_bucket = input_data.get('S3Bucket', None)
             s3_basepath = input_data.get('S3BasePath', None)
-            s3_paths = ["{}{:04d}".format(s3_basepath, i) for i in range(0, input_data.get('PartCount', []))] + [s3_basepath + "complete"]
+            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+                s3_paths = [s3_basepath]
+            else:
+                s3_paths = ["{}{:04d}".format(s3_basepath, i) for i in range(0, input_data.get('PartCount', []))] + [s3_basepath + "complete"]
             tmp_combined_file = downloadAndChunk.script_handler(s3_bucket, s3_paths)
 
             # Upload combined file back to s3
@@ -160,11 +164,18 @@ def main():
 
             from chunk import chunk
             mkdir(os.path.join(working_directory, 'downloadandchunk'))
-            file_names = chunk.chunk_by_byte(
-                tmp_combined_file,
-                os.path.join(working_directory, 'downloadandchunk'),
-                100000 * 40  # 100,000 records, 40 bytes per record
-            )
+            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+                file_names = chunk.chunk_by_line(
+                    tmp_combined_file,
+                    os.path.join(working_directory, 'downloadandchunk'),
+                    100000 # 100000 records per chunk
+                    )
+            else:
+                file_names = chunk.chunk_by_byte(
+                    tmp_combined_file,
+                    os.path.join(working_directory, 'downloadandchunk'),
+                    100000 * 40  # 100,000 records, 40 bytes per record
+                )
 
             os.remove(tmp_combined_file)
 
@@ -172,11 +183,22 @@ def main():
 
         elif script == 'transformandplacement':
             print('Running transformandplacement()')
-            from transform_and_placement import transform_and_placement
-            ret = transform_and_placement.script_handler(
-                working_directory,
-                input_data.get('Filename', None)
-            )
+            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+                ret =  {
+                    'Placement': [0, 1, 2],
+                    'BodyFrameTransforms': {
+                        'Left': [1, 0, 0, 0],
+                        'Hip': [1, 0, 0, 0],
+                        'Right': [1, 0, 0, 0],
+                    },
+                    'HipNeutralYaw': [1, 0, 0, 0]
+                }
+            else:
+                from transform_and_placement import transform_and_placement
+                ret = transform_and_placement.script_handler(
+                    working_directory,
+                    input_data.get('Filename', None)
+                )
             send_success(meta_data, ret)
 
         elif script == 'sessionprocess2':

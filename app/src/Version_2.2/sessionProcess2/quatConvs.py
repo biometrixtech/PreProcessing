@@ -5,6 +5,7 @@ Created on Wed Sep 28 17:42:39 2016
 @author: court
 """
 
+from __future__ import print_function
 import numpy as np
 import quatOps as qo
 
@@ -51,12 +52,12 @@ def quat_to_euler(q):
     phi = np.arctan2(b, a)
     
     if any(c > .4995):
-        print "theta is 90"
+        print("theta is 90")
         psi[c > .4995] = np.nan
         theta[c > .4995] = np.nan
         phi[c > .4995] = np.nan
     elif any(c < -.4995):
-        print "theta is -90"
+        print("theta is -90")
         psi[c < -.4995] = np.nan
         theta[c < -.4995] = np.nan
         phi[c < -.4995] = np.nan

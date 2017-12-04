@@ -13,119 +13,121 @@ def detect_placement(data):
     """
     data.reset_index(inplace=True, drop=True)
     start, end = detect_activity(data)
-    data = data.loc[start:end, :]
-    data.reset_index(inplace=True, drop=True)
-    hip_sensor_id = identify_hip_sensor(data)
+    for i in range(len(start)):
+        try:
+            data_sub = data.loc[start[i]:end[i], :]
+            data_sub.reset_index(inplace=True, drop=True)
+            hip_sensor_id = identify_hip_sensor(data_sub)
 
-    # based on the hip detected, assign other two sensors as foot1 and foot2
-    if hip_sensor_id == 0:
-        # foot1 = 1, foot2 = 2
-        quats_1 = np.concatenate(((data.qW1.values.reshape(-1, 1)), (data.qX1.values.reshape(-1, 1)),
-                                  (data.qY1.values.reshape(-1, 1)), (data.qZ1.values.reshape(-1, 1))), axis=1)
-        quats_2 = np.concatenate(((data.qW2.values.reshape(-1, 1)), (data.qX2.values.reshape(-1, 1)),
-                                  (data.qY2.values.reshape(-1, 1)), (data.qZ2.values.reshape(-1, 1))), axis=1)
+            # based on the hip detected, assign other two sensors as foot1 and foot2
+            if hip_sensor_id == 0:
+                # foot1 = 1, foot2 = 2
+                quats_1 = np.concatenate(((data_sub.qW1.values.reshape(-1, 1)), (data_sub.qX1.values.reshape(-1, 1)),
+                                          (data_sub.qY1.values.reshape(-1, 1)), (data_sub.qZ1.values.reshape(-1, 1))), axis=1)
+                quats_2 = np.concatenate(((data_sub.qW2.values.reshape(-1, 1)), (data_sub.qX2.values.reshape(-1, 1)),
+                                          (data_sub.qY2.values.reshape(-1, 1)), (data_sub.qZ2.values.reshape(-1, 1))), axis=1)
 
-        # prepare foot1 data
-        pitch_foot1 = qc.quat_to_euler(quats_1)[:, 1] * 180 / np.pi
-        # rotate if the placement is at too high angle creating the weird divets in pitch data
-        # TODO: This seems to work but unsure how need to make sure math works
-        if np.nanmean(pitch_foot1[0:100]) > 45:
-            pitch_foot1 = extract_geometry(quats_1, -np.pi/2)
-        elif np.nanmean(pitch_foot1[0:100]) < -45:
-            pitch_foot1 = extract_geometry(quats_1, np.pi/2)
+                # prepare foot1 data
+                pitch_foot1 = qc.quat_to_euler(quats_1)[100:, 1] * 180 / np.pi
+                # rotate if the placement is at too high angle creating the weird divets in pitch data
+                # TODO: This seems to work but unsure how need to make sure math works
+                if np.nanmean(pitch_foot1[0:100]) > 45:
+                    pitch_foot1 = extract_geometry(quats_1, -np.pi/2)
+                elif np.nanmean(pitch_foot1[0:100]) < -45:
+                    pitch_foot1 = extract_geometry(quats_1, np.pi/2)
 
-        if np.nanmean(data.aY1_original.values[0:100]) > 4.9:  # the sensor was upside down
-            pitch_foot1 = -pitch_foot1
+                if np.nanmean(data_sub.aY1_original.values[0:100]) > 4.9:  # the sensor was upside down
+                    pitch_foot1 = -pitch_foot1
 
-        # prepare foot2 data
-        pitch_foot2 = qc.quat_to_euler(quats_2)[:, 1] * 180 / np.pi
-        # rotate if the placement is at too high angle creating the weird divets in pitch data
-        # TODO: This seems to work but unsure how need to make sure math works
-        if np.nanmean(pitch_foot2[0:100]) > 45:
-            pitch_foot2 = extract_geometry(quats_2, -np.pi/2)
-        elif np.nanmean(pitch_foot2[0:100]) < -45:
-            pitch_foot2 = extract_geometry(quats_2, np.pi/2)
+                # prepare foot2 data
+                pitch_foot2 = qc.quat_to_euler(quats_2)[100:, 1] * 180 / np.pi
+                # rotate if the placement is at too high angle creating the weird divets in pitch data
+                # TODO: This seems to work but unsure how need to make sure math works
+                if np.nanmean(pitch_foot2[0:100]) > 45:
+                    pitch_foot2 = extract_geometry(quats_2, -np.pi/2)
+                elif np.nanmean(pitch_foot2[0:100]) < -45:
+                    pitch_foot2 = extract_geometry(quats_2, np.pi/2)
 
-        if np.nanmean(data.aY2_original.values[0:100]) > 4.9:  # the sensor was upside down
-            pitch_foot2 = -pitch_foot2
+                if np.nanmean(data_sub.aY2_original.values[0:100]) > 4.9:  # the sensor was upside down
+                    pitch_foot2 = -pitch_foot2
 
-        return [1, 0, 2] if is_foot1_left(pitch_foot1, pitch_foot2) else [2, 0, 1]
+                return [1, 0, 2] if is_foot1_left(pitch_foot1, pitch_foot2) else [2, 0, 1]
 
-    elif hip_sensor_id == 1:
-        # foot1 = 0, foot2 = 2
-        quats_1 = np.concatenate(((data.qW0.values.reshape(-1, 1)), (data.qX0.values.reshape(-1, 1)),
-                                  (data.qY0.values.reshape(-1, 1)), (data.qZ0.values.reshape(-1, 1))), axis=1)
-        quats_2 = np.concatenate(((data.qW2.values.reshape(-1, 1)), (data.qX2.values.reshape(-1, 1)),
-                                  (data.qY2.values.reshape(-1, 1)), (data.qZ2.values.reshape(-1, 1))), axis=1)
+            elif hip_sensor_id == 1:
+                # foot1 = 0, foot2 = 2
+                quats_1 = np.concatenate(((data_sub.qW0.values.reshape(-1, 1)), (data_sub.qX0.values.reshape(-1, 1)),
+                                          (data_sub.qY0.values.reshape(-1, 1)), (data_sub.qZ0.values.reshape(-1, 1))), axis=1)
+                quats_2 = np.concatenate(((data_sub.qW2.values.reshape(-1, 1)), (data_sub.qX2.values.reshape(-1, 1)),
+                                          (data_sub.qY2.values.reshape(-1, 1)), (data_sub.qZ2.values.reshape(-1, 1))), axis=1)
 
-        # prepare foot1 data
-        pitch_foot1 = qc.quat_to_euler(quats_1)[:, 1] * 180 / np.pi
-        # rotate if the placement is at too high angle creating the weird divets in pitch data
-        # TODO: This seems to work but unsure how need to make sure math works
-        if np.nanmean(pitch_foot1[0:100]) > 45:
-            pitch_foot1 = extract_geometry(quats_1, -np.pi/2)
-        elif np.nanmean(pitch_foot1[0:100]) < -45:
-            pitch_foot1 = extract_geometry(quats_1, np.pi/2)
+                # prepare foot1 data
+                pitch_foot1 = qc.quat_to_euler(quats_1)[100:, 1] * 180 / np.pi
+                # rotate if the placement is at too high angle creating the weird divets in pitch data
+                # TODO: This seems to work but unsure how need to make sure math works
+                if np.nanmean(pitch_foot1[0:100]) > 45:
+                    pitch_foot1 = extract_geometry(quats_1, -np.pi/2)
+                elif np.nanmean(pitch_foot1[0:100]) < -45:
+                    pitch_foot1 = extract_geometry(quats_1, np.pi/2)
 
-        if np.nanmean(data.aY0_original.values[0:100]) > 4.9:  # the sensor was upside down
-            pitch_foot1 = -pitch_foot1
+                if np.nanmean(data_sub.aY0_original.values[0:100]) > 4.9:  # the sensor was upside down
+                    pitch_foot1 = -pitch_foot1
 
-        # prepare foot2 data
-        pitch_foot2 = qc.quat_to_euler(quats_2)[:, 1] * 180 / np.pi
-        # rotate if the placement is at too high angle creating the weird divets in pitch data
-        # TODO: This seems to work but unsure how need to make sure math works
-        if np.nanmean(pitch_foot2[0:100]) > 45:
-            pitch_foot2 = extract_geometry(quats_2, -np.pi/2)
-        elif np.nanmean(pitch_foot2[0:100]) < -45:
-            pitch_foot2 = extract_geometry(quats_2, np.pi/2)
+                # prepare foot2 data
+                pitch_foot2 = qc.quat_to_euler(quats_2)[100:, 1] * 180 / np.pi
+                # rotate if the placement is at too high angle creating the weird divets in pitch data
+                # TODO: This seems to work but unsure how need to make sure math works
+                if np.nanmean(pitch_foot2[0:100]) > 45:
+                    pitch_foot2 = extract_geometry(quats_2, -np.pi/2)
+                elif np.nanmean(pitch_foot2[0:100]) < -45:
+                    pitch_foot2 = extract_geometry(quats_2, np.pi/2)
 
-        if np.nanmean(data.aY2_original.values[0:100]) > 4.9:  # the sensor was upside down
-            pitch_foot2 = -pitch_foot2
+                if np.nanmean(data_sub.aY2_original.values[0:100]) > 4.9:  # the sensor was upside down
+                    pitch_foot2 = -pitch_foot2
 
-        return [0, 1, 2] if is_foot1_left(pitch_foot1, pitch_foot2) else [2, 1, 0]
+                return [0, 1, 2] if is_foot1_left(pitch_foot1, pitch_foot2) else [2, 1, 0]
 
-    elif hip_sensor_id == 2:
-        # foot1 = 0, foot2 = 1
-        quats_1 = np.concatenate(((data.qW0.values.reshape(-1, 1)), (data.qX0.values.reshape(-1, 1)),
-                                  (data.qY0.values.reshape(-1, 1)), (data.qZ0.values.reshape(-1, 1))), axis=1)
-        quats_2 = np.concatenate(((data.qW1.values.reshape(-1, 1)), (data.qX1.values.reshape(-1, 1)),
-                                  (data.qY1.values.reshape(-1, 1)), (data.qZ1.values.reshape(-1, 1))), axis=1)
+            elif hip_sensor_id == 2:
+                # foot1 = 0, foot2 = 1
+                quats_1 = np.concatenate(((data_sub.qW0.values.reshape(-1, 1)), (data_sub.qX0.values.reshape(-1, 1)),
+                                          (data_sub.qY0.values.reshape(-1, 1)), (data_sub.qZ0.values.reshape(-1, 1))), axis=1)
+                quats_2 = np.concatenate(((data_sub.qW1.values.reshape(-1, 1)), (data_sub.qX1.values.reshape(-1, 1)),
+                                          (data_sub.qY1.values.reshape(-1, 1)), (data_sub.qZ1.values.reshape(-1, 1))), axis=1)
 
-        # prepare foot1 data
-        pitch_foot1 = qc.quat_to_euler(quats_1)[:, 1] * 180 / np.pi
-        # rotate if the placement is at too high angle creating the weird divets in pitch data
-        # TODO: This seems to work but unsure how need to make sure math works
-        if np.nanmean(pitch_foot1[0:100]) > 45:
-            pitch_foot1 = extract_geometry(quats_1, -np.pi/2)
-        elif np.nanmean(pitch_foot1[0:100]) < -45:
-            pitch_foot1 = extract_geometry(quats_1, np.pi/2)
+                # prepare foot1 data
+                pitch_foot1 = qc.quat_to_euler(quats_1)[100:, 1] * 180 / np.pi
+                # rotate if the placement is at too high angle creating the weird divets in pitch data
+                # TODO: This seems to work but unsure how need to make sure math works
+                if np.nanmean(pitch_foot1[0:100]) > 45:
+                    pitch_foot1 = extract_geometry(quats_1, -np.pi/2)
+                elif np.nanmean(pitch_foot1[0:100]) < -45:
+                    pitch_foot1 = extract_geometry(quats_1, np.pi/2)
 
-        if np.nanmean(data.aY0_original.values[0:100]) > 4.9:  # the sensor was upside down
-            pitch_foot1 = -pitch_foot1
+                if np.nanmean(data_sub.aY0_original.values[0:100]) > 4.9:  # the sensor was upside down
+                    pitch_foot1 = -pitch_foot1
 
-        # prepare foot2 data
-        pitch_foot2 = qc.quat_to_euler(quats_2)[:, 1] * 180 / np.pi
-        # rotate if the placement is at too high angle creating the weird divets in pitch data
-        # TODO: This seems to work but unsure how need to make sure math works
-        if np.nanmean(pitch_foot2[0:100]) > 45:
-            pitch_foot2 = extract_geometry(quats_2, -np.pi/2)
-        elif np.nanmean(pitch_foot2[0:100]) < -45:
-            pitch_foot2 = extract_geometry(quats_2, np.pi/2)
+                # prepare foot2 data
+                pitch_foot2 = qc.quat_to_euler(quats_2)[100:, 1] * 180 / np.pi
+                # rotate if the placement is at too high angle creating the weird divets in pitch data
+                # TODO: This seems to work but unsure how need to make sure math works
+                if np.nanmean(pitch_foot2[0:100]) > 45:
+                    pitch_foot2 = extract_geometry(quats_2, -np.pi/2)
+                elif np.nanmean(pitch_foot2[0:100]) < -45:
+                    pitch_foot2 = extract_geometry(quats_2, np.pi/2)
 
-        if np.nanmean(data.aY1_original.values[0:100]) > 4.9:  # the sensor was upside down
-            pitch_foot2 = -pitch_foot2
+                if np.nanmean(data_sub.aY1_original.values[0:100]) > 4.9:  # the sensor was upside down
+                    pitch_foot2 = -pitch_foot2
 
-        return [0, 2, 1] if is_foot1_left(pitch_foot1, pitch_foot2) else [1, 2, 0]
+                return [0, 2, 1] if is_foot1_left(pitch_foot1, pitch_foot2) else [1, 2, 0]
+        except Exception as e:
+            print(e)
+            continue
 
-    else:
-        # Unreachable
-        raise Exception()
+    raise PlacementDetectionException('Could not detect placement using any of the movements')
 
 
 def detect_activity(data):
     """Detect part of data with activity for placement detection
     """
-    data = shift_accel(data)
     thresh = 5.  # threshold to detect balance phase
     bal_win = 100  # sampling window to determine balance phase
     acc_mag_0 = np.sqrt(data.aX0**2 + data.aY0**2 + data.aZ0**2)
@@ -135,7 +137,7 @@ def detect_activity(data):
 
     dummy_balphase = []  # dummy variable to store indexes of balance phase
 
-    abs_acc = total_acc_mag  # creating an array of absolute acceleration values
+    abs_acc = total_acc_mag.reshape(-1, 1)  # creating an array of absolute acceleration values
     len_acc = len(total_acc_mag)  # length of acceleration value
 
     for i in range(len_acc-bal_win+1):
@@ -171,41 +173,45 @@ def detect_activity(data):
     # if data ends with movement, assign final point as end of movement
     if len(start) != len(end):
         end = np.append(end, len(data) - 1)
-
     start = start - 100
 
-    if len(end) == 0:
-        # No moving portion was detected
-        raise PlacementDetectionException('Moving portion of data could not be detected')
+    if len(end) == 0: 
+        # No moving portion was detected 
+        raise PlacementDetectionException('Moving portion of data could not be detected') 
 
-    # Return the first section of data where we have enough points
+    # Return all detected section wehre motion is detected and are long enough
+    start_final = []
+    end_final = []
     for i in range(len(end)):
         end[i] = min([end[i], start[i] + 1100])
-        if end[i] - start[i] > 700:
-            return start[i], end[i]
-
-    raise PlacementDetectionException('Moving portion with enough points could not be detected')
+        if end[i] - start[i] > 600:
+            start_final.append(start[i])
+            end_final.append(end[i])
+    if len(end_final) == 0:
+        # No moving portion was detected
+        raise PlacementDetectionException('Moving portion with enough points could not be detected')
+    else:
+        return start_final, end_final
 
 
 def shift_accel(data):
     """Adjust acceleration so that all axes are centered around 0
     """
     data.loc[:, 'aY0_original'] = data.aY0.values
-    data.aX0 = data.aX0 - np.nanmean(data.aX0)
-    data.aY0 = data.aY0 - np.nanmean(data.aY0)
-    data.aZ0 = data.aZ0 - np.nanmean(data.aZ0)
+    data.aX0 = data.aX0 - np.nanmean(data.aX0[0:100])
+    data.aY0 = data.aY0 - np.nanmean(data.aY0[0:100])
+    data.aZ0 = data.aZ0 - np.nanmean(data.aZ0[0:100])
 
     data.loc[:, 'aY1_original'] = data.aY1.values
-    data.aX1 = data.aX1 - np.nanmean(data.aX1)
-    data.aY1 = data.aY1 - np.nanmean(data.aY1)
-    data.aZ1 = data.aZ1 - np.nanmean(data.aZ1)
+    data.aX1 = data.aX1 - np.nanmean(data.aX1[0:100])
+    data.aY1 = data.aY1 - np.nanmean(data.aY1[0:100])
+    data.aZ1 = data.aZ1 - np.nanmean(data.aZ1[0:100])
 
     data.loc[:, 'aY2_original'] = data.aY2.values
-    data.aX2 = data.aX2 - np.nanmean(data.aX2)
-    data.aY2 = data.aY2 - np.nanmean(data.aY2)
-    data.aZ2 = data.aZ2 - np.nanmean(data.aZ2)
+    data.aX2 = data.aX2 - np.nanmean(data.aX2[0:100])
+    data.aY2 = data.aY2 - np.nanmean(data.aY2[0:100])
+    data.aZ2 = data.aZ2 - np.nanmean(data.aZ2[0:100])
 
-    return data
 
 
 def extract_geometry(quats, rot=None):
@@ -253,4 +259,5 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
     elif skew1 > 0.65 and skew2 < -0.65:
         return False  # foot2 is left, foot1 is right
     else:
+#        print(skew1, skew2)
         raise PlacementDetectionException('Could not detect left vs right from skew values 1={}, 2={}'.format(skew1, skew2))
