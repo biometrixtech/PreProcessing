@@ -226,11 +226,11 @@ def _aggregate_team_twomin(collection, team_id, event_date, session_type):
                                                                      ]
                                                        }
                                               },
-                             'totalAccel': 1,
-                             'irregularAccel': 1,
-                             'LFgRF': 1,
-                             'RFgRF': 1,
-                             'singleLegGRF': 1,
+                             'totalAccel': {'$divide': ['$totalAccel', '$userCount']},
+                             'irregularAccel': {'$divide': ['$irregularAccel', '$userCount']},
+                             'LFgRF': {'$divide': ['$LFgRF', '$userCount']},
+                             'RFgRF': {'$divide': ['$RFgRF', '$userCount']},
+                             'singleLegGRF': {'$divide': ['$singleLegGRF', '$userCount']},
                              'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
                                                           ]
                                             },
@@ -383,11 +383,11 @@ def _aggregate_team(collection, team_id, event_date, session_type):
                                                                      ]
                                                        }
                                               },
-                             'totalAccel': 1,
-                             'irregularAccel': 1,
-                             'LFgRF': 1,
-                             'RFgRF': 1,
-                             'singleLegGRF': 1,
+                             'totalAccel': {'$divide': ['$totalAccel', '$userCount']},
+                             'irregularAccel': {'$divide': ['$irregularAccel', '$userCount']},
+                             'LFgRF': {'$divide': ['$LFgRF', '$userCount']},
+                             'RFgRF': {'$divide': ['$RFgRF', '$userCount']},
+                             'singleLegGRF': {'$divide': ['$singleLegGRF', '$userCount']},
                              'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
                                                           ]
                                             },
