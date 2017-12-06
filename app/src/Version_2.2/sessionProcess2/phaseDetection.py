@@ -408,15 +408,20 @@ def _final_phases(rf_ph, lf_ph):
     return lf_ph, rf_ph
 
 
-def _filter_data(X, cutoff=12, fs=100, order=4):
-    """forward-backward lowpass butterworth filter
+def _filter_data(X, filt='band', lowcut=0.1, highcut=40, fs=100, order=4):
+    """forward-backward bandpass butterworth filter
     defaults:
-        cutoff freq: 12hz
+        lowcut freq: 0.1
+        hicut freq: 20
         sampling rage: 100hz
         order: 4"""
     nyq = 0.5 * fs
-    normal_cutoff = cutoff/nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    low = lowcut/nyq
+    high = highcut/nyq
+    if filt == 'low':
+        b, a = butter(order, high, btype='low', analog=False)
+    elif filt == 'band':
+        b, a = butter(order, [low, high], btype='band', analog=False)
     X_filt = filtfilt(b, a, X, axis=0)
     return X_filt
 
