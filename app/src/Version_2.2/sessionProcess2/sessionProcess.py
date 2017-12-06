@@ -199,6 +199,9 @@ def script_handler(working_directory, file_name, data):
         logger.info("LOADING DATA")
 
         # read sensor data
+        logger.info(data)
+        logger.info(data.get('SensorDataFileVersion'))
+        logger.info(file_name)
         if data.get('SensorDataFileVersion', '2.3') == '1.0':
             sdata = pd.read_csv(os.path.join(working_directory, 'downloadandchunk', file_name))
         else:
