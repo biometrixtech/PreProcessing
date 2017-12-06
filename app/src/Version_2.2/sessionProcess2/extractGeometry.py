@@ -162,8 +162,11 @@ def extract_geometry(qL, qH, qR):
             # Move forward
             i = bound2_index + 1
     
-    flexion_L = -flexion_L
-    flexion_H = -flexion_H
-    flexion_R = -flexion_R
+    flexion_L = -flexion_L / 180 * np.pi
+    flexion_H = -flexion_H / 180 * np.pi
+    flexion_R = -flexion_R / 180 * np.pi
+    adduction_L = adduction_L / 180 * np.pi
+    adduction_H = adduction_H / 180 * np.pi
+    adduction_R = adduction_R / 180 * np.pi
     
     return adduction_L, flexion_L, adduction_H, flexion_H, adduction_R, flexion_R
