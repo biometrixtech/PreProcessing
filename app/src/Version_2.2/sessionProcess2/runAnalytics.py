@@ -60,19 +60,6 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     data = do.RawFrame(data_in, columns)
     sampl_freq = 100
 
-    # PHASE DETECTION
-    data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ,
-                                                       sampl_freq)
-
-    logger.info('DONE WITH PHASE DETECTION!')
-
-    # DETECT IMPACT PHASE INTERVALS
-    data.impact_phase_lf, data.impact_phase_rf, lf_imp_range, rf_imp_range = detect_start_end_imp_phase(lph=data.phase_lf, rph=data.phase_rf)
-    logger.info('DONE WITH DETECTING IMPACT PHASE INTERVALS')
-
-    # ms_elapsed and datetime
-    data.time_stamp, data.ms_elapsed = ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
-
     # Compute euler angles, geometric interpretation of data as appropriate
     lf_quats = np.hstack([data.LqW, data.LqX, data.LqY,
                           data.LqZ]).reshape(-1, 4)
@@ -98,6 +85,25 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     data.HeY = flexion_H.reshape(-1, 1)
     data.ReX = adduction_R.reshape(-1, 1)
     data.ReY = flexion_R.reshape(-1, 1)
+
+    data.la_magn = np.sqrt(data.LaX**2 + data.LaY**2 + data.LaZ**2)
+    data.ra_magn = np.sqrt(data.RaX**2 + data.RaY**2 + data.RaZ**2) 
+
+    # PHASE DETECTION
+    data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ, 
+                                                       data.la_magn,
+                                                       data.ra_magn ,
+                                                       data.LeY,
+                                                       data.ReY, 100)
+
+    logger.info('DONE WITH PHASE DETECTION!')
+
+    # DETECT IMPACT PHASE INTERVALS
+    data.impact_phase_lf, data.impact_phase_rf, lf_imp_range, rf_imp_range = detect_start_end_imp_phase(lph=data.phase_lf, rph=data.phase_rf)
+    logger.info('DONE WITH DETECTING IMPACT PHASE INTERVALS')
+
+    # ms_elapsed and datetime
+    data.time_stamp, data.ms_elapsed = ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
 
 #%%
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES

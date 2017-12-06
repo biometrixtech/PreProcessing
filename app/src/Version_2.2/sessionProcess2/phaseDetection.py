@@ -16,14 +16,18 @@ import const_thres_phase as ct
 logger = logging.getLogger()
 
 
-def combine_phase(laccz, raccz, hz):
+def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
     """
     Combines balance, foot in the air and impact phases for left and 
     right feet.
     
     Args:
-        laccz: an array, left foot vertical acceleration
-        raccz: an array, right foot vertical acceleration
+        laz: an array, left foot vertical acceleration
+        raz: an array, right foot vertical acceleration
+        la_magn: magnitude of acceleration in left foot
+        ra_magn: magnitude of acceleration in right foot
+        pitch_lf: pitch for left foot
+        pitch_rf: pitch for right foot
         hz: an int, sampling rate
         
     Returns:
@@ -31,45 +35,53 @@ def combine_phase(laccz, raccz, hz):
         rf_ph: an array, different phases of right foot
     """
     # reshape for faster computation
-    laccz = laccz.reshape(-1,)
-    raccz = raccz.reshape(-1,)
+    laz = laz.reshape(-1,)
+    raz = raz.reshape(-1,)
+    la_magn = la_magn.reshape(-1,)
+    ra_magn = ra_magn.reshape(-1,)
+    pitch_lf = pitch_lf.reshape(-1,)
+    pitch_rf = pitch_rf.reshape(-1,)
 
     # Check and mark rows with missing data
-    length = len(laccz)
+    length = len(laz)
     missing_data = False
     nan_row = []
-    if np.isnan(laccz).any() or np.isnan(raccz).any():
+    if np.isnan(laz).any() or np.isnan(raz).any():
         missing_data = True
     if missing_data:
-        nan_row = np.where(np.isnan(laccz)|np.isnan(raccz))[0]
+        nan_row = np.where(np.isnan(laz)|np.isnan(raz))[0]
         finite_row = np.array(list(set(range(length)) - set(nan_row)))
-        laccz = np.delete(laccz, (nan_row),)
-        raccz = np.delete(raccz, (nan_row),)
+        laz = np.delete(laz, (nan_row),)
+        raz = np.delete(raz, (nan_row),)
 
-    # Pass data(for balance vs. movement) through low-pass filter
-    cut_b = ct.cutoff_body
-    order_b = ct.order_body
-    laz_body = _filter_data(laccz, cutoff=cut_b, order=order_b)
-    raz_body = _filter_data(raccz, cutoff=cut_b, order=order_b)
+    # Filter through low-pass(or band-pass) filter
+    laz = _filter_data(laz, filt='low', highcut=ct.cutoff_acc)
+    raz = _filter_data(raz, filt='low', highcut=ct.cutoff_acc)
+
+    la_magn = _filter_data(la_magn, filt='low', highcut=ct.cutoff_magn)
+    ra_magn = _filter_data(ra_magn, filt='low', highcut=ct.cutoff_magn)
+
+    pitch_lf = _filter_data(pitch_lf, filt='band', lowcut=ct.lowcut_pitch, highcut=ct.highcut_pitch)
+    pitch_rf = _filter_data(pitch_rf, filt='band', lowcut=ct.lowcut_pitch, highcut=ct.highcut_pitch)
 
     # Get balance/movement phase and start and end of movement phase for both
     # right and left feet
-    ph, lf_sm, lf_em, rf_sm, rf_em = _body_phase(raz=raz_body,
-                                                 laz=laz_body, hz=hz)
-    del laz_body, raz_body
+    ph, lf_sm, lf_em, rf_sm, rf_em = _body_phase(raz=ra_magn,
+                                                 laz=la_magn, hz=hz)
+#    del laz_body, raz_body
     lf_ph = list(ph)
     rf_ph = list(ph)
     del ph
 
     lf_imp = _impact_detect(start_move=lf_sm, end_move=lf_em, 
-                            az=laccz, hz=hz)  # starting and ending
+                            az=laz, pitch=pitch_lf, hz=hz)  # starting and ending
                             # point of the impact phase for the left foot
     del lf_sm, lf_em # no use in further computations
 
     rf_imp = _impact_detect(start_move=rf_sm, end_move=rf_em,
-                            az=raccz, hz=hz)  # starting and ending
+                            az=raz, pitch=pitch_rf, hz=hz)  # starting and ending
                             # points of the impact phase for the right foot
-    del rf_sm, rf_em, raccz  # no use in further computations
+    del rf_sm, rf_em, raz  # no use in further computations
 
     if len(lf_imp) > 0:  # condition to check whether impacts exist in the
                          # left foot data
@@ -165,7 +177,7 @@ def _body_phase(raz, laz, hz):
         sm_r.insert(0, 0)
     # Assign first 10 data points of movement phase as balance (take_off)  
     #TODO(Dipesh) Change this to actually have take-off phase
-    tf_win = int(.1*hz) # window for take_off
+    tf_win = int(0.06*hz) # window for take_off
     for i in sm_r:
         r[i:i+tf_win] = [0]*len(r[i:i+tf_win])
     for j in sm_l:
@@ -239,7 +251,7 @@ def _phase_detect(acc, hz):
     return bal_phase
 
 
-def _impact_detect(start_move, end_move, az, hz):
+def _impact_detect(start_move, end_move, az, pitch, hz):
     """
     Detect when impact occurs.
 
@@ -254,42 +266,116 @@ def _impact_detect(start_move, end_move, az, hz):
     Returns:
         imp: 2d array,indexes of impact phase for left/right foot
     """
+    min_air_time = ct.min_air_time
     neg_thresh = ct.neg_thresh # negative threshold
     pos_thresh = ct.pos_thresh # positive threshold
+    jump_thresh = ct.jump_thresh
     drop_thresh = ct.drop_thresh # Min change required after peak accel
     win = ct.win  # sampling window
-    imp_len = ct.imp_len 
+    imp_len = ct.imp_len  # smallest impact window
     end_imp_thresh = ct.end_imp_thresh
+    
     drop_win = ct.drop_win
     acc = 0
     start_imp = []
     end_imp = []
 
-
+    detected_with_euler = 0
     for i,j in zip(start_move, end_move):
-        arr_len = []
         acc = az[i:j]  # acceleration values of corresponding movement phase
-        arr_len = range(5, len(acc)-win) # Start at 10(minimum time in air before you can impact)
-        numbers = iter(arr_len)
-        for k in numbers:
+        pit = pitch[i:j]
+
+        k = min_air_time # minimum time in air before you can impact
+        if k >= len(acc):
+            continue
+        in_air = True
+        while in_air:
+            max_imp = False
             if acc[k] <= neg_thresh:  # check if AccZ[k] is lesser than thresh
-                if np.any(acc[k+1:k+win+1] >= pos_thresh):
-                    # Find the max acc point in potential impact
+                if np.any(acc[k+1:k+win+1] >= acc[k] + jump_thresh):
+                    # Find the max acc point in potential impact (if impact is detected, this point will be the impact start point)
                     m = np.where(acc[k+1:k+win+1] == np.nanmax(acc[k+1:k+win+1]))[0][0]
                     # Check if the acc drops by defined threshold within drop_win
                     # it's detected as impact if this condition satisfies
-                    drop_win_1 = min([drop_win, len(az[i+k+m+2:])])
-                    diff = [az[i+k+m+1]]*drop_win_1 - az[i+k+m+2:i+k+m+2+drop_win_1]
-                    if any(diff>=drop_thresh):
-                        start_imp_ind = i+k+np.argmin(acc[k:k+win+ 1])
+                    # This check is in place to rule out false impact detections 
+                    # as most true impacts do have immediate downward turn
+                    #TODO needs to be tuned for get better balance of  false positives vs false negatives
+                    drop_win = min([drop_win, len(az[i+k+m+2:])]) # make sure that drop_win is contained within end of movement phase
+                    diff = [az[i+k+m+1]]*drop_win - az[i+k+m+2:i+k+m+2+drop_win]
+                    if any(diff>=drop_thresh) and acc[k+m+1] > pos_thresh:
+                        start_imp_ind = i + k + m - 1
+                        # if impact is detected, first check if it's end of movement phase
                         end_imp_ind = start_imp_ind + imp_len
                         if j-end_imp_ind <= end_imp_thresh:
                             start_imp.append(start_imp_ind)
                             end_imp.append(j)
+                            in_air = False
+                        # if not look for takeoff following the impact
                         else:
+                            t = imp_len # minimum window between start of impact and start of takeoff
+                            in_ground = True
+                            # check if any data within a range can be detected as take_off point
+                            while in_ground and t < end_imp_thresh:
+                                # check if AccZ[k + t] is greater than thres
+                                if acc[k + m + t] >= ct.pos_thres_takeoff:
+                                    if np.any(acc[k + m + t + 1: k + m + t + win - 1] <= acc[k+m+t] - ct.jump_thres_takeoff):
+                                        end_imp_ind = start_imp_ind + t + 3
+                                        if np.any(acc[k+m+t] - acc[k+m+t-1] >= 2 * 9.80665):
+                                            end_imp_ind = start_imp_ind + int(t/2)
+                                        elif len(np.where(acc[k+m+int(t/2):k+m+t] <= - 9.80665)[0]) > 0:
+                                            for l in np.where(acc[k+m+int(t/2):k+m+t] <= - 9.80665)[0]:
+                                                if np.any(acc[k+m+int(t/2)+l+1:k+m+int(t/2)+l+win] > acc[k+m+int(t/2)+l] + jump_thresh):
+                                                    end_imp_ind = start_imp_ind + int(t/2)
+                                        in_ground = False
+                                    else:
+                                        t += 1
+                                else:
+                                    t += 1
+                            # If impact is not determined by acceleration based test, try pitch based test
+                            t = imp_len # reset t
+                            while in_ground and t < end_imp_thresh:
+                                if np.abs(pit[k + m + t]) < 5 and pit[k+m+t] - pit[k+m+t-2] > 0.:
+#                                    print('detected with eulers: '+ str(end_imp_ind))
+                                    detected_with_euler += 1
+                                    end_imp_ind = start_imp_ind + t + 3
+                                    in_ground = False
+                                else:
+                                    t += 1
+                            # if both fail, assign the maximum threshold as end of impact
+                            if in_ground and t == end_imp_thresh:
+                                # check if there's a second impact somewhere
+                                for l in np.arange(k + 10, k + end_imp_thresh, 1):
+                                    if acc[l] <= neg_thresh:
+                                        if np.any(acc[l+1:l+win+1] >= acc[l] + jump_thresh):
+                                            end_imp_ind = start_imp_ind + int(1*end_imp_thresh/2)
+                                    else:
+                                        end_imp_ind = start_imp_ind + end_imp_thresh
+                                        max_imp = True
+
+                            # finally append the detected start and end of impact points
                             start_imp.append(start_imp_ind)
                             end_imp.append(end_imp_ind)
+                            if max_imp:
+                                k = end_imp_ind - i + 1
+                            else:
+                                k = end_imp_ind - i + 6 # TODO can't have impact start within the minimum threshold for air time
+                                
+                    else:
+                        k += 1
+                else:
+                    k += 1
+            else:
+                k += 1
+            if i + k >= j-1:
+                in_air = False
+        # check if there is impact at the end of movement phase,
+        # if not, assign last imp_len points as impact, make sure in_air always ends with impact
+        # This is used to handle low intensity activity where the threshold might not be achieved
+        if j not in end_imp:
+            start_imp.append(j - imp_len)
+            end_imp.append(j)
 
+    print('{} takeoffs detected with euler'.format(detected_with_euler))
     imp = [[i,j] for i,j in zip(start_imp, end_imp)]
 
     return np.array(imp)    
