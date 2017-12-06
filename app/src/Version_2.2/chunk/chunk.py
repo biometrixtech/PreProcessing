@@ -94,4 +94,4 @@ def chunk_by_byte(input_filename, output_dir, boundaries):
         file_name = os.path.basename(file)
         file_names.append(file_name)
     print(file_names)
-    return file_names
+    return sorted(file_names)
