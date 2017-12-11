@@ -131,7 +131,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
 #    print('acc_sensor_right = {}'.format(acc_sensor_right[1,:] * 1000 / 9.80655))
 
     # Transform left sensor
-    acc_aiftransform_left = quat_prod(quat_conj(q_bf_yaw_left), q_sensor_left)
+    acc_aiftransform_left = quat_prod(quat_conj(q_sensor_left), q_bf_yaw_left)
 #    print('acc_aiftransform_left = {}'.format(acc_aiftransform_left[1,:]))
     acc_aif_left = vect_rot(acc_sensor_left, acc_aiftransform_left)
 #    print('acc_aif_left = {}'.format(acc_aif_left[1,:] * 1000 / 9.80655))
