@@ -224,7 +224,7 @@ def script_handler(working_directory, file_name, data):
 
             # Apply normalisation transforms
             sdata = apply_data_transformations(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
-            sdata = apply_acceleration_normalisation(sdata)
+            # sdata = apply_acceleration_normalisation(sdata)
 
         # Output debug CSV
         fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
