@@ -195,8 +195,8 @@ def script_handler(working_directory, file_name, input_data):
             consistency_rf = numpy.sum(data_2m['consistencyRF']) / rf_grf
 
             # acceleration aggregation
-            total_accel = numpy.sum(data_2m['totalAccel'])
-            irregular_accel = numpy.sum(data_2m['irregularAccel'])
+            total_accel = numpy.nansum(data_2m['totalAccel'])
+            irregular_accel = numpy.nansum(data_2m['irregularAccel'])
             two_min_index = int(start_time/numpy.timedelta64(1, '2m'))
 
             # create ordered dictionary object

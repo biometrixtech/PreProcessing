@@ -155,11 +155,13 @@ def script_handler(working_directory, input_data):
         consistency_rf = numpy.sum(data['consistencyRF']) / rf_grf
 
         # acceleration aggregation
-        total_accel = numpy.sum(data['totalAccel'])
-        irregular_accel = numpy.sum(data['irregularAccel'])
+        total_accel = numpy.nansum(data['totalAccel'])
+        irregular_accel = numpy.nansum(data['irregularAccel'])
 
         # fatigue analysis
         session_fatigue = _fatigue_analysis(data, var='perc_optimal')
+        if session_fatigue is numpy.nan:
+            session_fagigue = 0
 
         # create ordered dictionary object
         # current variables
