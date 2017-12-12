@@ -161,7 +161,7 @@ def script_handler(working_directory, input_data):
         # fatigue analysis
         session_fatigue = _fatigue_analysis(data, var='perc_optimal')
         if session_fatigue is numpy.nan:
-            session_fagigue = 0
+            session_fatigue = 0
 
         # create ordered dictionary object
         # current variables
