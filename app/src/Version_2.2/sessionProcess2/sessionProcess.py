@@ -97,7 +97,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bftransform_left = make_quaternion_array(bf_transforms['Left'], row_count)
     q_bftransform_hip = make_quaternion_array(bf_transforms['Hip'], row_count)
     q_bftransform_right = make_quaternion_array(bf_transforms['Right'], row_count)
-    q_neutraltransform_hip = make_quaternion_array(hip_neutral_transform['hip'], row_count)
+    q_neutraltransform_hip = make_quaternion_array(hip_neutral_transform, row_count)
 
     # Extract the orientation quaternions from the data
     q_sensor_left = sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1, 4)
@@ -131,7 +131,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
 #    print('acc_sensor_right = {}'.format(acc_sensor_right[1,:] * 1000 / 9.80655))
 
     # Transform left sensor
-    acc_aiftransform_left = quat_prod(quat_conj(q_bf_yaw_left), q_sensor_left)
+    acc_aiftransform_left = quat_prod(quat_conj(q_sensor_left), q_bf_yaw_left)
 #    print('acc_aiftransform_left = {}'.format(acc_aiftransform_left[1,:]))
     acc_aif_left = vect_rot(acc_sensor_left, acc_aiftransform_left)
 #    print('acc_aif_left = {}'.format(acc_aif_left[1,:] * 1000 / 9.80655))
@@ -199,7 +199,10 @@ def script_handler(working_directory, file_name, data):
         logger.info("LOADING DATA")
 
         # read sensor data
-        if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+        logger.info(data)
+        logger.info(data.get('SensorDataFileVersion'))
+        logger.info(file_name)
+        if data.get('SensorDataFileVersion', '2.3') == '1.0':
             sdata = pd.read_csv(os.path.join(working_directory, 'downloadandchunk', file_name))
         else:
             sdata = read_file(os.path.join(working_directory, 'downloadandchunk', file_name), data.get('Placement'))
@@ -221,7 +224,7 @@ def script_handler(working_directory, file_name, data):
 
             # Apply normalisation transforms
             sdata = apply_data_transformations(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
-            sdata = apply_acceleration_normalisation(sdata)
+            # sdata = apply_acceleration_normalisation(sdata)
 
         # Output debug CSV
         fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')

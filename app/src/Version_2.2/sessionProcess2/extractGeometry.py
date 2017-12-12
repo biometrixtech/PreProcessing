@@ -78,7 +78,7 @@ def extract_geometry(qL, qH, qR):
     adduction_R = np.arctan2(v_jR[:, 3], np.sqrt(v_jR[:, 1]**2
                              + v_jR[:, 2]**2)) * 180 / np.pi
     
-    for i in range(n):
+    for i in range(n - 1):
     
         # Left foot
         if z_cross_L[i] == 1 and z_cross_L[i - 1] == 0:
@@ -107,7 +107,7 @@ def extract_geometry(qL, qH, qR):
             # Move forward
             i = bound2_index + 1
     
-    for i in range(n):
+    for i in range(n - 1):
         # Right foot
         if z_cross_R[i] == 1 and z_cross_R[i - 1] == 0:
     
@@ -135,7 +135,7 @@ def extract_geometry(qL, qH, qR):
             # Move forward
             i  = bound2_index + 1
     
-    for i in range(n):
+    for i in range(n - 1):
     
         # Hip
         if z_cross_H[i] == 1 and z_cross_H[i - 1] == 0:
@@ -162,8 +162,11 @@ def extract_geometry(qL, qH, qR):
             # Move forward
             i = bound2_index + 1
     
-    flexion_L = -flexion_L
-    flexion_H = -flexion_H
-    flexion_R = -flexion_R
+    flexion_L = -flexion_L / 180 * np.pi
+    flexion_H = -flexion_H / 180 * np.pi
+    flexion_R = -flexion_R / 180 * np.pi
+    adduction_L = adduction_L / 180 * np.pi
+    adduction_H = adduction_H / 180 * np.pi
+    adduction_R = adduction_R / 180 * np.pi
     
     return adduction_L, flexion_L, adduction_H, flexion_H, adduction_R, flexion_R
