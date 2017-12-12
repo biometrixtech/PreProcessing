@@ -53,6 +53,8 @@ def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
         finite_row = np.array(list(set(range(length)) - set(nan_row)))
         laz = np.delete(laz, (nan_row),)
         raz = np.delete(raz, (nan_row),)
+        la_magn = np.delete(la_magn, (nan_row),)
+        ra_magn = np.delete(ra_magn, (nan_row),)
 
     # Filter through low-pass(or band-pass) filter
     laz = _filter_data(laz, filt='low', highcut=ct.cutoff_acc)
