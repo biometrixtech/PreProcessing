@@ -143,11 +143,8 @@ def script_handler(working_directory, file_name, input_data):
 
             # Aggregated values
             total_grf = numpy.sum(data_2m['total_grf'])
-            total_accumulated_grf += total_grf
             const_grf = numpy.nansum(data_2m['const_grf'])
-            optimal_accumulated_grf += const_grf
             dest_grf = numpy.nansum(data_2m['dest_grf'])
-            irregular_accumulated_grf += dest_grf
             if const_grf == 0:
                 const_grf = 1e-6
             if dest_grf == 0:
@@ -172,6 +169,9 @@ def script_handler(working_directory, file_name, input_data):
             lf_rf_grf = lf_only_grf + rf_only_grf
 
             # grf aggregation
+            total_accumulated_grf += total_grf
+            optimal_accumulated_grf += const_grf
+            irregular_accumulated_grf += dest_grf
             perc_left_grf = lf_only_grf / lf_rf_grf * 100
             perc_right_grf = rf_only_grf / lf_rf_grf * 100
             perc_distr = numpy.abs(perc_left_grf - perc_right_grf)
