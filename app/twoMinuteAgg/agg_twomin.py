@@ -142,7 +142,7 @@ def script_handler(working_directory, file_name, input_data):
             start_time = pandas.Timedelta(str(date_time.time()))
 
             # Aggregated values
-            total_grf = numpy.nansum(data_2m['total_grf'])
+            total_grf = numpy.sum(data_2m['total_grf'])
             total_accumulated_grf += total_grf
             const_grf = numpy.nansum(data_2m['const_grf'])
             optimal_accumulated_grf += const_grf
@@ -153,20 +153,20 @@ def script_handler(working_directory, file_name, input_data):
             if dest_grf == 0:
                 dest_grf = 1e-6
             perc_optimal_twomin = const_grf / (const_grf + dest_grf)
-            if total_grf == 0:
+            if total_grf == 0 or numpy.isnan(total_grf):
                 total_grf = 1e-6
             lf_grf = numpy.sum(data_2m['lf_grf'])
-            if lf_grf == 0:
+            if lf_grf == 0  or numpy.isnan(lf_grf):
                 lf_grf = 1e-6
             lf_only_grf = numpy.sum(data_2m['lf_only_grf'])
-            if lf_only_grf == 0:
+            if lf_only_grf == 0  or numpy.isnan(lf_only_grf):
                 print('zero left')
                 lf_only_grf = 1e-6
             rf_grf = numpy.sum(data_2m['rf_grf'])
-            if rf_grf == 0:
+            if rf_grf == 0 or numpy.isnan(rf_grf):
                 rf_grf = 1e-6
             rf_only_grf = numpy.sum(data_2m['rf_only_grf'])
-            if rf_only_grf == 0:
+            if rf_only_grf == 0 or numpy.isnan(rf_only_grf):
                 print('zero right')
                 rf_only_grf = 1e-6
             lf_rf_grf = lf_only_grf + rf_only_grf

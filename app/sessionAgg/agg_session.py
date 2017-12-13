@@ -113,20 +113,20 @@ def script_handler(working_directory, input_data):
         const_grf = numpy.nansum(data['const_grf'])
         dest_grf = numpy.nansum(data['dest_grf'])
         perc_optimal_session = const_grf / (const_grf + dest_grf)
-        if total_grf == 0:
+        if total_grf == 0 or numpy.isnan(total_grf):
             total_grf = 1e-6
         lf_grf = numpy.sum(data['lf_grf'])
-        if lf_grf == 0:
+        if lf_grf == 0 or numpy.isnan(lf_grf):
             lf_grf = 1e-6
         lf_only_grf = numpy.sum(data['lf_only_grf'])
-        if lf_only_grf == 0:
+        if lf_only_grf == 0 or numpy.isnan(lf_only_grf):
             print('zero left')
             lf_only_grf = 1e-6
         rf_grf = numpy.sum(data['rf_grf'])
-        if rf_grf == 0:
+        if rf_grf == 0 or numpy.isnan(rf_grf):
             rf_grf = 1e-6
         rf_only_grf = numpy.sum(data['rf_only_grf'])
-        if rf_only_grf == 0:
+        if rf_only_grf == 0 or numpy.isnan(rf_only_grf):
             print('zero right')
             rf_only_grf = 1e-6
         lf_rf_grf = lf_only_grf + rf_only_grf
