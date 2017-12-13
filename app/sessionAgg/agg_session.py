@@ -161,7 +161,7 @@ def script_handler(working_directory, input_data):
         # fatigue analysis
         session_fatigue = _fatigue_analysis(data, var='perc_optimal')
         print(session_fatigue)
-        if session_fatigue == numpy.nan:
+        if numpy.isnan(session_fatigue):
             print('session fatigue nan')
             session_fatigue = 0
 
