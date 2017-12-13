@@ -142,7 +142,7 @@ def script_handler(working_directory, file_name, input_data):
             start_time = pandas.Timedelta(str(date_time.time()))
 
             # Aggregated values
-            total_grf = numpy.sum(data_2m['total_grf'])
+            total_grf = numpy.nansum(data_2m['total_grf'])
             total_accumulated_grf += total_grf
             const_grf = numpy.nansum(data_2m['const_grf'])
             optimal_accumulated_grf += const_grf
