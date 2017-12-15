@@ -11,6 +11,7 @@ import sys
 from collections import namedtuple
 from keras.models import load_model
 from math import sqrt
+import boto3
 
 import columnNames as cols
 import runAnalytics
@@ -236,7 +237,8 @@ def script_handler(working_directory, file_name, data):
             'RqW', 'RqX', 'RqY', 'RqZ',
             'RaX', 'RaY', 'RaZ',
         ])
-
+        s3_client = boto3.client('s3')
+        s3_client.upload_file(fileobj, 'biometrix-decode', file_name + '_decoded')
         # read user mass
         mass = load_user_mass(data)
 
