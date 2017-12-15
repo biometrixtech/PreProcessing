@@ -123,7 +123,6 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     debug_data.to_csv(fileobj, index=False,
                        na_rep='', columns=columns)
     del debug_data
-    debug_data.to_csv(fileobj, na_rep='', columns=columns, index=False)
     fileobj.seek(0)
     s3 = boto3.resource('s3')
     s3.Bucket('biometrix-decode').put_object(Key=file_name + '_transformed', Body=fileobj)
