@@ -238,7 +238,7 @@ def script_handler(working_directory, file_name, data):
             'RaX', 'RaY', 'RaZ',
         ])
         s3_client = boto3.client('s3')
-        s3_client.upload_file(fileobj, 'biometrix-decode', file_name + '_decoded')
+        s3_client.upload_fileobj(fileobj, 'biometrix-decode', file_name + '_decoded')
         # read user mass
         mass = load_user_mass(data)
 
