@@ -97,36 +97,6 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
                                                        data.ReY, 100)
 
     logger.info('DONE WITH PHASE DETECTION!')
-###########
-    # Output debug CSV
-    import cStringIO
-    import boto3
-    columns = ['epoch_time', 'corrupt', 
-               'magn_lf', 'corrupt_lf',
-               'LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'LqW',
-               'magn_h', 'corrupt_h',
-               'HaX', 'HaY', 'HaZ', 'HqX', 'HqY', 'HqZ', 'HqW', 
-               'magn_rf', 'corrupt_rf',
-               'RaX', 'RaY', 'RaZ', 'RqX', 'RqY', 'RqZ', 'RqW',
-               'LeX', 'LeY', 'LeZ',
-               'HeX', 'HeY', 'HeZ',
-               'ReX', 'ReY', 'ReZ',
-               'phase_lf', 'phase_rf']
-    length = len(data.LaX)
-    debug_data = pd.DataFrame(data={'epoch_time': data.epoch_time.reshape(-1,)})
-    for var in columns[1:]:
-       frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=debug_data.index)
-       frames = [debug_data, frame]
-       debug_data = pd.concat(frames, axis=1)
-       # del frame, frames, data.__dict__[var]
-    fileobj = cStringIO.StringIO()
-    debug_data.to_csv(fileobj, index=False,
-                       na_rep='', columns=columns)
-    del debug_data
-    fileobj.seek(0)
-    s3 = boto3.resource('s3')
-    s3.Bucket('biometrix-decode').put_object(Key=file_name + '_transformed', Body=fileobj)
-##########
 
     # DETECT IMPACT PHASE INTERVALS
     data.impact_phase_lf, data.impact_phase_rf, lf_imp_range, rf_imp_range = detect_start_end_imp_phase(lph=data.phase_lf, rph=data.phase_rf)
