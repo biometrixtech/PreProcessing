@@ -118,6 +118,7 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
        frames = [debug_data, frame]
        debug_data = pd.concat(frames, axis=1)
        # del frame, frames, data.__dict__[var]
+    import cStringIO
     fileobj = cStringIO.StringIO()
     debug_data.to_csv(fileobj, index=False,
                        na_rep='', columns=columns)
