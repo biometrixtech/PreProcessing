@@ -99,7 +99,7 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     logger.info('DONE WITH PHASE DETECTION!')
 ###########
     # Output debug CSV
-    fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
+    # fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
     columns = ['epoch_time', 'corrupt', 
                'magn_lf', 'corrupt_lf',
                'LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'LqW',
@@ -111,7 +111,6 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
                'HeX', 'HeY', 'HeZ',
                'ReX', 'ReY', 'ReZ',
                'phase_lf', 'phase_rf']
-    debug_d
     length = len(data.LaX)
     debug_data = pd.DataFrame(data={'epoch_time': data.epoch_time.reshape(-1,)})
     for var in columns[1:]:
@@ -119,10 +118,15 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
        frames = [debug_data, frame]
        debug_data = pd.concat(frames, axis=1)
        # del frame, frames, data.__dict__[var]
-    fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
+    fileobj = cStringIO.StringIO()
+    debug_data.to_csv(fileobj, index=False,
+                       na_rep='', columns=columns)
+    del debug_data
     debug_data.to_csv(fileobj, na_rep='', columns=columns, index=False)
-    s3_client = boto3.client('s3')
-    s3_client.upload_file(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform'), 'biometrix-decode', file_name + '_transformed')
+    fileobj.seek(0)
+    s3 = boto3.resource('s3')
+    s3.Bucket('biometrix-decode').put_object(Key=file_name + '_transformed', Body=fileobj)
+    # s3.upload_fileobj(fileobj, 'biometrix-decode', file_name + '_transformed')
 ##########
 
     # DETECT IMPACT PHASE INTERVALS
