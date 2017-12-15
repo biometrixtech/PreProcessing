@@ -99,7 +99,8 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     logger.info('DONE WITH PHASE DETECTION!')
 ###########
     # Output debug CSV
-    # fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
+    import cStringIO
+    import boto3
     columns = ['epoch_time', 'corrupt', 
                'magn_lf', 'corrupt_lf',
                'LaX', 'LaY', 'LaZ', 'LqX', 'LqY', 'LqZ', 'LqW',
@@ -118,7 +119,6 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
        frames = [debug_data, frame]
        debug_data = pd.concat(frames, axis=1)
        # del frame, frames, data.__dict__[var]
-    import cStringIO
     fileobj = cStringIO.StringIO()
     debug_data.to_csv(fileobj, index=False,
                        na_rep='', columns=columns)
@@ -126,7 +126,6 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     fileobj.seek(0)
     s3 = boto3.resource('s3')
     s3.Bucket('biometrix-decode').put_object(Key=file_name + '_transformed', Body=fileobj)
-    # s3.upload_fileobj(fileobj, 'biometrix-decode', file_name + '_transformed')
 ##########
 
     # DETECT IMPACT PHASE INTERVALS
