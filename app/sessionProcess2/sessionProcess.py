@@ -213,32 +213,32 @@ def script_handler(working_directory, file_name, data):
             logger.info("DATA LOADED!")
 
             # Output debug CSV
-            fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_pretransform')), 'wb')
-            sdata.to_csv(fileobj, na_rep='', columns=[
-                'LqW', 'LqX', 'LqY', 'LqZ',
-                'LaX', 'LaY', 'LaZ',
-                'HqW', 'HqX', 'HqY', 'HqZ',
-                'HaX', 'HaY', 'HaZ',
-                'RqW', 'RqX', 'RqY', 'RqZ',
-                'RaX', 'RaY', 'RaZ',
-            ])
+            # fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_pretransform')), 'wb')
+            # sdata.to_csv(fileobj, na_rep='', columns=[
+            #     'LqW', 'LqX', 'LqY', 'LqZ',
+            #     'LaX', 'LaY', 'LaZ',
+            #     'HqW', 'HqX', 'HqY', 'HqZ',
+            #     'HaX', 'HaY', 'HaZ',
+            #     'RqW', 'RqX', 'RqY', 'RqZ',
+            #     'RaX', 'RaY', 'RaZ',
+            # ])
 
             # Apply normalisation transforms
             sdata = apply_data_transformations(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
             # sdata = apply_acceleration_normalisation(sdata)
 
-        # Output debug CSV
-        fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
-        sdata.to_csv(fileobj, na_rep='', columns=[
-            'LqW', 'LqX', 'LqY', 'LqZ',
-            'LaX', 'LaY', 'LaZ',
-            'HqW', 'HqX', 'HqY', 'HqZ',
-            'HaX', 'HaY', 'HaZ',
-            'RqW', 'RqX', 'RqY', 'RqZ',
-            'RaX', 'RaY', 'RaZ',
-        ])
-        s3_client = boto3.client('s3')
-        s3_client.upload_file(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform'), 'biometrix-decode', file_name + '_transformed')
+        # # Output debug CSV
+        # fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
+        # sdata.to_csv(fileobj, na_rep='', columns=[
+        #     'LqW', 'LqX', 'LqY', 'LqZ',
+        #     'LaX', 'LaY', 'LaZ',
+        #     'HqW', 'HqX', 'HqY', 'HqZ',
+        #     'HaX', 'HaY', 'HaZ',
+        #     'RqW', 'RqX', 'RqY', 'RqZ',
+        #     'RaX', 'RaY', 'RaZ',
+        # ])
+        # s3_client = boto3.client('s3')
+        # s3_client.upload_file(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform'), 'biometrix-decode', file_name + '_transformed')
         # read user mass
         mass = load_user_mass(data)
 
