@@ -85,7 +85,7 @@ def save_file(data_in, file_name):
                                                        data.LeY,
                                                        data.ReY, 100)
 
-    logger.info('DONE WITH PHASE DETECTION!')
+    # logger.info('DONE WITH PHASE DETECTION!')
 
     # Output debug CSV
     import cStringIO
