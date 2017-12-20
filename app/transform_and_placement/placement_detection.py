@@ -183,8 +183,8 @@ def detect_activity(data):
     start_final = []
     end_final = []
     for i in range(len(end)):
-        end[i] = min([end[i], start[i] + 1100])
-        if end[i] - start[i] > 600:
+        end[i] = min([end[i], start[i] + 600])
+        if end[i] - start[i] > 400:
             start_final.append(start[i])
             end_final.append(end[i])
     if len(end_final) == 0:
