@@ -184,6 +184,7 @@ def detect_activity(data):
     end_final = []
     for i in range(len(end)):
         end[i] = min([end[i], start[i] + 600])
+        print(start[i], end[i])
         if end[i] - start[i] > 400:
             start_final.append(start[i])
             end_final.append(end[i])
