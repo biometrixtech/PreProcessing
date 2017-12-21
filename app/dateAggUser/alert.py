@@ -1,4 +1,3 @@
-from decimal import Decimal
 import boto3
 import json
 import logging
@@ -31,7 +30,7 @@ class Alert(object):
             'category': self.category,
             'subcategory': self.subcategory,
             'granularity': self.granularity,
-            'value': Decimal(str(self.value)),
+            'value': str(self.value),
         }
 
         return ret
