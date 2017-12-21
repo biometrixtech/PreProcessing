@@ -43,7 +43,7 @@ class Alert(object):
     def publish(self):
         sns_client = boto3.client('sns')
         sns_topic = 'arn:aws:sns:{}:887689817172:alerts-{}-trigger'.format(
-            os.environ['AWS_REGION'],
+            os.environ['AWS_DEFAULT_REGION'],
             os.environ['ENVIRONMENT']
         )
         response = sns_client.publish(TopicArn=sns_topic, Message=json.dumps(self.json_serialise()))
