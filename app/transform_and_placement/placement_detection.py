@@ -15,6 +15,7 @@ def detect_placement(data):
     start, end = detect_activity(data)
     for i in range(len(start)):
         try:
+            print(start[i], end[i])
             data_sub = data.loc[start[i]:end[i], :]
             data_sub.reset_index(inplace=True, drop=True)
             hip_sensor_id = identify_hip_sensor(data_sub)
@@ -28,7 +29,7 @@ def detect_placement(data):
                                           (data_sub.qY2.values.reshape(-1, 1)), (data_sub.qZ2.values.reshape(-1, 1))), axis=1)
 
                 # prepare foot1 data
-                pitch_foot1 = qc.quat_to_euler(quats_1)[100:, 1] * 180 / np.pi
+                pitch_foot1 = qc.quat_to_euler(quats_1)[:, 1] * 180 / np.pi
                 # rotate if the placement is at too high angle creating the weird divets in pitch data
                 # TODO: This seems to work but unsure how need to make sure math works
                 if np.nanmean(pitch_foot1[0:100]) > 45:
@@ -40,7 +41,7 @@ def detect_placement(data):
                     pitch_foot1 = -pitch_foot1
 
                 # prepare foot2 data
-                pitch_foot2 = qc.quat_to_euler(quats_2)[100:, 1] * 180 / np.pi
+                pitch_foot2 = qc.quat_to_euler(quats_2)[:, 1] * 180 / np.pi
                 # rotate if the placement is at too high angle creating the weird divets in pitch data
                 # TODO: This seems to work but unsure how need to make sure math works
                 if np.nanmean(pitch_foot2[0:100]) > 45:
@@ -173,7 +174,7 @@ def detect_activity(data):
     # if data ends with movement, assign final point as end of movement
     if len(start) != len(end):
         end = np.append(end, len(data) - 1)
-    start = start - 100
+    start = start - 150
 
     if len(end) == 0: 
         # No moving portion was detected 
@@ -254,6 +255,7 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
     """
     skew1 = skew(pitch_foot1[np.isfinite(pitch_foot1)])
     skew2 = skew(pitch_foot2[np.isfinite(pitch_foot2)])
+    print(skew1, skew2)
 
     if skew1 < -0.15 and skew2 > 0.15:
         return True  # foot1 is left, foot2 is right
