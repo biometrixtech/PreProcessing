@@ -255,9 +255,9 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
     skew1 = skew(pitch_foot1[np.isfinite(pitch_foot1)])
     skew2 = skew(pitch_foot2[np.isfinite(pitch_foot2)])
 
-    if skew1 < -0.65 and skew2 > 0.65:
+    if skew1 < -0.15 and skew2 > 0.65:
         return True  # foot1 is left, foot2 is right
-    elif skew1 > 0.65 and skew2 < -0.65:
+    elif skew1 > 0.15 and skew2 < -0.65:
         return False  # foot2 is left, foot1 is right
     else:
 #        print(skew1, skew2)

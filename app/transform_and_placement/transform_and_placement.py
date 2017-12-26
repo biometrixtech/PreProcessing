@@ -17,7 +17,7 @@ def script_handler(working_directory, file_name):
 
     try:
         filepath = os.path.join(working_directory, 'downloadandchunk', file_name)
-        count = 100 * 60
+        count = 100 * 20
         data = read_file(filepath, count)
         shift_accel(data)
 
