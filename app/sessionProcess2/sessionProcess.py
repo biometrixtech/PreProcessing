@@ -12,11 +12,13 @@ from collections import namedtuple
 from keras.models import load_model
 from math import sqrt
 import boto3
+from scipy.signal import butter, filtfilt
 
 import columnNames as cols
 import runAnalytics
 from decode_data import read_file
-from .quatOps import quat_conj, quat_prod, quat_multi_prod, vect_rot, quat_force_euler_angle
+from .quatOps import quat_conj, quat_prod, quat_multi_prod, vect_rot, quat_force_euler_angle, quat_avg
+from .quatConvs import quat_to_euler, euler_to_quat
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
@@ -66,6 +68,92 @@ def make_quaternion_array(quaternion, length):
     return np.array([quaternion for i in range(length)])
 
 
+def _zero_runs(col_dat, static):
+    """
+    Determine the start and end of each impact.
+    
+    Args:
+        col_dat: array, algorithm indicator
+        static: int, indicator for static algorithm
+    Returns:
+        ranges: 2d array, start and end of each static algorithm use
+        length: length of 
+    """
+
+    # determine where column data is the relevant impact phase value
+    isnan = np.array(np.array(col_dat==static).astype(int)).reshape(-1, 1)
+    
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        absdiff = np.concatenate([absdiff, [1]], 0)
+    del isnan  # not used in further computations
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+    length = ranges[:, 1] - ranges[:, 0]
+
+    return ranges, length
+
+
+def detect_long_dynamic(dyn_vs_static):
+    """
+    Determine if the data is corrupt because of drift or short switch from dynamic to static algorithm
+    Data is said to be corrupt if
+    1) There are frequent short switches from dynamic to static algorithm within
+       short period of time, currently defined as 5 switches with 4 or fewer points within 5 s
+    2) Too much drift has accumulated if the algorithm does not switch to static from dynamic for
+       extended period of time, currently defined as no static algorithm of 30 points or more for
+       more than 10 mins
+    
+    """
+    min_length = 10 * 100
+    bad_switch_len = 30
+    range_static, length_static = _zero_runs(dyn_vs_static, 0)
+    short_static = np.where(length_static <= bad_switch_len)[0]
+    short_static_range = range_static[short_static, :]
+    if len(short_static_range) > 0:
+        for i, j in zip(short_static_range[:, 0], short_static_range[:, 1]):
+            dyn_vs_static[i:j] = 8
+    range_dyn, length_dyn= _zero_runs(dyn_vs_static, 8)
+    long_dynamic = np.where(length_dyn >= min_length)[0]
+    long_dyn_range = range_dyn[long_dynamic, :]
+    return long_dyn_range
+
+
+def drift_filter(quats):
+    n = len(quats)
+    b, a = butter(2, .1 / (100/2), 'low', analog=False)
+    # get angles
+    euls = quat_to_euler(quats)
+
+    #Filtered angles
+    euls = filtfilt(b, a, euls, axis=0)
+
+    comp_quat = quat_prod(euler_to_quat( np.hstack((np.zeros((n, 1)), euls[:,1].reshape(-1,1), np.zeros((n, 1)) )) ),
+                          euler_to_quat( np.hstack((euls[:,0].reshape(-1,1), np.zeros((n, 2)) )) ))
+
+
+    # To reverse the offset created by filtering, get the average of first few points in data
+    # and substract that from compensation
+    s = 50 + 50
+    e = s + 50
+    # get the average
+    avg_quat = quat_avg(comp_quat[s:e, :])
+
+    # substract the average from compensation
+    comp_quat = quat_prod(comp_quat, quat_conj(avg_quat))
+
+    # apply compensation to quats
+    quat_filt = quat_prod(quats, quat_conj(comp_quat))
+
+    return quat_filt
+
 
 def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     '''
@@ -113,29 +201,71 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     yaw_180 = make_quaternion_array([0, 0, 0, 1], row_count)
     q_bf_left = quat_prod(q_bf_left, yaw_180)
 
+    # insert transformed values for ankle sensors into dataframe
+    sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
+    sdata.loc[:, ['RqW', 'RqX', 'RqY', 'RqZ']] = q_bf_right
+
+    # filter the data for drift for each subset of data with long dynamic activity (>10s)
+    # and insert back into the data frame to update dynamic part with filtered data and static part
+    # is left as before
+    # left food
+    dynamic_range_lf = detect_long_dynamic(sdata.corrupt_lf.values[:].reshape(-1, 1))
+    for i, j in zip(dynamic_range_lf[:, 0], dynamic_range_lf[:, 1]):
+        s = i - 50
+        e = j
+        lf_quat = drift_filter(sdata.loc[s:e, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1,4))
+        sdata.loc[i:j, ['LqW', 'LqX', 'LqY', 'LqZ']] = lf_quat[50:, :]
+
+    # right foot
+    dynamic_range_rf = detect_long_dynamic(sdata.corrupt_rf.values[:].reshape(-1, 1))
+    for i, j in zip(dynamic_range_rf[:, 0], dynamic_range_rf[:, 1]):
+        s = i - 50
+        e = j
+        rf_quat = drift_filter(sdata.loc[s:e, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1,4))
+        sdata.loc[i:j, ['RqW', 'RqX', 'RqY', 'RqZ']] = rf_quat[50:, :]
+
     # Rotate hip sensor by 90º plus the hip neutral transform, find the body
     # frame of the hip data
     yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, -sqrt(2)/2], row_count)    
     q_bf_hip = quat_multi_prod(q_neutraltransform_hip, q_sensor_hip, q_bftransform_hip, yaw_90)
+
+    # insert transformed values for hip into dataframe
+    sdata.loc[:, ['HqW', 'HqX', 'HqY', 'HqZ']] = q_bf_hip
+    # repeat drift filtering for hip sensor
+    dynamic_range_h = detect_long_dynamic(sdata.corrupt_h.values[:].reshape(-1, 1))
+    for i, j in zip(dynamic_range_h[:, 0], dynamic_range_h[:, 1]):
+        s = i - 50
+        e = j
+        h_quat = drift_filter(sdata.loc[s:e, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1,4))
+        sdata.loc[i:j, ['HqW', 'HqX', 'HqY', 'HqZ']] = h_quat[50:, :]
+
+    # for acceleration transformation, get the bodyframe transformed quaternions
+    # this included both transformation and drift filtering
+    q_bf_left = sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1, 4)
+    q_bf_hip = sdata.loc[:, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1, 4)
+    q_bf_right = sdata.loc[:, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1, 4)
 
     # Isolate the yaw component of the instantaneous sensor orientations
     q_bf_yaw_left = quat_force_euler_angle(q_bf_left, phi=0, theta=0)
     q_bf_yaw_hip = quat_force_euler_angle(q_bf_hip, phi=0, theta=0)
     q_bf_yaw_right = quat_force_euler_angle(q_bf_right, phi=0, theta=0)
 
+    # After filtering trasnformed quaternions, reverse transformation to get filtered raw quats
+    q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_180))
+    q_sensor_left = quat_prod(q_bf_left, quat_conj(q_bftransform_left))
+    q_sensor_right = quat_prod(q_bf_right, quat_conj(q_bftransform_right))
+    q_sensor_hip = quat_multi_prod(quat_conj(q_neutraltransform_hip),
+                                        q_bf_hip, quat_conj(yaw_90),
+                                        quat_conj(q_bftransform_hip))
+
     # Extract the sensor-frame acceleration values and create imaginary quaternions
     acc_sensor_left = sdata.loc[:, ['LaX', 'LaY', 'LaZ']].values.reshape(-1, 3)
     acc_sensor_hip = sdata.loc[:, ['HaX', 'HaY', 'HaZ']].values.reshape(-1, 3)
     acc_sensor_right = sdata.loc[:, ['RaX', 'RaY', 'RaZ']].values.reshape(-1, 3)
-#    print('acc_sensor_left = {}'.format(acc_sensor_left[1,:] * 1000 / 9.80655))
-#    print('acc_sensor_hip = {}'.format(acc_sensor_hip[1,:] * 1000 / 9.80655))
-#    print('acc_sensor_right = {}'.format(acc_sensor_right[1,:] * 1000 / 9.80655))
 
     # Transform left sensor
     acc_aiftransform_left = quat_prod(quat_conj(q_sensor_left), q_bf_yaw_left)
-#    print('acc_aiftransform_left = {}'.format(acc_aiftransform_left[1,:]))
     acc_aif_left = vect_rot(acc_sensor_left, acc_aiftransform_left)
-#    print('acc_aif_left = {}'.format(acc_aif_left[1,:] * 1000 / 9.80655))
 
     # Apply hip transformation
     acc_aiftransform_hip = quat_multi_prod(
@@ -143,20 +273,13 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
         q_neutraltransform_hip,
         q_sensor_hip,
     )
-#    print('acc_aiftransform_hip = {}'.format(acc_aiftransform_hip[1,:]))
     acc_aif_hip = vect_rot(acc_sensor_hip, quat_conj(acc_aiftransform_hip))
-#    print('acc_aif_hip = {}'.format(acc_aif_hip[1,:] * 1000 / 9.80655))
 
     # Transform right sensor
     acc_aiftransform_right = quat_prod(quat_conj(q_sensor_right), q_bf_yaw_right)
-#    print('acc_aiftransform_right = {}'.format(acc_aiftransform_right[1,:]))
     acc_aif_right = vect_rot(acc_sensor_right, acc_aiftransform_right)
-#    print('acc_aif_right = {}'.format(acc_aif_right[1,:] * 1000 / 9.80655))
 
     # Re-insert the updated values
-    sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
-    sdata.loc[:, ['HqW', 'HqX', 'HqY', 'HqZ']] = q_bf_hip
-    sdata.loc[:, ['RqW', 'RqX', 'RqY', 'RqZ']] = q_bf_right
     sdata.loc[:, ['LaX', 'LaY', 'LaZ']] = acc_aif_left
     sdata.loc[:, ['HaX', 'HaY', 'HaZ']] = acc_aif_hip
     sdata.loc[:, ['RaX', 'RaY', 'RaZ']] = acc_aif_right
@@ -165,6 +288,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     sdata = apply_acceleration_normalisation(sdata)
 
     return sdata
+
 
 
 def apply_acceleration_normalisation(sdata):
