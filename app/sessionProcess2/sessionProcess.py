@@ -128,12 +128,12 @@ def detect_long_dynamic(dyn_vs_static):
 
 def drift_filter(quats):
     n = len(quats)
-    b, a = butter(2, .1 / (100/2), 'low', analog=False)
-    # get angles
-    euls = quat_to_euler(quats)
+    euls_org = quat_to_euler(quats)
 
     #Filtered angles
-    euls = filtfilt(b, a, euls, axis=0)
+    normal_cutoff = .1 / (100/2)
+    b, a = butter(3, normal_cutoff, 'low', analog=False)
+    euls = filtfilt(b, a, euls_org, axis=0)
 
     comp_quat = quat_prod(euler_to_quat( np.hstack((np.zeros((n, 1)), euls[:,1].reshape(-1,1), np.zeros((n, 1)) )) ),
                           euler_to_quat( np.hstack((euls[:,0].reshape(-1,1), np.zeros((n, 2)) )) ))
@@ -145,9 +145,15 @@ def drift_filter(quats):
     e = s + 50
     # get the average
     avg_quat = quat_avg(comp_quat[s:e, :])
+    cutoff_angle = 10. /180 * np.pi
+    if np.mean(euls_org[0:25, 0], axis=0) < cutoff_angle and np.mean(euls_org[0:25, 1], axis=0) < cutoff_angle:
+        euls_avg_quat = quat_to_euler(avg_quat)
+        
+        offset_correction = quat_prod(euler_to_quat(np.array([0., euls_avg_quat[0, 1], 0.]).reshape(-1, 3)),
+                                      euler_to_quat(np.array([euls_avg_quat[0, 0], 0., 0.]).reshape(-1, 3)) )
 
-    # substract the average from compensation
-    comp_quat = quat_prod(comp_quat, quat_conj(avg_quat))
+        # substract the offset correction from compensation
+        comp_quat = quat_prod(comp_quat, quat_conj(offset_correction))
 
     # apply compensation to quats
     quat_filt = quat_prod(quats, quat_conj(comp_quat))
