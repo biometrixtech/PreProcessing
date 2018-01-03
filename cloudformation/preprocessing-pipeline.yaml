@@ -27,40 +27,6 @@ Resources:
     ##  IAM
     ##########################################################################################################
 
-    LambdaTriggerRole:
-        Type: "AWS::IAM::Role"
-        Properties:
-            AssumeRolePolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                  - Effect: "Allow"
-                    Principal: { Service: [ "lambda.amazonaws.com" ] }
-                    Action: "sts:AssumeRole"
-            ManagedPolicyArns:
-              - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-            Policies:
-              - PolicyName: "default"
-                PolicyDocument:
-                    Version: "2012-10-17"
-                    Statement:
-                      - Action:
-                          - "logs:CreateLogGroup"
-                          - "logs:CreateLogStream"
-                          - "logs:PutLogEvents"
-                        Effect: "Allow"
-                        Resource: "*"
-
-                      - Action:
-                          - "s3:DeleteObject"
-                          - "s3:GetObject"
-                          - "s3:ListBucket"
-                          - "s3:PutObject"
-                          - "states:StartExecution"
-                          - "cloudwatch:PutMetricData"
-                        Effect: "Allow"
-                        Resource: "*"
-            RoleName: { "Fn::Sub": "preprocessing-${Environment}-lambda-trigger-${AWS::Region}" }
-
     LambdaExecutionRole:
         Type: "AWS::IAM::Role"
         Properties:
@@ -183,125 +149,6 @@ Resources:
     ##########################################################################################################
     ##  LAMBDA
     ##########################################################################################################
-
-    LambdaTrigger:
-        Type: "AWS::Lambda::Function"
-        Properties:
-            Code:
-                ZipFile: |
-                    import boto3, json, os, time, datetime
-
-                    def handler(event, context):
-                        print(event)
-                        s3_bucket = event['Records'][0]['s3']['bucket']['name']
-                        s3_key = event['Records'][0]['s3']['object']['key'].split('/')[-1]
-
-                        combiner = '_'
-                        if combiner in s3_key:  # A multipart upload
-                            s3_basepath, part = s3_key.split(combiner)
-                            if part == 'complete':  # The final part of a version 2 file
-                                suffixes = [s.replace(s3_basepath + combiner, '') for s in list_s3_files(s3_bucket, s3_basepath)]
-                                audit_packets(s3_bucket, s3_basepath, suffixes)
-                                part_count = len(suffixes) - 1
-                                version = '2.3'
-
-                            elif part == 'v1.0':  # A version 1 file
-                                combiner = ''
-                                suffixes = []
-                                part_count = 1
-                                version = '1.0'
-
-                            else:  # Not the final part
-                                return
-
-                        else:  # An un-suffixed file.  We don't do these any more (must be a bug)
-                            return
-
-                        execution_name = '{}-{}'.format(s3_key, int(time.time()))
-                        sfn_client = boto3.client('stepfunctions')
-                        res = sfn_client.start_execution(
-                            stateMachineArn=os.environ['STATE_MACHINE_ARN'],
-                            name=execution_name,
-                            input=json.dumps({
-                                "Meta": {
-                                    "ExecutionArn": "{}:{}".format(os.environ['STATE_MACHINE_ARN'], execution_name),
-                                    "ExecutionName": execution_name,
-                                },
-                                "SourceEvent": {
-                                    "S3Bucket": s3_bucket,
-                                    "S3BasePath": s3_basepath + combiner,
-                                    "PartCount": part_count,
-                                    "SensorDataFilename": s3_basepath,
-                                    "SensorDataFileVersion": version,
-                                }
-                            })
-                        )
-
-
-                    s3_client = boto3.client('s3')
-                    def list_s3_files(bucket, prefix, marker=''):
-                        ret = []
-                        resp = s3_client.list_objects(Bucket=bucket, Prefix=prefix, Marker=marker)
-                        ret.extend([x['Key'] for x in resp['Contents'] if x['Key'][-8:] != 'combined'])
-                        if resp['IsTruncated']:
-                            ret.extend(list_s3_files(bucket, prefix, ret[-1]))
-                        return sorted(ret)
-
-
-                    def audit_packets(bucket, prefix, packets):
-                        expected_packets = ["{:04d}".format(i) for i in range(len(packets) - 1)] + ["complete"]
-
-                        if len(packets) != len(expected_packets):
-                            raise_packet_errors(
-                                max(len(expected_packets) - len(packets), 1),
-                                "Missing packets in upload, expected {} packets, got {}".format(len(expected_packets), len(packets))
-                            )
-
-                        if packets != expected_packets:
-                            extra_packets = set(packets).difference(expected_packets)
-                            missing_packets = set(expected_packets).difference(packets)
-
-                            if len(extra_packets) == 1 and len(missing_packets) == 1 and prefix in extra_packets:
-                                # https://app.asana.com/0/419313112177425/449967103403639
-                                # Occasionally a packet is uploaded with no suffix, so if the un-suffixed filename appears
-                                # in the packet list, and there is one suffix missing, rename it to fill in the gap
-                                old_file = prefix
-                                new_file = missing_packets[0]
-                                s3_client.copy_object(Bucket=bucket, CopySource="{}/{}".format(bucket, old_file), Key=new_file)
-                                s3_client.delete_object(Bucket=bucket, Key=old_file)
-
-                            else:
-                                raise_packet_errors(0, "Corrupted packets uploaded")
-
-                    def raise_packet_errors(num_packets, message):
-                        boto3.client('cloudwatch').put_metric_data(
-                            Namespace='Preprocessing',
-                            MetricData=[{
-                                'MetricName': 'MissingPackets',
-                                'Dimensions': [{'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']}],
-                                'Timestamp': datetime.datetime.utcnow(),
-                                'Value': num_packets
-                            }]
-                        )
-                        raise Exception(message)
-
-
-            Environment:
-                Variables:
-                    ENVIRONMENT: { Ref: "Environment" }
-                    STATE_MACHINE_ARN: { Ref: "StateMachine" }
-            Handler: "index.handler"
-            MemorySize: "256"
-            Runtime: "python3.6"
-            Timeout: "60"
-            Role: { "Fn::GetAtt" : [ "LambdaTriggerRole", "Arn" ] }
-            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-trigger" }
-            Tags:
-              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-trigger" } }
-              - { Key: "Management", Value: "managed" }
-              - { Key: "Project", Value: "preprocessing" }
-              - { Key: "Environment", Value: { Ref: "Environment" } }
-
 
     LambdaPrepareDownloadAndChunk:
         Type: "AWS::Lambda::Function"
@@ -1237,6 +1084,7 @@ Resources:
 
             RoleArn: { "Fn::ImportValue" : "StepFunctionsServiceRole" }
             StateMachineName: { "Fn::Sub": "preprocessing-${Environment}" }
+
 Outputs:
     ActivityArn:
         Description: "The ARN of the Batch Activity"
@@ -1244,9 +1092,6 @@ Outputs:
     LinearitySqsQueueName:
         Description: "The name of the linearity-enforcing SQS Queue"
         Value: { Ref: "LinearityEnforcingQueue" }
-    TriggerLambdaArn:
-        Description: "The ARN of the trigger lambda"
-        Value: { "Fn::GetAtt": [ "LambdaTrigger", "Arn" ] }
     StateMachineArn:
         Description: "The ARN of the SFN state machine"
         Value: { Ref: "StateMachine" }

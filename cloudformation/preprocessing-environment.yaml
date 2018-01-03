@@ -74,6 +74,11 @@ Parameters:
         Type: "String"
         Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/preprocessing-pipeline.yaml"
         Description: "Path to an S3 file containing the CloudFormation template for the StepFunctions pipeline"
+    CreateIngest:
+        Type: "String"
+        AllowedValues: [ "true", "false" ]
+        Default: "false"
+        Description: "Whether to create the ingest stack"
     PollerTemplate:
         Type: "String"
         Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/sfn-batch-poller.yaml"
@@ -101,6 +106,7 @@ Metadata:
               - "VpcTemplate"
               - "ComputeTemplate"
               - "PipelineTemplate"
+              - "CreateIngest"
               - "PollerTemplate"
           - Label: { default: "Configuration" }
             Parameters:
@@ -124,6 +130,7 @@ Metadata:
             ComputeEc2Keypair: { default: "EC2 Keypair" }
             ComputeTemplate: { default: "CF template: Compute Cluster" }
             PipelineTemplate: { default: "CF template: Pipeline" }
+            CreateIngest: { default: "Create ingest stack?" }
             PollerTemplate: { default: "CF template: sfn-batch poller" }
             BatchJobVersion: { default: "batchjob" }
             PollerVersion: { default: "sfnbatch poller" }
@@ -133,6 +140,7 @@ Metadata:
 Conditions:
     CreateComputeCluster: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "ComputeTemplate" }, "" ] } ] }
     CreatePipeline: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PipelineTemplate" }, "" ] } ] }
+    CreateIngest: { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] }
     CreatePoller: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerTemplate" }, "" ] } ] }
 
 Resources:
@@ -145,27 +153,20 @@ Resources:
         Type: "AWS::S3::Bucket"
         Properties:
             BucketName: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}" }
+            # A circular dependency exists here; you have to create the stack with `CreateIngest`=false to create the
+            # S3 bucket first, then update the stack setting it true to create the ingest stack and then the rule here.
             NotificationConfiguration: { "Fn::If": [
-                "CreatePipeline",
-                { "LambdaConfigurations": [ { "Event": "s3:ObjectCreated:*", "Function": { "Fn::GetAtt": [ "PipelineCluster", "Outputs.TriggerLambdaArn" ] } } ] },
+                "CreateIngest",
+                { "LambdaConfigurations": [ { "Event": "s3:ObjectCreated:*", "Function": { "Fn::GetAtt": [ "IngestStack", "Outputs.TriggerLambdaArn" ] } } ] },
                 { Ref: "AWS::NoValue" }
             ]}
             Tags:
               - { Key: "Management", Value: "managed" }
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "ingest" }
         # Don't delete this if we accidentally delete the stack (which would fail anyway unless the bucket is empty)
         DeletionPolicy : "Retain"
-
-    LambdaTriggerPermission:
-        Type: "AWS::Lambda::Permission"
-        Properties:
-            Action: "lambda:InvokeFunction"
-            FunctionName: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.TriggerLambdaArn" ] }
-            Principal: "s3.amazonaws.com"
-            SourceArn: { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}" }
-            SourceAccount: { Ref : "AWS::AccountId" }
-        Condition: "CreatePipeline"
 
     ##########################################################################################################
     ## VPC & NETWORKING
@@ -240,6 +241,28 @@ Resources:
             TemplateURL: { Ref: "PipelineTemplate" }
             TimeoutInMinutes: 10
         Condition: "CreatePipeline"
+
+    ##########################################################################################################
+    ##  INGEST
+    ##########################################################################################################
+
+    IngestStack:
+        Type: "AWS::CloudFormation::Stack"
+        Properties:
+            Parameters:
+                Environment: { Ref: "Environment" }
+                # We can't use a { Ref: "S3Bucket" } because CloudFormation notices it as a circular dependency
+                S3BucketName: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}" }
+                StateMachineArn: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.StateMachineArn" ] }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-ingest" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "ingest" }
+            TemplateURL: { "Fn::Sub": "https://s3.amazonaws.com/biometrix-infrastructure-${AWS::Region}/cloudformation/preprocessing-${Environment}/preprocessing-ingest.yaml" }
+            TimeoutInMinutes: 10
+        Condition: "CreateIngest"
 
     ##########################################################################################################
     ##  SFN-BATCH POLLER
