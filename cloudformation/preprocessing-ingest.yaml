@@ -122,18 +122,18 @@ Resources:
                             s3_basepath, part = s3_key.split('_')
                             if part == 'v1.0':
                                 push_to_dynamodb(s3_bucket, s3_key, s3_basepath, upload_time, '1.0')
-                                trigger_sfn(s3_bucket, s3_basepath)
+                                trigger_sfn(s3_bucket, s3_basepath, '1.0')
                             else:
                                 # Assume version 2
                                 push_to_dynamodb(s3_bucket, s3_key, s3_basepath, upload_time, '2.3')
                                 if part == 'complete':
-                                    trigger_sfn(s3_bucket, s3_basepath)
+                                    trigger_sfn(s3_bucket, s3_basepath, '2.3')
 
                         else:
                             # An un-suffixed file.  We don't do these any more (must be a bug)
                             return
 
-                    def trigger_sfn(s3_bucket, s3_basepath):
+                    def trigger_sfn(s3_bucket, s3_basepath, version):
                         execution_name = '{}-{}'.format(s3_basepath, int(time.time()))
                         sfn_client = boto3.client('stepfunctions')
                         res = sfn_client.start_execution(
@@ -146,6 +146,7 @@ Resources:
                                 },
                                 "SourceEvent": {
                                     "SensorDataFilename": s3_basepath,
+                                    "SensorDataFileVersion": version,
                                 }
                             })
                         )
