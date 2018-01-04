@@ -119,7 +119,7 @@ Resources:
 
                         if '_' in s3_key:
                             # A multipart upload
-                            s3_basepath, part = s3_key.split(combiner)
+                            s3_basepath, part = s3_key.split('_')
                             if part == 'v1.0':
                                 push_to_dynamodb(s3_bucket, s3_key, s3_basepath, upload_time, '1.0')
                                 trigger_sfn(s3_bucket, s3_basepath)
@@ -134,7 +134,7 @@ Resources:
                             return
 
                     def trigger_sfn(s3_bucket, s3_basepath):
-                        execution_name = '{}-{}'.format(s3_key, int(time.time()))
+                        execution_name = '{}-{}'.format(s3_basepath, int(time.time()))
                         sfn_client = boto3.client('stepfunctions')
                         res = sfn_client.start_execution(
                             stateMachineArn=os.environ['STATE_MACHINE_ARN'],
@@ -146,7 +146,6 @@ Resources:
                                 },
                                 "SourceEvent": {
                                     "SensorDataFilename": s3_basepath,
-                                    "SensorDataFileVersion": version,
                                 }
                             })
                         )
