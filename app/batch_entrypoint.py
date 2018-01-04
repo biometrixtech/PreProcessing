@@ -147,8 +147,7 @@ def main():
                 raise Exception("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
 
             from downloadAndChunk import downloadAndChunk
-            s3_basepath = input_data.get('S3BasePath', None)
-            tmp_combined_file = downloadAndChunk.script_handler(s3_basepath)
+            tmp_combined_file = downloadAndChunk.script_handler(sensor_data_filename)
 
             # Upload combined file back to s3
             # s3_client = boto3.client('s3')

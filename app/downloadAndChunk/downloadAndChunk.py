@@ -69,7 +69,6 @@ def _query_dynamodb(resource, key_condition_expression, exclusive_start_key=None
             Limit=10000,
             KeyConditionExpression=key_condition_expression,
         )
-
     if 'LastEvaluatedKey' in ret:
         # There are more records to be scanned
         return ret['Items'] + _query_dynamodb(key_condition_expression, ret['LastEvaluatedKey'])
