@@ -260,7 +260,9 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "ingest" }
-            TemplateURL: { "Fn::Sub": "https://s3.amazonaws.com/biometrix-infrastructure-${AWS::Region}/cloudformation/preprocessing-${Environment}/preprocessing-ingest.yaml" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-ingest.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
             TimeoutInMinutes: 10
         Condition: "CreateIngest"
 

@@ -147,17 +147,12 @@ def main():
                 raise Exception("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
 
             from downloadAndChunk import downloadAndChunk
-            s3_bucket = input_data.get('S3Bucket', None)
             s3_basepath = input_data.get('S3BasePath', None)
-            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
-                s3_paths = [s3_basepath]
-            else:
-                s3_paths = ["{}{:04d}".format(s3_basepath, i) for i in range(0, input_data.get('PartCount', []))] + [s3_basepath + "complete"]
-            tmp_combined_file = downloadAndChunk.script_handler(s3_bucket, s3_paths)
+            tmp_combined_file = downloadAndChunk.script_handler(s3_basepath)
 
             # Upload combined file back to s3
-            s3_client = boto3.client('s3')
-            s3_client.upload_file(tmp_combined_file, s3_bucket, s3_basepath + 'combined')
+            # s3_client = boto3.client('s3')
+            # s3_client.upload_file(tmp_combined_file, s3_bucket, s3_basepath + '_combined')
 
             # Create the working directory
             mkdir(working_directory)
@@ -168,7 +163,7 @@ def main():
                 file_names = chunk.chunk_by_line(
                     tmp_combined_file,
                     os.path.join(working_directory, 'downloadandchunk'),
-                    100000  # 100000 records per chunk
+                    100000  # 100,000 records per chunk
                     )
             else:
                 file_names = chunk.chunk_by_byte(
@@ -184,7 +179,7 @@ def main():
         elif script == 'transformandplacement':
             print('Running transformandplacement()')
             if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
-                ret =  {
+                ret = {
                     'Placement': [0, 1, 2],
                     'BodyFrameTransforms': {
                         'Left': [1, 0, 0, 0],
