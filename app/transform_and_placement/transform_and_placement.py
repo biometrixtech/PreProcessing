@@ -21,11 +21,11 @@ def script_handler(working_directory, file_name):
         data = read_file(filepath, count)
         shift_accel(data)
 
-        try:
-            placement = detect_placement(data)
-        except:
+        # try:
+        placement = detect_placement(data)
+        # except:
             # FIXME
-            placement = [0, 1, 2]
+            # placement = [0, 1, 2]
 
         body_frame_transforms = compute_transform(data, placement)
         print(body_frame_transforms)
