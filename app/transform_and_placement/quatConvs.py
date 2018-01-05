@@ -49,21 +49,15 @@ def quat_to_euler(q):
     b = 2*(q[:, 2]*q[:, 3])+2*q[:, 0]*q[:, 1]
     phi = np.arctan2(b, a)
     
-    if any(c > .4995):
-        print("theta is 90")
-        psi[c > .4995] = np.nan
-        theta[c > .4995] = np.nan
-        phi[c > .4995] = np.nan
-    elif any(c < -.4995):
-        print("theta is -90")
-        psi[c < -.4995] = np.nan
-        theta[c < -.4995] = np.nan
-        phi[c < -.4995] = np.nan
-    elif any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) < np.array([[1e-8]*4]), axis=1) == 4):
-        ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) < np.array([[1e-8]*4]), axis=1) == 4
+    if any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
+             < np.array([[1e-8]*4]), axis=1) == 4):
+        ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
+                     < np.array([[1e-8]*4]), axis=1) == 4
         psi[ind] = 0
         theta[ind] = np.pi
         phi[ind] = 0
+    else:
+        pass
 
     return np.vstack([phi, theta, psi]).T
 

@@ -91,8 +91,8 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
 
     # PHASE DETECTION
     data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ, 
-                                                       data.la_magn,
-                                                       data.ra_magn ,
+                                                       data.LaZ,
+                                                       data.RaZ ,
                                                        data.LeY,
                                                        data.ReY, 100)
 

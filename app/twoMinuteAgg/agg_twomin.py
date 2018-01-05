@@ -143,35 +143,35 @@ def script_handler(working_directory, file_name, input_data):
 
             # Aggregated values
             total_grf = numpy.sum(data_2m['total_grf'])
-            total_accumulated_grf += total_grf
             const_grf = numpy.nansum(data_2m['const_grf'])
-            optimal_accumulated_grf += const_grf
             dest_grf = numpy.nansum(data_2m['dest_grf'])
-            irregular_accumulated_grf += dest_grf
             if const_grf == 0:
                 const_grf = 1e-6
             if dest_grf == 0:
                 dest_grf = 1e-6
             perc_optimal_twomin = const_grf / (const_grf + dest_grf)
-            if total_grf == 0:
+            if total_grf == 0 or numpy.isnan(total_grf):
                 total_grf = 1e-6
             lf_grf = numpy.sum(data_2m['lf_grf'])
-            if lf_grf == 0:
+            if lf_grf == 0  or numpy.isnan(lf_grf):
                 lf_grf = 1e-6
             lf_only_grf = numpy.sum(data_2m['lf_only_grf'])
-            if lf_only_grf == 0:
+            if lf_only_grf == 0  or numpy.isnan(lf_only_grf):
                 print('zero left')
                 lf_only_grf = 1e-6
             rf_grf = numpy.sum(data_2m['rf_grf'])
-            if rf_grf == 0:
+            if rf_grf == 0 or numpy.isnan(rf_grf):
                 rf_grf = 1e-6
             rf_only_grf = numpy.sum(data_2m['rf_only_grf'])
-            if rf_only_grf == 0:
+            if rf_only_grf == 0 or numpy.isnan(rf_only_grf):
                 print('zero right')
                 rf_only_grf = 1e-6
             lf_rf_grf = lf_only_grf + rf_only_grf
 
             # grf aggregation
+            total_accumulated_grf += total_grf
+            optimal_accumulated_grf += const_grf
+            irregular_accumulated_grf += dest_grf
             perc_left_grf = lf_only_grf / lf_rf_grf * 100
             perc_right_grf = rf_only_grf / lf_rf_grf * 100
             perc_distr = numpy.abs(perc_left_grf - perc_right_grf)
@@ -195,8 +195,8 @@ def script_handler(working_directory, file_name, input_data):
             consistency_rf = numpy.sum(data_2m['consistencyRF']) / rf_grf
 
             # acceleration aggregation
-            total_accel = numpy.sum(data_2m['totalAccel'])
-            irregular_accel = numpy.sum(data_2m['irregularAccel'])
+            total_accel = numpy.nansum(data_2m['totalAccel'])
+            irregular_accel = numpy.nansum(data_2m['irregularAccel'])
             two_min_index = int(start_time/numpy.timedelta64(1, '2m'))
 
             # create ordered dictionary object

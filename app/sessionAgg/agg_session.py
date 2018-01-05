@@ -113,20 +113,20 @@ def script_handler(working_directory, input_data):
         const_grf = numpy.nansum(data['const_grf'])
         dest_grf = numpy.nansum(data['dest_grf'])
         perc_optimal_session = const_grf / (const_grf + dest_grf)
-        if total_grf == 0:
+        if total_grf == 0 or numpy.isnan(total_grf):
             total_grf = 1e-6
         lf_grf = numpy.sum(data['lf_grf'])
-        if lf_grf == 0:
+        if lf_grf == 0 or numpy.isnan(lf_grf):
             lf_grf = 1e-6
         lf_only_grf = numpy.sum(data['lf_only_grf'])
-        if lf_only_grf == 0:
+        if lf_only_grf == 0 or numpy.isnan(lf_only_grf):
             print('zero left')
             lf_only_grf = 1e-6
         rf_grf = numpy.sum(data['rf_grf'])
-        if rf_grf == 0:
+        if rf_grf == 0 or numpy.isnan(rf_grf):
             rf_grf = 1e-6
         rf_only_grf = numpy.sum(data['rf_only_grf'])
-        if rf_only_grf == 0:
+        if rf_only_grf == 0 or numpy.isnan(rf_only_grf):
             print('zero right')
             rf_only_grf = 1e-6
         lf_rf_grf = lf_only_grf + rf_only_grf
@@ -155,11 +155,15 @@ def script_handler(working_directory, input_data):
         consistency_rf = numpy.sum(data['consistencyRF']) / rf_grf
 
         # acceleration aggregation
-        total_accel = numpy.sum(data['totalAccel'])
-        irregular_accel = numpy.sum(data['irregularAccel'])
+        total_accel = numpy.nansum(data['totalAccel'])
+        irregular_accel = numpy.nansum(data['irregularAccel'])
 
         # fatigue analysis
         session_fatigue = _fatigue_analysis(data, var='perc_optimal')
+        print(session_fatigue)
+        if numpy.isnan(session_fatigue):
+            print('session fatigue nan')
+            session_fatigue = 0
 
         # create ordered dictionary object
         # current variables

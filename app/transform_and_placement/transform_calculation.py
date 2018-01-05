@@ -14,9 +14,9 @@ def compute_transform(data, placement):
     data = data.loc[start:end, :]
     data.reset_index(inplace=True, drop=True)
 
-    quat0 = np.hstack([data.qW0, data.qX0, data.qY0, data.qZ0]).reshape(-1, 4)
-    quat1 = np.hstack([data.qW1, data.qX1, data.qY1, data.qZ1]).reshape(-1, 4)
-    quat2 = np.hstack([data.qW2, data.qX2, data.qY2, data.qZ2]).reshape(-1, 4)
+    quat0 = data.loc[:, ['qW0', 'qX0', 'qY0', 'qZ0']].values.reshape(-1, 4)
+    quat1 = data.loc[:, ['qW1', 'qX1', 'qY1', 'qZ1']].values.reshape(-1, 4)
+    quat2 = data.loc[:, ['qW2', 'qX2', 'qY2', 'qZ2']].values.reshape(-1, 4)
 
     left_quaternions = quat0 if placement[0] == 0 else quat1 if placement[0] == 1 else quat2
     hip_quaternions = quat0 if placement[1] == 0 else quat1 if placement[1] == 1 else quat2
