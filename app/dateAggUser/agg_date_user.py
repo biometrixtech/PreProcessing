@@ -156,7 +156,7 @@ def script_handler(input_data):
         record_out['ACWRGRF' + str(i)] = acwr.totalGRF
         record_out['ACWRTotalAccel' + str(i)] = acwr.totalAccel
 
-        _publish_alerts(record_out)
+        _publish_alerts(record_out, acwr)
 
         query = {'userId': user_id, 'eventDate': event_date}
         mongo_collection_date.replace_one(query, record_out, upsert=True)
@@ -168,7 +168,19 @@ def script_handler(input_data):
         raise
 
 
-def _publish_alerts(record_out):
+def _publish_alerts(record_out, acwr):
+    # Training Volume
+
+    if 1.2 < acwr.totalGRF <= 1.5 or acwr.totalGRF < 0.79:
+        _publish_alert(record_out, category=1, subcategory=1, granularity='total', value=1)
+    elif 1.5 < acwr.totalGRF:
+        _publish_alert(record_out, category=1, subcategory=1, granularity='total', value=2)
+
+    if 1.2 < acwr.totalAccel <= 1.5 or acwr.totalAccel < 0.79:
+        _publish_alert(record_out, category=1, subcategory=2, granularity='total', value=1)
+    elif 1.5 < acwr.totalAccel:
+        _publish_alert(record_out, category=1, subcategory=2, granularity='total', value=2)
+
     # Movement Quality
 
     # GRF Dist
