@@ -222,7 +222,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
         e = j
         print('s: {}, e: {}'.format(s, e))
         lf_quat = drift_filter(sdata.loc[s:e, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1,4))
-        print('lf_quats length: {}'.format(len(lf_quats)))
+        print('lf_quats length: {}'.format(len(lf_quat)))
         print('subset length: {}'.format(len(sdata.loc[i:j, ['LqW', 'LqX', 'LqY', 'LqZ']])))
         sdata.loc[i:j, ['LqW', 'LqX', 'LqY', 'LqZ']] = lf_quat[50:, :]
 
