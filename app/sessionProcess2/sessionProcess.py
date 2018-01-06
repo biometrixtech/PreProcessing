@@ -233,8 +233,13 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     for i, j in zip(dynamic_range_rf[:, 0], dynamic_range_rf[:, 1]):
         s = i - 50
         e = j
+        if s < 0:
+            s = 0
+            pad = i
+        else:
+            pad = 50
         rf_quat = drift_filter(sdata.loc[s:e, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1,4))
-        sdata.loc[i:j, ['RqW', 'RqX', 'RqY', 'RqZ']] = rf_quat[50:, :]
+        sdata.loc[i:j, ['RqW', 'RqX', 'RqY', 'RqZ']] = rf_quat[pad:, :]
 
     # Rotate hip sensor by 90º plus the hip neutral transform, find the body
     # frame of the hip data
@@ -248,8 +253,13 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     for i, j in zip(dynamic_range_h[:, 0], dynamic_range_h[:, 1]):
         s = i - 50
         e = j
+        if s < 0:
+            s = 0
+            pad = i
+        else:
+            pad = 50
         h_quat = drift_filter(sdata.loc[s:e, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1,4))
-        sdata.loc[i:j, ['HqW', 'HqX', 'HqY', 'HqZ']] = h_quat[50:, :]
+        sdata.loc[i:j, ['HqW', 'HqX', 'HqY', 'HqZ']] = h_quat[pad:, :]
 
     # for acceleration transformation, get the bodyframe transformed quaternions
     # this included both transformation and drift filtering
