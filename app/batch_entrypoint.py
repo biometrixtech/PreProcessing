@@ -138,6 +138,7 @@ def main():
             exit(0)
 
         sensor_data_filename = input_data.get('SensorDataFilename')
+        os.environ['SENSOR_DATA_FILENAME'] = sensor_data_filename
         working_directory = os.path.join('/net/efs/preprocessing', sensor_data_filename)
 
         if script == 'downloadandchunk':
