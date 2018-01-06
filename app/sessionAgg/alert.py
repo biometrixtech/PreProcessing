@@ -45,5 +45,6 @@ class Alert(object):
             os.environ['AWS_DEFAULT_REGION'],
             os.environ['ENVIRONMENT']
         )
-        response = sns_client.publish(TopicArn=sns_topic, Message=json.dumps(self.json_serialise()))
+        payload = {'alert': self.json_serialise(), 'sensorDataFilename': input_data.get('SensorDataFilename')}
+        response = sns_client.publish(TopicArn=sns_topic, Message=json.dumps(payload))
         logger.info("SNS Message ID: {}".format(response.get('MessageId', None)))
