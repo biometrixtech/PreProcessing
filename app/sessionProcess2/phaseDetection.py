@@ -39,8 +39,8 @@ def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
     raz = raz.reshape(-1,)
     la_magn = la_magn.reshape(-1,)
     ra_magn = ra_magn.reshape(-1,)
-    pitch_lf = pitch_lf.reshape(-1,)
-    pitch_rf = pitch_rf.reshape(-1,)
+    pitch_lf = pitch_lf.reshape(-1,) * 180 / np.pi
+    pitch_rf = pitch_rf.reshape(-1,) * 180 / np.pi
 
     # Check and mark rows with missing data
     length = len(laz)
@@ -339,7 +339,6 @@ def _impact_detect(start_move, end_move, az, pitch, hz):
                             t = imp_len # reset t
                             while in_ground and t < end_imp_thresh:
                                 if np.abs(pit[k + m + t]) < 5 and pit[k+m+t] - pit[k+m+t-2] > 0.:
-#                                    print('detected with eulers: '+ str(end_imp_ind))
                                     detected_with_euler += 1
                                     end_imp_ind = start_imp_ind + t + 3
                                     in_ground = False
@@ -379,7 +378,7 @@ def _impact_detect(start_move, end_move, az, pitch, hz):
             start_imp.append(j - imp_len)
             end_imp.append(j)
 
-    print('{} takeoffs detected with euler'.format(detected_with_euler))
+    # print('{} takeoffs detected with euler'.format(detected_with_euler))
     imp = [[i,j] for i,j in zip(start_imp, end_imp)]
 
     return np.array(imp)    
