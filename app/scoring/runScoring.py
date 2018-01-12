@@ -59,29 +59,15 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
 #     Duration
 
     # Read historical data
-    user_hist = pd.read_csv(historical_data, usecols=cols.column_user_hist)
-    if user_hist.shape[0] < 30000:
-        _logger("There's no historical data and current data isn't long enough!")
-        raise NoHistoricalDataException("Insufficient historical data, need 50000 rows, only got {}".format(user_hist.shape[0]))
+    # user_hist = pd.read_csv(historical_data, usecols=cols.column_user_hist)
+    # if user_hist.shape[0] < 30000:
+    #     _logger("There's no historical data and current data isn't long enough!")
+    #     raise NoHistoricalDataException("Insufficient historical data, need 50000 rows, only got {}".format(user_hist.shape[0]))
 
-    _logger("user history captured")
+    # _logger("user history captured")
 
     grf_scale = 1000000
-    (
-        sdata['consistency'],
-        sdata['hip_consistency'],
-        sdata['ankle_consistency'],
-        sdata['consistency_lf'],
-        sdata['consistency_rf'],
-        sdata['symmetry'],
-        sdata['hip_symmetry'],
-        sdata['ankle_symmetry'],
-        sdata['destr_multiplier'],
-        sdata['dest_grf'],
-        sdata['const_grf'],
-        sdata['session_duration'],
-        sdata['session_grf_elapsed']
-    ) = score(sdata, user_hist, grf_scale)
+    sdata = score(sdata, grf_scale)
     del user_hist
     _logger("DONE WITH SCORING!")
     accel_scale = 100000
