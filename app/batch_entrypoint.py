@@ -163,7 +163,8 @@ def main():
 
             # Upload combined file back to s3
             s3_client = boto3.client('s3')
-            s3_client.upload_file(tmp_combined_file, s3_bucket, s3_basepath + '_combined')
+            s3_bucket = 'biometrix-preprocessing-dev-us-west-2'
+            s3_client.upload_file(tmp_combined_file, s3_bucket, sensor_data_filename + '_combined')
 
             # Create the working directory
             mkdir(working_directory)
