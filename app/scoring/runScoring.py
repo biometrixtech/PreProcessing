@@ -60,15 +60,15 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
 
     # Read historical data
     # user_hist = pd.read_csv(historical_data, usecols=cols.column_user_hist)
-    # if user_hist.shape[0] < 30000:
-    #     _logger("There's no historical data and current data isn't long enough!")
-    #     raise NoHistoricalDataException("Insufficient historical data, need 50000 rows, only got {}".format(user_hist.shape[0]))
+    if sdata.shape[0] < 30000:
+        _logger("Current data isn't long enough for scoring!")
+        raise NoHistoricalDataException("Insufficient data, need 30000 rows, only got {}".format(sdata.shape[0]))
 
     # _logger("user history captured")
 
     grf_scale = 1000000
     sdata = score(sdata, grf_scale)
-    del user_hist
+    # del user_hist
     _logger("DONE WITH SCORING!")
     accel_scale = 100000
     sdata.grf = sdata.grf / grf_scale
