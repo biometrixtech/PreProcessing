@@ -83,14 +83,12 @@ def _det_lf_rf_rofp(grf, s_takeoff, e_takeoff, stance, hz):
             end = start + np.where(grf[start:10] == 0)[0][0]
         except IndexError:
             end = start + np.nanargmin(grf[start:j]) + 1
+            if end == len(grf):
+                end = j
         if end <= start:
             count += 1
             continue
         else:
-#            if end==start+1:
-#                start = i + np.nanargmin(grf[i:j])
-#                end = i + np.nanargmax(grf[i:j])
-#                print('start: {}, end: {} and grf: {}'.format(i, j, (start, end)))
             length_subset_grf = abs(end-start)
             if length_subset_grf != 0:
                 denom = float(length_subset_grf)/hz
@@ -101,12 +99,6 @@ def _det_lf_rf_rofp(grf, s_takeoff, e_takeoff, stance, hz):
                     rofp[i:j,0] = abs(grf_change/denom)
                 elif grf_change > 0:
                     rofp[i:j, 0] = grf_change/denom
-#                else:
-#            elif length_subset_grf == 0:
-#                grf_change = 0
-#                denom = 1.0/hz
-
-    # print(len(s_takeoff) - count)
                 
     return rofp
     

@@ -347,7 +347,8 @@ def send_notification(filename, accel_error_count):
     sns_topic = 'arn:aws:sns:{}:887689817172:data-quality-{}'.format( 
             os.environ['AWS_DEFAULT_REGION'], 
             os.environ['ENVIRONMENT'] 
-        ) 
+        )
+    print(sns_topic)
     response = sns_client.publish(TopicArn=sns_topic, 
                                   Message=message, 
                                   Subject=subject) 

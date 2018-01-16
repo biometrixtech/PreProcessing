@@ -85,22 +85,14 @@ def _det_lf_rf_rofa(grf, s_imp, e_imp, stance, hz):
             length_subset_grf = 0
         if length_subset_grf != 0:
             denom = float(length_subset_grf)/hz
-#            if grf[end] < grf[start]:
-#                print(start, end)
             grf_change = grf[end] - grf[start]
         elif length_subset_grf == 0:
             grf_change = 0
             denom = 1.0/hz
         if grf_change > 0:
-#            if np.mean(stance[start:end]) % 1 !=0:
-#                count += 1
-#                print(start,end)
-#                print(np.mean(stance[start:end]))
             count += 1
             rofa[i:j,0] = grf_change/denom
-    #     elif grf_change==0:
-    #         print(i, j)
-    # print(len(s_imp) - count)
+
     return rofa
     
 
