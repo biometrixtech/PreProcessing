@@ -24,7 +24,7 @@ def script_handler(working_directory, file_name):
         try:
             placement = detect_placement(data)
         except:
-            FIXME
+            # FIXME
             placement = [0, 1, 2]
 
         body_frame_transforms = compute_transform(data, placement)
