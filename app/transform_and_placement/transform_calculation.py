@@ -83,13 +83,10 @@ def detect_still(data):
     if len(start) != len(end):
         end = np.append(end, len(data))
 
-    if len(end) == 0: # check if any still portion was detected
-        raise Exception('Still portion of data cannot be detected')
-    else:
-        for i in range(len(end)):
-            end[i] = min([end[i], start[i] + 300])
-            if end[i] - start[i] >= 150:
-                return start[i], end[i] # return the first section of data where we have enough points
+    for i in range(len(end)):
+        end[i] = min([end[i], start[i] + 300])
+        if end[i] - start[i] >= 150:
+            return start[i], end[i] # return the first section of data where we have enough points
 
 
 def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
