@@ -390,7 +390,8 @@ def script_handler(working_directory, file_name, data):
                 logger.warning("Sensor data is empty!", info=False)
                 return "Fail!"
             logger.info("DATA LOADED!")
-
+            #### ADD Checks for weird acceleration jumps 
+            flag_data_quality(sdata, file_name)
             # Output debug CSV
             # fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_pretransform')), 'wb')
             # sdata.to_csv(fileobj, na_rep='', columns=[
@@ -432,9 +433,6 @@ def script_handler(working_directory, file_name, data):
         #### SAVE DEBUG DATA
         import save_file
         save_file.save_file(sdata, file_name)
-
-        #### ADD Checks for weird acceleration jumps 
-        flag_data_quality(sdata, file_name) 
  
         output_data_batch = runAnalytics.run_session(sdata, file_version, mass, grf_fit, sc, hip_n_transform)
 
