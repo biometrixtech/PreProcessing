@@ -3,7 +3,6 @@ from __future__ import print_function
 import math
 import numpy as np
 
-from exceptions import PlacementDetectionException
 from quatConvs import euler_to_quat, quat_to_euler
 from quatOps import quat_conj, quat_avg
 
@@ -69,7 +68,7 @@ def detect_still(data):
             dummy_balphase += range(i, i + bal_win)
 
     if len(dummy_balphase) == 0:
-        raise PlacementDetectionException('Could not identify a long enough still window')
+        raise Exception('Could not identify a long enough still window')
 
     # determine the unique indexes in the dummy list
     start_bal = np.unique(dummy_balphase)
