@@ -89,7 +89,7 @@ def detect_still(data):
     else:
         for i in range(len(end)):
             end[i] = min([end[i], start[i] + 300])
-            if end[i] - start[i] > 150:
+            if end[i] - start[i] >= 150:
                 return start[i], end[i] # return the first section of data where we have enough points
 
 
