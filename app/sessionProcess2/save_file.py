@@ -75,13 +75,13 @@ def save_file(data_in, file_name):
     data.ReX = adduction_R.reshape(-1, 1)
     data.ReY = flexion_R.reshape(-1, 1)
 
-    data.la_magn = np.sqrt(data.LaX**2 + data.LaY**2 + data.LaZ**2)
-    data.ra_magn = np.sqrt(data.RaX**2 + data.RaY**2 + data.RaZ**2) 
+    # data.la_magn = np.sqrt(data.LaX**2 + data.LaY**2 + data.LaZ**2)
+    # data.ra_magn = np.sqrt(data.RaX**2 + data.RaY**2 + data.RaZ**2) 
 
     # PHASE DETECTION
     data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ, data.RaZ, 
-                                                       data.la_magn,
-                                                       data.ra_magn ,
+                                                       data.LaZ,
+                                                       data.RaZ ,
                                                        data.LeY,
                                                        data.ReY, 100)
 
