@@ -73,7 +73,7 @@ def _det_lf_rf_rofp(grf, s_takeoff, e_takeoff, stance, hz):
         hz: int, sampling rate
 
     Returns:
-        rofa: array, rate of force absorption
+        rofp: array, rate of force absorption
     '''
     rofp = np.zeros((len(grf), 1))
     count = 0
@@ -83,12 +83,12 @@ def _det_lf_rf_rofp(grf, s_takeoff, e_takeoff, stance, hz):
             end = start + np.where(grf[start:10] == 0)[0][0]
         except IndexError:
             end = start + np.nanargmin(grf[start:j]) + 1
-            if end == len(grf):
-                end = j
         if end <= start:
             count += 1
             continue
         else:
+            if end == len(grf):
+                end = len(grf) - 1
             length_subset_grf = abs(end-start)
             if length_subset_grf != 0:
                 denom = float(length_subset_grf)/hz
