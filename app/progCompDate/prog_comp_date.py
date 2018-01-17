@@ -138,8 +138,14 @@ def _aggregate_progcomp(collection, var, user_id, event_date, session_type):
             single_bin['percOptimal'] = None
             single_bin['percIrregular'] = None
         else:
-            single_bin['percOptimal'] = doc['optimalGRF'] / doc['totalGRF'] * 100
-            single_bin['percIrregular'] = doc['irregularGRF'] / doc['totalGRF'] * 100
+            if doc['optimalGRF'] is None:
+                single_bin['percOptimal'] = None
+            else:
+                single_bin['percOptimal'] = doc['optimalGRF'] / doc['totalGRF'] * 100
+            if doc['irregularGRF'] is None:
+                single_bin['percIrregular'] = None
+            else:
+                single_bin['percIrregular'] = doc['irregularGRF'] / doc['totalGRF'] * 100
         bins.append(single_bin)
 
     return sorted(bins, key=lambda k: k['binNumber'])
