@@ -143,8 +143,9 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
         except IndexError:
             print(i)
             print(impact_start)
-    takeoff_lf = np.concatenate(takeoff).ravel()
-    data.phase_lf[takeoff_lf] = 6
+    if len(takeoff) > 0:
+        takeoff_lf = np.concatenate(takeoff).ravel()
+        data.phase_lf[takeoff_lf] = 6
 
     # Add takeoff phase fo right foot
     # takeoffs from balance phase
@@ -167,8 +168,9 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
         except IndexError:
             print(i)
             print(impact_start)
-    takeoff_rf = np.concatenate(takeoff).ravel()
-    data.phase_rf[takeoff_rf] = 7
+    if len(takeoff) > 0:
+        takeoff_rf = np.concatenate(takeoff).ravel()
+        data.phase_rf[takeoff_rf] = 7
 
     # ms_elapsed and datetime
     data.time_stamp, data.ms_elapsed = ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
