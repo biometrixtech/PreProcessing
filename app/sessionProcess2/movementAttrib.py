@@ -207,6 +207,7 @@ def standing_or_not(hip_eul, hz):
     _backward_standing_thresh = -np.pi/4
 
     # create binary array based on elements' relation to threshold
+    hip_y[np.where(hip_y == 0)] = 1
     hip_y[np.where(hip_y > _forward_standing_thresh)] = 0
     hip_y[np.where(hip_y < _backward_standing_thresh)] = 0
     hip_y[np.where(hip_y != 0)] = 1
