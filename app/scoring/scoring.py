@@ -450,13 +450,16 @@ def _run_symmetry(left, right, symmetry_scores):
     elif np.nanstd(left) < 1e-4 or np.nanstd(right) < 1e-4:
         score = np.zeros(size) * np.nan
     else:
-        l_fn, r_fn = _symmetry_score(left, right, kernel='gaussian')
-        score_l = l_fn(left)
-        score_r = r_fn(right)
-        scores = np.vstack([score_l, score_r])
-        score = np.nanmean(scores, 0)
-        score[score > 100] = 100
-        score[score <= 0] = 0
+        try:
+            l_fn, r_fn = _symmetry_score(left, right, kernel='gaussian')
+            score_l = l_fn(left)
+            score_r = r_fn(right)
+            scores = np.vstack([score_l, score_r])
+            score = np.nanmean(scores, 0)
+            score[score > 100] = 100
+            score[score <= 0] = 0
+        except ValueError:
+            score = np.zeros(size) * np.nan
 
     symmetry_scores = np.append(symmetry_scores, score.reshape(-1, 1), axis=1)
 
@@ -496,6 +499,7 @@ def _symmetry_score(dist_l, dist_r, kernel):
     dist_right = np.sort(dist_r[np.isfinite(dist_r)])
 
     # Use sample of points in scoring if above threshold
+    np.random.seed(0115)
     sample_size = min([len(dist_left), len(dist_right), 10000])
     dist_l1 = np.random.choice(dist_left, size=sample_size,
                                replace=False).reshape(-1, 1)
