@@ -302,7 +302,7 @@ def _norm_range_of_motion(data, time):
     provided data window, normalized by the time it took to do so.
     
     Args --
-        data: quaternion array stretching across window of interest (phase)
+        data: orientation array stretching across window of interest (phase)
         time: ms_elapsed corresponding to data
     
     Return --
@@ -340,7 +340,7 @@ def _norm_motion_covered(data, time):
     provided data window, normalized by the time it took to do so.
     
     Args --
-        data: quaternion array stretching across window of interest (phase)
+        data: orientation array stretching across window of interest (phase)
         time: ms_elapsed corresponding to data
     
     Return --
