@@ -124,17 +124,17 @@ def run_stance_analysis(data):
     """
 
     # get eul data, hz, hip acc, phases from data frame
-    LeX = data.LeX.reshape(-1, 1)
-    LeY = data.LeY.reshape(-1, 1)
-    LeZ = data.LeZ.reshape(-1, 1)
+    LeX = data.LeX.values.reshape(-1, 1)
+    LeY = data.LeY.values.reshape(-1, 1)
+    LeZ = data.LeZ.values.reshape(-1, 1)
 
-    HeX = data.HeX.reshape(-1, 1)
-    HeY = data.HeY.reshape(-1, 1)
-    HeZ = data.HeZ.reshape(-1, 1)
+    HeX = data.HeX.values.reshape(-1, 1)
+    HeY = data.HeY.values.reshape(-1, 1)
+    HeZ = data.HeZ.values.reshape(-1, 1)
 
-    ReX = data.ReX.reshape(-1, 1)
-    ReY = data.ReY.reshape(-1, 1)
-    ReZ = data.ReZ.reshape(-1, 1)
+    ReX = data.ReX.values.reshape(-1, 1)
+    ReY = data.ReY.values.reshape(-1, 1)
+    ReZ = data.ReZ.values.reshape(-1, 1)
 
     leuls = np.hstack((LeX, LeY))
     leuls = np.hstack((leuls, LeZ))
@@ -147,15 +147,15 @@ def run_stance_analysis(data):
 
     hz = 100
 
-    HaX = data.HaX.reshape(-1, 1)
-    HaY = data.HaY.reshape(-1, 1)
-    HaZ = data.HaZ.reshape(-1, 1)
+    HaX = data.HaX.values.reshape(-1, 1)
+    HaY = data.HaY.values.reshape(-1, 1)
+    HaZ = data.HaZ.values.reshape(-1, 1)
 
     hacc = np.hstack((HaX, HaY))
     hacc = np.hstack((hacc, HaZ))
 
-    lf_ph = data.phase_lf.reshape(-1, 1)
-    rf_ph = data.phase_rf.reshape(-1, 1)
+    lf_ph = data.phase_lf.values.reshape(-1, 1)
+    rf_ph = data.phase_rf.values.reshape(-1, 1)
 
     # find total accel
     hip_tot_acc = total_accel(hacc)
