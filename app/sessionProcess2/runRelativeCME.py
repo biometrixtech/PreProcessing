@@ -587,8 +587,8 @@ def _remove_filtered_ends(data_range, dyn_range):
         while data_range[index, 1] < j:
             index = index + 1
         beg = data_range[index, 0]
-        data_range[index, 0] = j + pad
-        data_range = np.insert(data_range, (index), [beg, j - pad], axis=0)
+        data_range[index, 0] = j + pad + 1
+        data_range = np.insert(data_range, (index), [beg, j - pad - 1], axis=0)
 
     # delete rows where an intersection occurred but range too short to trim
     for k in range(len(data_range)):
