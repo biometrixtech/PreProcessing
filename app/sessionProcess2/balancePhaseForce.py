@@ -32,14 +32,18 @@ def bal_phase_force(data):
         len_bal_win = e - s
         if len_bal_win <= 50:
             grf_s = grf[s:e]
-            magn_grf[s:e, 0] = np.percentile(grf_s[np.isfinite(grf_s)], 97.5) - np.percentile(grf_s[np.isfinite(grf_s)], 2.5)
+            finite_grf = grf_s[np.isfinite(grf_s)]
+            if len(finite_grf) > 0:
+                magn_grf[s:e, 0] = np.percentile(finite_grf, 97.5) - np.percentile(finite_grf, 2.5)
         else:
             ints = np.append(np.arange(s, e, 50), e)
             for i in range(len(ints)-1):
                 start = ints[i]
                 end = ints[i+1]
                 grf_s = grf[start:end]
-                magn_grf[start:end, 0] = np.percentile(grf_s[np.isfinite(grf_s)], 97.5) - np.percentile(grf_s[np.isfinite(grf_s)], 2.5)
+                finite_grf = grf_s[np.isfinite(grf_s)]
+                if len(finite_grf) > 0:
+                    magn_grf[start:end, 0] = np.percentile(finite_grf, 97.5) - np.percentile(finite_grf, 2.5)
     magn_grf[magn_grf < 30] = 0
 
     return magn_grf

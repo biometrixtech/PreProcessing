@@ -83,6 +83,8 @@ def _det_lf_rf_rofa(grf, s_imp, e_imp, stance, hz):
             length_subset_grf = abs(end-start)
         except IndexError:
             length_subset_grf = 0
+        except ValueError:
+            length_subset_grf = 0
         if length_subset_grf != 0:
             denom = float(length_subset_grf)/hz
             grf_change = grf[end] - grf[start]

@@ -78,7 +78,10 @@ def _det_lf_rf_rofp(grf, s_takeoff, e_takeoff, stance, hz):
     rofp = np.zeros((len(grf), 1))
     count = 0
     for i, j in zip(s_takeoff, e_takeoff):
-        start = i + np.nanargmax(grf[i:j])
+        try:
+            start = i + np.nanargmax(grf[i:j])
+        except ValueError:
+            continue
         try:
             end = start + np.where(grf[start:10] == 0)[0][0]
         except IndexError:
