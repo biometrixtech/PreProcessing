@@ -89,12 +89,20 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
         flexion_rf
     ) = extract_geometry(lf_quats, hip_quats, rf_quats)
 
-    data.LeX = adduction_lf.reshape(-1, 1)
-    data.LeY = flexion_lf.reshape(-1, 1)
-    data.HeX = adduction_h.reshape(-1, 1)
-    data.HeY = flexion_h.reshape(-1, 1)
-    data.ReX = adduction_rf.reshape(-1, 1)
-    data.ReY = flexion_rf.reshape(-1, 1)
+    if file_version == '1.0':
+        data.LeX = lf_euls[:, 0]
+        data.LeY = lf_euls[:, 1]
+        data.HeX = h_euls[:, 0]
+        data.HeY = h_euls[:, 1]
+        data.ReX = rf_euls[:, 0]
+        data.ReY = rf_euls[:, 1]
+    else:
+        data.LeX = adduction_lf.reshape(-1, 1)
+        data.LeY = flexion_lf.reshape(-1, 1)
+        data.HeX = adduction_h.reshape(-1, 1)
+        data.HeY = flexion_h.reshape(-1, 1)
+        data.ReX = adduction_rf.reshape(-1, 1)
+        data.ReY = flexion_rf.reshape(-1, 1)
 
     # PHASE DETECTION
     data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ,
