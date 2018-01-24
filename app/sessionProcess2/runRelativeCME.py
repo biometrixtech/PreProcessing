@@ -66,7 +66,7 @@ def run_relative_CMEs(data):
     
     length = data.epoch_time
     
-    stance = data.stance
+    stance = data.stance.reshape(-1, 1)
 #    ms_elapsed = np.ediff1d(data.epoch_time)
     ms_elapsed = np.array([10] * len(length)).reshape(-1, 1)
 
