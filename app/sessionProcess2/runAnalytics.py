@@ -68,17 +68,14 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
                           data.LqZ]).reshape(-1, 4)
     lf_euls = qc.quat_to_euler(lf_quats)
     data.LeZ = lf_euls[:, 2].reshape(-1, 1)
-    del lf_euls
 
     hip_quats = np.hstack([data.HqW, data.HqX, data.HqY, data.HqZ]).reshape(-1, 4)
     h_euls = qc.quat_to_euler(hip_quats)
     data.HeZ = h_euls[:, 2].reshape(-1, 1)
-    del h_euls
 
     rf_quats = np.hstack([data.RqW, data.RqX, data.RqY, data.RqZ]).reshape(-1, 4)
     rf_euls = qc.quat_to_euler(rf_quats)
     data.ReZ = rf_euls[:, 2].reshape(-1, 1)
-    del rf_euls
 
     (
         adduction_lf,
@@ -103,6 +100,8 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
         data.HeY = flexion_h.reshape(-1, 1)
         data.ReX = adduction_rf.reshape(-1, 1)
         data.ReY = flexion_rf.reshape(-1, 1)
+
+    del lf_euls, h_euls, rf_euls
 
     # PHASE DETECTION
     data.phase_lf, data.phase_rf = phase.combine_phase(data.LaZ,
