@@ -70,15 +70,15 @@ def run_relative_CMEs(data):
 #    ms_elapsed = np.ediff1d(data.epoch_time)
     ms_elapsed = np.array([10] * len(length)).reshape(-1, 1)
 
-    lphase = copy.deepcopy(data.phase_lf)
-    rphase = copy.deepcopy(data.phase_rf)
+    lphase = copy.deepcopy(data.phase_lf.reshape(-1, 1))
+    rphase = copy.deepcopy(data.phase_rf.reshape(-1, 1))
 
-    adduction_L = data.LeX
-    flexion_L = data.LeY
-    adduction_H = data.HeX
-    flexion_H = data.HeY
-    adduction_R = data.ReX
-    flexion_R = data.ReY
+    adduction_L = data.LeX.reshape(-1, 1)
+    flexion_L = data.LeY.reshape(-1, 1)
+    adduction_H = data.HeX.reshape(-1, 1)
+    flexion_H = data.HeY.reshape(-1, 1)
+    adduction_R = data.ReX.reshape(-1, 1)
+    flexion_R = data.ReY.reshape(-1, 1)
 
     alnorm_motion_covered = np.empty(len(length)).reshape(-1, 1) * np.nan
     alnorm_range_of_motion = np.empty(len(length)).reshape(-1, 1) * np.nan
