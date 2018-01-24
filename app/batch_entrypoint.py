@@ -5,9 +5,16 @@ from datetime import datetime
 import boto3
 import errno
 import json
+import logging
 import sys
 import time
 import traceback
+
+from filestore import Filestore
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def send_success(meta, output):
@@ -151,6 +158,7 @@ def main():
         sensor_data_filename = input_data.get('SensorDataFilename')
         os.environ['SENSOR_DATA_FILENAME'] = sensor_data_filename
         working_directory = os.path.join('/net/efs/preprocessing', sensor_data_filename)
+        filestore = Filestore(sensor_data_filename, logger)
 
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
@@ -241,6 +249,12 @@ def main():
             )
 
             send_success(meta_data, {"Filenames": file_names})
+
+        elif script == 'dataquality':
+            print('Running dataquality()')
+            from dataquality import dataquality
+            dataquality.script_handler(filestore)
+            send_success(meta_data, {})
 
         elif script == 'aggregatesession':
             print('Computing session aggregations')
