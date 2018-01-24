@@ -11,6 +11,8 @@ import numpy
 import sys
 from collections import OrderedDict
 
+from alert import Alert
+
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -249,6 +251,8 @@ def script_handler(working_directory, input_data):
             except TypeError:
                 pass
 
+        _publish_alerts(record_out)
+
         # Write the record to mongo
         query = {'sessionId': session_event_id, 'eventDate': str(event_date)}
         mongo_collection.replace_one(query, record_out, upsert=True)
@@ -260,6 +264,29 @@ def script_handler(working_directory, input_data):
         logger.info(e)
         logger.info('Process did not complete successfully! See error below!')
         raise
+
+
+def _publish_alerts(record_out):
+    # Session fatigue
+    if -20 < record_out['sessionFatigue'] < 10:
+        _publish_alert(record_out, category=2, subcategory=2, granularity='total', value=1)
+    elif record_out['sessionFatigue'] <= -20:
+        _publish_alert(record_out, category=2, subcategory=2, granularity='total', value=2)
+
+
+def _publish_alert(record_out, category, subcategory, granularity, value):
+    alert = Alert(
+        user_id=record_out['userId'],
+        team_id=record_out['teamId'],
+        training_group_ids=record_out['trainingGroups'],
+        event_date=record_out['eventDate'],
+        session_type=record_out['sessionType'],
+        category=category,
+        subcategory=subcategory,
+        granularity=granularity,
+        value=value
+    )
+    alert.publish()
 
 
 def _fatigue_analysis(data, var):
