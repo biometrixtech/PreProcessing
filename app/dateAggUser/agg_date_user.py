@@ -171,14 +171,14 @@ def script_handler(input_data):
 def _publish_alerts(record_out, acwr):
     # Training Volume
 
-    if 1.2 < acwr.totalGRF <= 1.5 or acwr.totalGRF < 0.79:
+    if 1.2 < acwr.totalGRF <= 1.5 or acwr.totalGRF < 0.79 and acwr.totalGRF is not None:
         _publish_alert(record_out, category=1, subcategory=1, granularity='total', value=1)
-    elif 1.5 < acwr.totalGRF:
+    elif 1.5 < acwr.totalGRF and acwr.totalGRF is not None:
         _publish_alert(record_out, category=1, subcategory=1, granularity='total', value=2)
 
-    if 1.2 < acwr.totalAccel <= 1.5 or acwr.totalAccel < 0.79:
+    if 1.2 < acwr.totalAccel <= 1.5 or acwr.totalAccel < 0.79 and acwr.totalAccel is not None:
         _publish_alert(record_out, category=1, subcategory=2, granularity='total', value=1)
-    elif 1.5 < acwr.totalAccel:
+    elif 1.5 < acwr.totalAccel and acwr.totalAccel is not None:
         _publish_alert(record_out, category=1, subcategory=2, granularity='total', value=2)
 
     # Movement Quality
