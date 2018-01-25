@@ -253,7 +253,7 @@ def _plane_prog_comp(data, agg_vars, prog_comp_columns):
 
 
 def _stance_prog_comp(data, agg_vars, prog_comp_columns):
-        stance_bins = numpy.arange(6)
+        stance_bins = numpy.arange(10)
         pc = data.groupby(by='stance')
         pc_stance = pandas.DataFrame()
         pc_stance['min'] = None
