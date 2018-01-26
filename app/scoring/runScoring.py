@@ -96,7 +96,7 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
 
     fileobj.seek(0)
     s3 = boto3.resource('s3')
-    s3.Bucket('biometrix-decode').put_object(Key=file_name + '_scores', Body=fileobj)
+    s3.Bucket('biometrix-decode').put_object(Key=output_filename + '_scores', Body=fileobj)
     #######################
 
     # Output data
