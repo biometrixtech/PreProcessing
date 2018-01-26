@@ -84,6 +84,21 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
     sdata['ankle_symmetry_l'] = np.nan
     sdata['ankle_symmetry_r'] = np.nan
 
+    ######################
+    # Write debug data to s3
+    import cStringIO
+    import boto3
+    columns = ['epoch_time', 'grf', 'total_accel',
+               'symmetry', 'hip_symmetry', 'ankle_symmetry',
+               'control', 'hip_control', 'ankle_control', 'control_lf', 'control_rf']
+    fileobj = cStringIO.StringIO()
+    sdata.to_csv(fileobj, index=False, na_rep='', columns=columns)
+    del debug_data
+    fileobj.seek(0)
+    s3 = boto3.resource('s3')
+    s3.Bucket('biometrix-decode').put_object(Key=file_name + '_scores', Body=fileobj)
+    #######################
+
     # Output data
     fileobj = open(output_filename, 'wb')
     sdata.to_csv(fileobj, index=False, na_rep='', columns=cols.column_scoring_out)
