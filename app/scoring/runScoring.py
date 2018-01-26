@@ -93,7 +93,7 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
                'control', 'hip_control', 'ankle_control', 'control_lf', 'control_rf']
     fileobj = cStringIO.StringIO()
     sdata.to_csv(fileobj, index=False, na_rep='', columns=columns)
-    del debug_data
+
     fileobj.seek(0)
     s3 = boto3.resource('s3')
     s3.Bucket('biometrix-decode').put_object(Key=file_name + '_scores', Body=fileobj)
