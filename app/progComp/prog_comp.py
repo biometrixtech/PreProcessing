@@ -56,25 +56,29 @@ def script_handler(working_directory, input_data):
         tmp_filename = '/tmp/readfile'
         copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)
         logger.info("Copied data file to local FS")
-        data = pandas.read_csv(tmp_filename)
+        data = pandas.read_csv(tmp_filename, usecols=['obs_index',
+                                                      'epoch_time',
+                                                      'ms_elapsed',
+                                                      'phase_lf',
+                                                      'phase_rf',
+                                                      'grf',
+                                                      'grf_lf',
+                                                      'grf_rf',
+                                                      'const_grf',
+                                                      'dest_grf',
+                                                      'destr_multiplier',
+                                                      'total_accel',
+                                                      'stance',
+                                                      'plane'])
         os.remove(tmp_filename)
         logger.info("Removed temporary file")
 
         # rename columns to match mongo
-        data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed', 'sessionDuration',
-                        'loadingLF', 'loadingRF',
-                        'phaseLF', 'phaseRF', 'lfImpactPhase', 'rfImpactPhase',
-                        'total', 'LF', 'RF', 'constructive', 'destructive', 'destrMultiplier', 'sessionGRFElapsed',
-                        'symmetry', 'symmetryL', 'symmetryR', 'hipSymmetry', 'hipSymmetryL', 'hipSymmetryR',
-                        'ankleSymmetry', 'ankleSymmetryL', 'ankleSymmetryR',
-                        'consistency', 'hipConsistency', 'ankleConsistency', 'consistencyLF', 'consistencyRF',
-                        'control', 'hipControl', 'ankleControl', 'controlLF', 'controlRF',
-                        'contraHipDropLF', 'contraHipDropRF', 'ankleRotLF', 'ankleRotRF', 'footPositionLF',
-                        'footPositionRF',
-                        'landPatternLF', 'landPatternRF', 'landTime',
-                        'rateForceAbsorptionLF', 'rateForceAbsorptionRF', 'rateForceProductionLF',
-                        'rateForceProductionRF', 'totalAccel',
-                        'stance', 'plane', 'rot', 'lat', 'vert', 'horz']
+        data.columns = ['obsIndex', 'epochTime', 'msElapsed',
+                        'phaseLF', 'phaseRF',
+                        'total', 'LF', 'RF', 'constructive', 'destructive', 'destrMultiplier',
+                        'totalAccel',
+                        'stance', 'plane']
         data_out = {}
         data['msElapsed'] = data['msElapsed'].astype(float)
         data_out['teamId'] = input_data.get('TeamId', None)
