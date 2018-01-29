@@ -56,24 +56,27 @@ Parameters:
         Description: "What type the EC2 instances should be"
     ComputeEc2Ami:
         Type: "AWS::EC2::Image::Id"
-        Default: "ami-20631a36"
+        Default: "ami-835b4efa"
         Description: "The AMI to build the EC2 instances from"
     ComputeEc2Keypair:
         Type: "String"
         Description: "A SSH keypair to grant access to instances"
 
-    VpcTemplate:
+    CreateVpc:
         Type: "String"
-        Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/vpc.yaml"
-        Description: "Path to an S3 file containing the CloudFormation template for the VPC Stack"
-    ComputeTemplate:
+        AllowedValues: [ "true", "false" ]
+        Default: "false"
+        Description: "Whether to create the VPC stack"
+    CreateCompute:
         Type: "String"
-        Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/preprocessing-compute.yaml"
-        Description: "Path to an S3 file containing the CloudFormation template for the EC2 Cluster"
-    PipelineTemplate:
+        AllowedValues: [ "true", "false" ]
+        Default: "false"
+        Description: "Whether to create the compute stack"
+    CreatePipeline:
         Type: "String"
-        Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/preprocessing-pipeline.yaml"
-        Description: "Path to an S3 file containing the CloudFormation template for the StepFunctions pipeline"
+        AllowedValues: [ "true", "false" ]
+        Default: "false"
+        Description: "Whether to create the pipeline stack"
     CreateIngest:
         Type: "String"
         AllowedValues: [ "true", "false" ]
@@ -93,7 +96,7 @@ Parameters:
         Type: "String"
         Description: "The git commit hash of the `sfnbatch` poller to deploy"
         AllowedPattern: "[a-f0-9]{7}"
-        ConstraintDescription: "Must be an 8-hex-digit Git short commit hash"
+        ConstraintDescription: "Must be an 7-hex-digit Git short commit hash"
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -103,9 +106,9 @@ Metadata:
               - "Environment"
           - Label: { default: "Templates" }
             Parameters:
-              - "VpcTemplate"
-              - "ComputeTemplate"
-              - "PipelineTemplate"
+              - "CreateVpc"
+              - "CreateCompute"
+              - "CreatePipeline"
               - "CreateIngest"
               - "PollerTemplate"
           - Label: { default: "Configuration" }
@@ -128,8 +131,8 @@ Metadata:
             ComputeEc2InstanceSize: { default: "EC2 Instance Size" }
             ComputeEc2Ami: { default: "EC2 AMI" }
             ComputeEc2Keypair: { default: "EC2 Keypair" }
-            ComputeTemplate: { default: "CF template: Compute Cluster" }
-            PipelineTemplate: { default: "CF template: Pipeline" }
+            CreateCompute: { default: "Create compute stack?" }
+            CreatePipeline: { default: "Create pipieline stack?" }
             CreateIngest: { default: "Create ingest stack?" }
             PollerTemplate: { default: "CF template: sfn-batch poller" }
             BatchJobVersion: { default: "batchjob" }
@@ -138,10 +141,12 @@ Metadata:
             MongoDbPeeringCidr: { default: "MongoDB VPN CIDR" }
 
 Conditions:
-    CreateComputeCluster: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "ComputeTemplate" }, "" ] } ] }
-    CreatePipeline: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PipelineTemplate" }, "" ] } ] }
-    CreateIngest: { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] }
-    CreatePoller: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerTemplate" }, "" ] } ] }
+    CreateVpc: { "Fn::Equals": [ { Ref: "CreateVpc" }, "true" ] }
+    CreateCompute: { "Fn::And": [ { Condition: "CreateVpc" }, { "Fn::Equals": [ { Ref: "CreateCompute" }, "true" ] } ] }
+    CreatePipeline: { "Fn::And": [ { Condition: "CreateCompute" }, { "Fn::Equals": [ { Ref: "CreatePipeline" }, "true" ] } ] }
+    CreateIngest: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] } ] }
+    CreatePoller: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerTemplate" }, "" ] } ] } ] }
+    CreateMonitoring: { "Fn::And": [ { "Condition": "CreateCompute" }, { "Condition": "CreatePipeline" } ] }
 
 Resources:
 
@@ -189,8 +194,11 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "compute" }
-            TemplateURL: { Ref: "VpcTemplate" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure-${Environment}/vpc.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
             TimeoutInMinutes: 10
+        Condition: "CreateVpc"
 
     ##########################################################################################################
     ##  COMPUTE CLUSTER
@@ -218,9 +226,11 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "compute" }
-            TemplateURL: { Ref: "ComputeTemplate" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-compute.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
             TimeoutInMinutes: 10
-        Condition: "CreateComputeCluster"
+        Condition: "CreateCompute"
 
     ##########################################################################################################
     ##  PIPELINE
@@ -238,7 +248,9 @@ Resources:
               - { Key: "Project", Value: "compute" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "pipeline" }
-            TemplateURL: { Ref: "PipelineTemplate" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-pipeline.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
             TimeoutInMinutes: 10
         Condition: "CreatePipeline"
 
@@ -296,167 +308,23 @@ Resources:
     ##  MONITORING
     ##########################################################################################################
 
-    CloudWatchDashboard:
-        Type: "AWS::CloudWatch::Dashboard"
+    MonitoringCluster:
+        Type: "AWS::CloudFormation::Stack"
         Properties:
-            DashboardName: { "Fn::Sub": "preprocessing-${Environment}-${AWS::Region}" }
-            DashboardBody: !Sub |
-                { "widgets":[
-                    {
-                        "type": "metric",
-                        "x": 0,
-                        "y": 0,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchComputeEnvironmentDesiredCpus",
-                                    "ComputeEnvironment", "${ComputeCluster.Outputs.ComputeEnvironmentArn}",
-                                    "Environment", "${Environment}"
-                                ],
-                                [ ".", "BatchComputeEnvironmentActualCpus", ".", ".", ".", "." ]
-                            ],
-                            "period": 60,
-                            "stat": "Average",
-                            "region": "${AWS::Region}",
-                            "title": "ComputeCluster CPUs",
-                            "yAxis": {
-                                "left": {
-                                    "min": 0
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type":"metric",
-                        "x": 12,
-                        "y": 0,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchJobQueueCountSubmitted",
-                                    "JobQueue", "${ComputeCluster.Outputs.JobQueueArn}",
-                                    "Environment", "${Environment}"
-                                ],
-                                [ ".", "BatchJobQueueCountPending", ".", ".", ".", "." ],
-                                [ ".", "BatchJobQueueCountRunnable", ".", ".", ".", "." ],
-                                [ ".", "BatchJobQueueCountStarting", ".", ".", ".", "." ],
-                                [ ".", "BatchJobQueueCountRunning", ".", ".", ".", "." ]
-                            ],
-                            "period": 60,
-                            "stacked": true,
-                            "stat": "Average",
-                            "region": "${AWS::Region}",
-                            "title": "JobQueue Job count",
-                            "yAxis": {
-                                "left": {
-                                    "min": 0
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type":"metric",
-                        "x": 0,
-                        "y": 6,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchJobScheduleLatency",
-                                    "Environment", "${Environment}",
-                                    "Job", "downloadandchunk"
-                                ],
-                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
-                                [ ".", ".", ".", ".", ".", "scoring" ],
-                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
-                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
-                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
-                            ],
-                            "period": 60,
-                            "stat": "Average",
-                            "region": "${AWS::Region}",
-                            "title": "Batch Latency"
-                        }
-                    },
-                    {
-                        "type":"metric",
-                        "x": 12,
-                        "y": 6,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchJobProcessTime",
-                                    "Environment", "${Environment}",
-                                    "Job", "downloadandchunk"
-                                ],
-                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
-                                [ ".", ".", ".", ".", ".", "scoring" ],
-                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
-                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
-                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
-                            ],
-                            "period": 60,
-                            "stat": "Average",
-                            "region": "${AWS::Region}",
-                            "title": "Batch Process Time"
-                        }
-                    },
-                    {
-                        "type": "metric",
-                        "x": 0,
-                        "y": 12,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [ "AWS/States", "ExecutionsStarted", "StateMachineArn", "${PipelineCluster.Outputs.StateMachineArn}" ],
-                                [ ".", "ExecutionsFailed", ".", "." ],
-                                [ ".", "ExecutionsSucceeded", ".", "." ]
-                            ],
-                            "region": "${AWS::Region}",
-                            "stacked": true,
-                            "title": "StepFunctions executions",
-                            "view": "timeSeries"
-                        }
-                    },
-                    {
-                        "type": "metric",
-                        "x": 12,
-                        "y": 12,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchEfsSize",
-                                    "ComputeEnvironment", "${ComputeCluster.Outputs.ComputeEnvironmentArn}",
-                                    "Environment", "${Environment}"
-                                ]
-                            ],
-                            "region": "${AWS::Region}",
-                            "title": "EFS filesystem size",
-                            "view": "timeSeries"
-                        }
-                    }
-                ] }
-        Condition: "CreateComputeCluster"
+            Parameters:
+                Environment: { Ref: "Environment" }
+                EfsId: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.EfsId" ] }
+                BatchJobQueueArn: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.JobQueueArn" ] }
+                BatchComputeEnvironmentArn: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.ComputeEnvironmentArn" ] }
+                PipelineStateMachineArn: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.StateMachineArn" ] }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-monitoring" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "sfnbatch" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-monitoring.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
+            TimeoutInMinutes: 10
+        Condition: "CreateMonitoring"
