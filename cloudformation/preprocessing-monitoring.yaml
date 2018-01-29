@@ -55,12 +55,28 @@ Resources:
                       - Action:
                           - "batch:DescribeComputeEnvironments"
                           - "batch:ListJobs"
+                          - "ecs:ListContainerInstances"
+                          - "ecs:DescribeContainerInstances"
                           - "ec2:DescribeInstances"
                           - "elasticfilesystem:DescribeFileSystems"
                           - "states:ListExecutions"
                         Effect: "Allow"
                         Resource: "*"
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-monitor-lambda-${AWS::Region}" }
+
+    ExtractBatchEcsClusterName:
+        Type: "Custom::CodeBuildEcrImage"
+        Properties:
+            ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
+            Code: |
+                import boto3, os
+                ecs_client = boto3.client('ecs')
+                cluster_names = [arn.split('/')[-1] for arn in ecs_client.list_clusters()['clusterArns']]
+                relevant_names = [name for name in cluster_names if 'preprocessing-{}-compute_Batch_'.format(os.environ['ENVIRONMENT']) in name]
+                physical_resource_id = relevant_names[0] if len(relevant_names) else None
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
 
     MonitoringLambda:
         Type: "AWS::Lambda::Function"
@@ -72,88 +88,80 @@ Resources:
                     cloudwatch_client = boto3.client('cloudwatch')
                     batch_client = boto3.client('batch')
                     ec2_client = boto3.client('ec2')
+                    ecs_client = boto3.client('ecs')
                     efs_client = boto3.client('efs')
                     sfn_client = boto3.client('stepfunctions')
 
-                    def handler(event, context):
-                        do_compute_cluster_desired_cpus()
-                        do_compute_cluster_actual_cpus()
-                        do_job_queue_jobs()
-                        do_sfn_executions()
-                        do_efs_size()
-
-                    def do_compute_cluster_desired_cpus():
-                        data = batch_client.describe_compute_environments(
-                            computeEnvironments=[os.environ['BATCH_COMPUTE_ENVIRONMENT']],
-                        )['computeEnvironments'][0]
+                    def handler(_, __):
+                        # Batch desired CPU
+                        data = batch_client.describe_compute_environments(computeEnvironments=[os.environ['BATCH_COMPUTE_ENVIRONMENT']])['computeEnvironments'][0]
                         desired_vcpus = data['computeResources']['desiredvCpus']
-                        put_cloudwatch_metric('BatchComputeEnvironmentDesiredCpus', desired_vcpus, 'None')
+                        put_metric('BatchComputeEnvironmentDesiredCpus', desired_vcpus)
 
-                    def do_compute_cluster_actual_cpus():
-                        data = ec2_client.describe_instances(
-                            Filters=[
-                                {'Name': 'tag:Name', 'Values': ['preprocessing-{}-compute'.format(os.environ['ENVIRONMENT'])]},
-                                {'Name': 'tag:Management', 'Values': ['managed']}
-                            ]
-                        )['Reservations']
-                        running_types = [instance['InstanceType'] for reservation in data for instance in reservation['Instances'] if instance['State']['Name'] == 'running']
-                        counts = itertools.groupby(sorted(running_types))
-
-                        instance_data = {'c4\.8xlarge': 36, "m4\.10xlarge": 40, '..\.32xlarge': 128, '..\.16xlarge': 64, '..\.8xlarge': 32,
-                                         '..\.4xlarge': 16, '..\.2xlarge': 8, '..\.xlarge': 4, '..\.large': 2, '..\.medium': 1, }
-
+                        # Batch actual CPU
+                        container_instance_arns = [arn for arn in ecs_client.list_container_instances(cluster=os.environ['BATCH_ECS_CLUSTER'])['containerInstanceArns']]
+                        ec2_instances = [instance['ec2InstanceId'] for instance in ecs_client.describe_container_instances(cluster=os.environ['BATCH_ECS_CLUSTER'], containerInstances=container_instance_arns)['containerInstances']]
+                        data = ec2_client.describe_instances(InstanceIds=ec2_instances, Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])['Reservations']
+                        instance_data = {'c4\.8xlarge': 36, "m4\.10xlarge": 40, '..\.32xlarge': 128, '..\.16xlarge': 64, '..\.8xlarge': 32, '..\.4xlarge': 16, '..\.2xlarge': 8, '..\.xlarge': 4, '..\.large': 2, '..\.medium': 1, }
                         def get_cpu(t):
                             for r, v in instance_data.items():
                                 if re.match(r, t):
                                     return v
-                        actual_cpus = sum({k: len(list(v)) * get_cpu(k) for k, v in counts}.values())
+                        actual_cpus = sum([get_cpu(instance['InstanceType']) for reservation in data for instance in reservation['Instances']])
+                        put_metric('BatchComputeEnvironmentActualCpus', actual_cpus)
 
-                        put_cloudwatch_metric('BatchComputeEnvironmentActualCpus', actual_cpus, 'None')
+                        # Batch jobs by status
+                        for group, statuses in {'SCHEDULED': ['SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING'], 'RUNNING': ['RUNNING'], 'SUCCEEDED': ['SUCCEEDED'], 'FAILED': ['FAILED']}.items():
+                            group_jobs = []
+                            for status in statuses:
+                                jobs = batch_jobs_by_job(status)
+                                put_metric('BatchJobQueueCount', len(jobs), {'Status': status})
+                                group_jobs += jobs
+                            for job_name, jobs in itertools.groupby(sorted(group_jobs)):
+                                put_metric('BatchJobQueueCount', len(list(jobs)), {'Status': group, 'Job': job_name})
 
-                    def do_job_queue_jobs():
-                        def count_all_jobs(status, token=''):
-                            jobs = batch_client.list_jobs(jobQueue=os.environ['BATCH_JOB_QUEUE'], jobStatus=status, nextToken=token)
-                            return len(jobs['jobSummaryList']) + (count_all_jobs(status, jobs['nextToken']) if 'nextToken' in jobs and jobs['nextToken'] else 0)
-
-                        for s in ['SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED']:
-                            put_cloudwatch_metric('BatchJobQueueCount{}'.format(s.title()), count_all_jobs(s), 'None')
-
-                    def do_efs_size():
+                        # EFS filsystem size
                         data = efs_client.describe_file_systems(FileSystemId=os.environ['BATCH_EFS_ID'])['FileSystems'][0]
-                        put_cloudwatch_metric('BatchEfsSize', data['SizeInBytes']['Value'], 'Bytes')
+                        put_metric('BatchEfsSize', data['SizeInBytes']['Value'], unit='Bytes')
 
-                    def do_sfn_executions():
-                        def list_all_executions(token=None):
-                            if token is not None:
-                                res = sfn_client.list_executions(stateMachineArn=os.environ['STATE_MACHINE_ARN'], nextToken=token)
-                            else:
-                                res = sfn_client.list_executions(stateMachineArn=os.environ['STATE_MACHINE_ARN'])
-                            return res['executions'] + (list_all_executions(res['nextToken']) if 'nextToken' in res and res['nextToken'] else [])
-
-                        executions = [ex['status'] for ex in list_all_executions() if ex['status'] == 'RUNNING' or (datetime.datetime.now() - ex['stopDate'].replace(tzinfo=None)).total_seconds() < 60 * 5]
+                        # SFN executions
+                        executions = [ex['status'] for ex in list_sfn_executions() if ex['status'] == 'RUNNING' or (
+                                datetime.datetime.now() - ex['stopDate'].replace(tzinfo=None)).total_seconds() < 60 * 5]
                         for status in ['RUNNING', 'SUCCEEDED', 'FAILED', 'TIMED_OUT', 'ABORTED']:
-                            put_cloudwatch_metric('StepFunctionsExecutions{}'.format(status.title()), executions.count(status), 'None')
+                            put_metric('StepFunctionsExecutions', executions.count(status), {'Status': status})
 
-                    def put_cloudwatch_metric(metric_name, value, unit):
-                        try:
-                            cloudwatch_client.put_metric_data(
-                                Namespace='Preprocessing',
-                                MetricData=[{
-                                    'MetricName': metric_name,
-                                    'Dimensions': [{'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']}],
-                                    'Timestamp': datetime.datetime.utcnow(),
-                                    'Value': value,
-                                    'Unit': unit,
-                                }]
-                            )
-                        except Exception as exception:
-                            print("Could not put cloudwatch metric")
-                            print(repr(exception))
+                    def batch_jobs_by_job(status, token=''):
+                        jobs = batch_client.list_jobs(jobQueue=os.environ['BATCH_JOB_QUEUE'], jobStatus=status, nextToken=token)
+                        return [job['jobName'].split('-')[4] for job in jobs['jobSummaryList']] + (
+                            batch_jobs_by_job(status, jobs['nextToken']) if 'nextToken' in jobs and jobs['nextToken'] else [])
+
+                    def list_sfn_executions(token=None):
+                        if token is not None:
+                            res = sfn_client.list_executions(stateMachineArn=os.environ['STATE_MACHINE_ARN'], nextToken=token)
+                        else:
+                            res = sfn_client.list_executions(stateMachineArn=os.environ['STATE_MACHINE_ARN'])
+                        return res['executions'] + (list_sfn_executions(res['nextToken']) if 'nextToken' in res and res['nextToken'] else [])
+
+                    def put_metric(metric_name, value, dimensions={}, unit='None'):
+                        dimensions = {**{'Environment': os.environ['ENVIRONMENT']}, **dimensions}
+                        cloudwatch_client.put_metric_data(
+                            Namespace='Preprocessing',
+                            MetricData=[{
+                                'MetricName': metric_name,
+                                'Dimensions': [{'Name': k, 'Value': v} for k, v in dimensions.items()],
+                                'Timestamp': datetime.datetime.utcnow(),
+                                'Value': value,
+                                'Unit': unit
+                            }]
+                        )
+
+
 
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
                     BATCH_COMPUTE_ENVIRONMENT: { Ref: "BatchComputeEnvironmentArn" }
+                    BATCH_ECS_CLUSTER: { Ref: "ExtractBatchEcsClusterName" }
                     BATCH_JOB_QUEUE: { Ref: "BatchJobQueueArn" }
                     BATCH_EFS_ID: { Ref: "EfsId" }
                     STATE_MACHINE_ARN: { Ref: "PipelineStateMachineArn" }
@@ -186,20 +194,6 @@ Resources:
             Principal: "events.amazonaws.com"
             SourceArn: { "Fn::GetAtt": [ "MonitoringLambdaScheduledRule", "Arn" ] }
 
-    ExtractBatchEcsClusterName:
-        Type: "Custom::CodeBuildEcrImage"
-        Properties:
-            ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
-            Code: |
-                import boto3, os
-                ecs_client = boto3.client('ecs')
-                cluster_names = [arn.split('/')[-1] for arn in ecs_client.list_clusters()['clusterArns']]
-                relevant_names = [name for name in cluster_names if 'preprocessing-{}-compute_Batch_'.format(os.environ['ENVIRONMENT']) in name]
-                physical_resource_id = relevant_names[0] if len(relevant_names) else None
-            Environment:
-                Variables:
-                    ENVIRONMENT: { Ref: "Environment" }
-
     CloudWatchDashboard:
         Type: "AWS::CloudWatch::Dashboard"
         Properties:
@@ -217,9 +211,10 @@ Resources:
                                 [
                                     "Preprocessing",
                                     "BatchComputeEnvironmentDesiredCpus",
-                                    "Environment", "${Environment}"
+                                    "Environment", "${Environment}",
+                                    { "label": "Desired" }
                                 ],
-                                [ ".", "BatchComputeEnvironmentActualCpus", ".", "." ]
+                                [ ".", "BatchComputeEnvironmentActualCpus", ".", ".", { "label": "Actual" } ]
                             ],
                             "period": 60,
                             "stat": "Average",
@@ -242,19 +237,21 @@ Resources:
                             "metrics": [
                                 [
                                     "Preprocessing",
-                                    "BatchJobQueueCountSubmitted",
-                                    "Environment", "${Environment}"
+                                    "BatchJobQueueCount",
+                                    "Environment", "${Environment}",
+                                    "Status", "SUBMITTED",
+                                    { "label": "Submitted" }
                                 ],
-                                [ ".", "BatchJobQueueCountPending", ".", "." ],
-                                [ ".", "BatchJobQueueCountRunnable", ".", "." ],
-                                [ ".", "BatchJobQueueCountStarting", ".", "." ],
-                                [ ".", "BatchJobQueueCountRunning", ".", "." ]
+                                [ ".", ".", ".", ".", ".", "PENDING", { "label": "Pending" } ],
+                                [ ".", ".", ".", ".", ".", "RUNNABLE", { "label": "Runnable" } ],
+                                [ ".", ".", ".", ".", ".", "STARTING", { "label": "Starting" } ],
+                                [ ".", ".", ".", ".", ".", "RUNNING", { "label": "Running" } ]
                             ],
                             "period": 60,
                             "stacked": true,
                             "stat": "Average",
                             "region": "${AWS::Region}",
-                            "title": "JobQueue Job count",
+                            "title": "Batch Jobs by Status",
                             "yAxis": {
                                 "left": {
                                     "min": 0
@@ -266,35 +263,43 @@ Resources:
                         "type":"metric",
                         "x": 0,
                         "y": 6,
-                        "width": 12,
+                        "width": 6,
                         "height": 6,
                         "properties": {
                             "metrics": [
                                 [
                                     "Preprocessing",
-                                    "BatchJobScheduleLatency",
+                                    "BatchJobQueueCount",
                                     "Environment", "${Environment}",
+                                    "Status", "SCHEDULED",
                                     "Job", "downloadandchunk"
                                 ],
-                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
-                                [ ".", ".", ".", ".", ".", "scoring" ],
-                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
-                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
-                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
+                                [ ".", ".", ".", ".", ".", ".", ".", "transformandplacement" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "sessionprocess2" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "scoring" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregatesession" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregatetwomin" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregatedateuser" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregateprogcomp" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregateteam" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
                             ],
                             "period": 60,
+                            "stacked": true,
                             "stat": "Average",
                             "region": "${AWS::Region}",
-                            "title": "Batch Latency"
+                            "title": "Scheduled Batch Jobs by Job Type",
+                            "yAxis": {
+                                "left": {
+                                    "min": 0
+                                }
+                            }
                         }
                     },
                     {
                         "type":"metric",
-                        "x": 12,
+                        "x": 6,
                         "y": 6,
                         "width": 12,
                         "height": 6,
@@ -302,24 +307,56 @@ Resources:
                             "metrics": [
                                 [
                                     "Preprocessing",
-                                    "BatchJobProcessTime",
+                                    "BatchJobQueueCount",
                                     "Environment", "${Environment}",
+                                    "Status", "RUNNING",
                                     "Job", "downloadandchunk"
                                 ],
-                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
-                                [ ".", ".", ".", ".", ".", "scoring" ],
-                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
-                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
-                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
+                                [ ".", ".", ".", ".", ".", ".", ".", "transformandplacement" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "sessionprocess2" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "scoring" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregatesession" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregatetwomin" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregatedateuser" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregateprogcomp" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregateteam" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
+                            ],
+                            "period": 60,
+                            "stacked": true,
+                            "stat": "Average",
+                            "region": "${AWS::Region}",
+                            "title": "Running Batch Jobs by Job Type",
+                            "yAxis": {
+                                "left": {
+                                    "min": 0
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type":"metric",
+                        "x": 18,
+                        "y": 6,
+                        "width": 6,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "BatchJobQueueCount",
+                                    "Environment", "${Environment}",
+                                    "Status", "SUCCEEDED",
+                                    { "label": "Succeeded" }
+                                ],
+                                [ ".", ".", ".", ".", ".", "FAILED", { "label": "Failed" } ]
                             ],
                             "period": 60,
                             "stat": "Average",
                             "region": "${AWS::Region}",
-                            "title": "Batch Process Time"
+                            "title": "Recently completed jobs",
+                            "view": "singleValue"
                         }
                     },
                     {
@@ -332,11 +369,12 @@ Resources:
                             "metrics": [
                                 [
                                     "Preprocessing",
-                                    "StepFunctionsExecutionsRunning",
+                                    "StepFunctionsExecutions",
                                     "Environment", "${Environment}",
+                                    "Status", "RUNNING",
                                     { "label": "Currently running" }
                                 ],
-                                [ ".", "StepFunctionsExecutionsSucceeded", ".", ".", { "yAxis": "right", "label": "Succeeded (last 5 mins)" } ]
+                                [ ".", ".", ".", ".", ".", "SUCCEEDED", { "yAxis": "right", "label": "Succeeded (last 5 mins)" } ]
                             ],
                             "region": "${AWS::Region}",
                             "title": "StepFunctions executions (success)",
@@ -353,12 +391,13 @@ Resources:
                             "metrics": [
                                 [
                                     "Preprocessing",
-                                    "StepFunctionsExecutionsFailed",
+                                    "StepFunctionsExecutions",
                                     "Environment", "${Environment}",
+                                    "Status", "FAILED",
                                     { "label": "Failed (last 5 mins)" }
                                 ],
-                                [ ".", "StepFunctionsExecutionsAborted", ".", ".", { "label": "Aborted (last 5 mins)" } ],
-                                [ ".", "StepFunctionsExecutionsTimed_Out", ".", ".", { "label": "Timed out (last 5 mins)" } ]
+                                [ ".", ".", ".", ".", ".", "ABORTED", { "label": "Aborted (last 5 mins)" } ],
+                                [ ".", ".", ".", ".", ".", "TIMED_OUT", { "label": "Timed out (last 5 mins)" } ]
                             ],
                             "region": "${AWS::Region}",
                             "title": "StepFunctions executions (failure)",
@@ -394,16 +433,76 @@ Resources:
                             "view": "timeSeries",
                             "stacked": false,
                             "metrics": [
-                                [ "AWS/ECS", "CPUReservation", "ClusterName", "${ExtractBatchEcsClusterName}", { "stat": "Maximum", "color": "#7B241C" } ],
-                                [ ".", "CPUUtilization", ".", ".", { "stat": "Maximum", "color": "#C0392B" } ],
-                                [ "...", { "stat": "Average", "color": "#f7b6d2" } ],
-                                [ ".", "MemoryReservation", ".", ".", { "stat": "Maximum", "color": "#1D8348", "yAxis": "right" } ],
-                                [ ".", "MemoryUtilization", ".", ".", { "stat": "Maximum", "color": "#2ECC71", "yAxis": "right" } ],
-                                [ "...", { "stat": "Average", "color": "#ABEBC6", "yAxis": "right" } ]
+                                [ "AWS/ECS", "CPUReservation", "ClusterName", "${ExtractBatchEcsClusterName}", { "stat": "Maximum", "color": "#7B241C", "label": "CPU Reserved" } ],
+                                [ ".", "CPUUtilization", ".", ".", { "stat": "Maximum", "color": "#C0392B", "label": "CPU Utilised (maximum)" } ],
+                                [ "...", { "stat": "Average", "color": "#f7b6d2", "label": "CPU Utilised (average)" } ],
+                                [ ".", "MemoryReservation", ".", ".", { "stat": "Maximum", "color": "#1D8348", "yAxis": "right", "label": "Memory Reserved" } ],
+                                [ ".", "MemoryUtilization", ".", ".", { "stat": "Maximum", "color": "#2ECC71", "yAxis": "right", "label": "Memory Utilised (maximum)" } ],
+                                [ "...", { "stat": "Average", "color": "#ABEBC6", "yAxis": "right", "label": "Memory Utilised (average)" } ]
                             ],
                             "region": "us-west-2",
                             "period": 300,
                             "title": "Task CPU / Memory"
+                        }
+                    },
+                    {
+                        "type":"metric",
+                        "x": 0,
+                        "y": 24,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "BatchJobScheduleLatency",
+                                    "Environment", "${Environment}",
+                                    "Job", "downloadandchunk"
+                                ],
+                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
+                                [ ".", ".", ".", ".", ".", "scoring" ],
+                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
+                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
+                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
+                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
+                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
+                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
+                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
+                            ],
+                            "period": 60,
+                            "stat": "Average",
+                            "region": "${AWS::Region}",
+                            "title": "Batch Latency"
+                        }
+                    },
+                    {
+                        "type":"metric",
+                        "x": 12,
+                        "y": 24,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "BatchJobProcessTime",
+                                    "Environment", "${Environment}",
+                                    "Job", "downloadandchunk"
+                                ],
+                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
+                                [ ".", ".", ".", ".", ".", "scoring" ],
+                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
+                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
+                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
+                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
+                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
+                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
+                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
+                            ],
+                            "period": 60,
+                            "stat": "Average",
+                            "region": "${AWS::Region}",
+                            "title": "Batch Process Time"
                         }
                     }
                 ] }
