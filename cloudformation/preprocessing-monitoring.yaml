@@ -1,0 +1,409 @@
+# A template that creates monitoring for a preprocessing pipeline
+#
+# Copyright 2018 Melon Software Ltd (UK), all rights reserved.  Used under license.
+#
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Creates monitoring systems for the pre-processing pipeline"
+
+Parameters:
+
+    # Environment name
+    Environment:
+        Type: "String"
+        Description: "The name of the environment"
+
+    EfsId:
+        Type: "String"
+        Description: "The id of the Elastic File System"
+
+    BatchJobQueueArn:
+        Type: "String"
+        Description: "The ARN of the Job Queue"
+
+    BatchComputeEnvironmentArn:
+        Type: "String"
+        Description: "The ARN of the ComputeEnvironment"
+
+    PipelineStateMachineArn:
+        Type: "String"
+        Description: "The ARN of the Pipeline State Machine"
+
+Resources:
+
+
+    LambdaMonitoringRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "lambda.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+            Policies:
+              - PolicyName: "default"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "cloudwatch:PutMetricData"
+                        Effect: "Allow"
+                        Resource: "*"
+
+                      - Action:
+                          - "batch:DescribeComputeEnvironments"
+                          - "batch:ListJobs"
+                          - "ec2:DescribeInstances"
+                          - "elasticfilesystem:DescribeFileSystems"
+                          - "states:ListExecutions"
+                        Effect: "Allow"
+                        Resource: "*"
+            RoleName: { "Fn::Sub": "preprocessing-${Environment}-monitor-lambda-${AWS::Region}" }
+
+    MonitoringLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: |
+                    import boto3, datetime, itertools, os, re
+
+                    cloudwatch_client = boto3.client('cloudwatch')
+                    batch_client = boto3.client('batch')
+                    ec2_client = boto3.client('ec2')
+                    efs_client = boto3.client('efs')
+                    sfn_client = boto3.client('stepfunctions')
+
+                    def handler(event, context):
+                        do_compute_cluster_desired_cpus()
+                        do_compute_cluster_actual_cpus()
+                        do_job_queue_jobs()
+                        do_sfn_executions()
+                        do_efs_size()
+
+                    def do_compute_cluster_desired_cpus():
+                        data = batch_client.describe_compute_environments(
+                            computeEnvironments=[os.environ['BATCH_COMPUTE_ENVIRONMENT']],
+                        )['computeEnvironments'][0]
+                        desired_vcpus = data['computeResources']['desiredvCpus']
+                        put_cloudwatch_metric('BatchComputeEnvironmentDesiredCpus', desired_vcpus, 'None')
+
+                    def do_compute_cluster_actual_cpus():
+                        data = ec2_client.describe_instances(
+                            Filters=[
+                                {'Name': 'tag:Name', 'Values': ['preprocessing-{}-compute'.format(os.environ['ENVIRONMENT'])]},
+                                {'Name': 'tag:Management', 'Values': ['managed']}
+                            ]
+                        )['Reservations']
+                        running_types = [instance['InstanceType'] for reservation in data for instance in reservation['Instances'] if instance['State']['Name'] == 'running']
+                        counts = itertools.groupby(sorted(running_types))
+
+                        instance_data = {'c4\.8xlarge': 36, "m4\.10xlarge": 40, '..\.32xlarge': 128, '..\.16xlarge': 64, '..\.8xlarge': 32,
+                                         '..\.4xlarge': 16, '..\.2xlarge': 8, '..\.xlarge': 4, '..\.large': 2, '..\.medium': 1, }
+
+                        def get_cpu(t):
+                            for r, v in instance_data.items():
+                                if re.match(r, t):
+                                    return v
+                        actual_cpus = sum({k: len(list(v)) * get_cpu(k) for k, v in counts}.values())
+
+                        put_cloudwatch_metric('BatchComputeEnvironmentActualCpus', actual_cpus, 'None')
+
+                    def do_job_queue_jobs():
+                        def count_all_jobs(status, token=''):
+                            jobs = batch_client.list_jobs(jobQueue=os.environ['BATCH_JOB_QUEUE'], jobStatus=status, nextToken=token)
+                            return len(jobs['jobSummaryList']) + (count_all_jobs(status, jobs['nextToken']) if 'nextToken' in jobs and jobs['nextToken'] else 0)
+
+                        for s in ['SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED']:
+                            put_cloudwatch_metric('BatchJobQueueCount{}'.format(s.title()), count_all_jobs(s), 'None')
+
+                    def do_efs_size():
+                        data = efs_client.describe_file_systems(FileSystemId=os.environ['BATCH_EFS_ID'])['FileSystems'][0]
+                        put_cloudwatch_metric('BatchEfsSize', data['SizeInBytes']['Value'], 'Bytes')
+
+                    def do_sfn_executions():
+                        def list_all_executions(token=None):
+                            if token is not None:
+                                res = sfn_client.list_executions(stateMachineArn=os.environ['STATE_MACHINE_ARN'], nextToken=token)
+                            else:
+                                res = sfn_client.list_executions(stateMachineArn=os.environ['STATE_MACHINE_ARN'])
+                            return res['executions'] + (list_all_executions(res['nextToken']) if 'nextToken' in res and res['nextToken'] else [])
+
+                        executions = [ex['status'] for ex in list_all_executions() if ex['status'] == 'RUNNING' or (datetime.datetime.now() - ex['stopDate'].replace(tzinfo=None)).total_seconds() < 60 * 5]
+                        for status in ['RUNNING', 'SUCCEEDED', 'FAILED', 'TIMED_OUT', 'ABORTED']:
+                            put_cloudwatch_metric('StepFunctionsExecutions{}'.format(status.title()), executions.count(status), 'None')
+
+                    def put_cloudwatch_metric(metric_name, value, unit):
+                        try:
+                            cloudwatch_client.put_metric_data(
+                                Namespace='Preprocessing',
+                                MetricData=[{
+                                    'MetricName': metric_name,
+                                    'Dimensions': [{'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']}],
+                                    'Timestamp': datetime.datetime.utcnow(),
+                                    'Value': value,
+                                    'Unit': unit,
+                                }]
+                            )
+                        except Exception as exception:
+                            print("Could not put cloudwatch metric")
+                            print(repr(exception))
+
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+                    BATCH_COMPUTE_ENVIRONMENT: { Ref: "BatchComputeEnvironmentArn" }
+                    BATCH_JOB_QUEUE: { Ref: "BatchJobQueueArn" }
+                    BATCH_EFS_ID: { Ref: "EfsId" }
+                    STATE_MACHINE_ARN: { Ref: "PipelineStateMachineArn" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "LambdaMonitoringRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-monitor" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-monitor" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    MonitoringLambdaScheduledRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "ScheduledRule"
+            ScheduleExpression: "rate(1 minute)"
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "MonitoringLambda", "Arn" ] }
+                Id: "TargetFunctionV1"
+
+    MonitoringLambdaInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { Ref: "MonitoringLambda" }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "MonitoringLambdaScheduledRule", "Arn" ] }
+
+    ExtractBatchEcsClusterName:
+        Type: "Custom::CodeBuildEcrImage"
+        Properties:
+            ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
+            Code: |
+                import boto3, os
+                ecs_client = boto3.client('ecs')
+                cluster_names = [arn.split('/')[-1] for arn in ecs_client.list_clusters()['clusterArns']]
+                relevant_names = [name for name in cluster_names if 'preprocessing-{}-compute_Batch_'.format(os.environ['ENVIRONMENT']) in name]
+                physical_resource_id = relevant_names[0] if len(relevant_names) else None
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+
+    CloudWatchDashboard:
+        Type: "AWS::CloudWatch::Dashboard"
+        Properties:
+            DashboardName: { "Fn::Sub": "preprocessing-${Environment}-${AWS::Region}" }
+            DashboardBody: !Sub |
+                { "widgets":[
+                    {
+                        "type": "metric",
+                        "x": 0,
+                        "y": 0,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "BatchComputeEnvironmentDesiredCpus",
+                                    "Environment", "${Environment}"
+                                ],
+                                [ ".", "BatchComputeEnvironmentActualCpus", ".", "." ]
+                            ],
+                            "period": 60,
+                            "stat": "Average",
+                            "region": "${AWS::Region}",
+                            "title": "Compute Cluster CPUs",
+                            "yAxis": {
+                                "left": {
+                                    "min": 0
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type":"metric",
+                        "x": 12,
+                        "y": 0,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "BatchJobQueueCountSubmitted",
+                                    "Environment", "${Environment}"
+                                ],
+                                [ ".", "BatchJobQueueCountPending", ".", "." ],
+                                [ ".", "BatchJobQueueCountRunnable", ".", "." ],
+                                [ ".", "BatchJobQueueCountStarting", ".", "." ],
+                                [ ".", "BatchJobQueueCountRunning", ".", "." ]
+                            ],
+                            "period": 60,
+                            "stacked": true,
+                            "stat": "Average",
+                            "region": "${AWS::Region}",
+                            "title": "JobQueue Job count",
+                            "yAxis": {
+                                "left": {
+                                    "min": 0
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type":"metric",
+                        "x": 0,
+                        "y": 6,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "BatchJobScheduleLatency",
+                                    "Environment", "${Environment}",
+                                    "Job", "downloadandchunk"
+                                ],
+                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
+                                [ ".", ".", ".", ".", ".", "scoring" ],
+                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
+                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
+                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
+                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
+                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
+                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
+                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
+                            ],
+                            "period": 60,
+                            "stat": "Average",
+                            "region": "${AWS::Region}",
+                            "title": "Batch Latency"
+                        }
+                    },
+                    {
+                        "type":"metric",
+                        "x": 12,
+                        "y": 6,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "BatchJobProcessTime",
+                                    "Environment", "${Environment}",
+                                    "Job", "downloadandchunk"
+                                ],
+                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
+                                [ ".", ".", ".", ".", ".", "scoring" ],
+                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
+                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
+                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
+                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
+                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
+                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
+                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
+                            ],
+                            "period": 60,
+                            "stat": "Average",
+                            "region": "${AWS::Region}",
+                            "title": "Batch Process Time"
+                        }
+                    },
+                    {
+                        "type": "metric",
+                        "x": 0,
+                        "y": 12,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "StepFunctionsExecutionsRunning",
+                                    "Environment", "${Environment}",
+                                    { "label": "Currently running" }
+                                ],
+                                [ ".", "StepFunctionsExecutionsSucceeded", ".", ".", { "yAxis": "right", "label": "Succeeded (last 5 mins)" } ]
+                            ],
+                            "region": "${AWS::Region}",
+                            "title": "StepFunctions executions (success)",
+                            "view": "timeSeries"
+                        }
+                    },
+                    {
+                        "type": "metric",
+                        "x": 12,
+                        "y": 12,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "StepFunctionsExecutionsFailed",
+                                    "Environment", "${Environment}",
+                                    { "label": "Failed (last 5 mins)" }
+                                ],
+                                [ ".", "StepFunctionsExecutionsAborted", ".", ".", { "label": "Aborted (last 5 mins)" } ],
+                                [ ".", "StepFunctionsExecutionsTimed_Out", ".", ".", { "label": "Timed out (last 5 mins)" } ]
+                            ],
+                            "region": "${AWS::Region}",
+                            "title": "StepFunctions executions (failure)",
+                            "view": "timeSeries"
+                        }
+                    },
+                    {
+                        "type": "metric",
+                        "x": 0,
+                        "y": 18,
+                        "width": 6,
+                        "height": 6,
+                        "properties": {
+                            "metrics": [
+                                [
+                                    "Preprocessing",
+                                    "BatchEfsSize",
+                                    "Environment", "${Environment}"
+                                ]
+                            ],
+                            "region": "${AWS::Region}",
+                            "title": "EFS filesystem size",
+                            "view": "singleValue"
+                        }
+                    },
+                    {
+                        "type": "metric",
+                        "x": 6,
+                        "y": 18,
+                        "width": 18,
+                        "height": 6,
+                        "properties": {
+                            "view": "timeSeries",
+                            "stacked": false,
+                            "metrics": [
+                                [ "AWS/ECS", "CPUReservation", "ClusterName", "${ExtractBatchEcsClusterName}", { "stat": "Maximum", "color": "#7B241C" } ],
+                                [ ".", "CPUUtilization", ".", ".", { "stat": "Maximum", "color": "#C0392B" } ],
+                                [ "...", { "stat": "Average", "color": "#f7b6d2" } ],
+                                [ ".", "MemoryReservation", ".", ".", { "stat": "Maximum", "color": "#1D8348", "yAxis": "right" } ],
+                                [ ".", "MemoryUtilization", ".", ".", { "stat": "Maximum", "color": "#2ECC71", "yAxis": "right" } ],
+                                [ "...", { "stat": "Average", "color": "#ABEBC6", "yAxis": "right" } ]
+                            ],
+                            "region": "us-west-2",
+                            "period": 300,
+                            "title": "Task CPU / Memory"
+                        }
+                    }
+                ] }

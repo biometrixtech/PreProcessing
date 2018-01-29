@@ -146,6 +146,7 @@ Conditions:
     CreatePipeline: { "Fn::And": [ { Condition: "CreateCompute" }, { "Fn::Equals": [ { Ref: "CreatePipeline" }, "true" ] } ] }
     CreateIngest: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] } ] }
     CreatePoller: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerTemplate" }, "" ] } ] } ] }
+    CreateMonitoring: { "Fn::And": [ { "Condition": "CreateCompute" }, { "Condition": "CreatePipeline" } ] }
 
 Resources:
 
@@ -307,167 +308,23 @@ Resources:
     ##  MONITORING
     ##########################################################################################################
 
-    CloudWatchDashboard:
-        Type: "AWS::CloudWatch::Dashboard"
+    MonitoringCluster:
+        Type: "AWS::CloudFormation::Stack"
         Properties:
-            DashboardName: { "Fn::Sub": "preprocessing-${Environment}-${AWS::Region}" }
-            DashboardBody: !Sub |
-                { "widgets":[
-                    {
-                        "type": "metric",
-                        "x": 0,
-                        "y": 0,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchComputeEnvironmentDesiredCpus",
-                                    "ComputeEnvironment", "${ComputeCluster.Outputs.ComputeEnvironmentArn}",
-                                    "Environment", "${Environment}"
-                                ],
-                                [ ".", "BatchComputeEnvironmentActualCpus", ".", ".", ".", "." ]
-                            ],
-                            "period": 60,
-                            "stat": "Average",
-                            "region": "${AWS::Region}",
-                            "title": "ComputeCluster CPUs",
-                            "yAxis": {
-                                "left": {
-                                    "min": 0
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type":"metric",
-                        "x": 12,
-                        "y": 0,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchJobQueueCountSubmitted",
-                                    "JobQueue", "${ComputeCluster.Outputs.JobQueueArn}",
-                                    "Environment", "${Environment}"
-                                ],
-                                [ ".", "BatchJobQueueCountPending", ".", ".", ".", "." ],
-                                [ ".", "BatchJobQueueCountRunnable", ".", ".", ".", "." ],
-                                [ ".", "BatchJobQueueCountStarting", ".", ".", ".", "." ],
-                                [ ".", "BatchJobQueueCountRunning", ".", ".", ".", "." ]
-                            ],
-                            "period": 60,
-                            "stacked": true,
-                            "stat": "Average",
-                            "region": "${AWS::Region}",
-                            "title": "JobQueue Job count",
-                            "yAxis": {
-                                "left": {
-                                    "min": 0
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "type":"metric",
-                        "x": 0,
-                        "y": 6,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchJobScheduleLatency",
-                                    "Environment", "${Environment}",
-                                    "Job", "downloadandchunk"
-                                ],
-                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
-                                [ ".", ".", ".", ".", ".", "scoring" ],
-                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
-                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
-                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
-                            ],
-                            "period": 60,
-                            "stat": "Average",
-                            "region": "${AWS::Region}",
-                            "title": "Batch Latency"
-                        }
-                    },
-                    {
-                        "type":"metric",
-                        "x": 12,
-                        "y": 6,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchJobProcessTime",
-                                    "Environment", "${Environment}",
-                                    "Job", "downloadandchunk"
-                                ],
-                                [ ".", ".", ".", ".", ".", "sessionprocess2" ],
-                                [ ".", ".", ".", ".", ".", "scoring" ],
-                                [ ".", ".", ".", ".", ".", "aggregatesession" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetwomin" ],
-                                [ ".", ".", ".", ".", ".", "aggregatedateuser" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcomp" ],
-                                [ ".", ".", ".", ".", ".", "aggregateprogcompdate" ],
-                                [ ".", ".", ".", ".", ".", "aggregateteam" ],
-                                [ ".", ".", ".", ".", ".", "aggregatetraininggroup" ]
-                            ],
-                            "period": 60,
-                            "stat": "Average",
-                            "region": "${AWS::Region}",
-                            "title": "Batch Process Time"
-                        }
-                    },
-                    {
-                        "type": "metric",
-                        "x": 0,
-                        "y": 12,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [ "AWS/States", "ExecutionsStarted", "StateMachineArn", "${PipelineCluster.Outputs.StateMachineArn}" ],
-                                [ ".", "ExecutionsFailed", ".", "." ],
-                                [ ".", "ExecutionsSucceeded", ".", "." ]
-                            ],
-                            "region": "${AWS::Region}",
-                            "stacked": true,
-                            "title": "StepFunctions executions",
-                            "view": "timeSeries"
-                        }
-                    },
-                    {
-                        "type": "metric",
-                        "x": 12,
-                        "y": 12,
-                        "width": 12,
-                        "height": 6,
-                        "properties": {
-                            "metrics": [
-                                [
-                                    "Preprocessing",
-                                    "BatchEfsSize",
-                                    "ComputeEnvironment", "${ComputeCluster.Outputs.ComputeEnvironmentArn}",
-                                    "Environment", "${Environment}"
-                                ]
-                            ],
-                            "region": "${AWS::Region}",
-                            "title": "EFS filesystem size",
-                            "view": "timeSeries"
-                        }
-                    }
-                ] }
-        Condition: "CreateComputeCluster"
+            Parameters:
+                Environment: { Ref: "Environment" }
+                EfsId: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.EfsId" ] }
+                BatchJobQueueArn: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.JobQueueArn" ] }
+                BatchComputeEnvironmentArn: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.ComputeEnvironmentArn" ] }
+                PipelineStateMachineArn: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.StateMachineArn" ] }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-monitoring" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "sfnbatch" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-monitoring.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
+            TimeoutInMinutes: 10
+        Condition: "CreateMonitoring"
