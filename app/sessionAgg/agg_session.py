@@ -268,7 +268,7 @@ def script_handler(working_directory, input_data):
 
 def _publish_alerts(record_out):
     # Session fatigue
-    if -20 < record_out['sessionFatigue'] < 10:
+    if -20 < record_out['sessionFatigue'] < -10:
         _publish_alert(record_out, category=2, subcategory=2, granularity='total', value=1)
     elif record_out['sessionFatigue'] <= -20:
         _publish_alert(record_out, category=2, subcategory=2, granularity='total', value=2)
