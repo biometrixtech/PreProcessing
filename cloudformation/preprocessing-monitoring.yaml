@@ -470,8 +470,10 @@ Resources:
                                     "Preprocessing",
                                     "BatchJobScheduleLatency",
                                     "Environment", "${Environment}",
-                                    "Job", "downloadandchunk"
+                                    { "label": "Average" }
                                 ],
+                                [ ".", ".", ".", ".", "Job", "downloadandchunk" ],
+                                [ ".", ".", ".", ".", ".", "transformandplacement" ],
                                 [ ".", ".", ".", ".", ".", "sessionprocess2" ],
                                 [ ".", ".", ".", ".", ".", "scoring" ],
                                 [ ".", ".", ".", ".", ".", "aggregatesession" ],
@@ -502,6 +504,7 @@ Resources:
                                     "Environment", "${Environment}",
                                     "Job", "downloadandchunk"
                                 ],
+                                [ ".", ".", ".", ".", ".", "transformandplacement" ],
                                 [ ".", ".", ".", ".", ".", "sessionprocess2" ],
                                 [ ".", ".", ".", ".", ".", "scoring" ],
                                 [ ".", ".", ".", ".", ".", "aggregatesession" ],
