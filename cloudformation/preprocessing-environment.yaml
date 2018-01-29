@@ -62,18 +62,21 @@ Parameters:
         Type: "String"
         Description: "A SSH keypair to grant access to instances"
 
-    VpcTemplate:
+    CreateVpc:
         Type: "String"
-        Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/vpc.yaml"
-        Description: "Path to an S3 file containing the CloudFormation template for the VPC Stack"
-    ComputeTemplate:
+        AllowedValues: [ "true", "false" ]
+        Default: "false"
+        Description: "Whether to create the VPC stack"
+    CreateCompute:
         Type: "String"
-        Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/preprocessing-compute.yaml"
-        Description: "Path to an S3 file containing the CloudFormation template for the EC2 Cluster"
-    PipelineTemplate:
+        AllowedValues: [ "true", "false" ]
+        Default: "false"
+        Description: "Whether to create the compute stack"
+    CreatePipeline:
         Type: "String"
-        Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/preprocessing-pipeline.yaml"
-        Description: "Path to an S3 file containing the CloudFormation template for the StepFunctions pipeline"
+        AllowedValues: [ "true", "false" ]
+        Default: "false"
+        Description: "Whether to create the pipeline stack"
     CreateIngest:
         Type: "String"
         AllowedValues: [ "true", "false" ]
@@ -103,9 +106,9 @@ Metadata:
               - "Environment"
           - Label: { default: "Templates" }
             Parameters:
-              - "VpcTemplate"
-              - "ComputeTemplate"
-              - "PipelineTemplate"
+              - "CreateVpc"
+              - "CreateCompute"
+              - "CreatePipeline"
               - "CreateIngest"
               - "PollerTemplate"
           - Label: { default: "Configuration" }
@@ -128,8 +131,8 @@ Metadata:
             ComputeEc2InstanceSize: { default: "EC2 Instance Size" }
             ComputeEc2Ami: { default: "EC2 AMI" }
             ComputeEc2Keypair: { default: "EC2 Keypair" }
-            ComputeTemplate: { default: "CF template: Compute Cluster" }
-            PipelineTemplate: { default: "CF template: Pipeline" }
+            CreateCompute: { default: "Create compute stack?" }
+            CreatePipeline: { default: "Create pipieline stack?" }
             CreateIngest: { default: "Create ingest stack?" }
             PollerTemplate: { default: "CF template: sfn-batch poller" }
             BatchJobVersion: { default: "batchjob" }
@@ -138,10 +141,11 @@ Metadata:
             MongoDbPeeringCidr: { default: "MongoDB VPN CIDR" }
 
 Conditions:
-    CreateComputeCluster: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "ComputeTemplate" }, "" ] } ] }
-    CreatePipeline: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PipelineTemplate" }, "" ] } ] }
-    CreateIngest: { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] }
-    CreatePoller: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerTemplate" }, "" ] } ] }
+    CreateVpc: { "Fn::Equals": [ { Ref: "CreateVpc" }, "true" ] }
+    CreateCompute: { "Fn::And": [ { Condition: "CreateVpc" }, { "Fn::Equals": [ { Ref: "CreateCompute" }, "true" ] } ] }
+    CreatePipeline: { "Fn::And": [ { Condition: "CreateCompute" }, { "Fn::Equals": [ { Ref: "CreatePipeline" }, "true" ] } ] }
+    CreateIngest: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] } ] }
+    CreatePoller: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerTemplate" }, "" ] } ] } ] }
 
 Resources:
 
@@ -189,8 +193,11 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "compute" }
-            TemplateURL: { Ref: "VpcTemplate" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure-${Environment}/vpc.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
             TimeoutInMinutes: 10
+        Condition: "CreateVpc"
 
     ##########################################################################################################
     ##  COMPUTE CLUSTER
@@ -218,9 +225,11 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "compute" }
-            TemplateURL: { Ref: "ComputeTemplate" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-compute.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
             TimeoutInMinutes: 10
-        Condition: "CreateComputeCluster"
+        Condition: "CreateCompute"
 
     ##########################################################################################################
     ##  PIPELINE
@@ -238,7 +247,9 @@ Resources:
               - { Key: "Project", Value: "compute" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "pipeline" }
-            TemplateURL: { Ref: "PipelineTemplate" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-pipeline.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
             TimeoutInMinutes: 10
         Condition: "CreatePipeline"
 
