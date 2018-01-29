@@ -98,6 +98,13 @@ def put_cloudwatch_metric(metric_name, value, unit):
                     'Value': value,
                     'Unit': unit,
                 },
+                {
+                    'MetricName': metric_name,
+                    'Dimensions': [{'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']}],
+                    'Timestamp': datetime.utcnow(),
+                    'Value': value,
+                    'Unit': unit,
+                },
             ]
         )
     except Exception as exception:
@@ -129,7 +136,11 @@ def main():
 
         if 'Profiling' in meta_data:
             meta_data['Profiling']['StartTime'] = time.time()
-            put_cloudwatch_metric('BatchJobScheduleLatency', float(meta_data['Profiling']['StartTime']) - float(meta_data['Profiling']['ScheduleTime']), 'Seconds')
+            put_cloudwatch_metric(
+                'BatchJobScheduleLatency',
+                float(meta_data['Profiling']['StartTime']) - float(meta_data['Profiling']['ScheduleTime']),
+                'Seconds'
+            )
 
         if script == 'noop':
             print('Noop job')
