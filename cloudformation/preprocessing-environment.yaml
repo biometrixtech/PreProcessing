@@ -56,7 +56,7 @@ Parameters:
         Description: "What type the EC2 instances should be"
     ComputeEc2Ami:
         Type: "AWS::EC2::Image::Id"
-        Default: "ami-20631a36"
+        Default: "ami-835b4efa"
         Description: "The AMI to build the EC2 instances from"
     ComputeEc2Keypair:
         Type: "String"
@@ -96,7 +96,7 @@ Parameters:
         Type: "String"
         Description: "The git commit hash of the `sfnbatch` poller to deploy"
         AllowedPattern: "[a-f0-9]{7}"
-        ConstraintDescription: "Must be an 8-hex-digit Git short commit hash"
+        ConstraintDescription: "Must be an 7-hex-digit Git short commit hash"
 
 Metadata:
     "AWS::CloudFormation::Interface":
