@@ -98,6 +98,11 @@ Parameters:
         AllowedPattern: "[a-f0-9]{7}"
         ConstraintDescription: "Must be an 7-hex-digit Git short commit hash"
 
+    AutoscalingSchedule:
+        Type: "String"
+        Default: ""
+        Description: "A definition JSON string for autoscaling the compute cluster"
+
 Metadata:
     "AWS::CloudFormation::Interface":
         ParameterGroups:
@@ -313,6 +318,7 @@ Resources:
         Properties:
             Parameters:
                 Environment: { Ref: "Environment" }
+                AutoscalingSchedule: { Ref: "AutoscalingSchedule" }
                 EfsId: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.EfsId" ] }
                 BatchJobQueueArn: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.JobQueueArn" ] }
                 BatchComputeEnvironmentArn: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.ComputeEnvironmentArn" ] }
