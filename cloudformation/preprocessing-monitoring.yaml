@@ -28,8 +28,19 @@ Parameters:
         Type: "String"
         Description: "The ARN of the Pipeline State Machine"
 
+    AutoscalingSchedule:
+        Type: "String"
+        Default: ""
+        Description: "A definition string for autoscaling"
+
+Conditions:
+    CreateAutoscaling: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "AutoscalingSchedule" }, "" ] } ] }
+
 Resources:
 
+    ##########################################################################################################
+    ##  MONITORING
+    ##########################################################################################################
 
     LambdaMonitoringRole:
         Type: "AWS::IAM::Role"
@@ -155,8 +166,6 @@ Resources:
                             }]
                         )
 
-
-
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
@@ -193,6 +202,10 @@ Resources:
             Action: "lambda:InvokeFunction"
             Principal: "events.amazonaws.com"
             SourceArn: { "Fn::GetAtt": [ "MonitoringLambdaScheduledRule", "Arn" ] }
+
+    ##########################################################################################################
+    ##  DASHBOARD
+    ##########################################################################################################
 
     CloudWatchDashboard:
         Type: "AWS::CloudWatch::Dashboard"
@@ -506,3 +519,122 @@ Resources:
                         }
                     }
                 ] }
+
+    ##########################################################################################################
+    ##  SCHEDULED AUTOSCALING
+    ##########################################################################################################
+
+    LambdaAutoscalingRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "lambda.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+            Policies:
+              - PolicyName: "default"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "batch:DescribeComputeEnvironments"
+                          - "batch:UpdateComputeEnvironment"
+                        Effect: "Allow"
+                        Resource: "*"
+            RoleName: { "Fn::Sub": "preprocessing-${Environment}-autoscaling-lambda-${AWS::Region}" }
+        Condition: "CreateAutoscaling"
+
+    AutoscalingLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: |
+                    import boto3, json, os
+                    from datetime import datetime
+
+                    def handler(_, __):
+                        schedule = json.loads(os.environ['AUTOSCALING_SCHEDULE'])
+                        if not isinstance(schedule, dict) or not schedule:
+                            print('Nothing to do')
+                            # return
+                            schedule = {
+                                '00:00-13:00': 0,
+                                '13:00-23:00': 4,
+                                '23:00-24:00': 0,
+                            }
+
+                        min_capacity = parse_schedule(schedule)
+                        if min_capacity is None:
+                            print('No capacity scheduled')
+                            return
+                        print('Desired min capacity = {}'.format(min_capacity))
+
+                        batch_client = boto3.client('batch')
+                        compute_environment = batch_client.describe_compute_environments(
+                            computeEnvironments=[os.environ['BATCH_COMPUTE_ENVIRONMENT']])['computeEnvironments'][0]['computeResources']
+                        print(compute_environment)
+
+                        new_desired_capacity = max(min_capacity, compute_environment['desiredvCpus'])
+                        print('Current capacity is {}/{}/{}, changing to {}/{}/{}'.format(
+                            compute_environment['minvCpus'],
+                            compute_environment['desiredvCpus'],
+                            compute_environment['maxvCpus'],
+                            min_capacity,
+                            new_desired_capacity,
+                            compute_environment['maxvCpus']
+                        ))
+
+                        batch_client.update_compute_environment(
+                            computeEnvironment=os.environ['BATCH_COMPUTE_ENVIRONMENT'],
+                            computeResources={'minvCpus': min_capacity, 'desiredvCpus': new_desired_capacity},
+                        )
+
+                    def parse_schedule(schedule):
+                        t_now = datetime.now().time()
+                        for timerange, capacity in schedule.items():
+                            start, finish = timerange.split('-')
+                            start = datetime.strptime(start, '%H:%M').time()
+                            finish = datetime.strptime(finish, '%H:%M').time()
+                            if start < t_now < finish:
+                                return capacity
+                        return None
+
+            Environment:
+                Variables:
+                    AUTOSCALING_SCHEDULE: { Ref: "AutoscalingSchedule" }
+                    BATCH_COMPUTE_ENVIRONMENT: { Ref: "BatchComputeEnvironmentArn" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "LambdaAutoscalingRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-autoscaling" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-autoscaling" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+        Condition: "CreateAutoscaling"
+
+    AutoscalingLambdaScheduledRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "ScheduledRule"
+            ScheduleExpression: "cron(0 * * * ? *)"
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "AutoscalingLambda", "Arn" ] }
+                Id: "TargetFunctionV1"
+        Condition: "CreateAutoscaling"
+
+    AutoscalingLambdaInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { Ref: "AutoscalingLambda" }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "AutoscalingLambdaScheduledRule", "Arn" ] }
+        Condition: "CreateAutoscaling"
