@@ -175,8 +175,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "downloadandchunk",
-                                        "Memory": 2048,
-                                        "Vcpus": 2,
+                                        "Memory": 512,
+                                        "Vcpus": 1,
                                     },
                                     "InputPath": "$"
                                 }
@@ -288,8 +288,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "transformandplacement",
-                                        "Memory": 1024,
-                                        "Vcpus": 2,
+                                        "Memory": 512,
+                                        "Vcpus": 1,
                                     },
                                     "InputPath": "$"
                                 }
@@ -461,6 +461,8 @@ Resources:
                                         "BatchJob": "aggregatesession",
                                         "Memory": 4096,
                                         "Vcpus": 4,
+                                        # "Memory": 1024,
+                                        # "Vcpus": 2,
                                     },
                                     "InputPath": "$"
                                 }
@@ -500,6 +502,8 @@ Resources:
                                         "BatchJob": "aggregatetwomin",
                                         "Memory": 2048,
                                         "Vcpus": 2,
+                                        #"Memory": 512,
+                                        #"Vcpus": 1,
                                     },
                                     "InputPath": "$[{}]".format(i)
                                 }
@@ -543,6 +547,8 @@ Resources:
                                         "BatchJob": "aggregatedateuser",
                                         "Memory": 4096,
                                         "Vcpus": 4,
+                                        #"Memory": 256,
+                                        #"Vcpus": 1,
                                     },
                                     "InputPath": "$"
                                 }
@@ -587,7 +593,7 @@ Resources:
                                 }
                             ],
                             "Input": event["ReadDatabase"],
-                            "LinearityGroup": event["ReadDatabase"]["TeamId"]
+                            # "LinearityGroup": event["ReadDatabase"]["TeamId"]
                         }
             Handler: "index.handler"
             Runtime: "python3.6"
@@ -627,7 +633,7 @@ Resources:
                                 }
                             ],
                             "Input": event["ReadDatabase"],
-                            "LinearityGroup": event["ReadDatabase"]["TrainingGroupId"][0] if len(event["ReadDatabase"]["TrainingGroupId"]) else ''
+                            # "LinearityGroup": event["ReadDatabase"]["TrainingGroupId"][0] if len(event["ReadDatabase"]["TrainingGroupId"]) else ''
                         }
             Handler: "index.handler"
             Runtime: "python3.6"
@@ -660,8 +666,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcomp",
-                                        "Memory": 4096,
-                                        "Vcpus": 4,
+                                        "Memory": 2048,
+                                        "Vcpus": 1,
                                     },
                                     "InputPath": "$"
                                 }
@@ -699,8 +705,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcompdate",
-                                        "Memory": 4096,
-                                        "Vcpus": 4,
+                                        "Memory": 256,
+                                        "Vcpus": 1,
                                     },
                                     "InputPath": "$"
                                 }
@@ -764,8 +770,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "cleanup",
-                                        "Memory": 256,
-                                        "Vcpus": 2,
+                                        "Memory": 128,
+                                        "Vcpus": 1,
                                     },
                                     "InputPath": "$"
                                 }
@@ -833,8 +839,8 @@ Resources:
                             "Type": "Task",
                             "InputPath": "$.DownloadAndChunk",
                             "Resource": "${StepFunctionsActivity}",
-                            "TimeoutSeconds": 600,
-                            "HeartbeatSeconds": 600,
+                            "TimeoutSeconds": 1200,
+                            "HeartbeatSeconds": 1200,
                             "ResultPath": "$.DownloadAndChunk",
                             "Next": "ReadDatabase"
                         },
@@ -854,8 +860,8 @@ Resources:
                             "Type": "Task",
                             "InputPath": "$.TransformAndPlacement",
                             "Resource": "${StepFunctionsActivity}",
-                            "TimeoutSeconds": 600,
-                            "HeartbeatSeconds": 600,
+                            "TimeoutSeconds": 1200,
+                            "HeartbeatSeconds": 1200,
                             "ResultPath": "$.TransformAndPlacement",
                             "Next": "BuildSessionProcess2Context"
                         },
@@ -869,8 +875,8 @@ Resources:
                             "Type": "Task",
                             "InputPath": "$.SessionProcess2",
                             "Resource": "${StepFunctionsActivity}",
-                            "TimeoutSeconds": 600,
-                            "HeartbeatSeconds": 600,
+                            "TimeoutSeconds": 1200,
+                            "HeartbeatSeconds": 1200,
                             "ResultPath": "$.SessionProcess2",
                             "Next": "BuildScoringContext"
                         },
@@ -884,8 +890,8 @@ Resources:
                             "Type": "Task",
                             "InputPath": "$.Scoring",
                             "Resource": "${StepFunctionsActivity}",
-                            "TimeoutSeconds": 600,
-                            "HeartbeatSeconds": 600,
+                            "TimeoutSeconds": 1200,
+                            "HeartbeatSeconds": 1200,
                             "Catch": [
                                 {
                                     "ErrorEquals": [ "NoHistoricalDataException" ],
@@ -922,8 +928,8 @@ Resources:
                                             "Type": "Task",
                                             "InputPath": "$.AggregateProgComp",
                                             "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
+                                            "TimeoutSeconds": 1200,
+                                            "HeartbeatSeconds": 1200,
                                             "ResultPath": "$.AggregateProgComp",
                                             "Next": "BuildAggregateProgCompDate"
                                         },
@@ -937,8 +943,8 @@ Resources:
                                             "Type": "Task",
                                             "InputPath": "$.AggregateProgCompDate",
                                             "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
+                                            "TimeoutSeconds": 1200,
+                                            "HeartbeatSeconds": 1200,
                                             "ResultPath": "$.AggregateProgCompDate",
                                             "End": true
                                         }
@@ -957,8 +963,8 @@ Resources:
                                             "Type": "Task",
                                             "InputPath": "$.AggregateSession",
                                             "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
+                                            "TimeoutSeconds": 1200,
+                                            "HeartbeatSeconds": 1200,
                                             "ResultPath": "$.AggregateSession",
                                             "Next": "BuildAggregateDateUserContext"
                                         },
@@ -972,8 +978,8 @@ Resources:
                                             "Type": "Task",
                                             "InputPath": "$.AggregateDateUser",
                                             "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
+                                            "TimeoutSeconds": 1200,
+                                            "HeartbeatSeconds": 1200,
                                             "ResultPath": "$.AggregateDateUser",
                                             "End": true
                                         }
@@ -992,8 +998,8 @@ Resources:
                                             "Type": "Task",
                                             "InputPath": "$.AggregateTwomin",
                                             "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
+                                            "TimeoutSeconds": 1200,
+                                            "HeartbeatSeconds": 1200,
                                             "ResultPath": "$.AggregateTwomin",
                                             "End": true
                                         }
@@ -1019,8 +1025,8 @@ Resources:
                                             "Type": "Task",
                                             "InputPath": "$.AggregateTeam",
                                             "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
+                                            "TimeoutSeconds": 1200,
+                                            "HeartbeatSeconds": 1200,
                                             "ResultPath": "$.AggregateTeam",
                                             "End": true
                                         }
@@ -1039,8 +1045,8 @@ Resources:
                                             "Type": "Task",
                                             "InputPath": "$.AggregateTrainingGroup",
                                             "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
+                                            "TimeoutSeconds": 1200,
+                                            "HeartbeatSeconds": 1200,
                                             "ResultPath": "$.AggregateTrainingGroup",
                                             "End": true
                                         }
@@ -1066,8 +1072,8 @@ Resources:
                                             "Type": "Task",
                                             "InputPath": "$.Cleanup",
                                             "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
+                                            "TimeoutSeconds": 1200,
+                                            "HeartbeatSeconds": 1200,
                                             "ResultPath": "$.Cleanup",
                                             "End": true
                                         }
