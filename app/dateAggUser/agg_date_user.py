@@ -216,18 +216,18 @@ def _publish_alerts(record_out, acwr):
         _publish_alert(record_out, category=3, subcategory=3, granularity='total', value=1)
 
     # Consistency
-    consistency_scores = [record_out['consistency'],
-                          record_out['hipConsistency'],
-                          record_out['ankleConsistency'],
-                          record_out['consistencyLF'],
-                          record_out['consistencyRF']]
-    min_cons = numpy.min(consistency_scores)
-    max_cons = numpy.max(consistency_scores)
-    consistency_comp_diff = numpy.abs(min_cons - max_cons)
-    if min_cons < 50 or consistency_comp_diff > 30:
-        _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=2)
-    elif 50 <= min_cons < 65 or 20 <= consistency_comp_diff < 30:
-        _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=1)
+    # consistency_scores = [record_out['consistency'],
+    #                       record_out['hipConsistency'],
+    #                       record_out['ankleConsistency'],
+    #                       record_out['consistencyLF'],
+    #                       record_out['consistencyRF']]
+    # min_cons = numpy.min(consistency_scores)
+    # max_cons = numpy.max(consistency_scores)
+    # consistency_comp_diff = numpy.abs(min_cons - max_cons)
+    # if min_cons < 50 or consistency_comp_diff > 30:
+    #     _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=2)
+    # elif 50 <= min_cons < 65 or 20 <= consistency_comp_diff < 30:
+    #     _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=1)
 
 
 def _publish_alert(record_out, category, subcategory, granularity, value):
