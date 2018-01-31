@@ -122,32 +122,3 @@ def flag_data_quality(data):
         accel_error_count = len(np.where(length > 10)[0])
         if accel_error_count > 5:
             raise AccelerationJumpException('Encountered {} acceleration jump errors'.format(accel_error_count))
-
-
-# %% functions for sending errors
-def send_geometric_interpretation_error_notification(accel_names, num_errors):
-    print('potential geometric interpretation error: ', filename, accel_names, num_errors)
-
-
-def send_timestamp_jump_notification(unexpected_indices):
-    print('timestamp jump error: ', filename, unexpected_indices)
-
-
-def send_accel_jump_notification(accel_error_count):
-    print('accel jump error: ', filename, accel_error_count)
-
-
-# %%
-
-# if __name__ == '__main__':
-#     import timeit
-#
-#     filename = 'stance_phase_a1bf8bad-8fb6-4cfc-865b-3a6271ccf3aa_00_transformed.csv'
-#     data = pd.read_csv(filename)
-#
-#     start = timeit.default_timer()
-#
-#
-#     stop = timeit.default_timer()
-#     print
-#     'RUNTIME: ', stop - start
