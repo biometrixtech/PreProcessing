@@ -7,38 +7,35 @@ Created on Wed Oct 12 11:16:55 2016
 
 from __future__ import division
 import logging
-import sys
 
+import copy
 import numpy as np
 import pandas as pd
+
 from scipy.interpolate import UnivariateSpline
 from sklearn.neighbors.kde import KernelDensity as kde
 from sklearn import mixture
-from exceptions import NotEnoughCMEValuesException
 
 logger = logging.getLogger()
 
 """
 #############################################INPUT/OUTPUT###################
-Inputs: Two RawFrame object with movement quality features
-    --current session/block,
-    --historical user data
-Outputs: Consistency and symmetry scores, destructive multiplier,
-        destructive and constructive grf and block/session_duration
-        block/session_mech_stress_elapsed for each timepoint
+Inputs: DataFrame with movement quality feature current session
+        grf_scale: scaling factor for ground reaction forces
+Outputs: Input data frame with Consistency and symmetry scores, destructive multiplier,
+        destructive and constructive grf and session_duration
+        session_grf_elapsed for each timepoint added
 #############################################################################
 """
 
 
-def score(data, user_hist, grf_scale):
+def score(data, grf_scale):
     """Average consistency, symmetry, control scores at sensor level,
     ankle/hip level and then average at body level
     Args:
-        data : RawFrame object with the movement quality features, total_accel,
+        data : Pandas dataframe with the movement quality features, total_accel,
                grf, ms_elapsed, control score, session_type attributes
-        user_hist : RawFrame object/pandas dataframe with historical(5 days)
-                    MQ features, total_accel and grf for the user
-        grf_scale: scaling factor for mechanical stress
+        grf_scale: scaling factor for ground reaction forces
         Returns:
         consistency, hip_consistency, ankle_consistency, consistency_lf,
         consistency_rf, symmetry, hip_symmetry, ankle_symmetry, destr_multiplier,
@@ -47,114 +44,501 @@ def score(data, user_hist, grf_scale):
 
         Note: All symmetry and consistency scores are multiplied by grf
                 for calculating weighted average while aggregating
-
-        For session_type = 1, block_mech_stress_elapsed and block_duration will
-        be nan's
-        For session_type =2,3, session_mech_stress_elapsed and session_duration
-        will be nan's.
     """
+    data = _categorize_data(data)
     global GRF_SCALE
     GRF_SCALE = grf_scale
-    mS = np.abs(np.array(data.grf)).reshape(-1, )
-    mS_norm = np.array(mS/np.nanmean(mS))
-    tA = np.abs(np.array(data.total_accel)).reshape(-1, )
-    tA_norm = np.array(tA/np.nanmean(tA))
+    grf = np.abs(np.array(data.grf)).reshape(-1, )
 
-    #divide each feature value by (totalAccel*mechStress) to control
-    #for these performance variables
-    # TODO (Dipesh) need to find better control
-    scale = np.sqrt(tA_norm*mS_norm)
-    hDL = np.array(data.contra_hip_drop_lf).reshape(-1, )/(scale)
-    hDR = np.array(data.contra_hip_drop_rf).reshape(-1, )/(scale)
-    aRL = np.array(data.ankle_rot_lf).reshape(-1, )/(scale)
-    aRR = np.array(data.ankle_rot_rf).reshape(-1, )/(scale)
-    lPL = np.array(data.land_pattern_lf).reshape(-1, )/(scale)
-    lPR = np.array(data.land_pattern_rf).reshape(-1, )/(scale)
-    lT = np.array(data.land_time).reshape(-1, )/(scale)
+    control = copy.copy(data.control.values)
 
-    control = np.array(data.control).reshape(-1, )
-    #Create mapping functions for consistency using historical user data
-    fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT = _create_distribution(user_hist)
-    logger.info("Distributions for consistency created")
-    consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry =\
-                                                   _ankle(aRL, aRR, lPL, lPR, lT,
-                                                          fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT)
-    logger.info("Ankle scoring completed")
-    hip_consistency, hip_symmetry = _hip(hDL, hDR, fn_hDL, fn_hDR)
-    logger.info("Hip scoring completed")
-    #Aggregate consistency scores
-    overall_consistency_scores = np.vstack([ankle_consistency, hip_consistency])
-    consistency = np.nanmean(overall_consistency_scores, 0)
+    data['ankle_symmetry'] = np.zeros(data.shape[0]) * np.nan
+    data['hip_symmetry'] = np.zeros(data.shape[0]) * np.nan
+    data['symmetry'] = np.zeros(data.shape[0]) * np.nan
+    data['consistency_lf'] = np.zeros(data.shape[0]) * np.nan
+    data['consistency_rf'] = np.zeros(data.shape[0]) * np.nan
+    data['ankle_consistency'] = np.zeros(data.shape[0]) * np.nan
+    data['hip_consistency'] = np.zeros(data.shape[0]) * np.nan
+    data['consistency'] = np.zeros(data.shape[0]) * np.nan
 
-    mS = mS/GRF_SCALE
+    for stance in np.unique(data.stance):
+        if stance == 6 or stance == 7:
+            cme_to_use = ['adduc_motion_covered',
+                          'adduc_range_of_motion',
+                          'flex_motion_covered',
+                          'flex_range_of_motion',
+                          'contact_duration',
+                          # 'hip_drop', #old cmes
+                          # 'ankle_rotation',
+                          # 'land_pattern',
+                          # 'land_time'
+                         ]
+            rofa_cats = np.append(data.rofa_lf_cat.values, data.rofa_rf_cat.values)
+            rofa_cats = rofa_cats[np.isfinite(rofa_cats)]
+            for rofa_cat in np.unique(rofa_cats):
+                data_sub = data.loc[((data.stance == stance)) & ((data.rofa_lf_cat == rofa_cat) \
+                                     | (data.rofa_rf_cat == rofa_cat)), :]
+#                print(data_sub.shape[0])
+#                print('stance: {}, cat: {}, len: {}'.format(stance, rofa_cat, data_sub.shape[0]))
+                if data_sub.shape[0] >= 30:
+                    _score_subset(data, data_sub, cme_to_use)
 
-    #multiply each score by mechStress value for weighting
-    consistency_lf = consistency_lf*mS
-    consistency_rf = consistency_rf*mS
-    hip_consistency = hip_consistency*mS
-    ankle_consistency = ankle_consistency*mS
-    consistency = consistency*mS
+        elif stance == 8 or stance == 9:
+            cme_to_use = ['adduc_motion_covered',
+                          'adduc_range_of_motion',
+                          'flex_motion_covered',
+                          'flex_range_of_motion',
+                          'contact_duration',
+                          # 'hip_drop', #old cmes
+                          # 'ankle_rotation',
+                          # 'land_pattern',
+                          # 'land_time'
+                         ]
+            rofp_cats = np.append(data.rofp_lf_cat.values, data.rofp_rf_cat.values)
+            rofp_cats = rofp_cats[np.isfinite(rofp_cats)]
+            for rofp_cat in np.unique(rofp_cats):
+                data_sub = data.loc[((data.stance == stance)) & ((data.rofp_lf_cat == rofp_cat) \
+                                     | (data.rofp_rf_cat == rofp_cat)), :]
+#                print(data_sub.shape[0])
+#                print('stance: {}, cat: {}, len: {}'.format(stance, rofp_cat, data_sub.shape[0]))
+                if data_sub.shape[0] >= 30:
+                    _score_subset(data, data_sub, cme_to_use)
 
-    #Aggregate symmetry scores
-    overall_symmetry_scores = np.vstack([hip_symmetry, ankle_symmetry])
-    symmetry = np.nanmean(overall_symmetry_scores, 0)
+        elif stance in [2, 3, 4, 5]:
+            cme_to_use = ['adduc_motion_covered',
+                          'adduc_range_of_motion',
+                          'flex_motion_covered',
+                          'flex_range_of_motion',
+                          # 'hip_drop', #old cmes
+                          # 'ankle_rotation',
+                          # 'land_pattern',
+                          # 'land_time'
+                         ]
+            bal_cats = np.unique(data.balance_grf_cat.values)
+            bal_cats = bal_cats[np.isfinite(bal_cats)]
+            for bal_cat in bal_cats:
+                data_sub = data.loc[((data.stance == stance)) & \
+                                    (data.balance_grf_cat == bal_cat), :]
+#                print(data_sub.shape[0])
+#                print('stance: {}, cat: {}, len: {}'.format(stance, bal_cat, data_sub.shape[0]))
+                if data_sub.shape[0] >= 30:
+                    _score_subset(data, data_sub, cme_to_use)
 
-    ##Calculate the destructive mechStress multiplier
-    destr_multiplier = ((1 - symmetry/100)**2 + (1 - control/100)**2)/2
+    grf = grf/GRF_SCALE
 
-    dest_grf = np.array(mS)*np.array(destr_multiplier)
-    const_grf = mS - dest_grf
+#    Calculate the destructive mechStress multiplier
+    data['destr_multiplier'] = ((1 - data['symmetry'].values/100)**2 + (1 - control/100)**2)/2
 
-    #multiply each score by mechStress value for weighting
-    symmetry = symmetry*mS
-    hip_symmetry = hip_symmetry*mS
-    ankle_symmetry = ankle_symmetry*mS
+    data['dest_grf'] = np.array(grf)*np.array(data['destr_multiplier'].values)
+    data['const_grf'] = grf - data['dest_grf'].values
+
+#     multiply each score by mechStress value for weighting
+    data['symmetry'] = data['symmetry'] * grf
+    data['hip_symmetry'] = data['hip_symmetry'] * grf
+    data['ankle_symmetry'] = data['ankle_symmetry'] * grf
+
+    data['consistency_lf'] = data['consistency_lf'] * grf
+    data['consistency_rf'] = data['consistency_rf'] * grf
+    data['hip_consistency'] = data['hip_consistency'] * grf
+    data['ankle_consistency'] = data['ankle_consistency'] * grf
+    data['consistency'] = data['consistency'] * grf
 
 #    Block/Session duration
     ms_elapsed = np.array(data.ms_elapsed)
-    session_duration = np.nan_to_num(ms_elapsed).cumsum()/np.nansum(ms_elapsed)
+    data['session_duration'] = np.nan_to_num(ms_elapsed).cumsum()/np.nansum(ms_elapsed)
 
     #MechStress Elapsed
-    session_grf_elapsed = np.nan_to_num(mS).cumsum()/np.nansum(mS)
+    data['session_grf_elapsed'] = np.nan_to_num(grf).cumsum()/np.nansum(grf)
+
+    return data
 
 
-    return consistency.reshape(-1, 1), hip_consistency.reshape(-1, 1),\
-        ankle_consistency.reshape(-1, 1), consistency_lf.reshape(-1, 1),\
-        consistency_rf.reshape(-1, 1), symmetry.reshape(-1, 1),\
-        hip_symmetry.reshape(-1, 1), ankle_symmetry.reshape(-1, 1),\
-        destr_multiplier.reshape(-1, 1), dest_grf.reshape(-1, 1),\
-        const_grf.reshape(-1, 1), session_duration.reshape(-1, 1),\
-        session_grf_elapsed.reshape(-1, 1)
-
-
-def _create_distribution(data):
-    """Creates mapping interpolation functions to file for each Movement
-    Quality feature
-
+def _score_subset(data, data_sub, cme_to_use):
+    """Run consistency and symmetry scoring on the subset of data and insert the respective scores
+    to relevant parts of main pandas dataframe
     Args:
-        data : data table with historical(7 days) MQ features,
-        total_accel and grf for the user
-
+        data: pandas dataframe to store scores
+        data_sub: subset of data which is used in scoring
+        (Note: index is preserved between the two and used to reinsert scores at correct place)
     Returns:
-        Interpolation mapping function for each Movement Quality feature
+        None, dataframe data is updated at relevant locations
     """
-    mS = np.abs(np.array(data.grf))
-    mS_norm = np.array(mS/np.nanmean(mS))
-    tA = np.abs(np.array(data.total_accel))
-    tA_norm = np.array(tA/np.nanmean(tA))
-    scale = np.sqrt(tA_norm*mS_norm)
-    err = np.zeros(9)
-    fn_hDL, err[0] = _con_fun(np.array(data.contra_hip_drop_lf/(scale)))
-    fn_hDR, err[1] = _con_fun(np.array(data.contra_hip_drop_rf/(scale)))
-    fn_aRL, err[2] = _con_fun(np.array(data.ankle_rot_lf/(scale)), True)
-    fn_aRR, err[3] = _con_fun(np.array(data.ankle_rot_rf/(scale)), True)
-    fn_lPL, err[4] = _con_fun(np.array(data.land_pattern_lf/(scale)))
-    fn_lPR, err[5] = _con_fun(np.array(data.land_pattern_rf/(scale)))
-    fn_lT, err[6] = _con_fun(np.array(data.land_time/(scale)))
-    if np.sum(err) >= 4:
-        raise NotEnoughCMEValuesException("{} CMEs have no values. Can have at most 3!".format(int(np.sum(err))))
+    ankle_symm, cons_lf, cons_rf, ankle_cons = _ankle(data_sub, cme_to_use)
+    hip_symm, hip_cons = _hip(data_sub, cme_to_use)
+    symmetry = np.nanmean(np.append(hip_symm.reshape(-1, 1), ankle_symm.reshape(-1, 1), axis=1),
+                          axis=1)
+    data.loc[data_sub.index, 'ankle_symmetry'] = ankle_symm
+    data.loc[data_sub.index, 'hip_symmetry'] = hip_symm
+    data.loc[data_sub.index, 'symmetry'] = symmetry
 
-    return fn_hDL, fn_hDR, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT
+    consistency = np.nanmean(np.append(hip_cons.reshape(-1, 1), ankle_cons.reshape(-1, 1), axis=1),
+                             axis=1)
+    data.loc[data_sub.index, 'consistency'] = consistency
+    data.loc[data_sub.index, 'hip_consistency'] = hip_cons
+    data.loc[data_sub.index, 'ankle_consistency'] = ankle_cons
+    data.loc[data_sub.index, 'consistency_lf'] = cons_lf
+    data.loc[data_sub.index, 'consistency_rf'] = cons_rf
+
+
+def _categorize_data(data):
+    """ Categorize and enumerate data based on phase2 categorization
+     to control for motion complexity in scoring.
+     CMEs during similar complexity are compared against each other in scoring
+     Categorizations:
+        1) phase: balance, takeoff, impact, contact, non-contact
+        2) stance: single leg, double leg
+        3) RoFA
+        4) RoFP
+        5) GRF during balance phase
+
+    """
+    rofa_lf_cat = pd.cut(data.rate_force_absorption_lf.values,
+                         bins=[0, 2, 4, 8, 20, 1000],
+                         labels=False,
+                         include_lowest=False,
+                         right=True)
+    rofa_rf_cat = pd.cut(data.rate_force_absorption_rf.values,
+                         bins=[0, 2, 4, 8, 20, 1000],
+                         labels=False,
+                         include_lowest=False,
+                         right=True)
+    rofp_lf_cat = pd.cut(data.rate_force_production_lf.values,
+                         bins=[0, 2, 4, 8, 20, 1000],
+                         labels=False,
+                         include_lowest=False,
+                         right=True)
+    rofp_rf_cat = pd.cut(data.rate_force_production_rf.values,
+                         bins=[0, 2, 4, 8, 20, 1000],
+                         labels=False,
+                         include_lowest=False,
+                         right=True)
+    balance_grf_cat = pd.cut(data.grf_bal_phase,
+                             bins=[0, .5, 1., 1.4, 1000],
+                             labels=False,
+                             include_lowest=True,
+                             right=True)
+
+    data['rofa_lf_cat'] = rofa_lf_cat
+    data['rofa_rf_cat'] = rofa_rf_cat
+    data['rofp_lf_cat'] = rofp_lf_cat
+    data['rofp_rf_cat'] = rofp_rf_cat
+    data['balance_grf_cat'] = balance_grf_cat
+
+    return data
+
+
+def _ankle(data, cme):
+    """Calculates consistency and symmetry score for each ankle features and
+    averages the score for each ankle.
+    Args:
+        data: subset of data to score on (pandas dataframe)
+        cme: CMEs to be used in scoring (string)
+    Returns:
+        ankle_symmetry: symmetry averaged over ankle features
+        consistency_lf: consistency averaged over left ankle features
+        consistency_rf: consistency averaged over right ankle features
+        ankle_consistency: consistency averaged over right and left ankles
+    """
+    sub_len = data.shape[0]
+    symmetry_scores = np.zeros([sub_len, 1]) * np.nan
+    consistency_scores_lf = np.zeros([sub_len, 1]) * np.nan
+    consistency_scores_rf = np.zeros([sub_len, 1]) * np.nan
+    # Calculate symmetry scores for ankle features
+    # If all the rows for either left or right features are blank or we have at
+    # most 2 non-empty rows, we cannot score so, nan's are returned as score for
+    # all rows
+    ## Scoring for ankle rotation
+    if 'ankle_rot' in cme:
+        # symmetry
+        left = copy.copy(data.ankle_rot_lf.values)
+        right = copy.copy(data.ankle_rot_rf.values)
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores_lf = _run_consistency(left, consistency_scores_lf)
+        consistency_scores_rf = _run_consistency(right, consistency_scores_rf)
+
+    if 'land_pattern' in cme:
+        # symmetry
+        left = copy.copy(data.land_pattern_lf.values)
+        right = copy.copy(data.land_pattern_rf.values)
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores_lf = _run_consistency(left, consistency_scores_lf)
+        consistency_scores_rf = _run_consistency(right, consistency_scores_rf)
+
+    # Scoring for for landing time
+    # subset landing time data to create two distributions to compare
+    # change negative values to positive so both dist are in same range
+    if 'land_time' in cme:
+        # symmetry
+        land_time = copy.copy(data.land_time.values).reshape(-1,)
+        left = copy.copy(land_time)
+        right = copy.copy(land_time)
+        left[left > 0] = np.nan
+        left = np.abs(left)
+        right[right < 0] = np.nan
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores_lf = _run_consistency(left, consistency_scores_lf)
+        consistency_scores_rf = _run_consistency(right, consistency_scores_rf)
+
+    ## Scoring for adduction motion covered
+    if 'adduc_motion_covered' in cme:
+        left = copy.copy(data.adduc_motion_covered_lf.values)
+        right = copy.copy(data.adduc_motion_covered_rf.values)
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores_lf = _run_consistency(left, consistency_scores_lf)
+        consistency_scores_rf = _run_consistency(right, consistency_scores_rf)
+
+    ## Scoring for adduction range of motion
+    if 'adduc_range_of_motion' in cme:
+        left = copy.copy(data.adduc_range_of_motion_lf.values)
+        right = copy.copy(data.adduc_range_of_motion_rf.values)
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores_lf = _run_consistency(left, consistency_scores_lf)
+        consistency_scores_rf = _run_consistency(right, consistency_scores_rf)
+
+    ## Scoring for flexion motion covered
+    if 'flex_motion_covered' in cme:
+        left = copy.copy(data.flex_motion_covered_lf.values)
+        right = copy.copy(data.flex_motion_covered_rf.values)
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores_lf = _run_consistency(left, consistency_scores_lf)
+        consistency_scores_rf = _run_consistency(right, consistency_scores_rf)
+
+    ## Scoring for flexion range of moton
+    if 'flex_range_of_motion' in cme:
+        left = copy.copy(data.flex_range_of_motion_lf.values)
+        right = copy.copy(data.flex_range_of_motion_rf.values)
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores_lf = _run_consistency(left, consistency_scores_lf)
+        consistency_scores_rf = _run_consistency(right, consistency_scores_rf)
+
+
+    ## Scoring for contact duration
+    if 'contact_duration' in cme:
+        left = copy.copy(data.contact_duration_lf.values)
+        right = copy.copy(data.contact_duration_rf.values)
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores_lf = _run_consistency(left, consistency_scores_lf)
+        consistency_scores_rf = _run_consistency(right, consistency_scores_rf)
+
+    # Average the scores from all the different CMEs
+    consistency_lf = np.nanmean(consistency_scores_lf, axis=1).reshape(-1, 1)
+    consistency_rf = np.nanmean(consistency_scores_rf, axis=1).reshape(-1, 1)
+    ankle_cons = np.append(consistency_lf, consistency_rf, axis=1)
+    ankle_consistency = np.nanmean(ankle_cons, axis=1)
+
+    ankle_symmetry = np.nanmean(symmetry_scores, axis=1)
+
+    return ankle_symmetry, consistency_lf, consistency_rf, ankle_consistency
+
+
+def _hip(data, cme):
+    """Calculates consistency and symmetry score for each hip features and
+    averages the score
+    Args:
+        data: subset of data to score on (pandas dataframe)
+        cme: CMEs to be used in scoring (string)
+    Returns:
+        hip_symmetry: symmetry averaged over all hip features (num 0-100)
+        hip_consistency: consistency averaged over all hip features (num 0-100)
+    """
+#    sub_len = data.shape[0]
+    symmetry_scores = np.zeros([data.shape[0], 1]) * np.nan
+    consistency_scores = np.zeros([data.shape[0], 1]) * np.nan
+
+    #Calculate symmetry scores for hip features
+    #If all the rows for either left or right features are blank or we have at
+    #most 2 non-empty rows, we cannot score so, nan's are returned as score for
+    #all rows
+    ground_lf = [0, 1, 4, 6]
+    ground_rf = [0, 2, 5, 7]
+    if 'hip_drop' in cme:
+        # symmetry
+        left = copy.copy(data.contra_hip_drop_lf.values)
+        right = copy.copy(data.contra_hip_drop_rf.values)
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores = _run_consistency(left, consistency_scores)
+        consistency_scores = _run_consistency(right, consistency_scores)
+
+    if 'adduc_motion_covered' in cme:
+        # symmetry
+        adduc_motion = copy.copy(data.adduc_motion_covered_h.values)
+        left = copy.copy(adduc_motion)
+        right = copy.copy(adduc_motion)
+        left[np.array([i not in ground_lf for i in data.phase_lf])] = np.nan
+        right[np.array([i not in ground_rf for i in data.phase_rf])] = np.nan
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores = _run_consistency(adduc_motion, consistency_scores)
+
+    if 'adduc_range_of_motion' in cme:
+        # symmetry
+        adduc_rom = copy.copy(data.adduc_range_of_motion_h.values)
+        left = copy.copy(adduc_rom)
+        right = copy.copy(adduc_rom)
+        left[np.array([i not in ground_lf for i in data.phase_lf])] = np.nan
+        right[np.array([i not in ground_rf for i in data.phase_rf])] = np.nan
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores = _run_consistency(adduc_rom, consistency_scores)
+
+    if 'flex_motion_covered' in cme:
+        # symmetry
+        flex_motion = copy.copy(data.flex_motion_covered_h.values)
+        left = copy.copy(flex_motion)
+        right = copy.copy(flex_motion)
+        left[np.array([i not in ground_lf for i in data.phase_lf])] = np.nan
+        right[np.array([i not in ground_rf for i in data.phase_rf])] = np.nan
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores = _run_consistency(flex_motion, consistency_scores)
+
+    if 'flex_range_of_motion' in cme:
+        # symmetry
+        flex_rom = copy.copy(data.flex_range_of_motion_h.values)
+        left = copy.copy(flex_rom)
+        right = copy.copy(flex_rom)
+        left[np.array([i not in ground_lf for i in data.phase_lf])] = np.nan
+        right[np.array([i not in ground_rf for i in data.phase_rf])] = np.nan
+        symmetry_scores = _run_symmetry(left, right, symmetry_scores)
+
+        # consistency
+        consistency_scores = _run_consistency(flex_rom, consistency_scores)
+
+    # Average the scores from all the different CMEs
+    hip_consistency = np.nanmean(consistency_scores, axis=1)
+
+    hip_symmetry = np.nanmean(symmetry_scores, axis=1)
+
+    return hip_symmetry, hip_consistency
+
+
+def _run_symmetry(left, right, symmetry_scores):
+    """Compute symmetry score for the given left, right CME pair and append to the numpy array
+    Args:
+        left: left CME
+        right: right CME
+        symmetry_scores: numpy array with symmetry scores for CMEs already scored
+    Returns:
+        symmetry_scores: same as input with scores for current CME appended
+    """
+    size = left.shape[0]
+    if all(np.isnan(left)) or all(np.isnan(right)):
+        score = np.zeros(size) * np.nan
+    elif len(left[np.isfinite(left)]) < 5 or len(right[np.isfinite(right)]) < 5:
+        score = np.zeros(size) * np.nan
+    elif np.nanstd(left) < 1e-4 or np.nanstd(right) < 1e-4:
+        score = np.zeros(size) * np.nan
+    else:
+        try:
+            l_fn, r_fn = _symmetry_score(left, right, kernel='gaussian')
+            score_l = l_fn(left)
+            score_r = r_fn(right)
+            scores = np.vstack([score_l, score_r])
+            score = np.nanmean(scores, 0)
+            score[score > 100] = 100
+            score[score <= 0] = 0
+        except ValueError:
+            score = np.zeros(size) * np.nan
+
+    symmetry_scores = np.append(symmetry_scores, score.reshape(-1, 1), axis=1)
+
+    return symmetry_scores
+
+
+def _run_consistency(dist, consistency_scores, double=False):
+    """Compute symmetry score for the given left, right CME pair and append to the numpy array
+    Args:
+        dist: CME to be scored
+        consistency_scores: numpy array with consistency scores for CMEs already scored
+    Returns:
+        consistency_scores: same as input with scores for current CME appended
+    """
+    cons_fn = _con_fun(dist, double)
+    cons = np.array(cons_fn(dist))
+    cons[cons > 100] = 100
+    cons[cons < 0] = 0
+
+    consistency_scores = np.append(consistency_scores, cons.reshape(-1, 1), axis=1)
+
+    return consistency_scores
+
+
+def _symmetry_score(dist_l, dist_r, kernel):
+    """Calculates symmetry score for each point of the two distribution
+    Args:
+        dist_l : MQ feature values for left side already controled
+        dist_r : MQ feature values for right side already controled
+    Returns:
+        left_score_fn: interpolation function for left
+        right_score_fn: interpolation function for right
+
+    """
+    kernel = 'gaussian'
+    dist_left = np.sort(dist_l[np.isfinite(dist_l)])
+    dist_right = np.sort(dist_r[np.isfinite(dist_r)])
+
+    # Use sample of points in scoring if above threshold
+    np.random.seed(0115)
+    sample_size = min([len(dist_left), len(dist_right), 10000])
+    dist_l1 = np.random.choice(dist_left, size=sample_size,
+                               replace=False).reshape(-1, 1)
+    dist_r1 = np.random.choice(dist_right, size=sample_size,
+                               replace=False).reshape(-1, 1)
+    #Bandwith needs to be adjusted with the data length and sd of data
+    #using constant for now
+    band_left = 1.06*np.std(dist_l1)*(len(dist_l1))**(-.2)
+    band_right = 1.06*np.std(dist_r1)*(len(dist_r1))**(-.2)
+
+    kernel_density_l = kde(kernel=kernel, bandwidth=band_left, rtol=1E-3,
+                           atol=1E-3).fit(dist_l1)
+    kernel_density_r = kde(kernel=kernel, bandwidth=band_right, rtol=1E-3,
+                           atol=1E-3).fit(dist_r1)
+    #Calculate density estimate for left data under both distribution
+    #and calculate score based on difference and create a dictionary for
+    #mapping
+    len_l = min(len(dist_l1), 1000)
+    sample_left = np.linspace(min(dist_l1), max(dist_l1), len_l).reshape(-1, 1)
+    den_dist_l_kde_l = np.exp(kernel_density_l.score_samples(sample_left))
+    den_dist_l_kde_r = np.exp(kernel_density_r.score_samples(sample_left))
+    dens_left = np.vstack([den_dist_l_kde_l, den_dist_l_kde_r])
+    max_den_left = np.max(dens_left)
+    score_left = (1 - np.abs(den_dist_l_kde_l - den_dist_l_kde_r)/max_den_left)*100
+    left_score_fn = UnivariateSpline(sample_left, score_left)
+
+    # Calculate density estimate for right data under both distribution
+    # and calculate score based on difference and create a dictionary for
+    # mapping
+    len_r = min(len(dist_r1), 1000)
+    sample_right = np.linspace(min(dist_r1), max(dist_r1), len_r).reshape(-1, 1)
+    den_dist_r_kde_l = np.exp(kernel_density_l.score_samples(sample_right))
+    den_dist_r_kde_r = np.exp(kernel_density_r.score_samples(sample_right))
+    dens_right = np.vstack([den_dist_r_kde_l, den_dist_r_kde_r])
+    max_den_right = np.max(dens_right)
+    score_right = (1 - np.abs(den_dist_r_kde_l-den_dist_r_kde_r)/max_den_right)*100
+    right_score_fn = UnivariateSpline(sample_right, score_right)
+
+    return left_score_fn, right_score_fn
 
 
 def _con_fun(dist, double=False):
@@ -166,31 +550,33 @@ def _con_fun(dist, double=False):
         double: Indicator for if the given distribution might have double peaks
 
     Returns:
-        fn: Interpolation mapping function for the given distribution
+        function: Interpolation mapping function for the given distribution
     """
     # get rid of missing values in the provided distribution
     dist = dist[np.isfinite(dist)]
 
     #Limit historical data to 1.5M for memory issue (Will get rid later)
     sample_size = min([len(dist), 1500000])
-    error = 0
+#    error = 0
     try:
         if len(dist) < 5:
             logger.info('Not enough data to create mapping function')
             dist_sorted = np.array([-1, -.5, 0, .5, 1])
             consistency_score = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
-            fn = UnivariateSpline(dist_sorted, consistency_score)
+            function = UnivariateSpline(dist_sorted, consistency_score)
         elif double is False:
             dist = np.random.choice(dist, size=sample_size, replace=False)
             dist_sorted = np.sort(dist)
             var = np.var(dist_sorted)
             sq_dev = (dist_sorted-np.mean(dist_sorted))**2
             # TODO(Dipesh): adjust limits with more data
-            ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
+            ## 95th perc sq_dev is 0, 5th perc sq_dev is 100 and is scaled accordingly
             ratio = sq_dev/(len(dist)*var)
-            consistency_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
+            max_ratio = np.percentile(ratio, 95)
+            min_ratio = np.percentile(ratio, 5)
+            consistency_score = (1-(ratio-min_ratio)/(max_ratio-min_ratio))*100
             #extrapolation is done for values outside the range
-            fn = UnivariateSpline(dist_sorted, consistency_score)
+            function = UnivariateSpline(dist_sorted, consistency_score)
         elif double is True:
             dist = np.random.choice(dist, size=sample_size, replace=False)
             # If we expect the feature to have multiple modes, it's split into two
@@ -206,232 +592,38 @@ def _con_fun(dist, double=False):
                 var = np.var(dist_sorted)
                 sq_dev = (dist_sorted-np.mean(dist_sorted))**2
                 # TODO(Dipesh): adjust limits with more data
-                ##max sq_dev is 0, min sq_dev is 100 and is scaled accordingly
+            ## 95th perc sq_dev is 0, 5th perc sq_dev is 100 and is scaled accordingly
                 ratio = sq_dev/(len(dist)*var)
-                consistency_score = (1-(ratio-min(ratio))/(max(ratio)-min(ratio)))*100
+                max_ratio = np.percentile(ratio, 95)
+                min_ratio = np.percentile(ratio, 5)
+                consistency_score = (1-(ratio-min_ratio)/(max_ratio-min_ratio))*100
                 #extrapolation is done for values outside the range
-                fn = UnivariateSpline(dist_sorted, consistency_score)
+                function = UnivariateSpline(dist_sorted, consistency_score)
             else:
                 sq_dev1 = (sample1 - np.mean(sample1))**2
                 ratio1 = sq_dev1/(len(sample1)*np.var(sample1))
                 sq_dev2 = (sample2 - np.mean(sample2))**2
                 ratio2 = sq_dev2/(len(sample2)*np.var(sample2))
-                score1 = (1 - (ratio1 - min(ratio1))/(max(ratio1) - min(ratio1)))*100
-                score2 = (1 - (ratio2 - min(ratio2))/(max(ratio2) - min(ratio2)))*100
+                max_ratio = np.percentile(ratio1, 95)
+                min_ratio = np.percentile(ratio1, 5)
+                score1 = (1-(ratio1-min_ratio)/(max_ratio-min_ratio))*100
+                max_ratio = np.percentile(ratio2, 95)
+                min_ratio = np.percentile(ratio2, 5)
+                score2 = (1-(ratio2-min_ratio)/(max_ratio-min_ratio))*100
+                # score1 = (1 - (ratio1 - min(ratio1))/(max(ratio1) - min(ratio1)))*100
+                # score2 = (1 - (ratio2 - min(ratio2))/(max(ratio2) - min(ratio2)))*100
                 scores = np.hstack([score1, score2])
                 dist_comb = np.hstack([sample1, sample2])
                 dict_scores = dict(zip(dist_comb, scores))
                 dist_sorted = np.sort(dist_comb)
                 scores_sorted = [dict_scores.get(k, 0) for k in dist_sorted]
-                fn = UnivariateSpline(dist_sorted, scores_sorted)
+                function = UnivariateSpline(dist_sorted, scores_sorted)
     except:
         dist_sorted = np.array([-1, -.5, 0, .5, 1])
         consistency_score = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
-        fn = UnivariateSpline(dist_sorted, consistency_score)
-        error = 1
-    return fn, error
-
-
-def _ankle(aRL, aRR, lPL, lPR, lT, fn_aRL, fn_aRR, fn_lPL, fn_lPR, fn_lT):
-    """Calculates consistency and symmetry score for each ankle features and
-    averages the score for each ankle.
-    Args:
-        aRL : ankle_rot_l
-        aRR : ankle_rot_r
-        lPL : land_pattern_l
-        lPR : land_pattern_r
-        lT : land_time
-        fn_aRL,fn_aRR,fn_lPL,fn_lPR,fn_lT : mapping functions
-    Returns:
-        consistency_lf: consistency averaged over left ankle features
-        consistency_rf: consistency averaged over right ankle features
-        ankle_symmetry: symmetry averaged over ankle features
-    """
-    ##Consistency
-    #Call individual interpolation function for each feature
-    score_aRL = fn_aRL(aRL)
-    score_aRR = fn_aRR(aRR)
-
-    score_lPL = fn_lPL(lPL)
-    score_lPR = fn_lPR(lPR)
-
-    score_lT = fn_lT(lT)
-
-    #Combine scores for left ankle
-    cons_scores_l = np.vstack([score_aRL, score_lPL])
-    #interpolation function is set to extrapolate which might
-    #result in negative scores.
-    cons_scores_l[cons_scores_l > 100] = 100 #set scores higher than 100 to 100
-    cons_scores_l[cons_scores_l <= 0] = 0 #set negative scores to 0
-
-    #Combine score for right ankle
-    cons_scores_r = np.vstack([score_aRR, score_lPR])
-    cons_scores_r[cons_scores_r > 100] = 100
-    cons_scores_r[cons_scores_r <= 0] = 0
-
-    #MQ features with missing values will return 'nan' scores.
-    #ignore those features when averaging
-    consistency_lf = np.nanmean(cons_scores_l, 0)
-    consistency_rf = np.nanmean(cons_scores_r, 0)
-    ankle_cons_scores = np.vstack([cons_scores_l, cons_scores_r, score_lT])
-    ankle_consistency = np.nanmean(ankle_cons_scores, 0)
-    logger.info("ankle consistency completed")
-    #Calculate symmetry scores for ankle features
-    #If all the rows for either left or right features are blank or we have at
-    #most 2 non-empty rows, we cannot score so, nan's are returned as score for
-    #all rows
-    ##Symmetry for ankle rotation
-    if all(np.isnan(aRL)) or all(np.isnan(aRR)):
-        ankle_rot_score = np.zeros(len(aRL))*np.nan
-    elif len(aRL[np.isfinite(aRL)]) < 5 or len(aRR[np.isfinite(aRR)]) < 5:
-        ankle_rot_score = np.zeros(len(aRL))*np.nan
-    else:
-        l_fn_rot, r_fn_rot = _symmetry_score(aRL, aRR)
-        score_rot_l = l_fn_rot(aRL)
-        score_rot_r = r_fn_rot(aRR)
-        scores_rot = np.vstack([score_rot_l, score_rot_r])
-        ankle_rot_score = np.nanmean(scores_rot, 0)
-        ankle_rot_score[ankle_rot_score > 100] = 100
-        ankle_rot_score[ankle_rot_score <= 0] = 0
-    logger.info("ankle rotation symmetry complete")
-
-    # Symmetry score for landing pattern
-    if all(np.isnan(lPL)) or all(np.isnan(lPR)):
-        ankle_pat_score = np.zeros(len(lPL))*np.nan
-    elif len(lPL[np.isfinite(lPL)]) < 5 or len(lPR[np.isfinite(lPR)]) < 5:
-        ankle_pat_score = np.zeros(len(lPL))*np.nan
-    else:
-        l_fn_pat, r_fn_pat = _symmetry_score(lPL, lPR)
-        score_pat_l = l_fn_pat(lPL)
-        score_pat_r = r_fn_pat(lPR)
-        scores_pat = np.vstack([score_pat_l, score_pat_r])
-        ankle_pat_score = np.nanmean(scores_pat, 0)
-        ankle_pat_score[ankle_pat_score > 100] = 100
-        ankle_pat_score[ankle_pat_score <= 0] = 0
-    logger.info("landing pattern symmetry complete")
-    # symmetry score for landing time
-    #subset landing time data to create two distributions to compare
-    #change negative values to positive so both dist are in same range
-    lTL = np.array(np.abs(lT[lT <= 0]))
-    lTR = np.array(lT[lT >= 0])
-
-    if all(np.isnan(lT)):
-        ankle_tim_score = np.zeros(len(lT))*np.nan
-    elif len(lTL[np.isfinite(lTL)]) < 5 or len(lTR[np.isfinite(lTR)]) < 5:
-        ankle_tim_score = np.zeros(len(lT))*np.nan
-    else:
-        l_fn_tim, r_fn_tim = _symmetry_score(lTL, lTR)
-        left = np.array(lT)
-        left[left > 0] = np.nan
-        score_tim_l = l_fn_tim(left)
-        right = np.array(lT)
-        right[right < 0] = np.nan
-        score_tim_r = r_fn_tim(right)
-        scores_tim = np.vstack([score_tim_l, score_tim_r])
-        ankle_tim_score = np.nanmean(scores_tim, 0)
-        ankle_tim_score[ankle_tim_score > 100] = 100
-        ankle_tim_score[ankle_tim_score <= 0] = 0
-    logger.info("landing time symmetry complete")
-    # Aggregate symmetry scores for all four movement features
-    ankle_scores = np.vstack([ankle_rot_score, ankle_pat_score, ankle_tim_score])
-    ankle_symmetry = np.nanmean(ankle_scores, 0)
-
-    return consistency_lf, consistency_rf, ankle_consistency, ankle_symmetry
-
-def _hip(hDL, hDR, fn_hDL, fn_hDR):
-    """Calculates consistency and symmetry score for each hip features and
-    averages the score
-    Args:
-        hDL : hip_drop_l
-        hDR : hip_drop_r
-        fn_hDL,fn_hDR: mapping functions for hDL, hDR
-    Returns:
-        hip_consistency: consistency averaged over all hip features (num 0-100)
-        hip_symmetry: symmetry averaged over all hip features (num 0-100)
-    """
-    #Call individual interpolation function for each feature
-    con_score_hDL = fn_hDL(hDL)
-    con_score_hDR = fn_hDR(hDR)
-
-    con_scores = np.vstack([con_score_hDL, con_score_hDR])
-    #interpolation function is set to extrapolate which might result in
-    #negative scores.
-    con_scores[con_scores > 100] = 100 #set scores higher than 100 to 100
-    con_scores[con_scores <= 0] = 0 #set negative scores to 0
-    #MQ features with missing values will return 'nan' scores.
-    #ignore those features when averaging
-    hip_consistency = np.nanmean(con_scores, 0)
-    #Calculate symmetry scores for hip features
-    #If all the rows for either left or right features are blank or we have at
-    #most 2 non-empty rows, we cannot score so, nan's are returned as score for
-    #all rows
-    if all(np.isnan(hDL)) or all(np.isnan(hDR)):
-        hip_drop_score = np.zeros(len(hDR))*np.nan
-    elif len(hDL[np.isfinite(hDL)]) < 5 or len(hDR[np.isfinite(hDR)]) < 5:
-        hip_drop_score = np.zeros(len(hDL))*np.nan
-    else:
-        l_fn_drop, r_fn_drop = _symmetry_score(hDL, hDR)
-        score_drop_l = l_fn_drop(hDL)
-        score_drop_r = r_fn_drop(hDR)
-        scores_drop = np.vstack([score_drop_l, score_drop_r])
-        hip_drop_score = np.nanmean(scores_drop, 0)
-        hip_drop_score[hip_drop_score > 100] = 100
-        hip_drop_score[hip_drop_score <= 0] = 0
-
-    hip_symmetry = hip_drop_score
-    return hip_consistency, hip_symmetry
-
-
-def _symmetry_score(dist_l, dist_r):
-    """Calculates symmetry score for each point of the two distribution
-    Args:
-        dist_l : MQ feature values for left side already controled
-        dist_r : MQ feature values for right side already controled
-    Returns:
-
-    """
-    dist_left = np.sort(dist_l[np.isfinite(dist_l)])
-    dist_right = np.sort(dist_r[np.isfinite(dist_r)])
-
-    # Use sample of points in scoring if above threshold
-    sample_size = min([len(dist_left), len(dist_right), 100000])
-    dist_l1 = np.random.choice(dist_left, size=sample_size,
-                               replace=False).reshape(-1, 1)
-    dist_r1 = np.random.choice(dist_right, size=sample_size,
-                               replace=False).reshape(-1, 1)
-    #Bandwith needs to be adjusted with the data length and sd of data
-    #using constant for now
-    band_left = 1.06*np.std(dist_l1)*(len(dist_l1))**(-.2)
-    band_right = 1.06*np.std(dist_r1)*(len(dist_r1))**(-.2)
-    kernel_density_l = kde(kernel='gaussian', bandwidth=band_left, rtol=1E-3,
-                           atol=1E-3).fit(dist_l1)
-    kernel_density_r = kde(kernel='gaussian', bandwidth=band_right, rtol=1E-3,
-                           atol=1E-3).fit(dist_r1)
-    #Calculate density estimate for left data under both distribution
-    #and calculate score based on difference and create a dictionary for
-    #mapping
-    len_l = min(len(dist_l1), 2000)
-    sample_left = np.linspace(min(dist_l1), max(dist_l1), len_l).reshape(-1, 1)
-    den_distL_kdeL = np.exp(kernel_density_l.score_samples(sample_left))
-    den_distL_kdeR = np.exp(kernel_density_r.score_samples(sample_left))
-    dens_left = np.vstack([den_distL_kdeL, den_distL_kdeR])
-    max_den_left = np.max(dens_left, 0)
-    score_left = (1 - np.abs(den_distL_kdeL - den_distL_kdeR)/max_den_left)*100
-    left_score_fn = UnivariateSpline(sample_left, score_left)
-
-    #Calculate density estimate for right data under both distribution
-    #and calculate score based on difference and create a dictionary for
-    #mapping
-    len_r = min(len(dist_r1), 2000)
-    sample_right = np.linspace(min(dist_r1), max(dist_r1), len_r).reshape(-1, 1)
-    den_distR_kdeL = np.exp(kernel_density_l.score_samples(sample_right))
-    den_distR_kdeR = np.exp(kernel_density_r.score_samples(sample_right))
-    dens_right = np.vstack([den_distR_kdeL, den_distR_kdeR])
-    max_den_right = np.max(dens_right, 0)
-    score_right = (1 - np.abs(den_distR_kdeL-den_distR_kdeR)/max_den_right)*100
-    right_score_fn = UnivariateSpline(sample_right, score_right)
-
-    return left_score_fn, right_score_fn
+        function = UnivariateSpline(dist_sorted, consistency_score)
+#        error = 1
+    return function
 
 
 if __name__ == '__main__':

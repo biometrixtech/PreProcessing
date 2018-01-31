@@ -34,9 +34,9 @@ jump_thres_takeoff = 1.5 * g
 min_air_time = int(0.16 * hz)
 
 #impact
-neg_thresh = -.45*g  # negative threshold
+neg_thresh = -.75*g  # negative threshold
 pos_thresh = .45*g  # positive threshold
-jump_thresh = 1.25*g
+jump_thresh = 1.5*g
 win = int(0.03*hz)  # sampling window for impact detect
 imp_len = int(0.12*hz) #impact length
 end_imp_thresh = int(0.35*hz)

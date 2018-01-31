@@ -29,8 +29,8 @@ def control_score(LeX, HeX, ReX, phase_lf, phase_rf):
     LeX_copy = np.array(LeX)
     ReX_copy = np.array(ReX)
     HeX_copy = np.array(HeX)
-    LeX_copy[np.array([i not in [0, 1, 4] for i in phase_lf])] = np.nan
-    ReX_copy[np.array([i not in [0, 2, 5] for i in phase_rf])] = np.nan
+    LeX_copy[np.array([i not in [0, 1, 4, 6] for i in phase_lf])] = np.nan
+    ReX_copy[np.array([i not in [0, 2, 5, 7] for i in phase_rf])] = np.nan
     HeX_copy[np.array([i==3 for i in phase_lf])] = np.nan
 
     #TODO(Dipesh) Handle weird jumps in euler angles/ possibly add handling of missing data)    

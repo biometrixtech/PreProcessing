@@ -92,8 +92,8 @@ def script_handler(working_directory, input_data):
         # Prep for session aggregation
         # grf
         total_ind = numpy.array([k != 3 for k in data['phaseLF']])
-        lf_ind = numpy.array([k in [0, 1, 4] for k in data['phaseLF']])
-        rf_ind = numpy.array([k in [0, 2, 5] for k in data['phaseRF']])
+        lf_ind = numpy.array([k in [0, 1, 4, 6] for k in data['phaseLF']])
+        rf_ind = numpy.array([k in [0, 2, 5, 7] for k in data['phaseRF']])
         lf_ground = lf_ind * ~rf_ind  # only lf in ground
         rf_ground = ~lf_ind * rf_ind  # only rf in ground
 

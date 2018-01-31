@@ -312,7 +312,6 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     return sdata
 
 
-
 def apply_acceleration_normalisation(sdata):
     # Remove the effects of gravity
     sdata.LaZ -= 9.80665
@@ -320,6 +319,40 @@ def apply_acceleration_normalisation(sdata):
     sdata.RaZ -= 9.80665
     return sdata
 
+def flag_data_quality(data, filename): 
+    big_jump = 30 
+    baseline_az = np.nanmean(data.loc[0:100, ['LaZ', 'HaZ', 'RaZ']], axis=0).reshape(1, 3) 
+    diff = data.loc[:, ['LaZ', 'HaZ', 'RaZ']].values - baseline_az 
+    high_accel = (diff >= big_jump).astype(int) 
+    for i in range(3): 
+        if high_accel[0, i] == 1: 
+            t_b = 1 
+        else: 
+            t_b = 0 
+        absdiff = np.abs(np.ediff1d(high_accel[:, i], to_begin=t_b)).reshape(-1, 1) 
+        if high_accel[-1, i] == 1: 
+            absdiff = np.concatenate([absdiff,[1]], 0) 
+        ranges = np.where(absdiff == 1)[0].reshape((-1, 2)) 
+        length = ranges[:, 1] - ranges[:, 0] 
+        accel_error_count = len(np.where(length > 10)[0]) 
+        if accel_error_count > 3: 
+            send_notification(filename, accel_error_count) 
+            break 
+ 
+ 
+def send_notification(filename, accel_error_count): 
+    message = 'Possible acceleration issue with file: {}'.format(filename) 
+    subject = 'Accel Data quality: {}'.format(filename) 
+    sns_client = boto3.client('sns') 
+    sns_topic = 'arn:aws:sns:{}:887689817172:data-quality-{}'.format( 
+            os.environ['AWS_DEFAULT_REGION'], 
+            os.environ['ENVIRONMENT'] 
+        )
+    print(sns_topic)
+    response = sns_client.publish(TopicArn=sns_topic, 
+                                  Message=message, 
+                                  Subject=subject) 
+ 
 
 def script_handler(working_directory, file_name, data):
 
@@ -357,7 +390,8 @@ def script_handler(working_directory, file_name, data):
                 logger.warning("Sensor data is empty!", info=False)
                 return "Fail!"
             logger.info("DATA LOADED!")
-
+            #### ADD Checks for weird acceleration jumps 
+            flag_data_quality(sdata, file_name)
             # Output debug CSV
             # fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_pretransform')), 'wb')
             # sdata.to_csv(fileobj, na_rep='', columns=[
@@ -399,6 +433,7 @@ def script_handler(working_directory, file_name, data):
         #### SAVE DEBUG DATA
         import save_file
         save_file.save_file(sdata, file_name)
+ 
         output_data_batch = runAnalytics.run_session(sdata, file_version, mass, grf_fit, sc, hip_n_transform)
 
         # Prepare data for dumping

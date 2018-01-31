@@ -3,7 +3,6 @@ from __future__ import print_function
 import math
 import numpy as np
 
-from exceptions import PlacementDetectionException
 from quatConvs import euler_to_quat, quat_to_euler
 from quatOps import quat_conj, quat_avg
 
@@ -69,7 +68,7 @@ def detect_still(data):
             dummy_balphase += range(i, i + bal_win)
 
     if len(dummy_balphase) == 0:
-        raise PlacementDetectionException('Could not identify a long enough still window')
+        raise Exception('Could not identify a long enough still window')
 
     # determine the unique indexes in the dummy list
     start_bal = np.unique(dummy_balphase)
@@ -84,13 +83,10 @@ def detect_still(data):
     if len(start) != len(end):
         end = np.append(end, len(data))
 
-    if len(end) == 0: # check if any still portion was detected
-        raise Exception('Still portion of data cannot be detected')
-    else:
-        for i in range(len(end)):
-            end[i] = min([end[i], start[i] + 300])
-            if end[i] - start[i] > 150:
-                return start[i], end[i] # return the first section of data where we have enough points
+    for i in range(len(end)):
+        end[i] = min([end[i], start[i] + 300])
+        if end[i] - start[i] >= 150:
+            return start[i], end[i] # return the first section of data where we have enough points
 
 
 def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):

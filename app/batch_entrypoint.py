@@ -162,8 +162,9 @@ def main():
             tmp_combined_file = downloadAndChunk.script_handler(sensor_data_filename)
 
             # Upload combined file back to s3
-            # s3_client = boto3.client('s3')
-            # s3_client.upload_file(tmp_combined_file, s3_bucket, s3_basepath + '_combined')
+            s3_client = boto3.client('s3')
+            s3_bucket = 'biometrix-decode'
+            s3_client.upload_file(tmp_combined_file, s3_bucket, sensor_data_filename + '_combined')
 
             # Create the working directory
             mkdir(working_directory)

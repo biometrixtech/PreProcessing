@@ -8,10 +8,10 @@ Created on Thu Nov 16 12:00:29 2017
 import numpy as np
 import quatOps as qo
 
-
 def extract_geometry(qL, qH, qR):
     '''
-    Function to interpret quaternion data geometrically
+    Function to interpret quaternion data geometrically.
+    Explanation given here: https://sites.google.com/a/biometrixtech.com/wiki/home/preprocessing/anatomical/methods-tried/general-math-methods/geometry-extraction
     
     Args:
         qL = left foot quaternions
