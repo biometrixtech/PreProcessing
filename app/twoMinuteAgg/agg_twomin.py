@@ -87,7 +87,8 @@ def script_handler(working_directory, file_name, input_data):
         user_mass = input_data.get('UserMass', 155) * 4.4482
         date_time = datetime.datetime.strptime(str(pandas.DatetimeIndex(data['timeStamp']).round('1s')[0]),
                                                "%Y-%m-%d %H:%M:%S")
-        event_date = date_time.date()
+        # event_date = date_time.date()
+        event_date = input_data.get('EventDate')
 
         # replace nans with None
         # data = data.where((pandas.notnull(data)), None)
@@ -138,7 +139,7 @@ def script_handler(working_directory, file_name, input_data):
                 print("i: {}".format(i))
                 print("j: {}".format(j))
                 print(len(data_2m))
-            event_date = date_time.date()
+            # event_date = date_time.date()
             start_time = pandas.Timedelta(str(date_time.time()))
 
             # Aggregated values
