@@ -203,7 +203,7 @@ Resources:
                     lambda_client = boto3.client('lambda', region_name='us-west-2')
                     def query(query, parameters):
                         res = json.loads(lambda_client.invoke(
-                            FunctionName='arn:aws:lambda:us-west-2:887689817172:function:preprocessing-dev-pipeline-querypostgres',
+                            FunctionName=os.environ['QUERYPOSTGRES_LAMBDA_ARN'],
                             Payload=json.dumps({
                                 "Queries": [{"Query": query, "Parameters": parameters}],
                                 "Config": {"ENVIRONMENT": os.environ['ENVIRONMENT']}
@@ -257,6 +257,7 @@ Resources:
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
+                    QUERYPOSTGRES_LAMBDA_ARN: { "Fn::ImportValue": { "Fn::Sub": "QuerypostgresLambdaArn-${Environment}" } }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -412,7 +413,7 @@ Resources:
                     def handler(event, context):
                         lambda_client = boto3.client('lambda', region_name='us-west-2')
                         res = json.loads(lambda_client.invoke(
-                            FunctionName='arn:aws:lambda:us-west-2:887689817172:function:preprocessing-dev-pipeline-querypostgres',
+                            FunctionName=os.environ['QUERYPOSTGRES_LAMBDA_ARN'],
                             Payload=json.dumps({
                                 "Queries": [{
                                     "Query": "UPDATE session_events SET session_success=True, updated_at = now() WHERE id = %s",
@@ -428,6 +429,7 @@ Resources:
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
+                    QUERYPOSTGRES_LAMBDA_ARN: { "Fn::ImportValue": { "Fn::Sub": "QuerypostgresLambdaArn-${Environment}" } }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
