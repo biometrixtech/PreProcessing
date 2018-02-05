@@ -381,7 +381,7 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "scoring",
-                                        "Memory": 4096,
+                                        "Memory": 8192,
                                         "Vcpus": 4,
                                     },
                                     "InputPath": "$"
@@ -459,10 +459,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatesession",
-                                        "Memory": 4096,
+                                        "Memory": 8192,
                                         "Vcpus": 4,
-                                        # "Memory": 1024,
-                                        # "Vcpus": 2,
                                     },
                                     "InputPath": "$"
                                 }
@@ -666,8 +664,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcomp",
-                                        "Memory": 2048,
-                                        "Vcpus": 1,
+                                        "Memory": 8192,
+                                        "Vcpus": 4,
                                     },
                                     "InputPath": "$"
                                 }
