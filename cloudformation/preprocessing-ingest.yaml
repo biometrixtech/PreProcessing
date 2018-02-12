@@ -145,20 +145,6 @@ Resources:
                     Effect: "Allow"
                     Resource: { "Fn::GetAtt": [ "SessionEventsTable", "Arn" ] }
 
-    UploadedPacketsTable:
-        Type: "AWS::DynamoDB::Table"
-        Properties:
-            TableName: { "Fn::Sub": "preprocessing-${Environment}-ingest-packets" }
-            AttributeDefinitions:
-              - { AttributeName: "sensorDataFilename", AttributeType: "S" }
-              - { AttributeName: "partUploadTime", AttributeType: "S" }
-            KeySchema:
-              - { AttributeName: "sensorDataFilename", KeyType: "HASH" }
-              - { AttributeName: "partUploadTime", KeyType: "RANGE" }
-            ProvisionedThroughput:
-                ReadCapacityUnits: 1
-                WriteCapacityUnits: 1
-
     ##########################################################################################################
     ##  LAMBDA
     ##########################################################################################################
@@ -237,7 +223,6 @@ Resources:
                             return self._parameters
             Environment:
                 Variables:
-                    DYNAMODB_PARTS_TABLE_NAME: { Ref: "UploadedPacketsTable" }
                     DYNAMODB_SESSION_EVENTS_TABLE_NAME: { Ref: "SessionEventsTable" }
                     ENVIRONMENT: { Ref: "Environment" }
                     STATE_MACHINE_ARN: { Ref: "StateMachineArn" }
