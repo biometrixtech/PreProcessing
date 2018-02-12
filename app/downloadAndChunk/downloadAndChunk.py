@@ -34,7 +34,7 @@ def script_handler(base_name):
             logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
 
         if len(records) == 1:
-            return '/tmp/{}'.format(s3_files[0])
+            return '/tmp/{}'.format(list(s3_files)[0])
         else:
             # Concatenate the files together first
             concat_filename = '/tmp/{}'.format(base_name)
