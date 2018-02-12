@@ -194,14 +194,6 @@ Resources:
                                 # Assume version 2
                                 version = '2.3'
 
-                            ddb_parts_table.put_item(Item={
-                                'sensorDataFilename': s3_basepath,
-                                'partUploadTime': upload_time,
-                                's3Bucket': s3_bucket,
-                                's3Key': s3_key,
-                                'version': version,
-                                'updatedDate': now_time,
-                            })
                             session_event_updates.add("s3Files", {s3_key})
                             session_event_updates.set("updatedDate", now_time)
                             session_event_updates.set("version", version)
