@@ -19,11 +19,11 @@ def script_handler(base_name):
     try:
         dynamodb_resource = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ['ENVIRONMENT']))
         records = _query_dynamodb(dynamodb_resource, Key('id').eq(base_name))
-        logger.info(records)
 
         if len(records) == 0 or 's3Files' not in records[0]:
             logger.info('downloadAndChunk() called, but there are no corresponding upload records')
-        s3_files = records[0]['s3Files']
+        s3_files = sorted(list(records[0]['s3Files']))
+        logger.info(s3_files)
 
         # Download file
         s3_client = boto3.client('s3')
@@ -33,8 +33,8 @@ def script_handler(base_name):
             s3_client.download_file(s3_bucket, s3_key, tmp_filename)
             logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
 
-        if len(records) == 1:
-            return '/tmp/{}'.format(list(s3_files)[0])
+        if len(s3_files) == 1:
+            return '/tmp/{}'.format(s3_files)[0]
         else:
             # Concatenate the files together first
             concat_filename = '/tmp/{}'.format(base_name)
