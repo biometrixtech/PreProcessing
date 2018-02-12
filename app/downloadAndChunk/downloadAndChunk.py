@@ -27,7 +27,7 @@ def script_handler(base_name):
 
         # Download file
         s3_client = boto3.client('s3')
-        s3_bucket = 'biometrix-preprocessing-{}-{}'.format(os.environ['ENVIRONMENT'], os.environ['AWS_REGION'])
+        s3_bucket = 'biometrix-preprocessing-{}-{}'.format(os.environ['ENVIRONMENT'], os.environ['AWS_DEFAULT_REGION'])
         for s3_key in s3_files:
             tmp_filename = '/tmp/' + s3_key
             s3_client.download_file(s3_bucket, s3_key, tmp_filename)
