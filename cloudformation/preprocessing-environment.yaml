@@ -334,3 +334,69 @@ Resources:
             ] }
             TimeoutInMinutes: 10
         Condition: "CreateMonitoring"
+
+    ##########################################################################################################
+    ##  API GATEWAY
+    ##########################################################################################################
+
+    ApiGatewayLambdaExecutionRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "lambda.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+              - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
+              - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/infrastructure-${Environment}-querypostgres" }
+              - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/preprocessing-${Environment}-ingest-sessions-read" }
+            RoleName: { "Fn::Sub": "preprocessing-${Environment}-apigateway-${AWS::Region}" }
+        DependsOn:
+          - "IngestStack"
+
+    ApiGatewayLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                S3Bucket: { "Fn::Sub": "biometrix-infrastructure-${AWS::Region}" }
+                S3Key: { "Fn::Sub": "lambdas/preprocessing-${Environment}/apigateway.zip" }
+            Environment:
+                Variables:
+                    DYNAMODB_TABLENAME_SESSIONS: { "Fn::GetAtt": [ "IngestStack", "Outputs.SessionEventsTableName" ] }
+                    ENVIRONMENT: { Ref: 'Environment' }
+            Handler: "entrypoints.apigateway.handler"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "ApiGatewayLambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-apigateway-execute" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-apigateway-execute" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "apigateway" }
+            TracingConfig:
+                Mode: "Active"
+
+    ApigatewayStack:
+        Type: "AWS::CloudFormation::Stack"
+        Properties:
+            Parameters:
+                Project: "preprocessing"
+                Environment: { Ref: "Environment" }
+                Service: "apigateway"
+                LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
+                CustomAuthLambdaArn: { "Fn::ImportValue": { "Fn::Sub": "users-${Environment}-CustomAuthLambdaArn" } }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-apigateway" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "apigateway" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure-${Environment}/apigateway.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
+            TimeoutInMinutes: 30
