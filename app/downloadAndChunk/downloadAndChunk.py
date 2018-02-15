@@ -17,36 +17,33 @@ def script_handler(base_name):
     logger.info('Running downloadAndChunk on "{}"'.format(base_name))
 
     try:
-        dynamodb_resource = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-packets'.format(os.environ['ENVIRONMENT']))
-        records = _query_dynamodb(dynamodb_resource, Key('sensorDataFilename').eq(base_name))
-        logger.info(records)
+        dynamodb_resource = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ['ENVIRONMENT']))
+        records = _query_dynamodb(dynamodb_resource, Key('id').eq(base_name))
 
-        if len(records) == 0:
+        if len(records) == 0 or 's3Files' not in records[0]:
             logger.info('downloadAndChunk() called, but there are no corresponding upload records')
-
-        s3_client = boto3.client('s3')
+        s3_files = sorted(list(records[0]['s3Files']))
+        logger.info(s3_files)
 
         # Download file
-        for record in records:
-            tmp_filename = '/tmp/' + record['s3Key']
-            s3_client.download_file(
-                record['s3Bucket'],
-                record['s3Key'],
-                tmp_filename,
-            )
-            logger.info('Downloaded "{}/{}" from S3'.format(record['s3Bucket'], record['s3Key']))
+        s3_client = boto3.client('s3')
+        s3_bucket = 'biometrix-preprocessing-{}-{}'.format(os.environ['ENVIRONMENT'], os.environ['AWS_DEFAULT_REGION'])
+        for s3_key in s3_files:
+            tmp_filename = '/tmp/' + s3_key
+            s3_client.download_file(s3_bucket, s3_key, tmp_filename)
+            logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
 
-        if len(records) == 1:
-            return '/tmp/{}'.format(records[0]['s3Key'])
+        if len(s3_files) == 1:
+            return '/tmp/{}'.format(s3_files)[0]
         else:
             # Concatenate the files together first
             concat_filename = '/tmp/{}'.format(base_name)
             logger.info('Concatenating {} chunks to {}'.format(len(records), concat_filename))
-            for record in records:
+            for s3_key in s3_files:
                 # Paranoia since we're injecting this into a shell
-                if not re.match('^[a-z0-9\-_]+$', record['s3Key']):
-                    raise Exception('Insecure S3 key: {}'.format(record['s3Key']))
-                subprocess.check_call('cat /tmp/{} >> {}'.format(record['s3Key'], concat_filename), shell=True)
+                if not re.match('^[a-z0-9\-_]+$', s3_key):
+                    raise Exception('Insecure S3 key: {}'.format(s3_key))
+                subprocess.check_call('cat /tmp/{} >> {}'.format(s3_key, concat_filename), shell=True)
             return concat_filename
 
     except Exception as e:

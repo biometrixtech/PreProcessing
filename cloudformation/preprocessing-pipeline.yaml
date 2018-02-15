@@ -65,6 +65,13 @@ Resources:
                         Effect: "Allow"
                         Resource:
                           - "*" # TODO this should be segregated by environment somehow
+
+                      - Action:
+                          - "dynamodb:PutItem"
+                          - "dynamodb:Query"
+                          - "dynamodb:UpdateItem"
+                        Effect: "Allow"
+                        Resource: { "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/preprocessing-${Environment}-ingest-*" }
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-lambda-${AWS::Region}" }
 
     BatchExecutionRole:
@@ -120,6 +127,7 @@ Resources:
                       - Action:
                           - "dynamodb:PutItem"
                           - "dynamodb:Query"
+                          - "dynamodb:UpdateItem"
                         Effect: "Allow"
                         Resource: { "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/preprocessing-${Environment}-ingest-*" }
 
@@ -155,6 +163,86 @@ Resources:
     ##########################################################################################################
     ##  LAMBDA
     ##########################################################################################################
+
+    LambdaUnpackParallelResults:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: |
+                    def handler(input, _):
+                        for branch in input['_Unpack']:
+                            for k, v in branch.items():
+                                input[k] = v
+                        del input['_Unpack']
+                        return input
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-unpackparallelresults" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-unpackparallelresults" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    LambdaUpdateStatus:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: |
+                    import boto3, os, datetime
+                    from boto3.dynamodb.conditions import Attr
+                    ddb_session_events_table = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_SESSION_EVENTS_TABLE_NAME'])
+
+                    def handler(data, _):
+                        session_event_updates = DynamodbUpdate()
+                        session_event_updates.set("updatedDate", datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+                        session_event_updates.set("sessionStatus", data['SessionStatus'])
+
+                        ddb_session_events_table.update_item(
+                            Key={'id': data['SensorDataFilename']},
+                            ConditionExpression=Attr('id').exists(),
+                            UpdateExpression=session_event_updates.update_expression,
+                            ExpressionAttributeValues=session_event_updates.parameters,
+                        )
+
+                    class DynamodbUpdate:
+                        def __init__(self):
+                            self._add = []
+                            self._set = []
+                            self._parameters = {}
+
+                        def set(self, field, value):
+                            self._set.append("{field} = :{field}".format(field=field))
+                            self._parameters[':' + field] = value
+
+                        def add(self, field, value):
+                            self._add.append("{field} :{field}".format(field=field))
+                            self._parameters[':' + field] = value
+
+                        @property
+                        def update_expression(self):
+                            return 'SET {} '.format(', '.join(self._set)) + (
+                                'ADD {}'.format(', '.join(self._add)) if len(self._add) else '')
+
+                        @property
+                        def parameters(self):
+                            return self._parameters
+            Environment:
+                Variables:
+                    DYNAMODB_SESSION_EVENTS_TABLE_NAME: { "Fn::Sub": "preprocessing-${Environment}-ingest-sessions" }
+                    ENVIRONMENT: { Ref: "Environment" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-updatestatus" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-updatestatus" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
 
     LambdaPrepareDownloadAndChunk:
         Type: "AWS::Lambda::Function"
@@ -823,27 +911,70 @@ Resources:
         Properties:
             DefinitionString: !Sub |
                 {
-                    "StartAt": "BuildDownloadAndChunkContext",
+                    "StartAt": "Start",
                     "States": {
-                        "BuildDownloadAndChunkContext": {
-                            "Type": "Task",
-                            "Resource": "${LambdaPrepareDownloadAndChunk.Arn}",
-                            "ResultPath": "$.DownloadAndChunk",
-                            "Next": "DownloadAndChunk"
+                        "Start": {
+                            "Type": "Parallel",
+                            "Branches": [
+                                {
+                                    "StartAt": "PassStatusInProgress",
+                                    "States": {
+                                        "PassStatusInProgress": {
+                                            "Type": "Pass",
+                                            "Result": "PROCESSING_IN_PROGRESS",
+                                            "ResultPath": "$.SourceEvent.SessionStatus",
+                                            "Next": "MarkProcessingInProgress"
+                                        },
+                                        "MarkProcessingInProgress": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaUpdateStatus.Arn}",
+                                            "InputPath": "$.SourceEvent",
+                                            "OutputPath": null,
+                                            "ResultPath": null,
+                                            "End": true
+                                        }
+                                    }
+                                },
+                                {
+                                    "StartAt": "BuildDownloadAndChunkContext",
+                                    "States": {
+                                        "BuildDownloadAndChunkContext": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaPrepareDownloadAndChunk.Arn}",
+                                            "ResultPath": "$.DownloadAndChunk",
+                                            "Next": "DownloadAndChunk"
+                                        },
+                                        "DownloadAndChunk": {
+                                            "Type": "Task",
+                                            "InputPath": "$.DownloadAndChunk",
+                                            "Resource": "${StepFunctionsActivity}",
+                                            "TimeoutSeconds": 600,
+                                            "HeartbeatSeconds": 600,
+                                            "ResultPath": "$.Output.DownloadAndChunk",
+                                            "OutputPath": "$.Output",
+                                            "End": true
+                                        }
+                                    }
+                                },
+                                {
+                                    "StartAt": "ReadDatabase",
+                                    "States": {
+                                        "ReadDatabase": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaReadPostgres.Arn}",
+                                            "ResultPath": "$.Output.ReadDatabase",
+                                            "OutputPath": "$.Output",
+                                            "End": true
+                                        }
+                                    }
+                                }
+                            ],
+                            "ResultPath": "$._Unpack",
+                            "Next": "UnpackParallelResults1"
                         },
-                        "DownloadAndChunk": {
+                        "UnpackParallelResults1": {
                             "Type": "Task",
-                            "InputPath": "$.DownloadAndChunk",
-                            "Resource": "${StepFunctionsActivity}",
-                            "TimeoutSeconds": 600,
-                            "HeartbeatSeconds": 600,
-                            "ResultPath": "$.DownloadAndChunk",
-                            "Next": "ReadDatabase"
-                        },
-                        "ReadDatabase": {
-                            "Type": "Task",
-                            "Resource": "${LambdaReadPostgres.Arn}",
-                            "ResultPath": "$.ReadDatabase",
+                            "Resource": "${LambdaUnpackParallelResults.Arn}",
                             "Next": "BuildTransformAndPlacementContext"
                         },
                         "BuildTransformAndPlacementContext": {
@@ -1074,14 +1205,64 @@ Resources:
                                             "End": true
                                         }
                                     }
+                                },
+                                {
+                                    "StartAt": "PassStatusComplete",
+                                    "States": {
+                                        "PassStatusComplete": {
+                                            "Type": "Pass",
+                                            "Result": "PROCESSING_COMPLETE",
+                                            "ResultPath": "$.SourceEvent.SessionStatus",
+                                            "Next": "MarkProcessingComplete"
+                                        },
+                                        "MarkProcessingComplete": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaUpdateStatus.Arn}",
+                                            "InputPath": "$.SourceEvent",
+                                            "OutputPath": null,
+                                            "ResultPath": null,
+                                            "End": true
+                                        }
+                                    }
                                 }
                             ],
                             "ResultPath": "$.Cleanup",
                             "End": true
                         },
                         "ExceptionNoHistoricalData": {
-                            "Type": "Task",
-                            "Resource": "${LambdaNotifyFailure.Arn}",
+                            "Type": "Parallel",
+                            "Branches": [
+                                {
+                                    "StartAt": "NotifyFailure",
+                                    "States": {
+                                        "NotifyFailure": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaNotifyFailure.Arn}",
+                                            "End": true
+                                        }
+                                    }
+                                },
+                                {
+                                    "StartAt": "PassStatusFailed",
+                                    "States": {
+                                        "PassStatusFailed": {
+                                            "Type": "Pass",
+                                            "Result": "PROCESSING_FAILED",
+                                            "ResultPath": "$.SourceEvent.SessionStatus",
+                                            "Next": "MarkProcessingFailed"
+                                        },
+                                        "MarkProcessingFailed": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaUpdateStatus.Arn}",
+                                            "InputPath": "$.SourceEvent",
+                                            "OutputPath": null,
+                                            "ResultPath": null,
+                                            "End": true
+                                        }
+                                    }
+                                }
+                            ],
+                            "ResultPath": null,
                             "Next": "ExceptionStop"
                         },
                         "ExceptionStop": {
