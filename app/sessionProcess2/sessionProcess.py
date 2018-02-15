@@ -319,29 +319,29 @@ def apply_acceleration_normalisation(sdata):
     sdata.RaZ -= 9.80665
     return sdata
 
-def flag_data_quality(data, filename): 
-    big_jump = 30 
-    baseline_az = np.nanmean(data.loc[0:100, ['LaZ', 'HaZ', 'RaZ']], axis=0).reshape(1, 3) 
-    diff = data.loc[:, ['LaZ', 'HaZ', 'RaZ']].values - baseline_az 
-    high_accel = (diff >= big_jump).astype(int) 
-    for i in range(3): 
-        if high_accel[0, i] == 1: 
-            t_b = 1 
-        else: 
-            t_b = 0 
-        absdiff = np.abs(np.ediff1d(high_accel[:, i], to_begin=t_b)).reshape(-1, 1) 
-        if high_accel[-1, i] == 1: 
-            absdiff = np.concatenate([absdiff,[1]], 0) 
-        ranges = np.where(absdiff == 1)[0].reshape((-1, 2)) 
-        length = ranges[:, 1] - ranges[:, 0] 
-        accel_error_count = len(np.where(length > 10)[0]) 
-        if accel_error_count > 3: 
-            send_notification(filename, accel_error_count) 
-            break 
+def flag_data_quality(data, filename):
+    big_jump = 30
+    baseline_az = np.nanmean(data.loc[0:100, ['LaZ', 'HaZ', 'RaZ']], axis=0).reshape(1, 3)
+    diff = data.loc[:, ['LaZ', 'HaZ', 'RaZ']].values - baseline_az
+    high_accel = (diff >= big_jump).astype(int)
+    for i in range(3):
+        if high_accel[0, i] == 1:
+            t_b = 1
+        else:
+            t_b = 0
+        absdiff = np.abs(np.ediff1d(high_accel[:, i], to_begin=t_b)).reshape(-1, 1)
+        if high_accel[-1, i] == 1:
+            absdiff = np.concatenate([absdiff, np.array([[1]])], 0)
+        ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+        length = ranges[:, 1] - ranges[:, 0]
+        accel_error_count = len(np.where(length > 10)[0])
+        if accel_error_count > 5:
+            send_notification(filename, accel_error_count)
+            break
  
  
 def send_notification(filename, accel_error_count): 
-    message = 'Possible acceleration issue with file: {}'.format(filename) 
+    message = 'Possible acceleration issue with file: {} with {} instances of possible jumps'.format(filename, accel_error_count) 
     subject = 'Accel Data quality: {}'.format(filename) 
     sns_client = boto3.client('sns') 
     sns_topic = 'arn:aws:sns:{}:887689817172:data-quality-{}'.format( 
