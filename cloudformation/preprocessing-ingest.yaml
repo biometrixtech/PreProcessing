@@ -183,6 +183,7 @@ Resources:
                             session_event_updates.add("s3Files", {s3_key})
                             session_event_updates.set("updatedDate", now_time)
                             session_event_updates.set("version", version)
+                            session_event_updates.set("sessionStatus", 'UPLOAD_IN_PROGRESS')
 
                             if part == 'complete' or version == '1.0':
                                 # Ready for processing
@@ -202,16 +203,16 @@ Resources:
 
                     class DynamodbUpdate:
                         def __init__(self):
-                            self._add = []
-                            self._set = []
+                            self._add = set([])
+                            self._set = set([])
                             self._parameters = {}
 
                         def set(self, field, value):
-                            self._set.append("{field} = :{field}".format(field=field))
+                            self._set.add("{field} = :{field}".format(field=field))
                             self._parameters[':' + field] = value
 
                         def add(self, field, value):
-                            self._add.append("{field} :{field}".format(field=field))
+                            self._add.add("{field} :{field}".format(field=field))
                             self._parameters[':' + field] = value
 
                         @property
