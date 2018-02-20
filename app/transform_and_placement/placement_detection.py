@@ -248,10 +248,11 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
     skew1 = skew(pitch_foot1[np.isfinite(pitch_foot1)])
     skew2 = skew(pitch_foot2[np.isfinite(pitch_foot2)])
     print(skew1, skew2)
+    threshold = 0.35
 
-    if skew1 < -0.5 and skew2 > 0.5:
+    if skew1 < -threshold and skew2 > threshold:
         return True  # foot1 is left, foot2 is right
-    elif skew1 > 0.5 and skew2 < -0.5:
+    elif skew1 > threshold and skew2 < -threshold:
         return False  # foot2 is left, foot1 is right
     else:
         raise PlacementDetectionException('Could not detect left vs right from skew values 1={}, 2={}'.format(skew1, skew2))
