@@ -49,8 +49,8 @@ def compute_transform_from_average(left_quaternion, hip_quaternion, right_quater
 def detect_still(data):
     """Detect part of data with activity for placement detection
     """
-    thresh = 3.  # threshold to detect balance phase
-    bal_win = 150  # sampling window to determine balance phase
+    thresh = 5.  # threshold to detect balance phase
+    bal_win = 125  # sampling window to determine balance phase
     acc_mag_0 = np.sqrt(data.aX0 ** 2 + data.aY0 ** 2 + data.aZ0 ** 2)
     acc_mag_1 = np.sqrt(data.aX1 ** 2 + data.aY1 ** 2 + data.aZ1 ** 2)
     acc_mag_2 = np.sqrt(data.aX2 ** 2 + data.aY2 ** 2 + data.aZ2 ** 2)
@@ -85,7 +85,7 @@ def detect_still(data):
 
     for i in range(len(end)):
         end[i] = min([end[i], start[i] + 300])
-        if end[i] - start[i] >= 150:
+        if end[i] - start[i] >= 125:
             return start[i], end[i] # return the first section of data where we have enough points
 
 
