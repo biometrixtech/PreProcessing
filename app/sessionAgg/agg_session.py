@@ -159,7 +159,7 @@ def script_handler(working_directory, input_data):
         irregular_accel = numpy.nansum(data['irregularAccel'])
 
         # fatigue analysis
-        session_fatigue = _fatigue_analysis(data, var='perc_optimal')
+        start_perc_optimal, session_fatigue = _fatigue_analysis(data, var='perc_optimal')
         print(session_fatigue)
         if numpy.isnan(session_fatigue):
             print('session fatigue nan')
@@ -223,6 +223,7 @@ def script_handler(working_directory, input_data):
         # fatigue data
         record_out['percOptimal'] = perc_optimal_session * 100
         record_out['percIrregular'] = (1 - perc_optimal_session) * 100
+        record_out['startPercOptimal'] = start_perc_optimal
         record_out['sessionFatigue'] = session_fatigue
 
         # enforce validity of scores
@@ -296,9 +297,18 @@ def _fatigue_analysis(data, var):
     """
     data.set_index(pandas.to_datetime(data.epochTime, unit='ms'), drop=False, inplace=True)
     groups = data.resample('2T')
-    series = groups[var].mean() * 100
+    if var == 'perc_optimal':
+        series = groups[var].mean() * 100
+    else:
+        total_grf = groups['total_grf'].sum()
+        series = groups[var].sum() / total_grf
     series = numpy.array(series)
     series = series[~numpy.isnan(series)]
     coefficients = numpy.polyfit(range(len(series)), series, 1)
     fatigue = coefficients[0] * len(series)
-    return fatigue
+    mq_start = coefficients[1]
+    if mq_start > 100:
+        mq_start = 100
+    elif mq_start < 0:
+        mq_start = 0
+    return mq_start, fatigue
