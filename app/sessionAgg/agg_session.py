@@ -159,7 +159,7 @@ def script_handler(working_directory, input_data):
         irregular_accel = numpy.nansum(data['irregularAccel'])
 
         # fatigue analysis
-        start_perc_optimal, session_fatigue = _fatigue_analysis(data, var='perc_optimal')
+        start_movement_quality, session_fatigue = _fatigue_analysis(data, var='perc_optimal')
         # print(session_fatigue)
 
 
@@ -221,7 +221,7 @@ def script_handler(working_directory, input_data):
         # fatigue data
         record_out['percOptimal'] = perc_optimal_session * 100
         record_out['percIrregular'] = (1 - perc_optimal_session) * 100
-        record_out['startPercOptimal'] = start_perc_optimal
+        record_out['startMovementQuality'] = start_movement_quality
         record_out['sessionFatigue'] = session_fatigue
 
         # enforce validity of scores
@@ -310,11 +310,11 @@ def _fatigue_analysis(data, var):
         fatigue = None
 
     # use intercept for start
-    mq_start = coefficients[1]
-    if numpy.isnan(mq_start):
-        mq_start = None
-    elif mq_start > 100:
-        mq_start = 100
-    elif mq_start < 0:
-        mq_start = 0
-    return mq_start, fatigue
+    start = coefficients[1]
+    if numpy.isnan(start):
+        start = None
+    elif start > 100:
+        start = 100
+    elif start < 0:
+        start = 0
+    return start, fatigue

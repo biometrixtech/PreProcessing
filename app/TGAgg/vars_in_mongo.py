@@ -39,7 +39,7 @@ tg_vars = ['teamId',
            'controlRF',
            'percOptimal',
            'percIrregular',
-           'startPercOptimal',
+           'startMovementQuality',
            'fatigue']
 
 athlete_vars = ['teamId',
@@ -76,7 +76,7 @@ athlete_vars = ['teamId',
                 'controlRF',
                 'percOptimal',
                 'percIrregular',
-                'startPercOptimal',
+                'startMovementQuality',
                 'fatigue',
                 'ACWRGRF7',
                 'ACWRTotalAccel7',]

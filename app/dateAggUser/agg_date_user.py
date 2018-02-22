@@ -144,7 +144,7 @@ def script_handler(input_data):
         # fatigue data
         record_out['percOptimal'] = current_day['percOptimal']
         record_out['percIrregular'] = current_day['percIrregular']
-        record_out['startPercOptimal'] = current_day['startPercOptimal']
+        record_out['startMovementQuality'] = current_day['startMovementQuality']
         record_out['fatigue'] = current_day['fatigue']
 
         # ACWR
@@ -274,7 +274,7 @@ def _get_session_data(collection, user_id, event_date):
                             'singleLegGRF': {'$sum': '$singleLegGRF'},
                             'percLeftGRF': weighted_sum('percLeftGRF', 'singleLegGRF'),
                             'percRightGRF': weighted_sum('percRightGRF', 'singleLegGRF'),
-                            'startPercOptimal': {'$avg': '$startPercOptimal'},
+                            'startMovementQuality': {'$avg': '$startMovementQuality'},
                             'fatigue': {'$avg': '$sessionFatigue'},
                             'totalAccel': {'$sum': '$totalAccel'},
                             'irregularAccel': {'$sum': '$irregularAccel'},
@@ -309,7 +309,7 @@ def _get_session_data(collection, user_id, event_date):
                              'singleLegGRF': {'$cond': [{'$eq': ['$singleLegGRF', 0]}, None, '$singleLegGRF']},
                              'percOptimal': get_perc_optimal(),
                              'percIrregular': get_perc_irregular(),
-                             'startPercOptimal': 1,
+                             'startMovementQuality': 1,
                              'fatigue': 1,
                              'hipSymmetry': divide('hipSymmetry', 'totalAccel'),
                              'ankleSymmetry': divide('ankleSymmetry', 'totalAccel'),
