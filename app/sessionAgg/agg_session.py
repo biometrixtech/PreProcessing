@@ -160,10 +160,8 @@ def script_handler(working_directory, input_data):
 
         # fatigue analysis
         start_perc_optimal, session_fatigue = _fatigue_analysis(data, var='perc_optimal')
-        print(session_fatigue)
-        if numpy.isnan(session_fatigue):
-            print('session fatigue nan')
-            session_fatigue = 0
+        # print(session_fatigue)
+
 
         # create ordered dictionary object
         # current variables
@@ -305,9 +303,17 @@ def _fatigue_analysis(data, var):
     series = numpy.array(series)
     series = series[~numpy.isnan(series)]
     coefficients = numpy.polyfit(range(len(series)), series, 1)
+
+    # slope * len for total change
     fatigue = coefficients[0] * len(series)
+    if numpy.isnan(fatigue):
+        fatigue = None
+
+    # use intercept for start
     mq_start = coefficients[1]
-    if mq_start > 100:
+    if numpy.isnan(mq_start):
+        mq_start = None
+    elif mq_start > 100:
         mq_start = 100
     elif mq_start < 0:
         mq_start = 0
