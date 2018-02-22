@@ -38,6 +38,7 @@ team_vars = ['teamId',
              'controlRF',
              'percOptimal',
              'percIrregular',
+             'startPercOptimal',
              'fatigue']
 
 team_twomin_vars = ['twoMinuteIndex',
@@ -106,6 +107,7 @@ athlete_vars = ['teamId',
                 'controlRF',
                 'percOptimal',
                 'percIrregular',
+                'startPercOptimal',
                 'fatigue',
                 'ACWRGRF7',
                 'ACWRTotalAccel7',]
