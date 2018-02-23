@@ -344,7 +344,7 @@ def send_notification(filename, accel_error_count):
     message = 'Possible acceleration issue with file: {} with {} instances of possible jumps'.format(filename, accel_error_count) 
     subject = 'Accel Data quality: {}'.format(filename) 
     sns_client = boto3.client('sns') 
-    sns_topic = 'arn:aws:sns:{}:887689817172:data-quality-{}'.format( 
+    sns_topic = 'arn:aws:sns:{}:887689817172:preprocessing-{}-dataquality'.format(
             os.environ['AWS_DEFAULT_REGION'], 
             os.environ['ENVIRONMENT'] 
         )
