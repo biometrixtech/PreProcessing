@@ -520,6 +520,32 @@ Resources:
                             "region": "${AWS::Region}",
                             "title": "Batch Process Time"
                         }
+                    },
+                    {
+                        "type": "metric",
+                        "x": 0,
+                        "y": 30,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "view": "timeSeries",
+                            "stacked": false,
+                            "metrics": [
+                                [
+                                    "AWS/DynamoDB", "ProvisionedWriteCapacityUnits",
+                                    "TableName", "preprocessing-${Environment}-ingest-sessions",
+                                    { "period": 300 }
+                                ],
+                                [ ".", "ConsumedWriteCapacityUnits", ".", ".", { "period": 60 } ]
+                            ],
+                            "region": "us-west-2",
+                            "period": 300,
+                            "yAxis": {
+                                "left": {
+                                    "min": 0
+                                }
+                            }
+                        }
                     }
                 ] }
 

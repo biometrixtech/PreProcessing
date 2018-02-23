@@ -103,6 +103,12 @@ Parameters:
         Default: ""
         Description: "A definition JSON string for autoscaling the compute cluster"
 
+    DynamodbWriteCapacity:
+        Default: 1
+        Description: "The write capacity of the DynamoDb table"
+        MinValue: 1
+        Type: "Number"
+
 Metadata:
     "AWS::CloudFormation::Interface":
         ParameterGroups:
@@ -267,6 +273,7 @@ Resources:
         Type: "AWS::CloudFormation::Stack"
         Properties:
             Parameters:
+                DynamodbWriteCapacity: { Ref: "DynamodbWriteCapacity" }
                 Environment: { Ref: "Environment" }
                 # We can't use a { Ref: "S3Bucket" } because CloudFormation notices it as a circular dependency
                 S3BucketName: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}" }

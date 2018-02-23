@@ -19,6 +19,12 @@ Parameters:
         Type: "String"
         Description: "The ARN of the State Machine"
 
+    DynamodbWriteCapacity:
+        Default: 1
+        Description: "The write capacity of the DynamoDb table"
+        MinValue: 1
+        Type: "Number"
+
 Metadata:
     "AWS::CloudFormation::Interface":
         ParameterLabels:
@@ -83,7 +89,7 @@ Resources:
               - { AttributeName: "id", KeyType: "HASH" }
             ProvisionedThroughput:
                 ReadCapacityUnits: 1
-                WriteCapacityUnits: 1
+                WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
             GlobalSecondaryIndexes:
               - IndexName: "userId-eventDate"
                 KeySchema:
