@@ -905,6 +905,20 @@ Resources:
             DisplayName: "PreProcessing data quality issue notifications"
             TopicName: { "Fn::Sub": "preprocessing-${Environment}-dataquality" }
 
+    SnsDataQualitySubscriptionDipesh:
+        Type: "AWS::SNS::Subscription"
+        Properties:
+            Endpoint: { "Fn::Sub": "dipesh+dataquality-${Environment}@fathomai.com" }
+            Protocol: "email"
+            TopicArn: { Ref: "SnsDataQualityTopic" }
+
+    SnsDataQualitySubscriptionGabby:
+        Type: "AWS::SNS::Subscription"
+        Properties:
+            Endpoint: { "Fn::Sub": "gabby+dataquality-${Environment}@fathomai.com" }
+            Protocol: "email"
+            TopicArn: { Ref: "SnsDataQualityTopic" }
+
     ##########################################################################################################
     ##  STEP FUNCTIONS
     ##########################################################################################################
