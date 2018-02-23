@@ -162,7 +162,6 @@ Resources:
                 ZipFile: |
                     import boto3, os, datetime
                     from boto3.dynamodb.conditions import Attr
-                    ddb_parts_table = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_PARTS_TABLE_NAME'])
                     ddb_session_events_table = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_SESSION_EVENTS_TABLE_NAME'])
 
                     def handler(event, _):
