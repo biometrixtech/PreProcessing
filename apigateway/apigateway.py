@@ -61,13 +61,13 @@ def handle_session_create():
     )
     store.put(session)
     # TODO save sensors
-    return json.dumps({'session': session}, default=json_serialise)
+    return json.dumps({'session': session}, default=json_serialise), 201
 
 
 @app.route('/v1/session/<session_id>', methods=['GET'])
 def handle_session_get(session_id):
     store = SessionDatastore()
-    session = store.get(session_id=session_id)
+    session = store.get(session_id=session_id)[0]
     return json.dumps({'session': session}, default=json_serialise)
 
 
@@ -89,9 +89,11 @@ def handle_session_upload(session_id):
     s3_client = boto3.client('s3')
     s3_client.upload_file(
         '/tmp/binary',
-        os.environ['S3_PREPROCESSING_INGEST_BUCKET_NAME'],
-        'scratch/' + '{}_{}'.format(session_id, part_number)
+        os.environ['S3_INGEST_BUCKET_NAME'],
+        '{}_{}'.format(session_id, part_number)
     )
+
+    return json.dumps({'session': session}, default=json_serialise)
 
 
 @xray_recorder.capture('entrypoints.apigateway.get_notifications_for_date_and_access')

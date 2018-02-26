@@ -44,9 +44,9 @@ A `Session` object __will__ have the following schema:
 ```
 {
 	"session_id": Uuid,
-	"event_ate": Datetime,
-	"created_at": Datetime,
-	"updated_at": Datetime,
+	"event_date": Datetime,
+	"created_date": Datetime,
+	"updated_date": Datetime,
 	"session_status": string
 }
 ```
@@ -73,13 +73,13 @@ The client __must__ submit a request body containing a JSON object with the foll
 
 ```
 {
-    "sensors": [ string ],
+    "sensors": [ MacAddress, MacAddress, MacAddress ],
     "event_date": Datetime
 }
 ```
 
-* `sensors` __must__ be a list of strings, each of which is the ID of a sensor from which data is being collected.
-* `event_date` __must__ be a string in ISO8601 datetime format, this __should__ reflect the time that the practice session began.
+* `sensors` __must__ be a list of exactly three MacAddresses, each of which is the ID of a sensor from which data is being collected.
+* `event_date` __should__ reflect the time that the practice session began.
 
 ```
 POST /v1/session HTTP/1.1
