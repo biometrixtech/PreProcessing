@@ -107,3 +107,44 @@ Authorization: eyJraWQ...ajBc4VQ
     "session": Session
 }
 ```
+
+#### Upload data
+
+This endpoint can be called to upload data for the session.
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/session/<session_id>/upload`, where `session_id` __must__ be a Uuid of a previously-created session.
+
+##### Request
+
+Exceptionally, this endpoint accepts data in binary format instead of JSON. The client __must__ submit a `Content-Type` header of `application/octet-stream`, and binary data in the body of the request.
+
+```
+POST /v1/session/92d694eb-3d53-46fa-8b14-746c9b5380ef/upload HTTP/1.1
+Host: hardware.env.fathomai.com
+Content-Type: application/octet-stream
+Authorization: eyJraWQ...ajBc4VQ
+
+[raw bytes]
+```
+
+The size of the request body __must not__ exceed 8MB.
+
+Clients __should not__ repeat upload requests which have previously succeeded, but __may__ retry requests for which an error response, or no response at all, was received. 
+
+Clients __must not__ attempt an upload request for a session which has previously been successfully [marked as upload completed](#Completing data upload).
+
+##### Responses
+ 
+ If the upload was successful, the Service __will__ respond with HTTP Status `200 OK`, and with a body with the following syntax:
+ 
+```
+{
+    "session": Session
+}
+```
+ 
+If the request was not successful, the Service __may__ respond with:
+
+* `406 Not Acceptable`, with a `Status` header equal to `InvalidContent`, if the body of the request was not correctly encoded.
