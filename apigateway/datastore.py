@@ -21,31 +21,6 @@ class Datastore(object):
 
 
 class DynamodbDatastore(Datastore):
-    @xray_recorder.capture('datastore.DynamodbDatastore.get')
-    def get(self, event_date, status=None, user_id=None, team_id=None, training_group_id=None):
-        if isinstance(event_date, tuple):
-            kcx = Key('eventDate').between(event_date[0], event_date[1])
-        else:
-            kcx = Key('eventDate').eq(event_date)
-
-        if user_id is not None:
-            kcx = kcx & Key('userId').eq(user_id)
-            index_name = 'userId-eventDate'
-        elif team_id is not None:
-            kcx = kcx & Key('teamId').eq(team_id)
-            index_name = 'teamId-eventDate'
-        elif training_group_id is not None:
-            kcx = kcx & Key('trainingGroupId').eq(training_group_id)
-            index_name = 'trainingGroupId-eventDate'
-        else:
-            raise Exception('One of user_id, team_id, training_group_id must be specified')
-
-        if status is not None:
-            fx = Attr('sessionStatus').eq(status)
-        else:
-            fx = Attr('sessionStatus').exists()
-
-        return self._query_dynamodb(index_name, key_condition_expression=kcx, filter_expression=fx)
 
     def put(self, alerts):
         if not isinstance(alerts, list):
@@ -54,32 +29,32 @@ class DynamodbDatastore(Datastore):
             self._put_dynamodb(alert)
 
     def _query_dynamodb(self, index_name, key_condition_expression, filter_expression=None, exclusive_start_key=None):
-        ret = self._get_dynamodb_resource().query(
-            IndexName=index_name if index_name else None,
-            Select='ALL_ATTRIBUTES',
-            Limit=10000,
-            ConsistentRead=False,
-            ReturnConsumedCapacity='INDEXES',
-            KeyConditionExpression=key_condition_expression,
-            FilterExpression=filter_expression,
-            # ExclusiveStartKey=exclusive_start_key,
-        )
+        # This nasty splatting is required because boto3 chokes on trying to set things like IndexName to None if you
+        # don't want an index, you have to not pass the parameter at all
+        ret = self._get_dynamodb_resource().query(**{k: v for k, v in {
+            'IndexName': index_name if index_name else None,
+            'Select': 'ALL_ATTRIBUTES',
+            'Limit': 10000,
+            'ConsistentRead': False,
+            'ReturnConsumedCapacity': 'INDEXES',
+            'KeyConditionExpression': key_condition_expression,
+            'FilterExpression': filter_expression,
+            'ExclusiveStartKey': exclusive_start_key,
+        }.items() if v is not None})
 
         # TODO make use of the metrics in ret['Count'] vs ret['ScannedCount'], and ret['ConsumedCapacity']
 
         if 'LastEvaluatedKey' in ret:
             # There are more records to be scanned
-            # TODO
-            raise Exception('Not supported')
-            # items = ret['Items'] + self._query_dynamodb(index_name, key_condition_expression, filter_expression, ret['LastEvaluatedKey'])
+            items = ret['Items'] + self._query_dynamodb(index_name, key_condition_expression, filter_expression, ret['LastEvaluatedKey'])
         else:
             # No more items
             items = ret['Items']
 
         return [self.item_from_dynamodb(item) for item in items]
 
-    def _put_dynamodb(self, alert):
-        item = self.item_to_dynamodb(alert)
+    def _put_dynamodb(self, item):
+        item = self.item_to_dynamodb(item)
         response = self._get_dynamodb_resource().put_item(
             Item=item,
             ReturnConsumedCapacity='INDEXES',
@@ -110,6 +85,39 @@ class DynamodbDatastore(Datastore):
 
 
 class SessionDatastore(DynamodbDatastore):
+
+    @xray_recorder.capture('datastore.DynamodbDatastore.get')
+    def get(self, *, session_id=None, event_date=None, status=None, user_id=None, team_id=None, training_group_id=None):
+        if session_id is not None:
+            kcx = Key('id').eq(session_id)
+            fx = Attr('sessionStatus').exists()
+            index_name = None
+
+        else:
+            if isinstance(event_date, tuple):
+                kcx = Key('eventDate').between(event_date[0], event_date[1])
+            else:
+                kcx = Key('eventDate').eq(event_date)
+
+            if user_id is not None:
+                kcx = kcx & Key('userId').eq(user_id)
+                index_name = 'userId-eventDate'
+            elif team_id is not None:
+                kcx = kcx & Key('teamId').eq(team_id)
+                index_name = 'teamId-eventDate'
+            elif training_group_id is not None:
+                kcx = kcx & Key('trainingGroupId').eq(training_group_id)
+                index_name = 'trainingGroupId-eventDate'
+            else:
+                raise Exception('One of user_id, team_id, training_group_id must be specified')
+
+            if status is not None:
+                fx = Attr('sessionStatus').eq(status)
+            else:
+                fx = Attr('sessionStatus').exists()
+
+        return self._query_dynamodb(index_name, key_condition_expression=kcx, filter_expression=fx)
+
     @staticmethod
     def item_to_dynamodb(session):
         item = {
@@ -125,7 +133,7 @@ class SessionDatastore(DynamodbDatastore):
             's3Files': session.s3_files,
         }
 
-        return item
+        return {k: v for k, v in item.items() if v}
 
     @staticmethod
     def item_from_dynamodb(item):

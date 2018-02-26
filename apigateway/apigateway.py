@@ -1,13 +1,19 @@
 from flask import request
 from flask_lambda import FlaskLambda
 from serialisable import json_serialise
+import base64
 import boto3
+import datetime
 import json
 import jwt
 import os
 import sys
+import time
+import uuid
 from exceptions import ApplicationException, InvalidSchemaException
+from datastore import SessionDatastore
 from aws_xray_sdk.core import xray_recorder, patch_all
+from session import Session
 
 patch_all()
 app = FlaskLambda(__name__)
@@ -32,9 +38,64 @@ def handle_status():
     return json.dumps(ret, sort_keys=True, default=json_serialise)
 
 
+@app.route('/v1/session', methods=['POST'])
+def handle_session_create():
+    if 'event_date' not in request.json:
+        raise InvalidSchemaException('Missing required parameter event_date')
+    if 'sensors' not in request.json:
+        raise InvalidSchemaException('Missing required parameter sensors')
+
+    store = SessionDatastore()
+    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    session = Session(
+        session_id=str(uuid.uuid4()),
+        user_id=None,  # TODO
+        team_id=None,  # TODO
+        training_group_ids=None,
+        event_date=request.json['event_date'],
+        session_status='CREATE_COMPLETE',
+        created_date=now,
+        updated_date=now,
+        version='2.3',
+        s3_files=None
+    )
+    store.put(session)
+    # TODO save sensors
+    return json.dumps({'session': session}, default=json_serialise)
+
+
+@app.route('/v1/session/<session_id>', methods=['GET'])
+def handle_session_get(session_id):
+    store = SessionDatastore()
+    session = store.get(session_id=session_id)
+    return json.dumps({'session': session}, default=json_serialise)
+
+
+@app.route('/v1/session/<session_id>/upload', methods=['POST'])
+def handle_session_upload(session_id):
+    if request.headers['Content-Type'] != 'application/octet-stream':
+        raise ApplicationException(415, 'UnsupportedContentType', 'This endpoint requires the Content-Type application/octet-stream')
+
+    store = SessionDatastore()
+    session = store.get(session_id=session_id)
+    print(session)
+    part_number = str(int(time.mktime(datetime.datetime.now().timetuple())))
+    print(part_number)
+
+    with open('/tmp/binary', 'wb') as f:
+        f.write(base64.b64decode(request.get_data()))
+
+    # For now, we integrate with the ingest subservice by saving the file to the S3 ingest bucket.
+    s3_client = boto3.client('s3')
+    s3_client.upload_file(
+        '/tmp/binary',
+        os.environ['S3_PREPROCESSING_INGEST_BUCKET_NAME'],
+        'scratch/' + '{}_{}'.format(session_id, part_number)
+    )
+
+
 @xray_recorder.capture('entrypoints.apigateway.get_notifications_for_date_and_access')
 def get_sessions_for_date_and_access(start_date, end_date, allowed_users, allowed_teams, allowed_training_groups):
-    from datastore import SessionDatastore
     from operator import attrgetter
 
     event_date = start_date if start_date == end_date else (start_date, end_date)
@@ -107,7 +168,7 @@ def handle_unrecognised_endpoint(_):
 
 @app.errorhandler(ApplicationException)
 def handle_application_exception(e):
-    print('appexc')
+    print(e)
     return json.dumps({'message': e.message}, default=json_serialise), e.status_code, {'Status': e.status_code_text}
 
 
