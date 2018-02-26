@@ -89,7 +89,7 @@ def script_handler(working_directory, input_data):
 
         # Prep for session aggregation
         # grf
-        total_ind = numpy.array([k != 3 for k in data['phaseLF']])
+        total_ind = numpy.array([numpy.isfinite(k) for k in data['constructive']])
         lf_ind = numpy.array([k in [0, 1, 4, 6] for k in data['phaseLF']])
         rf_ind = numpy.array([k in [0, 2, 5, 7] for k in data['phaseRF']])
         lf_ground = lf_ind * ~rf_ind  # only lf in ground
@@ -135,6 +135,13 @@ def script_handler(working_directory, input_data):
         perc_left_grf = lf_only_grf / lf_rf_grf * 100
         perc_right_grf = rf_only_grf / lf_rf_grf * 100
         perc_distr = numpy.abs(perc_left_grf - perc_right_grf)
+
+        # update perc_optimal to take into account grf distribution
+        perc_optimal_session = (2. * perc_optimal_session + (1. - perc_distr / 100.) ) / 3.
+        # update optimal and irregular grf with new definition of perc_optimal
+        const_grf = perc_optimal_session * total_grf
+        dest_grf = (1. - perc_optimal_session) * total_grf
+
         # control aggregation
         control = numpy.sum(data['control']*data['total_grf']) / total_grf
         hip_control = numpy.sum(data['hipControl']*data['total_grf']) / total_grf
