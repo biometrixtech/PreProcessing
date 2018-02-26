@@ -1,54 +1,35 @@
+from flask import request
+from flask_lambda import FlaskLambda
 from serialisable import json_serialise
-from collections import OrderedDict
 import boto3
 import json
-import logging
+import jwt
 import os
 import sys
-
+from exceptions import ApplicationException, InvalidSchemaException
 from aws_xray_sdk.core import xray_recorder, patch_all
+
 patch_all()
-
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+app = FlaskLambda(__name__)
 
 
-class ApplicationException(Exception):
-    pass
+@app.route('/v1/status', methods=['POST'])
+def handle_status():
+    access = get_authorisation_from_auth(request.headers['Authorization'])
+    print(json.dumps(access))
+    sessions = get_sessions_for_date_and_access(
+        request.json['startDate'],
+        request.json['endDate'],
+        access['user_ids'],
+        access['team_ids'],
+        access['training_group_ids']
+    )
+    ret = {'Sessions': {}}
+    for status in ['UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS', 'PROCESSING_COMPLETE', 'PROCESSING_FAILED']:
+        ret['Sessions'][status] = [s for s in sessions if s.session_status == status]
+    print(ret)
 
-
-def handler(event, _):
-    try:
-        logger.info(json.dumps(event))
-
-        endpoint = event['endpoint']
-        body = event['body-json']
-
-        if endpoint == 'Status':
-            access = get_authorisation_from_auth(event['auth'])
-            logger.info(json.dumps(access))
-            sessions = get_sessions_for_date_and_access(
-                body['startDate'],
-                body['endDate'],
-                access['user_ids'],
-                access['team_ids'],
-                access['training_group_ids']
-            )
-            ret = {'Sessions': {}}
-            for status in ['UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS', 'PROCESSING_COMPLETE', 'PROCESSING_FAILED']:
-                ret['Sessions'][status] = [s for s in sessions if s.session_status == status]
-        else:
-            raise ApplicationException("UnrecognisedEndpoint")
-
-        # Round-trip through our JSON serialiser to make it parseable by AWS's
-        return json.loads(json.dumps(ret, sort_keys=True, default=json_serialise), object_pairs_hook=OrderedDict)
-
-    except ApplicationException:
-        raise
-    except BaseException as e:
-        tb = sys.exc_info()[2]
-        raise ApplicationException("ServerError --> {}: {}".format(type(e).__name__, e)).with_traceback(tb)
+    return json.dumps(ret, sort_keys=True, default=json_serialise)
 
 
 @xray_recorder.capture('entrypoints.apigateway.get_notifications_for_date_and_access')
@@ -69,7 +50,9 @@ def get_sessions_for_date_and_access(start_date, end_date, allowed_users, allowe
 
 @xray_recorder.capture('entrypoints.apigateway.get_authorisation_from_auth')
 def get_authorisation_from_auth(auth):
-    user_id = auth['principal']
+    jwt_token = jwt.decode(auth, verify=False)
+    print(jwt_token)
+    user_id = jwt_token['sub'].split(':')[-1]
     query_results = query_postgres(
         """SELECT
           teams_users.team_id AS team_id,
@@ -106,8 +89,36 @@ def query_postgres(query, parameters):
         return result if len(result) else []
 
 
-def assert_valid_body(body, schema):
-    # TODO
-    if False:
-        raise ApplicationException("InvalidBody")
-    pass
+@app.errorhandler(500)
+def handle_server_error(e):
+    tb = sys.exc_info()[2]
+    return json.dumps({'message': str(e.with_traceback(tb))}, default=json_serialise), 500, {'Status': type(e).__name__}
+
+
+@app.errorhandler(404)
+def handle_unrecognised_endpoint(_):
+    return '{"message": "You must specify an endpoint"}', 404, {'Status': 'UnrecognisedEndpoint'}
+
+
+@app.errorhandler(405)
+def handle_unrecognised_endpoint(_):
+    return '{"message": "The method is not allowed for the requested URL."}', 405, {'Status': 'MethodNotSupported'}
+
+
+@app.errorhandler(ApplicationException)
+def handle_application_exception(e):
+    print('appexc')
+    return json.dumps({'message': e.message}, default=json_serialise), e.status_code, {'Status': e.status_code_text}
+
+
+def handler(event, context):
+    print(json.dumps(event))
+    ret = app(event, context)
+    ret['headers']['Content-Type'] = 'application/json'
+    # Round-trip through our JSON serialiser to make it parseable by AWS's
+    print(ret)
+    return json.loads(json.dumps(ret, sort_keys=True, default=json_serialise))
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

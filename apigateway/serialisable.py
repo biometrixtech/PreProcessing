@@ -25,4 +25,6 @@ def json_serialise(obj):
         return str(obj)
     if isinstance(obj, set):
         return list(obj)
+    if isinstance(obj, bytes):
+        return obj.decode('utf-8')
     raise TypeError("Type {} is not serializable".format(type(obj).__name__))
