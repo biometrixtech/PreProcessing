@@ -134,7 +134,9 @@ Resources:
                       - "dynamodb:GetItem"
                       - "dynamodb:Query"
                     Effect: "Allow"
-                    Resource: { "Fn::GetAtt": [ "SessionEventsTable", "Arn" ] }
+                    Resource:
+                      - { "Fn::Sub": "${SessionEventsTable.Arn}" }
+                      - { "Fn::Sub": "${SessionEventsTable.Arn}/*" }
 
     SessionEventsWritePolicy:
         Type: "AWS::IAM::ManagedPolicy"
@@ -149,7 +151,9 @@ Resources:
                       - "dynamodb:UpdateItem"
                       - "dynamodb:DeleteItem"
                     Effect: "Allow"
-                    Resource: { "Fn::GetAtt": [ "SessionEventsTable", "Arn" ] }
+                    Resource:
+                      - { "Fn::Sub": "${SessionEventsTable.Arn}" }
+                      - { "Fn::Sub": "${SessionEventsTable.Arn}/*" }
 
     ##########################################################################################################
     ##  LAMBDA
