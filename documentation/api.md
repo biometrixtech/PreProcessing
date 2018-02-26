@@ -148,3 +148,52 @@ Clients __must not__ attempt an upload request for a session which has previousl
 If the request was not successful, the Service __may__ respond with:
 
 * `406 Not Acceptable`, with a `Status` header equal to `InvalidContent`, if the body of the request was not correctly encoded.
+
+#### Completing data upload
+
+Once all the data from a session has been uploaded, the client __should__ use this endpoint to mark the upload as complete; the Service __may__ then begin processing and analysing the data.
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/session/<session_id>`, where `session_id` __must__ be the UUID of a previously-created session.  The HTTP method __must__ be `PATCH`.
+
+##### Request
+
+The client __must__ submit a request body containing a JSON object with the following schema:
+
+```
+{
+    "session_status": "UPLOAD_COMPLETE"
+}
+```
+
+* `session_status` __must__ be the string `UPLOAD_COMPLETE`.
+
+```
+PATCH /v1/session/92d694eb-3d53-46fa-8b14-746c9b5380ef HTTP/1.1
+Host: hardware.env.fathomai.com
+Content-Type: application/json
+Authorization: eyJraWQ...ajBc4VQ
+
+{
+    "session_status": "UPLOAD_COMPLETE"
+}
+
+```
+
+##### Response
+
+If the request was successful, the Service __will__ respond with HTTP Status `200 OK`, and with a body with the following syntax:
+
+```
+{
+    "session": Session
+}
+```
+
+Where the `session_status` field __will not__ be `UPLOAD_IN_PROGRESS` or `CREATE_COMPLETE` (and __should__ be `UPLOAD_COMPLETE`, unless processing of the file has already begun).
+ 
+If the request was not successful, the Service __may__ respond with:
+
+* `400 Bad Request`, with a `Status` header equal to `NoData`, if the Service has not received any data uploads for this session.
+

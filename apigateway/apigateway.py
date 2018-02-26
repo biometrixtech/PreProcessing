@@ -96,6 +96,18 @@ def handle_session_upload(session_id):
     return json.dumps({'session': session}, default=json_serialise)
 
 
+@app.route('/v1/session/<session_id>', methods=['PATCH'])
+def handle_session_patch(session_id):
+    store = SessionDatastore()
+    session = store.get(session_id=session_id)[0]
+
+    if 'session_status' in request.json and request.json['session_status'] == 'UPLOAD_COMPLETE':
+        session.session_status = 'UPLOAD_COMPLETE'
+
+    store.put(session)
+    return json.dumps({'session': session}, default=json_serialise)
+
+
 @xray_recorder.capture('entrypoints.apigateway.get_notifications_for_date_and_access')
 def get_sessions_for_date_and_access(start_date, end_date, allowed_users, allowed_teams, allowed_training_groups):
     from operator import attrgetter
