@@ -22,11 +22,11 @@ class Datastore(object):
 
 class DynamodbDatastore(Datastore):
 
-    def put(self, alerts):
-        if not isinstance(alerts, list):
-            alerts = [alerts]
-        for alert in alerts:
-            self._put_dynamodb(alert)
+    def put(self, items):
+        if not isinstance(items, list):
+            items = [items]
+        for item in items:
+            self._put_dynamodb(item)
 
     def _query_dynamodb(self, index_name, key_condition_expression, filter_expression=None, exclusive_start_key=None):
         # This nasty splatting is required because boto3 chokes on trying to set things like IndexName to None if you
