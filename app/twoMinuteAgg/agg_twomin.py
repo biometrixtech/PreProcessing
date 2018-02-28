@@ -178,7 +178,7 @@ def script_handler(working_directory, file_name, input_data):
                 perc_distr = numpy.abs(perc_left_grf - perc_right_grf) 
 
             # update perc_optimal to take into account grf distribution
-            perc_optimal_twomin = (2. * perc_optimal_twomin + (1. - perc_distr / 100.) ) / 3.
+            perc_optimal_twomin = (2. * perc_optimal_twomin + (1. - perc_distr / 100.)**2 ) / 3.
             # update optimal and irregular grf with new definition of perc_optimal
             const_grf = perc_optimal_twomin * total_grf
             dest_grf = (1. - perc_optimal_twomin) * total_grf

@@ -163,7 +163,7 @@ def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         rf_only_grf = prog_comp['rf_only_grf'].sum()
         perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100
         perc_distr[numpy.isnan(perc_distr)] = 0.
-        prog_comp_grf['percOptimal'] = (2. * percOptimal + (100. - perc_distr)) / 3.
+        prog_comp_grf['percOptimal'] = (2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
         prog_comp_grf['percIrregular'] = 100. - prog_comp_grf['percOptimal']
         prog_comp_grf.columns = prog_comp_columns
         # use new definition of percOptimal in optimal and irregular GRF
@@ -201,7 +201,7 @@ def _accel_prog_comp(data, agg_vars, prog_comp_columns):
         rf_only_grf = prog_comp['rf_only_grf'].sum()
         perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100
         perc_distr[numpy.isnan(perc_distr)] = 0.
-        prog_comp_accel['percOptimal'] = (2. * percOptimal + (100. - perc_distr)) / 3.
+        prog_comp_accel['percOptimal'] = ((2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
         prog_comp_accel['percIrregular'] = 100. - prog_comp_accel['percOptimal']
         prog_comp_accel.columns = prog_comp_columns
 
@@ -241,7 +241,7 @@ def _plane_prog_comp(data, agg_vars, prog_comp_columns):
         rf_only_grf = pc['rf_only_grf'].sum()
         perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100.
         perc_distr[numpy.isnan(perc_distr)] = 0.
-        pc_plane['percOptimal'] = (2. * percOptimal + (100. - perc_distr)) / 3.
+        pc_plane['percOptimal'] = (2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
         pc_plane['percIrregular'] = 100. - pc_plane['percOptimal']
         pc_plane.columns = prog_comp_columns
 
@@ -301,7 +301,7 @@ def _stance_prog_comp(data, agg_vars, prog_comp_columns):
         rf_only_grf = pc['rf_only_grf'].sum()
         perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100
         perc_distr[numpy.isnan(perc_distr)] = 0.
-        pc_stance['percOptimal'] = (2. * percOptimal + (100. - perc_distr)) / 3.
+        pc_stance['percOptimal'] = (2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
         pc_stance['percIrregular'] = 100. - pc_stance['percOptimal']
         pc_stance.columns = prog_comp_columns
 
