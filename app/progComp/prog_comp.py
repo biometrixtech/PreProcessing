@@ -120,6 +120,12 @@ def script_handler(working_directory, input_data):
         # logger.info("Filtered out null values")
         total_ind = numpy.array([numpy.isfinite(k) for k in data['constructive']])
         data['total'] = data['total'].fillna(value=numpy.nan) * total_ind
+        lf_ind = numpy.array([k in [0, 1, 4, 6] for k in data['phaseLF']])
+        rf_ind = numpy.array([k in [0, 2, 5, 7] for k in data['phaseRF']])
+        lf_ground = lf_ind * ~rf_ind  # only lf in ground
+        rf_ground = ~lf_ind * rf_ind  # only rf in ground
+        data['lf_only_grf'] = data['total'].fillna(value=numpy.nan) * lf_ground
+        data['rf_only_grf'] = data['total'].fillna(value=numpy.nan) * rf_ground
 
         # get program compositions
         data_out['grfProgramComposition'] = _grf_prog_comp(data, data_out['userMass'], agg_vars,
@@ -201,7 +207,7 @@ def _accel_prog_comp(data, agg_vars, prog_comp_columns):
         rf_only_grf = prog_comp['rf_only_grf'].sum()
         perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100
         perc_distr[numpy.isnan(perc_distr)] = 0.
-        prog_comp_accel['percOptimal'] = ((2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
+        prog_comp_accel['percOptimal'] = (2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
         prog_comp_accel['percIrregular'] = 100. - prog_comp_accel['percOptimal']
         prog_comp_accel.columns = prog_comp_columns
 
