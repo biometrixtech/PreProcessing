@@ -122,7 +122,9 @@ Resources:
                       - Action:
                           - "sns:Publish"
                         Effect: "Allow"
-                        Resource: { "Fn::Sub": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:alerts-${Environment}-trigger" }
+                        Resource:
+                          - { "Fn::Sub": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:alerts-${Environment}-trigger" }
+                          - { Ref: "SnsDataQualityTopic" }
 
                       - Action:
                           - "dynamodb:PutItem"
@@ -896,6 +898,26 @@ Resources:
         Properties:
             DisplayName: "Biometrix preprocessing failure notification"
             TopicName: { "Fn::Sub": "preprocessing-${Environment}-failure" }
+
+    SnsDataQualityTopic:
+        Type: "AWS::SNS::Topic"
+        Properties:
+            DisplayName: "PreProcessing data quality issue notifications"
+            TopicName: { "Fn::Sub": "preprocessing-${Environment}-dataquality" }
+
+    SnsDataQualitySubscriptionDipesh:
+        Type: "AWS::SNS::Subscription"
+        Properties:
+            Endpoint: { "Fn::Sub": "dipesh+dataquality-${Environment}@fathomai.com" }
+            Protocol: "email"
+            TopicArn: { Ref: "SnsDataQualityTopic" }
+
+    SnsDataQualitySubscriptionGabby:
+        Type: "AWS::SNS::Subscription"
+        Properties:
+            Endpoint: { "Fn::Sub": "gabby+dataquality-${Environment}@fathomai.com" }
+            Protocol: "email"
+            TopicArn: { Ref: "SnsDataQualityTopic" }
 
     ##########################################################################################################
     ##  STEP FUNCTIONS
