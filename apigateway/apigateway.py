@@ -127,7 +127,11 @@ def get_sessions_for_date_and_access(start_date, end_date, allowed_users, allowe
 def get_authorisation_from_auth(auth):
     jwt_token = jwt.decode(auth, verify=False)
     print(jwt_token)
-    user_id = jwt_token['sub'].split(':')[-1]
+    if 'sub' in jwt_token:
+        user_id = jwt_token['sub'].split(':')[-1]
+    else:
+        user_id = jwt_token['user_id']
+
     query_results = query_postgres(
         """SELECT
           teams_users.team_id AS team_id,
