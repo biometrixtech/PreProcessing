@@ -114,9 +114,9 @@ def get_sessions_for_date_and_access(start_date, end_date, allowed_users, allowe
 
     event_date = start_date if start_date == end_date else (start_date, end_date)
     store = SessionDatastore()
-    user_sessions = [session for i in allowed_users for session in store.get(event_date, user_id=i)]
-    team_sessions = [session for i in allowed_teams for session in store.get(event_date, team_id=i)]
-    tg_sessions = [session for i in allowed_training_groups for session in store.get(event_date, training_group_id=i)]
+    user_sessions = [session for i in allowed_users for session in store.get(event_date=event_date, user_id=i)]
+    team_sessions = [session for i in allowed_teams for session in store.get(event_date=event_date, team_id=i)]
+    tg_sessions = [session for i in allowed_training_groups for session in store.get(event_date=event_date, training_group_id=i)]
 
     all_sessions = sorted(user_sessions + team_sessions + tg_sessions, key=attrgetter('event_date'))
 
