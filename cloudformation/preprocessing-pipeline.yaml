@@ -917,15 +917,15 @@ Resources:
                             "Type": "Parallel",
                             "Branches": [
                                 {
-                                    "StartAt": "PassStatusInProgress",
+                                    "StartAt": "PassStatus0",
                                     "States": {
-                                        "PassStatusInProgress": {
+                                        "PassStatus0": {
                                             "Type": "Pass",
                                             "Result": "PROCESSING_IN_PROGRESS",
                                             "ResultPath": "$.SourceEvent.SessionStatus",
-                                            "Next": "MarkProcessingInProgress"
+                                            "Next": "UpdateStatus0"
                                         },
-                                        "MarkProcessingInProgress": {
+                                        "UpdateStatus0": {
                                             "Type": "Task",
                                             "Resource": "${LambdaUpdateStatus.Arn}",
                                             "InputPath": "$.SourceEvent",
@@ -969,6 +969,13 @@ Resources:
                                     }
                                 }
                             ],
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionFailProcessing",
+                                    "ResultPath": "$._ExceptionOutput"
+                                }
+                            ],
                             "ResultPath": "$._Unpack",
                             "Next": "UnpackParallelResults1"
                         },
@@ -989,6 +996,13 @@ Resources:
                             "Resource": "${StepFunctionsActivity}",
                             "TimeoutSeconds": 600,
                             "HeartbeatSeconds": 600,
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionFailProcessing",
+                                    "ResultPath": "$._ExceptionOutput"
+                                }
+                            ],
                             "ResultPath": "$.TransformAndPlacement",
                             "Next": "BuildSessionProcess2Context"
                         },
@@ -1004,6 +1018,13 @@ Resources:
                             "Resource": "${StepFunctionsActivity}",
                             "TimeoutSeconds": 600,
                             "HeartbeatSeconds": 600,
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionFailProcessing",
+                                    "ResultPath": "$._ExceptionOutput"
+                                }
+                            ],
                             "ResultPath": "$.SessionProcess2",
                             "Next": "BuildScoringContext"
                         },
@@ -1022,7 +1043,12 @@ Resources:
                             "Catch": [
                                 {
                                     "ErrorEquals": [ "NoHistoricalDataException" ],
-                                    "Next": "ExceptionNoHistoricalData",
+                                    "Next": "ExceptionSkipProcessing",
+                                    "ResultPath": "$._ExceptionOutput"
+                                },
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionFailProcessing",
                                     "ResultPath": "$._ExceptionOutput"
                                 }
                             ],
@@ -1133,6 +1159,13 @@ Resources:
                                     }
                                 }
                             ],
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionFailProcessing",
+                                    "ResultPath": "$._ExceptionOutput"
+                                }
+                            ],
                             "ResultPath": null,
                             "Next": "Aggregate2"
                         },
@@ -1178,6 +1211,13 @@ Resources:
                                             "End": true
                                         }
                                     }
+                                }
+                            ],
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionFailProcessing",
+                                    "ResultPath": "$._ExceptionOutput"
                                 }
                             ],
                             "ResultPath": null,
@@ -1229,13 +1269,13 @@ Resources:
                             "ResultPath": "$.Cleanup",
                             "End": true
                         },
-                        "ExceptionNoHistoricalData": {
+                        "ExceptionSkipProcessing": {
                             "Type": "Parallel",
                             "Branches": [
                                 {
-                                    "StartAt": "NotifyFailure",
+                                    "StartAt": "NotifyFailure0",
                                     "States": {
-                                        "NotifyFailure": {
+                                        "NotifyFailure0": {
                                             "Type": "Task",
                                             "Resource": "${LambdaNotifyFailure.Arn}",
                                             "End": true
@@ -1243,15 +1283,51 @@ Resources:
                                     }
                                 },
                                 {
-                                    "StartAt": "PassStatusFailed",
+                                    "StartAt": "PassStatus1",
                                     "States": {
-                                        "PassStatusFailed": {
+                                        "PassStatus1": {
+                                            "Type": "Pass",
+                                            "Result": "PROCESSING_SKIPPED",
+                                            "ResultPath": "$.SourceEvent.SessionStatus",
+                                            "Next": "UpdateStatus1"
+                                        },
+                                        "UpdateStatus1": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaUpdateStatus.Arn}",
+                                            "InputPath": "$.SourceEvent",
+                                            "OutputPath": null,
+                                            "ResultPath": null,
+                                            "End": true
+                                        }
+                                    }
+                                }
+                            ],
+                            "ResultPath": null,
+                            "Next": "ExceptionStop"
+                        },
+                        "ExceptionFailProcessing": {
+                            "Type": "Parallel",
+                            "Branches": [
+                                {
+                                    "StartAt": "NotifyFailure1",
+                                    "States": {
+                                        "NotifyFailure1": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaNotifyFailure.Arn}",
+                                            "End": true
+                                        }
+                                    }
+                                },
+                                {
+                                    "StartAt": "PassStatus2",
+                                    "States": {
+                                        "PassStatus2": {
                                             "Type": "Pass",
                                             "Result": "PROCESSING_FAILED",
                                             "ResultPath": "$.SourceEvent.SessionStatus",
-                                            "Next": "MarkProcessingFailed"
+                                            "Next": "UpdateStatus2"
                                         },
-                                        "MarkProcessingFailed": {
+                                        "UpdateStatus2": {
                                             "Type": "Task",
                                             "Resource": "${LambdaUpdateStatus.Arn}",
                                             "InputPath": "$.SourceEvent",
