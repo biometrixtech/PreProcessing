@@ -193,7 +193,12 @@ def handle_application_exception(e):
 def handler(event, context):
     print(json.dumps(event))
     ret = app(event, context)
-    ret['headers']['Content-Type'] = 'application/json'
+    ret['headers'].update({
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Methods': 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
+        'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Origin': '*',
+    })
     # Round-trip through our JSON serialiser to make it parseable by AWS's
     print(ret)
     return json.loads(json.dumps(ret, sort_keys=True, default=json_serialise))
