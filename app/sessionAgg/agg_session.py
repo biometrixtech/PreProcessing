@@ -112,7 +112,10 @@ def script_handler(working_directory, input_data):
         total_grf = numpy.sum(data['total_grf'])
         const_grf = numpy.nansum(data['const_grf'])
         dest_grf = numpy.nansum(data['dest_grf'])
-        perc_optimal_session = const_grf / (const_grf + dest_grf)
+        if const_grf == 0 and dest_grf == 0:
+            perc_optimal_session = 1.
+        else:
+            perc_optimal_session = const_grf / (const_grf + dest_grf)
         if total_grf == 0 or numpy.isnan(total_grf):
             total_grf = 1e-6
         lf_grf = numpy.sum(data['lf_grf'])
@@ -163,7 +166,8 @@ def script_handler(working_directory, input_data):
 
         # acceleration aggregation
         total_accel = numpy.nansum(data['totalAccel'])
-        irregular_accel = numpy.nansum(data['irregularAccel'])
+        irregular_accel = total_accel * (1 - perc_optimal_session)
+        # irregular_accel = numpy.nansum(data['irregularAccel'])
 
         # fatigue analysis
         start_movement_quality, session_fatigue = _fatigue_analysis(data, var='perc_optimal')
