@@ -24,8 +24,8 @@ def handle_status():
     access = get_authorisation_from_auth(request.headers['Authorization'])
     print(json.dumps(access))
     sessions = get_sessions_for_date_and_access(
-        request.json['startDate'],
-        request.json['endDate'],
+        request.json['start_date'],
+        request.json['end_date'],
         access['user_ids'],
         access['team_ids'],
         access['training_group_ids']
