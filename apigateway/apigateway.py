@@ -20,6 +20,7 @@ app = FlaskLambda(__name__)
 
 
 @app.route('/v1/status', methods=['POST'])
+@app.route('/preprocessing/status', methods=['POST'])
 def handle_status():
     access = get_authorisation_from_auth(request.headers['Authorization'])
     print(json.dumps(access))
@@ -39,6 +40,7 @@ def handle_status():
 
 
 @app.route('/v1/session', methods=['POST'])
+@app.route('/preprocessing/session', methods=['POST'])
 def handle_session_create():
     if 'event_date' not in request.json:
         raise InvalidSchemaException('Missing required parameter event_date')
@@ -65,6 +67,7 @@ def handle_session_create():
 
 
 @app.route('/v1/session/<session_id>', methods=['GET'])
+@app.route('/preprocessing/session/<session_id>', methods=['GET'])
 def handle_session_get(session_id):
     store = SessionDatastore()
     session = store.get(session_id=session_id)[0]
@@ -97,6 +100,7 @@ def handle_session_upload(session_id):
 
 
 @app.route('/v1/session/<session_id>', methods=['PATCH'])
+@app.route('/preprocessing/session/<session_id>', methods=['PATCH'])
 def handle_session_patch(session_id):
     store = SessionDatastore()
     session = store.get(session_id=session_id)[0]
