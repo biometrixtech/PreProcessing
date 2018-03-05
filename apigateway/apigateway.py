@@ -31,9 +31,9 @@ def handle_status():
         access['team_ids'],
         access['training_group_ids']
     )
-    ret = {'Sessions': {}}
+    ret = {'sessions': {}}
     for status in ['UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS', 'PROCESSING_COMPLETE', 'PROCESSING_FAILED']:
-        ret['Sessions'][status] = [s for s in sessions if s.session_status == status]
+        ret['sessions'][status] = [s for s in sessions if s.session_status == status]
     print(ret)
 
     return json.dumps(ret, sort_keys=True, default=json_serialise)
