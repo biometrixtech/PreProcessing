@@ -83,19 +83,16 @@ def handle_session_upload(session_id):
 
     session = get_session_by_id(session_id)
 
-    part_number = str(int(time.mktime(datetime.datetime.now().timetuple())))
-    print(part_number)
+    part_number = str(int(datetime.datetime.now().timestamp() * 1000))
 
     with open('/tmp/binary', 'wb') as f:
         f.write(base64.b64decode(request.get_data()))
 
     # For now, we integrate with the ingest subservice by saving the file to the S3 ingest bucket.
-    s3_client = boto3.client('s3')
-    s3_client.upload_file(
-        '/tmp/binary',
-        os.environ['S3_INGEST_BUCKET_NAME'],
-        '{}_{}'.format(session_id, part_number)
-    )
+    s3_bucket = os.environ['S3_INGEST_BUCKET_NAME']
+    s3_key = '{}_{}'.format(session.session_id, part_number)
+    print('Uploading to s3://{}/{}'.format(s3_bucket, s3_key))
+    boto3.client('s3').upload_file('/tmp/binary', s3_bucket, s3_key)
 
     return json.dumps({'session': session}, default=json_serialise)
 
