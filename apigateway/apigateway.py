@@ -106,7 +106,7 @@ def handle_session_patch(session_id):
     if 'session_status' in request.json and request.json['session_status'] == 'UPLOAD_COMPLETE':
         session.session_status = 'UPLOAD_COMPLETE'
 
-    store.put(session)
+    store.put(session, True)
     return json.dumps({'session': session}, default=json_serialise)
 
 

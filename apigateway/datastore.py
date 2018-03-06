@@ -22,11 +22,11 @@ class Datastore(object):
 
 class DynamodbDatastore(Datastore):
 
-    def put(self, items):
+    def put(self, items, allow_patch=False):
         if not isinstance(items, list):
             items = [items]
         for item in items:
-            self._put_dynamodb(item)
+            self._put_dynamodb(item, allow_patch)
 
     def _query_dynamodb(self, index_name, key_condition_expression, filter_expression=None, exclusive_start_key=None):
         # This nasty splatting is required because boto3 chokes on trying to set things like IndexName to None if you
@@ -53,13 +53,14 @@ class DynamodbDatastore(Datastore):
 
         return [self.item_from_dynamodb(item) for item in items]
 
-    def _put_dynamodb(self, item):
+    def _put_dynamodb(self, item, allow_patch=False):
         item = self.item_to_dynamodb(item)
+        cx = Attr('id').not_exists() | Attr('id').exists() if allow_patch else Attr('id').not_exists()
         response = self._get_dynamodb_resource().put_item(
             Item=item,
             ReturnConsumedCapacity='INDEXES',
             ReturnItemCollectionMetrics='SIZE',
-            ConditionExpression=Attr('id').not_exists(),
+            ConditionExpression=cx,
         )
 
         # TODO make use of the metrics in response['ConsumedCapacity']
