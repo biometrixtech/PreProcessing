@@ -104,22 +104,22 @@ Resources:
                     sfn_client = boto3.client('stepfunctions')
 
                     def handler(_, __):
-                        # Batch desired CPU
-                        data = batch_client.describe_compute_environments(computeEnvironments=[os.environ['BATCH_COMPUTE_ENVIRONMENT']])['computeEnvironments'][0]
-                        desired_vcpus = data['computeResources']['desiredvCpus']
-                        put_metric('BatchComputeEnvironmentDesiredCpus', desired_vcpus)
+                        batch_desired_vcpus = batch_client.describe_compute_environments(computeEnvironments=[os.environ['BATCH_COMPUTE_ENVIRONMENT']])['computeEnvironments'][0]['computeResources']['desiredvCpus']
+                        put_metric('BatchComputeEnvironmentDesiredCpus', batch_desired_vcpus)
 
-                        # Batch actual CPU
-                        container_instance_arns = [arn for arn in ecs_client.list_container_instances(cluster=os.environ['BATCH_ECS_CLUSTER'])['containerInstanceArns']]
-                        ec2_instances = [instance['ec2InstanceId'] for instance in ecs_client.describe_container_instances(cluster=os.environ['BATCH_ECS_CLUSTER'], containerInstances=container_instance_arns)['containerInstances']]
-                        data = ec2_client.describe_instances(InstanceIds=ec2_instances, Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])['Reservations']
-                        instance_data = {'c4\.8xlarge': 36, "m4\.10xlarge": 40, '..\.32xlarge': 128, '..\.16xlarge': 64, '..\.8xlarge': 32, '..\.4xlarge': 16, '..\.2xlarge': 8, '..\.xlarge': 4, '..\.large': 2, '..\.medium': 1, }
-                        def get_cpu(t):
-                            for r, v in instance_data.items():
-                                if re.match(r, t):
-                                    return v
-                        actual_cpus = sum([get_cpu(instance['InstanceType']) for reservation in data for instance in reservation['Instances']])
-                        put_metric('BatchComputeEnvironmentActualCpus', actual_cpus)
+                        try:
+                            container_instance_arns = [arn for arn in ecs_client.list_container_instances(cluster=os.environ['BATCH_ECS_CLUSTER'])['containerInstanceArns']]
+                            ec2_instances = [instance['ec2InstanceId'] for instance in ecs_client.describe_container_instances(cluster=os.environ['BATCH_ECS_CLUSTER'], containerInstances=container_instance_arns)['containerInstances']]
+                            data = ec2_client.describe_instances(InstanceIds=ec2_instances, Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])['Reservations']
+                            instance_data = {'c4\.8xlarge': 36, "m4\.10xlarge": 40, '..\.32xlarge': 128, '..\.16xlarge': 64, '..\.8xlarge': 32, '..\.4xlarge': 16, '..\.2xlarge': 8, '..\.xlarge': 4, '..\.large': 2, '..\.medium': 1, }
+                            def get_cpu(t):
+                                for r, v in instance_data.items():
+                                    if re.match(r, t):
+                                        return v
+                            batch_actual_cpus = sum([get_cpu(instance['InstanceType']) for reservation in data for instance in reservation['Instances']])
+                            put_metric('BatchComputeEnvironmentActualCpus', batch_actual_cpus)
+                        except:
+                            pass
 
                         # Batch jobs by status
                         for group, statuses in {'SCHEDULED': ['SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING'], 'RUNNING': ['RUNNING'], 'SUCCEEDED': ['SUCCEEDED'], 'FAILED': ['FAILED']}.items():
