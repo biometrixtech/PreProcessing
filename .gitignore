@@ -8,3 +8,9 @@ app/Under_Construction/integration_testing/*/*.pyc
 .DS_Store
 cache/pip/*
 !cache/pip/empty
+
+apigateway/*
+!apigateway/entrypoints
+!apigateway/*.py
+!apigateway/pip_requirements
+!apigateway/schemas
