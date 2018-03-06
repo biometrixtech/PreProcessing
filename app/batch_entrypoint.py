@@ -252,8 +252,8 @@ def main():
 
         elif script == 'dataquality':
             print('Running dataquality()')
-            from dataquality import dataquality
-            dataquality.script_handler(filestore)
+            from dataquality.dataquality import DataQuality
+            DataQuality(filestore).run()
             send_success(meta_data, {})
 
         elif script == 'aggregatesession':
