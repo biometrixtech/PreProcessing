@@ -10,7 +10,7 @@ import os
 import sys
 import time
 import uuid
-from exceptions import ApplicationException, InvalidSchemaException
+from exceptions import ApplicationException, InvalidSchemaException, NoSuchEntityException, UnauthorizedException
 from datastore import SessionDatastore
 from aws_xray_sdk.core import xray_recorder, patch_all
 from session import Session
@@ -136,40 +136,28 @@ def get_authorisation_from_auth(auth):
     else:
         user_id = jwt_token['user_id']
 
-    query_results = query_postgres(
-        """SELECT
-          teams_users.team_id AS team_id,
-          training_groups_users.training_group_id AS training_group_id
-        FROM users
-        LEFT JOIN teams_users ON teams_users.user_id = users.id
-        LEFT JOIN training_groups_users ON training_groups_users.user_id=users.id
-        WHERE users.id = %s
-        AND users.role > 1""",
-        [user_id]
+    user_res = requests.get(
+        'https://users.{ENVIRONMENT}.fathomai.com/v1/user/{USER_ID}'.format(**os.environ, USER_ID=user_id),
+        headers={
+            'Authorization': get_api_service_token(),
+            'Accept': 'application/json'
+        }
     )
-    ret = {
-        'user_ids': [user_id],
-        'team_ids': list(set([row.get('team_id') for row in query_results])),
-        'training_group_ids': list(set([row.get('team_id') for row in query_results])),
-    }
-    return ret
-
-
-@xray_recorder.capture('entrypoints.apigateway.query_postgres')
-def query_postgres(query, parameters):
-    lambda_client = boto3.client('lambda', region_name=os.environ['AWS_REGION'])
-    res = json.loads(lambda_client.invoke(
-        FunctionName='arn:aws:lambda:us-west-2:887689817172:function:infrastructure-dev-querypostgres',
-        Payload=json.dumps({
-            "Queries": [{"Query": query, "Parameters": parameters}],
-            "Config": {"ENVIRONMENT": os.environ['ENVIRONMENT']}
-        }),
-    )['Payload'].read().decode('utf-8'))
-    result, error = res['Results'][0], res['Errors'][0]
-    if error is not None:
-        raise Exception(error)
+    if user_res.status_code == 200:
+        user = user_res.json()['user']
     else:
-        return result if len(result) else []
+        raise UnauthorizedException()
+
+    return {
+        'user_ids': [user['user_id']],
+        'team_ids': [user['team_id']] if user['role'] > 1 else [],
+        'training_group_ids': [user['training_group_ids']] if user['role'] > 1 else [],
+    }
+
+
+def get_api_service_token():
+    # TODO
+    return jwt.encode({'sub': '00000000-0000-4000-8000-000000000000'}, 'secret', algorithm='HS256')
 
 
 @app.errorhandler(500)
