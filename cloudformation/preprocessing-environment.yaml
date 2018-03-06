@@ -374,7 +374,7 @@ Resources:
                 Variables:
                     DYNAMODB_TABLENAME_SESSIONS: { "Fn::GetAtt": [ "IngestStack", "Outputs.SessionEventsTableName" ] }
                     ENVIRONMENT: { Ref: 'Environment' }
-            Handler: "entrypoints.apigateway.handler"
+            Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"
             Role: { "Fn::GetAtt" : [ "ApiGatewayLambdaExecutionRole", "Arn" ] }
