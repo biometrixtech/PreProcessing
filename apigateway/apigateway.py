@@ -1,6 +1,6 @@
+from aws_xray_sdk.core import xray_recorder, patch_all
 from flask import request
 from flask_lambda import FlaskLambda
-from serialisable import json_serialise
 import base64
 import boto3
 import datetime
@@ -11,9 +11,10 @@ import requests
 import sys
 import time
 import uuid
+
 from exceptions import ApplicationException, InvalidSchemaException, NoSuchEntityException, UnauthorizedException
 from datastore import SessionDatastore
-from aws_xray_sdk.core import xray_recorder, patch_all
+from serialisable import json_serialise
 from session import Session
 
 patch_all()
