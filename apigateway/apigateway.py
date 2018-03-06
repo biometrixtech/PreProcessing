@@ -75,6 +75,7 @@ def handle_session_get(session_id):
 
 
 @app.route('/v1/session/<session_id>/upload', methods=['POST'])
+@app.route('/preprocessing/session/<session_id>/upload', methods=['POST'])
 def handle_session_upload(session_id):
     if request.headers['Content-Type'] != 'application/octet-stream':
         raise ApplicationException(415, 'UnsupportedContentType', 'This endpoint requires the Content-Type application/octet-stream')
@@ -172,7 +173,7 @@ def handle_unrecognised_endpoint(_):
 
 
 @app.errorhandler(405)
-def handle_unrecognised_endpoint(_):
+def handle_unrecognised_method(_):
     return '{"message": "The method is not allowed for the requested URL."}', 405, {'Status': 'MethodNotSupported'}
 
 
