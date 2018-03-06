@@ -7,6 +7,7 @@ import datetime
 import json
 import jwt
 import os
+import requests
 import sys
 import time
 import uuid
@@ -69,8 +70,7 @@ def handle_session_create():
 @app.route('/v1/session/<session_id>', methods=['GET'])
 @app.route('/preprocessing/session/<session_id>', methods=['GET'])
 def handle_session_get(session_id):
-    store = SessionDatastore()
-    session = store.get(session_id=session_id)[0]
+    session = get_session_by_id(session_id)
     return json.dumps({'session': session}, default=json_serialise)
 
 
@@ -80,9 +80,8 @@ def handle_session_upload(session_id):
     if request.headers['Content-Type'] != 'application/octet-stream':
         raise ApplicationException(415, 'UnsupportedContentType', 'This endpoint requires the Content-Type application/octet-stream')
 
-    store = SessionDatastore()
-    session = store.get(session_id=session_id)
-    print(session)
+    session = get_session_by_id(session_id)
+
     part_number = str(int(time.mktime(datetime.datetime.now().timetuple())))
     print(part_number)
 
@@ -104,13 +103,39 @@ def handle_session_upload(session_id):
 @app.route('/preprocessing/session/<session_id>', methods=['PATCH'])
 def handle_session_patch(session_id):
     store = SessionDatastore()
-    session = store.get(session_id=session_id)[0]
+    session = get_session_by_id(session_id, store)
 
     if 'session_status' in request.json and request.json['session_status'] == 'UPLOAD_COMPLETE':
         session.session_status = 'UPLOAD_COMPLETE'
 
     store.put(session)
     return json.dumps({'session': session}, default=json_serialise)
+
+
+@xray_recorder.capture('entrypoints.apigateway.get_session_by_id')
+def get_session_by_id(session_id, store=None):
+    session_id = session_id.lower()
+
+    if not validate_uuid4(session_id):
+        raise InvalidSchemaException('session_id must be a uuid')
+
+    store = store or SessionDatastore()
+    session = store.get(session_id=session_id)
+    if len(session) == 1:
+        return session[0]
+    else:
+        raise NoSuchEntityException()
+
+
+def validate_uuid4(uuid_string):
+    try:
+        val = uuid.UUID(uuid_string, version=4)
+        # If the uuid_string is a valid hex code, but an invalid uuid4, the UUID.__init__
+        # will convert it to a valid uuid4. This is bad for validation purposes.
+        return val.hex == uuid_string.replace('-', '')
+    except ValueError:
+        # If it's a value error, then the string is not a valid hex code for a UUID.
+        return False
 
 
 @xray_recorder.capture('entrypoints.apigateway.get_notifications_for_date_and_access')
