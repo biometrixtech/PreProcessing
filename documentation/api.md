@@ -84,7 +84,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 
 ```
 POST /v1/session HTTP/1.1
-Host: hardware.env.fathomai.com
+Host: preprocessing.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 
@@ -123,7 +123,7 @@ Exceptionally, this endpoint accepts data in binary format instead of JSON. The 
 
 ```
 POST /v1/session/92d694eb-3d53-46fa-8b14-746c9b5380ef/upload HTTP/1.1
-Host: hardware.env.fathomai.com
+Host: preprocessing.env.fathomai.com
 Content-Type: application/octet-stream
 Authorization: eyJraWQ...ajBc4VQ
 
@@ -172,7 +172,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 
 ```
 PATCH /v1/session/92d694eb-3d53-46fa-8b14-746c9b5380ef HTTP/1.1
-Host: hardware.env.fathomai.com
+Host: preprocessing.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 
