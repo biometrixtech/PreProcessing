@@ -178,9 +178,9 @@ Resources:
             Runtime: "python3.6"
             Timeout: "30"
             Role: { "Fn::GetAtt" : [ "LambdaMonitoringRole", "Arn" ] }
-            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-monitor" }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-monitor" }
             Tags:
-              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-monitor" } }
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-monitor" } }
               - { Key: "Management", Value: "managed" }
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
@@ -534,17 +534,14 @@ Resources:
                                 [
                                     "AWS/DynamoDB", "ProvisionedWriteCapacityUnits",
                                     "TableName", "preprocessing-${Environment}-ingest-sessions",
-                                    { "period": 300 }
+                                    { "period": 300, "label": "Provisioned WCU" }
                                 ],
-                                [ ".", "ConsumedWriteCapacityUnits", ".", ".", { "period": 60 } ]
+                                [ ".", "ConsumedWriteCapacityUnits", ".", ".", { "period": 60, "label": "Consumed WCU" } ]
                             ],
                             "region": "us-west-2",
                             "period": 300,
-                            "yAxis": {
-                                "left": {
-                                    "min": 0
-                                }
-                            }
+                            "yAxis": { "left": { "min": 0 } },
+                            "title": "Sessions table"
                         }
                     }
                 ] }
