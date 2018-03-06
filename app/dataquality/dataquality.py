@@ -17,6 +17,7 @@ class DataQuality:
 
     def run(self):
         data = self._filestore.get_data('scoring')
+        print(data.columns)
 
         # run the quality checks on the data
         self._check_geom_error(data)
