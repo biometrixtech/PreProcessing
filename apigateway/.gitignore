@@ -1,5 +1,6 @@
 /*
-!entrypoints
 !*.py
 !pip_requirements
 !.gitignore
+flask_lambda.py
+itsdangerous.py
