@@ -354,7 +354,7 @@ def send_notification(filename, accel_error_count):
                                   Subject=subject) 
  
 
-def script_handler(working_directory, file_name, data):
+def script_handler(working_directory, file_name, data, sensor_data_filename):
 
     logger.info('Received sessionProcess request for {}'.format(file_name))
 
@@ -390,36 +390,20 @@ def script_handler(working_directory, file_name, data):
                 logger.warning("Sensor data is empty!", info=False)
                 return "Fail!"
             logger.info("DATA LOADED!")
-            #### ADD Checks for weird acceleration jumps 
-            flag_data_quality(sdata, file_name)
-            # Output debug CSV
-            # fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_pretransform')), 'wb')
-            # sdata.to_csv(fileobj, na_rep='', columns=[
-            #     'LqW', 'LqX', 'LqY', 'LqZ',
-            #     'LaX', 'LaY', 'LaZ',
-            #     'HqW', 'HqX', 'HqY', 'HqZ',
-            #     'HaX', 'HaY', 'HaZ',
-            #     'RqW', 'RqX', 'RqY', 'RqZ',
-            #     'RaX', 'RaY', 'RaZ',
-            # ])
+
+            from dataquality import DataQuality
+            dq = DataQuality(sensor_data_filename)
+
+            # Checks for weird acceleration jumps
+            dq.run(sdata, False)
 
             # Apply normalisation transforms
             sdata = apply_data_transformations(sdata, data['BodyFrameTransforms'], data['HipNeutralYaw'])
-            # sdata = apply_acceleration_normalisation(sdata)
 
-        # # Output debug CSV
-        # fileobj = open(os.path.join(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform')), 'wb')
-        # sdata.to_csv(fileobj, na_rep='', columns=[
-        #     'LqW', 'LqX', 'LqY', 'LqZ',
-        #     'LaX', 'LaY', 'LaZ',
-        #     'HqW', 'HqX', 'HqY', 'HqZ',
-        #     'HaX', 'HaY', 'HaZ',
-        #     'RqW', 'RqX', 'RqY', 'RqZ',
-        #     'RaX', 'RaY', 'RaZ',
-        # ])
-        # s3_client = boto3.client('s3')
-        # s3_client.upload_file(os.path.join(working_directory, 'sessionprocess2', file_name + '_posttransform'), 'biometrix-decode', file_name + '_transformed')
-        # read user mass
+            # Other data quality checks
+            dq.run(sdata, True)
+
+        # Read user mass
         mass = load_user_mass(data)
 
         size = len(sdata)
