@@ -12,17 +12,15 @@ import os
 
 class DataQuality:
 
-    def __init__(self, filestore):
-        self._filestore = filestore
+    def __init__(self, session_id):
+        self._session_id = session_id
 
-    def run(self):
-        data = self._filestore.get_data('scoring')
-        print(data.columns)
-
-        # run the quality checks on the data
-        self._check_geom_error(data)
-        self._check_timestamp(data)
-        self._flag_data_quality(data)
+    def run(self, data, transformed):
+        if transformed:
+            self._check_geom_error(data)
+            self._check_timestamp(data)
+        else:
+            self._flag_data_quality(data)
 
     def _check_geom_error(self, data):
         LaX = data.LaX
@@ -109,6 +107,6 @@ class DataQuality:
         boto3.client('sns').publish(
             TopicArn='arn:aws:sns:{AWS_DEFAULT_REGION}:887689817172:preprocessing-{ENVIRONMENT}-dataquality'.format(**os.environ),
             Message=message,
-            Subject='Data quality: {}'.format(self._filestore.sensor_data_filename),
-            MessageAttributes={'session_id': {'DataType': 'String', 'StringValue': self._filestore.sensor_data_filename}}
+            Subject='Data quality: {}'.format(self._session_id),
+            MessageAttributes={'session_id': {'DataType': 'String', 'StringValue': self._session_id}}
         )
