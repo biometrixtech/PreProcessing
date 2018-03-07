@@ -251,12 +251,6 @@ def main():
 
             send_success(meta_data, {"Filenames": file_names})
 
-        elif script == 'dataquality':
-            print('Running dataquality()')
-            from dataquality.dataquality import DataQuality
-            DataQuality(filestore).run()
-            send_success(meta_data, {})
-
         elif script == 'aggregatesession':
             print('Computing session aggregations')
             load_parameters([

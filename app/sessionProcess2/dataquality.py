@@ -63,8 +63,8 @@ class DataQuality:
     def _check_timestamp(self, data):
         timestamp = data.epoch_time.values.reshape(-1, 1)
         ms_diffs = np.ediff1d(timestamp)
-        if np.any(ms_diffs != 10):
-            unexpected_indices = np.where(ms_diffs != 10)
+        if np.logical_or(ms_diffs < 6, ms_diffs > 16):
+            unexpected_indices = np.where(np.logical_or(ms_diffs < 6, ms_diffs > 16))
             self._send_notification('Timestamp jumps identified at {}'.format(unexpected_indices))
 
     def _rolling_window(self, a, window):
