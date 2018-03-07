@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 import argparse
+from uuid import UUID
+
 import boto3
 import datetime
 import time
@@ -55,6 +57,17 @@ def list_s3_files(s3_bucket, prefix, marker=''):
     return sorted(ret)
 
 
+def validate_uuid4(uuid_string):
+    try:
+        val = UUID(uuid_string, version=4)
+        # If the uuid_string is a valid hex code, but an invalid uuid4, the UUID.__init__
+        # will convert it to a valid uuid4. This is bad for validation purposes.
+        return val.hex == uuid_string.replace('-', '')
+    except ValueError:
+        # If it's a value error, then the string is not a valid hex code for a UUID.
+        return False
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Invoke a test file')
     parser.add_argument('files',
@@ -90,5 +103,8 @@ if __name__ == '__main__':
     count = 1
     for key in files:
         print('Invoking  {count}/{total} ({key})'.format(count=count, total=len(files), key=key))
+        if not validate_uuid4(key):
+            print('{} is not a valid uuid'.format(key))
+            continue
         process_file(bucket, key)
         count += 1
