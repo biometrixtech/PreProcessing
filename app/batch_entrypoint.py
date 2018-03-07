@@ -217,7 +217,8 @@ def main():
             sessionProcess.script_handler(
                 working_directory,
                 input_data.get('Filename', None),
-                input_data
+                input_data,
+                sensor_data_filename,
             )
             send_success(meta_data, {})
 
