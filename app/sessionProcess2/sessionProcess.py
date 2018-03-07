@@ -65,7 +65,7 @@ def load_grf_scaler(config):
 
 
 def make_quaternion_array(quaternion, length):
-    return np.array([quaternion for i in range(length)])
+    return np.array([quaternion for _ in range(length)])
 
 
 def _zero_runs(col_dat, static):
@@ -81,7 +81,7 @@ def _zero_runs(col_dat, static):
     """
 
     # determine where column data is the relevant impact phase value
-    isnan = np.array(np.array(col_dat==static).astype(int)).reshape(-1, 1)
+    isnan = np.array(np.array(col_dat == static).astype(int)).reshape(-1, 1)
     
     if isnan[0] == 1:
         t_b = 1
@@ -120,7 +120,7 @@ def detect_long_dynamic(dyn_vs_static):
     if len(short_static_range) > 0:
         for i, j in zip(short_static_range[:, 0], short_static_range[:, 1]):
             dyn_vs_static[i:j] = 8
-    range_dyn, length_dyn= _zero_runs(dyn_vs_static, 8)
+    range_dyn, length_dyn = _zero_runs(dyn_vs_static, 8)
     long_dynamic = np.where(length_dyn >= min_length)[0]
     long_dyn_range = range_dyn[long_dynamic, :]
     return long_dyn_range
@@ -130,14 +130,13 @@ def drift_filter(quats):
     n = len(quats)
     euls_org = quat_to_euler(quats)
 
-    #Filtered angles
+    # Filtered angles
     normal_cutoff = .1 / (100/2)
     b, a = butter(3, normal_cutoff, 'low', analog=False)
     euls = filtfilt(b, a, euls_org, axis=0)
 
-    comp_quat = quat_prod(euler_to_quat( np.hstack((np.zeros((n, 1)), euls[:,1].reshape(-1,1), np.zeros((n, 1)) )) ),
-                          euler_to_quat( np.hstack((euls[:,0].reshape(-1,1), np.zeros((n, 2)) )) ))
-
+    comp_quat = quat_prod(euler_to_quat(np.hstack((np.zeros((n, 1)), euls[:, 1].reshape(-1, 1), np.zeros((n, 1))))),
+                          euler_to_quat(np.hstack((euls[:, 0].reshape(-1, 1), np.zeros((n, 2))))))
 
     # To reverse the offset created by filtering, get the average of first few points in data
     # and substract that from compensation
@@ -145,12 +144,12 @@ def drift_filter(quats):
     e = s + 50
     # get the average
     avg_quat = quat_avg(comp_quat[s:e, :])
-    cutoff_angle = 10. /180 * np.pi
+    cutoff_angle = 10. / 180 * np.pi
     if np.mean(euls_org[0:25, 0], axis=0) < cutoff_angle and np.mean(euls_org[0:25, 1], axis=0) < cutoff_angle:
         euls_avg_quat = quat_to_euler(avg_quat)
         
         offset_correction = quat_prod(euler_to_quat(np.array([0., euls_avg_quat[0, 1], 0.]).reshape(-1, 3)),
-                                      euler_to_quat(np.array([euls_avg_quat[0, 0], 0., 0.]).reshape(-1, 3)) )
+                                      euler_to_quat(np.array([euls_avg_quat[0, 0], 0., 0.]).reshape(-1, 3)))
 
         # substract the offset correction from compensation
         comp_quat = quat_prod(comp_quat, quat_conj(offset_correction))
@@ -162,7 +161,7 @@ def drift_filter(quats):
 
 
 def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
-    '''
+    """
     Use the body frame transforms and the hip neutral transform calculated
     during calibration to convert the data in the raw sensor frame to
     coordinate frames which are useful, namely, the adjusted inertial frame
@@ -183,7 +182,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
         sdata - data frame with acceleration and orientation data overwritten
         to be in the correct coordinate frames
 
-    '''
+    """
 
     # Number of records
     row_count = sdata.shape[0]
@@ -225,7 +224,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        lf_quat = drift_filter(sdata.loc[s:e, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1,4))
+        lf_quat = drift_filter(sdata.loc[s:e, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1, 4))
         sdata.loc[i:j, ['LqW', 'LqX', 'LqY', 'LqZ']] = lf_quat[pad:, :]
 
     # right foot
@@ -238,7 +237,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        rf_quat = drift_filter(sdata.loc[s:e, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1,4))
+        rf_quat = drift_filter(sdata.loc[s:e, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1, 4))
         sdata.loc[i:j, ['RqW', 'RqX', 'RqY', 'RqZ']] = rf_quat[pad:, :]
 
     # Rotate hip sensor by 90º plus the hip neutral transform, find the body
@@ -258,7 +257,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        h_quat = drift_filter(sdata.loc[s:e, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1,4))
+        h_quat = drift_filter(sdata.loc[s:e, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1, 4))
         sdata.loc[i:j, ['HqW', 'HqX', 'HqY', 'HqZ']] = h_quat[pad:, :]
 
     # for acceleration transformation, get the bodyframe transformed quaternions
@@ -277,8 +276,8 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_sensor_left = quat_prod(q_bf_left, quat_conj(q_bftransform_left))
     q_sensor_right = quat_prod(q_bf_right, quat_conj(q_bftransform_right))
     q_sensor_hip = quat_multi_prod(quat_conj(q_neutraltransform_hip),
-                                        q_bf_hip, quat_conj(yaw_90),
-                                        quat_conj(q_bftransform_hip))
+                                   q_bf_hip, quat_conj(yaw_90),
+                                   quat_conj(q_bftransform_hip))
 
     # Extract the sensor-frame acceleration values and create imaginary quaternions
     acc_sensor_left = sdata.loc[:, ['LaX', 'LaY', 'LaZ']].values.reshape(-1, 3)
@@ -318,26 +317,6 @@ def apply_acceleration_normalisation(sdata):
     sdata.HaZ -= 9.80665
     sdata.RaZ -= 9.80665
     return sdata
-
-def flag_data_quality(data, filename):
-    big_jump = 30
-    baseline_az = np.nanmean(data.loc[0:100, ['LaZ', 'HaZ', 'RaZ']], axis=0).reshape(1, 3)
-    diff = data.loc[:, ['LaZ', 'HaZ', 'RaZ']].values - baseline_az
-    high_accel = (diff >= big_jump).astype(int)
-    for i in range(3):
-        if high_accel[0, i] == 1:
-            t_b = 1
-        else:
-            t_b = 0
-        absdiff = np.abs(np.ediff1d(high_accel[:, i], to_begin=t_b)).reshape(-1, 1)
-        if high_accel[-1, i] == 1:
-            absdiff = np.concatenate([absdiff, np.array([[1]])], 0)
-        ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-        length = ranges[:, 1] - ranges[:, 0]
-        accel_error_count = len(np.where(length > 10)[0])
-        if accel_error_count > 5:
-            send_notification(filename, accel_error_count)
-            break
  
  
 def send_notification(filename, accel_error_count): 
@@ -349,9 +328,9 @@ def send_notification(filename, accel_error_count):
             os.environ['ENVIRONMENT'] 
         )
     print(sns_topic)
-    response = sns_client.publish(TopicArn=sns_topic, 
-                                  Message=message, 
-                                  Subject=subject) 
+    sns_client.publish(TopicArn=sns_topic,
+                       Message=message,
+                       Subject=subject)
  
 
 def script_handler(working_directory, file_name, data, sensor_data_filename):
@@ -409,12 +388,11 @@ def script_handler(working_directory, file_name, data, sensor_data_filename):
         size = len(sdata)
         sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
-        # Process the data
-        # and pass it as argument to run_session as
+        # Process the data and pass it as argument to run_session as
         file_version = data.get('SensorDataFileVersion', '2.3')
         hip_n_transform = data.get('HipNTransform', None)
 
-        #### SAVE DEBUG DATA
+        # SAVE DEBUG DATA
         import save_file
         save_file.save_file(sdata, file_name)
  
