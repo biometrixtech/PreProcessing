@@ -6,12 +6,14 @@ Created on Mon Dec 12 10:02:11 2016
 """
 
 import logging
+import copy
 
 import numpy as np
 from scipy.signal import butter, filtfilt
 
 from phaseID import phase_id
 import const_thres_phase as ct
+from detect_peaks import detect_peaks
 
 logger = logging.getLogger()
 
@@ -427,4 +429,144 @@ def _filter_data(X, filt='band', lowcut=0.1, highcut=40, fs=100, order=4):
         b, a = butter(order, [low, high], btype='band', analog=False)
     X_filt = filtfilt(b, a, X, axis=0)
     return X_filt
+
+def update_phase_grf(grf, phase_lf, phase_rf, mass):
+    """
+    Inputs:
+        grf: ground reaction force
+        phase_lf: left foot phase
+        phase_rf: right foot phase
+        mass: mass in kg
+            
+    """
+    # create copies of data so it's not overwritten
+    grf = copy.copy(grf)
+    phase_lf = copy.copy(phase_lf)
+    phase_rf = copy.copy(phase_rf)
+    grf[grf < 100] = 0
+
+    # create indicator for both air vs at least one ground for grf
+    grf_ind = np.array([0] * len(grf))
+    grf_ind[np.where(grf != 0)[0]] = 1
+
+    # get ranges where at least one foot is on the ground
+    ranges, length = _zero_runs(grf_ind, 1)
+
+    # if grf is non-zero for too short time, probably fasle positive/error in grf estimation
+    for r, l in zip(ranges, length):
+        if l < 8:
+            grf_ind[r[0]:r[1]] = 0
+            grf[r[0]:r[1]] = 0
+
+
+    # set phase to air for both feet when grf is 0
+    phase_lf[grf_ind == 0] = 1
+    phase_rf[grf_ind == 0] = 1
+
+    # detect peaks
+    mph = 1.7 * mass * 9.807
+    peaks = detect_peaks(grf, mph=mph, mpd=12, show=False)
+
+    for _range in ranges:
+        # check if there's any peaks over certain height during the ground contact phase
+        if np.any(np.logical_and(peaks>_range[0], peaks<_range[1])):
+            #TODO: Potential to use presense of multiple peaks within a range to identify multiple
+            # impacts within the range
+            # get all the peaks within the range
+#            peaks_in_range = peaks[np.where(np.logical_and(peaks>_range[0], peaks<_range[1]))[0]]
+            # iterate
+#            for peak in peaks_in_range:
+
+            # limiting length to < 40. This is to limit us to either single impacts or double
+            # impacts where both R and L impacts are close enough
+            # TODO: Need another case with better handling of double impacts where one follows another
+            length_contact = _range[1] - _range[0]
+            if length_contact <= 35:
+                # check if any impact was deetected in the current range or immediately(min_air) before the start of range
+                min_air = 8
+                left_impact = 2 in phase_lf[_range[0]:_range[1]]
+                right_impact = 2 in phase_rf[_range[0]:_range[1]]
+                left_impact_prev = 2 in phase_lf[_range[0] - min_air:_range[0]]
+                right_impact_prev = 2 in phase_rf[_range[0] - min_air:_range[0]]
+
+                # update right foot
+                # if impact is detected and there was impact immediately before, set to air
+                if right_impact_prev and right_impact and left_impact:
+                    phase_rf[_range[0]:_range[1]] = 1
+                # if no impact immediately before, adjust duration using grf
+                elif right_impact:
+                    phase_rf[_range[0]:_range[1]] = 2
+
+                # update left foot
+                # if impact is detected and there was impact immediately before, set to air
+                if left_impact_prev and left_impact and right_impact:
+                    phase_lf[_range[0]:_range[1]] = 1
+                # if no impact immediately before, adjust duration using grf
+                elif left_impact:
+                    phase_lf[_range[0]:_range[1]] = 2
+
+    for i in range(len(phase_lf)):
+        if phase_lf[i] == 1 and phase_rf[i] == 1:
+            phase_lf[i] = 3
+            phase_rf[i] = 3
+        elif phase_lf[i] == 2 and phase_rf[i] == 0:
+            phase_lf[i] = 4
+            phase_rf[i] = 0
+        elif phase_lf[i] == 2 and phase_rf[i] == 1:
+            phase_lf[i] = 4
+            phase_rf[i] = 1
+        elif phase_lf[i] == 0 and phase_rf[i] == 2:
+            phase_lf[i] = 0
+            phase_rf[i] = 5
+        elif phase_lf[i] == 1 and phase_rf[i] == 2:
+            phase_lf[i] = 2
+            phase_rf[i] = 5
+        elif phase_lf[i] == 2 and phase_rf[i] == 2:
+            phase_lf[i] = 4
+            phase_rf[i] = 5
+        elif phase_lf[i] == 0 and phase_rf[i] == 1:
+            phase_lf[i] = 1
+            phase_rf[i] = 1
+        elif phase_lf[i] == 1 and phase_rf[i] == 0:
+            phase_lf[i] = 2
+            phase_rf[i] = 2
+        elif phase_lf[i] == 0 and phase_rf[i] == 0:
+            phase_lf[i] = 0
+            phase_rf[i] = 0
+
+    return grf, phase_lf, phase_rf
+
+
+def _zero_runs(col_dat, static):
+    """
+    Determine the start and end of each impact.
+    
+    Args:
+        col_dat: array, algorithm indicator
+        static: int, indicator for static algorithm
+    Returns:
+        ranges: 2d array, start and end of each static algorithm use
+        length: length of 
+    """
+
+    # determine where column data is the relevant impact phase value
+    isnan = np.array(np.array(col_dat==static).astype(int)).reshape(-1, 1)
+    
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        absdiff = np.concatenate([absdiff, [1]], 0)
+    del isnan  # not used in further computations
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+    length = ranges[:, 1] - ranges[:, 0]
+
+    return ranges, length
+
 
