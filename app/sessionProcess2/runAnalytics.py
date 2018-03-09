@@ -113,6 +113,54 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
                                                        sampl_freq)
     logger.info('DONE WITH PHASE DETECTION!')
 
+
+    # prepare data for grf prediction
+    data.mass = mass*9.807/1000 # convert mass from kg to kN
+    grf_data, nan_row = prepare_data(data, sc)
+
+    # predict grf
+    grf = grf_fit.predict(grf_data).reshape(-1,)
+
+    # pass predicted data through low-pass filter
+    grf = _filter_data(grf, cutoff=18)
+
+    # set grf value below certain threshold to 0
+    grf[grf <= .1] = 0
+    # fill in nans for rows with missing predictors
+    length = len(data_in)
+    grf_temp = np.ones(length)
+    grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
+    # Insert nan for grf where data needed to predict was missing
+    if len(nan_row) != 0:
+        for i in nan_row:
+            grf_temp[i] = np.nan
+
+    data.grf = grf_temp*1000
+
+    del grf_data, nan_row, grf_fit, grf, grf_temp
+    logger.info('DONE WITH GRF PREDICTION!')
+
+    # update phase with grf information
+    # Change phases to 0,1,2 encoding
+    data.phase_lf[data.phase_lf==1] = 0
+    data.phase_lf[(data.phase_lf==2) | (data.phase_lf==3)] = 1
+    data.phase_lf[data.phase_lf==4] = 2
+    
+    data.phase_rf[data.phase_rf==2] = 0
+    data.phase_rf[(data.phase_rf==1) | (data.phase_rf==3)] = 1
+    data.phase_rf[data.phase_rf==5] = 2
+
+    (
+        data.grf,
+        data.phase_lf,
+        data.phase_rf
+    ) = phase.update_phase_grf(data.grf,
+                               data.phase_lf,
+                               data.phase_rf,
+                               mass)
+
+    logger.info('DONE UPDATING PHASE WITH GRF')
+
     # DETECT IMPACT PHASE INTERVALS
     (
         data.impact_phase_lf,
@@ -299,32 +347,6 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
         data.land_pattern_rf = np.zeros((len(data.LaX), 1))*np.nan
     del n_landtime, ltime_index, lf_rf_imp_indicator
     logger.info('DONE WITH IMPACT CME!')
-
-    # prepare data for grf prediction
-    data.mass = mass*9.807/1000 # convert mass from kg to kN
-    grf_data, nan_row = prepare_data(data, sc)
-
-    # predict grf
-    grf = grf_fit.predict(grf_data).reshape(-1,)
-
-    # pass predicted data through low-pass filter
-    grf = _filter_data(grf, cutoff=35)
-
-    # set grf value below certain threshold to 0
-    grf[grf <= .1] = 0
-    # fill in nans for rows with missing predictors
-    length = len(data_in)
-    grf_temp = np.ones(length)
-    grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
-    # Insert nan for grf where data needed to predict was missing
-    if len(nan_row) != 0:
-        for i in nan_row:
-            grf_temp[i] = np.nan
-
-    data.grf = grf_temp*1000
-
-    del grf_data, nan_row, grf_fit, grf, grf_temp
-    logger.info('DONE WITH MECH STRESS!')
 
     # RATE OF FORCE ABSORPTION
     ##  DETECT IMPACT PHASE INTERVALS AGAIN AFTER IMPACTS ARE DIVIDED INTO IMPACT AND TAKEOFFS
