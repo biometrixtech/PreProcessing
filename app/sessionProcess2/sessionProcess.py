@@ -56,6 +56,15 @@ def load_grf_model(config):
     logger.info("Loading grf model from {}".format(path))
     return load_model(path)
 
+def load_lf_grf_model(config):
+    path = os.path.join(config.LF_MS_MODEL_PATH, config.LF_MS_MODEL)
+    logger.info("Loading grf model from {}".format(path))
+    return load_model(path)
+
+def load_rf_grf_model(config):
+    path = os.path.join(config.RF_MS_MODEL_PATH, config.RF_MS_MODEL)
+    logger.info("Loading grf model from {}".format(path))
+    return load_model(path)
 
 def load_grf_scaler(config):
     path = os.path.join(config.MS_SCALER_PATH, config.MS_SCALER)
@@ -63,6 +72,11 @@ def load_grf_scaler(config):
     with open(path) as model_file:
         return pickle.load(model_file)
 
+def load_sl_grf_scaler(config):
+    path = os.path.join(config.SL_MS_SCALER_PATH, config.SL_MS_SCALER)
+    logger.info("Loading grf scaler from {}".format(path))
+    with open(path) as model_file:
+        return pickle.load(model_file)
 
 def make_quaternion_array(quaternion, length):
     return np.array([quaternion for _ in range(length)])
@@ -374,6 +388,9 @@ def script_handler(working_directory, file_name, data):
         # load model
         grf_fit = load_grf_model(config=config)
         sc = load_grf_scaler(config=config)
+        grf_fit_lf = load_grf_model(config=config)
+        grf_fit_rf = load_grf_model(config=config)
+        sc_single_leg = load_grf_scaler(config=config)
 
         logger.info("LOADING DATA")
 
@@ -409,7 +426,7 @@ def script_handler(working_directory, file_name, data):
         import save_file
         save_file.save_file(sdata, file_name)
  
-        output_data_batch = runAnalytics.run_session(sdata, file_version, mass, grf_fit, sc, hip_n_transform)
+        output_data_batch = runAnalytics.run_session(sdata, file_version, mass, grf_fit, grf_fit_lf, grf_fit_rf, sc, sc_single_leg, hip_n_transform)
 
         # Prepare data for dumping
         output_data_batch = output_data_batch.replace('None', '')
