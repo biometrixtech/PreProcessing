@@ -12,7 +12,7 @@ import pandas as pd
 from scipy.signal import butter, filtfilt
 
 
-def prepare_data(data_in, sc):
+def prepare_data(data_in, sc, sl=False):
     """Subsets and transforms the training data as well as define features
     to be used
     Args:
@@ -96,20 +96,35 @@ def prepare_data(data_in, sc):
         data[var_d] = np.ediff1d(data[var], to_begin=np.nan)
 
     # Define set of predictors to use
-    predictors = ['LaX', 'LaY', 'LaZ',
-                  'RaX', 'RaY', 'RaZ',
-                  'HaX', 'HaY', 'HaZ',
-                  'LeX_d', 'LeY_d', 'LeZ_d',
-                  'ReX_d', 'ReY_d', 'ReZ_d',
-                  'HeX_d', 'HeY_d', 'HeZ_d',
-                  'LaX_d', 'LaY_d', 'LaZ_d',
-                  'RaX_d', 'RaY_d', 'RaZ_d',
-                  'HaX_d', 'HaY_d', 'HaZ_d',
-                  'hip_accel','right_accel', 'left_accel',
-                  'left_accel_d', 'right_accel_d', 'hip_accel_d',
-                  'mass',
-                  'phase_lf_0','phase_lf_1','phase_lf_2',
-                  'phase_rf_0','phase_rf_1','phase_rf_2']
+    if sl:
+        predictors = ['LaX', 'LaY', 'LaZ',
+                      'RaX', 'RaY', 'RaZ',
+                      'HaX', 'HaY', 'HaZ',
+                      'LeX_d', 'LeY_d', 'LeZ_d',
+                      'ReX_d', 'ReY_d', 'ReZ_d',
+                      'HeX_d', 'HeY_d', 'HeZ_d',
+                      'LaX_d', 'LaY_d', 'LaZ_d',
+                      'RaX_d', 'RaY_d', 'RaZ_d',
+                      'HaX_d', 'HaY_d', 'HaZ_d',
+                      'hip_accel','right_accel', 'left_accel',
+                      'left_accel_d', 'right_accel_d', 'hip_accel_d',
+                      'mass',
+                      'phase_lf_0','phase_lf_1','phase_lf_2',
+                      'phase_rf_0','phase_rf_1','phase_rf_2']
+    else:
+        predictors = ['LaX', 'LaY', 'LaZ',
+                      'RaX', 'RaY', 'RaZ',
+                      'HaX', 'HaY', 'HaZ',
+                      'LeX_d', 'LeY_d', 'LeZ_d',
+                      'ReX_d', 'ReY_d', 'ReZ_d',
+                      'HeX_d', 'HeY_d', 'HeZ_d',
+                      'LaX_d', 'LaY_d', 'LaZ_d',
+                      'RaX_d', 'RaY_d', 'RaZ_d',
+                      'HaX_d', 'HaY_d', 'HaZ_d',
+                      'hip_accel','right_accel', 'left_accel',
+                      'left_accel_d', 'right_accel_d', 'hip_accel_d',
+                      'mass']
+
 
     X = data[predictors].values
 
