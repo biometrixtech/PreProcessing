@@ -360,6 +360,16 @@ Resources:
               - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/infrastructure-${Environment}-querypostgres" }
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/preprocessing-${Environment}-ingest-sessions-read" }
+              - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/preprocessing-${Environment}-ingest-sessions-write" }
+            Policies:
+              - PolicyName: "default"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "s3:PutItem"
+                        Effect: "Allow"
+                        Resource: { "Fn::Sub": "${S3Bucket}/*" }
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-apigateway-${AWS::Region}" }
         DependsOn:
           - "IngestStack"

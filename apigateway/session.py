@@ -30,14 +30,14 @@ class Session(Serialisable):
     def json_serialise(self):
         ret = {
             'id': self.session_id,
-            'userId': self.user_id,
-            'teamId': self.team_id,
-            'trainingGroupIds': self.training_group_ids,
-            'eventDate': self.event_date,
-            'sessionStatus': self.session_status,
-            # 'createdDate': self.created_date,
-            # 'updatedDate': self.updated_date,
+            'user_id': self.user_id,
+            'team_id': self.team_id,
+            'training_group_ids': self.training_group_ids,
+            'event_date': self.event_date,
+            'session_status': self.session_status,
+            'created_date': self.created_date,
+            'updated_date': self.updated_date,
             # 'version': self.version,
-            # 's3Files': self.s3_files,
+            # 's3_files': self.s3_files,
         }
         return ret
