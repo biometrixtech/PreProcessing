@@ -536,12 +536,22 @@ Resources:
                                     "TableName", "preprocessing-${Environment}-ingest-sessions",
                                     { "period": 300, "label": "Provisioned WCU" }
                                 ],
-                                [ ".", "ConsumedWriteCapacityUnits", ".", ".", { "period": 60, "label": "Consumed WCU" } ]
+                                [ ".", "ConsumedWriteCapacityUnits", ".", ".", { "period": 60, "label": "Consumed WCU" } ],
+                                [
+                                    ".", "ThrottledRequests", ".", ".", "Operation", "UpdateItem",
+                                    { "period": 60, "yAxis": "right", "stat": "Sum", "label": "Throttled writes" }
+                                ]
                             ],
-                            "region": "us-west-2",
-                            "period": 300,
-                            "yAxis": { "left": { "min": 0 } },
-                            "title": "Sessions table"
+                            "region": "${AWS::Region}",
+                            "yAxis": {
+                                "left": {
+                                    "min": 0
+                                },
+                                "right": {
+                                    "min": 0
+                                }
+                            },
+                            "title": "DynamoDB - Sessions table"
                         }
                     }
                 ] }
