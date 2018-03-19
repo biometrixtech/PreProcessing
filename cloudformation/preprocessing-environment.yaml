@@ -369,7 +369,7 @@ Resources:
                       - Action:
                           - "s3:PutItem"
                         Effect: "Allow"
-                        Resource: { "Fn::Sub": "${S3Bucket}/*" }
+                        Resource: { "Fn::Sub": "arn:aws:s3:::${S3Bucket}/*" }
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-apigateway-${AWS::Region}" }
         DependsOn:
           - "IngestStack"
