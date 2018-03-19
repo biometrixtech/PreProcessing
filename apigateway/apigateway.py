@@ -175,7 +175,7 @@ def get_authorisation_from_auth(auth):
     return {
         'user_ids': [user['user_id']],
         'team_ids': [user['team_id']] if user['role'] > 1 else [],
-        'training_group_ids': [user['training_group_ids']] if user['role'] > 1 else [],
+        'training_group_ids': user['training_group_ids'] if user['role'] > 1 else [],
     }
 
 
