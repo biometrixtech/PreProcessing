@@ -384,6 +384,7 @@ Resources:
                 Variables:
                     DYNAMODB_TABLENAME_SESSIONS: { "Fn::GetAtt": [ "IngestStack", "Outputs.SessionEventsTableName" ] }
                     ENVIRONMENT: { Ref: 'Environment' }
+                    S3_INGEST_BUCKET_NAME: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}" }
             Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"
