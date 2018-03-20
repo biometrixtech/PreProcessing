@@ -93,7 +93,7 @@ def script_handler(input_data):
         mongo_collection_twomin = mongo_database_twomin[config.MONGO_COLLECTION_TWOMIN]
         mongo_collection_twomintg = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTG]
 
-        training_group_ids = input_data.get('TrainingGroupId', None)
+        training_group_ids = input_data.get('TrainingGroupIds', None)
         session_type = input_data.get('SessionType', None)
         if session_type is not None:
             session_type = str(session_type)

@@ -58,7 +58,7 @@ def script_handler(input_data):
         mongo_collection_date = mongo_database[config.MONGO_COLLECTION_DATE]
 
         team_id = input_data.get('TeamId', None)
-        training_group_id = input_data.get('TrainingGroupId', None)
+        training_group_id = input_data.get('TrainingGroupIds', None)
         user_id = input_data.get('UserId', None)
         session_type = input_data.get('SessionType', None)
         if session_type is not None:

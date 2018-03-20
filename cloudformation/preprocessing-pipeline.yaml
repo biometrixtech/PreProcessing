@@ -290,59 +290,23 @@ Resources:
             Code:
                 ZipFile: !Sub |
                     import boto3, json, os
-                    lambda_client = boto3.client('lambda', region_name='us-west-2')
-                    def query(query, parameters):
-                        res = json.loads(lambda_client.invoke(
-                            FunctionName=os.environ['QUERYPOSTGRES_LAMBDA_ARN'],
-                            Payload=json.dumps({
-                                "Queries": [{"Query": query, "Parameters": parameters}],
-                                "Config": {"ENVIRONMENT": os.environ['ENVIRONMENT']}
-                            }),
-                        )['Payload'].read())
-                        result, error = res['Results'][0], res['Errors'][0]
-                        if error is not None:
-                            raise Exception(error)
-                        else:
-                            return result[0] if len(result) else {}
+                    from boto3.dynamodb.conditions import Key
+                    dynamodb_resource = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ['ENVIRONMENT']))
 
                     def handler(event, context):
-                        sensor_data_filename = event['SourceEvent']['SensorDataFilename']
-                        query_results = query(
-                            """SELECT
-                              session_events.id AS session_event_id,
-                              session_events.happened_at::date AS event_date,
-                              session_events.training_session_log_id,
-                              session_events.hip_n_transform,
-                              session_events.training_group_ids,
-                              session_events.user_id,
-                              users.weight,
-                              training_groups.team_id,
-                              session_events.session_type
-                            FROM session_events
-                            LEFT JOIN users ON session_events.user_id=users.id
-                            LEFT JOIN training_groups ON training_groups.id = session_events.training_group_ids[1]
-                            WHERE session_events.sensor_data_filename = %s""",
-                            [sensor_data_filename]
-                        )
-                        ret = {
-                            "SensorDataFilename": sensor_data_filename,
-                            "SensorDataFileVersion": event['SourceEvent']['SensorDataFileVersion'],  # TODO get this from db
-                            "SessionEventId": query_results.get('session_event_id', None),
-                            "EventDate": query_results.get('event_date', None),
-                            "TrainingSessionLogId": query_results.get('training_session_log_id', None),
-                            "HipNTransform": query_results.get('hip_n_transform', None),
-                            "TrainingGroupId": query_results.get('training_group_ids', None),
-                            "UserId": query_results.get('user_id', None),
-                            "UserMass": query_results.get('weight', None) or 160,
-                            "TeamId": query_results.get('team_id', None),
-                            "SessionType": query_results.get('session_type', None) or 1,
+                        session_id = event['SourceEvent']['SensorDataFilename']
+                        ret = dynamodb_resource.query(Select='ALL_ATTRIBUTES', KeyConditionExpression=Key('id').eq(session_id))
+                        session = ret['Items'][0]
+                        print(session)
+                        return {
+                            "SessionId": session_id,
+                            "Version": session['version'],
+                            "EventDate": session.get('eventDate', None),
+                            "TeamId": session.get('teamId', None),
+                            "TrainingGroupIds": session.get('trainingGroupIds', None),
+                            "UserId": session.get('userId', None),
+                            "UserMass": session.get('userMass', None) or 72.5, # kilograms
                         }
-                        query_result = query(
-                            "SELECT * FROM fn_get_sensor_data_filename_hist((%s))",
-                            [ret['UserId']]
-                        )
-                        ret["HistoricalFiles"] = query_result
-                        return ret
 
             Environment:
                 Variables:
