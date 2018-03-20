@@ -96,7 +96,7 @@ def prepare_data(data_in, sc, sl=False):
         data[var_d] = np.ediff1d(data[var], to_begin=np.nan)
 
     # Define set of predictors to use
-    if sl:
+    if not sl:
         predictors = ['LaX', 'LaY', 'LaZ',
                       'RaX', 'RaY', 'RaZ',
                       'HaX', 'HaY', 'HaZ',
