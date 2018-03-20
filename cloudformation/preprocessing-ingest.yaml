@@ -199,9 +199,10 @@ Resources:
                                 # Ready for processing
                                 session_event_updates.set("sessionStatus", 'UPLOAD_COMPLETE')
 
+                            condition_expression = Attr('id').not_exists() | Attr('sessionStatus').is_in(['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS'])
                             ddb_session_events_table.update_item(
                                 Key={'id': s3_basepath},
-                                ConditionExpression=Attr('id').not_exists() | Attr('sessionStatus').eq('UPLOAD_IN_PROGRESS'),
+                                ConditionExpression=condition_expression,
                                 UpdateExpression=session_event_updates.update_expression,
                                 ExpressionAttributeValues=session_event_updates.parameters,
                             )
