@@ -58,7 +58,7 @@ def handle_session_create():
             print(user)
             user_id = user['user_id']
             team_id = user['team_id']
-            training_group_ids = user['training_group_ids']
+            training_group_ids = set(user['training_group_ids'])
         else:
             # TODO
             print('Accessory owner_id does not exist')
