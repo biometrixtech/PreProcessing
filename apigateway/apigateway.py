@@ -49,13 +49,30 @@ def handle_session_create():
     if 'sensors' not in request.json:
         raise InvalidSchemaException('Missing required parameter sensors')
 
+    user_id = team_id = training_group_ids = None
+    accessory = get_accessory_from_auth(request.headers['Authorization'])
+    if 'owner_id' in accessory:
+        print(accessory['owner_id'])
+        user = get_user_from_id(accessory['owner_id'])
+        if user is not None:
+            print(user)
+            user_id = user['user_id']
+            team_id = user['team_id']
+            training_group_ids = user['training_group_ids']
+        else:
+            # TODO
+            print('Accessory owner_id does not exist')
+    else:
+        # TODO
+        print('Accessory has no owner_id set')
+
     store = SessionDatastore()
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
     session = Session(
         session_id=str(uuid.uuid4()),
-        user_id=None,  # TODO
-        team_id=None,  # TODO
-        training_group_ids=None,
+        user_id=user_id,
+        team_id=team_id,
+        training_group_ids=training_group_ids,
         event_date=request.json['event_date'],
         session_status='CREATE_COMPLETE',
         created_date=now,
@@ -160,6 +177,39 @@ def get_authorisation_from_auth(auth):
     else:
         user_id = jwt_token['user_id']
 
+    user = get_user_from_id(user_id)
+    if user is None:
+        raise UnauthorizedException()
+
+    return {
+        'user_ids': [user['user_id']],
+        'team_ids': [user['team_id']] if user['role'] > 1 else [],
+        'training_group_ids': user['training_group_ids'] if user['role'] > 1 else [],
+    }
+
+
+def get_accessory_from_auth(auth):
+    jwt_token = jwt.decode(auth, verify=False)
+    print(jwt_token)
+    if 'username' in jwt_token:
+        accessory_id = jwt_token['username']
+    else:
+        raise UnauthorizedException('Sessions can only be created by hardware-authenticated clients')
+
+    accessory_res = requests.get(
+        'https://hardware.{ENVIRONMENT}.fathomai.com/v1/accessory/{ACCESSORY_ID}'.format(**os.environ, ACCESSORY_ID=accessory_id),
+        headers={
+            'Authorization': get_api_service_token(),
+            'Accept': 'application/json'
+        }
+    )
+    if accessory_res.status_code == 200:
+        return accessory_res.json()['accessory']
+    else:
+        raise UnauthorizedException()
+
+
+def get_user_from_id(user_id):
     user_res = requests.get(
         'https://users.{ENVIRONMENT}.fathomai.com/v1/user/{USER_ID}'.format(**os.environ, USER_ID=user_id),
         headers={
@@ -168,15 +218,9 @@ def get_authorisation_from_auth(auth):
         }
     )
     if user_res.status_code == 200:
-        user = user_res.json()['user']
+        return user_res.json()['user']
     else:
-        raise UnauthorizedException()
-
-    return {
-        'user_ids': [user['user_id']],
-        'team_ids': [user['team_id']] if user['role'] > 1 else [],
-        'training_group_ids': user['training_group_ids'] if user['role'] > 1 else [],
-    }
+        return None
 
 
 def get_api_service_token():
