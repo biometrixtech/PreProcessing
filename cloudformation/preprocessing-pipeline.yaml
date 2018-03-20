@@ -203,7 +203,7 @@ Resources:
                         session_event_updates.set("sessionStatus", data['SessionStatus'])
 
                         ddb_session_events_table.update_item(
-                            Key={'id': data['SensorDataFilename']},
+                            Key={'id': data['SessionId']},
                             ConditionExpression=Attr('id').exists(),
                             UpdateExpression=session_event_updates.update_expression,
                             ExpressionAttributeValues=session_event_updates.parameters,
@@ -294,7 +294,7 @@ Resources:
                     dynamodb_resource = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ['ENVIRONMENT']))
 
                     def handler(event, context):
-                        session_id = event['SourceEvent']['SensorDataFilename']
+                        session_id = event['SourceEvent']['SessionId']
                         ret = dynamodb_resource.query(Select='ALL_ATTRIBUTES', KeyConditionExpression=Key('id').eq(session_id))
                         session = ret['Items'][0]
                         print(session)

@@ -260,7 +260,7 @@ Resources:
                     from boto3.dynamodb.conditions import Attr
 
                     def handler(event, _):
-                        print(event)
+                        print(json.dumps(event))
                         for record in event['Records']:
                             new_object = extract_dynamodb_object(record['dynamodb'].get('NewImage', {}))
                             old_object = extract_dynamodb_object(record['dynamodb'].get('OldImage', {}))
@@ -303,8 +303,8 @@ Resources:
                                             ExpressionAttributeValues={':' + k: v for k, v in query_results[0].items()},
                                         )
 
-                    def trigger_sfn(session_event_id, version):
-                        execution_name = '{}-{}'.format(session_event_id, int(time.time()))
+                    def trigger_sfn(session_id, version):
+                        execution_name = '{}-{}'.format(session_id, int(time.time()))
                         sfn_client = boto3.client('stepfunctions')
                         sfn_client.start_execution(
                             stateMachineArn=os.environ['STATE_MACHINE_ARN'],
@@ -315,7 +315,7 @@ Resources:
                                     "ExecutionName": execution_name,
                                 },
                                 "SourceEvent": {
-                                    "SensorDataFilename": session_event_id,
+                                    "SessionId": session_id,
                                     "SensorDataFileVersion": version,
                                 }
                             })
@@ -343,6 +343,8 @@ Resources:
                                 return float(value['N'])
                             elif 'SS' in value:
                                 return list(value['SS'])
+                            elif 'L' in value:
+                                return list(value['L'])
                             else:
                                 raise Exception()
                         return {k: extract_dynamodb_row(v) for k, v in record.items()}
