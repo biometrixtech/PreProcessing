@@ -471,7 +471,7 @@ Resources:
                             Payload=json.dumps({
                                 "Queries": [{
                                     "Query": "UPDATE session_events SET session_success=True, updated_at = now() WHERE id = %s",
-                                    "Parameters": [event['ReadDatabase']['SessionEventId']]
+                                    "Parameters": [event['ReadDatabase']['SessionId']]
                                 }],
                                 "Config": {"ENVIRONMENT": os.environ['ENVIRONMENT']}
                             }),
@@ -784,7 +784,7 @@ Resources:
                         sns_client = boto3.client('sns')
                         response = sns_client.publish(
                             TopicArn=os.environ['SNS_TOPIC'],
-                            Message=event['ReadDatabase']['SessionEventId'],
+                            Message=event['ReadDatabase']['SessionId'],
                         )
             Environment:
                 Variables:

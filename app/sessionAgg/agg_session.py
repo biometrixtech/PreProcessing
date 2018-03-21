@@ -83,9 +83,6 @@ def script_handler(working_directory, input_data):
         user_id = input_data.get('UserId', None)
 #        training_session_log_id = input_data.get('TrainingSessionLogId', None)
         session_event_id = input_data.get('SessionId', None)
-        session_type = input_data.get('SessionType', None)
-        if session_type is not None:
-            session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
         event_date = input_data.get('EventDate')
 
@@ -170,7 +167,7 @@ def script_handler(working_directory, input_data):
         # create ordered dictionary object
         # current variables
         record_out = OrderedDict({'sessionId': session_event_id})
-        record_out['sessionType'] = session_type
+        record_out['sessionType'] = '1'
         record_out['phaseLF'] = None
         record_out['phaseRF'] = None
         record_out['userMass'] = user_mass

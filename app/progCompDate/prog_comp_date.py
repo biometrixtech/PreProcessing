@@ -61,9 +61,6 @@ def script_handler(input_data):
         
 #        team_id = input_data.get('TeamId', None)
         user_id = input_data.get('UserId', None)
-        session_type = input_data.get('SessionType', None)
-        if session_type is not None:
-            session_type = str(session_type)
         event_date = input_data.get('EventDate')
 
         data_out = {}
@@ -75,13 +72,11 @@ def script_handler(input_data):
             data_out['sessionType'] = str(data_out['sessionType'])
         data_out['eventDate'] = input_data.get('EventDate', None)
 
-         # Add program composition lists to date data
+        # Add program composition lists to date data
         prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
         for var in prog_comps:
-             out_var = var+'ProgramComposition'
-             data_out[out_var] = _aggregate_progcomp(mongo_collection_progcomp, var,
-                                                     user_id=user_id, event_date=event_date,
-                                                     session_type=session_type)
+            out_var = var + 'ProgramComposition'
+            data_out[out_var] = _aggregate_progcomp(mongo_collection_progcomp, var, user_id=user_id, event_date=event_date)
         # For team date data, sort the variables in order
         record_out = OrderedDict()
         for prog_var in prog_comp_vars:
@@ -100,13 +95,13 @@ def script_handler(input_data):
         raise
 
 
-def _aggregate_progcomp(collection, var, user_id, event_date, session_type):
+def _aggregate_progcomp(collection, var, user_id, event_date):
     """Aggregate progComp for the user
     """
     prog_var = '$'+var+'ProgramComposition'
     pipeline = [{'$match': {'userId': {'$eq': user_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
+                            'sessionType': {'$eq': '1'}
                            }
                 },
                 {'$unwind': prog_var},

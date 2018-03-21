@@ -81,9 +81,6 @@ def script_handler(working_directory, file_name, input_data):
         training_group_id = input_data.get('TrainingGroupIds', None)
         user_id = input_data.get('UserId', None)
         session_event_id = input_data.get('SessionId', None)
-        session_type = input_data.get('SessionType', None)
-        if session_type is not None:
-            session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
         date_time = datetime.datetime.strptime(str(pandas.DatetimeIndex(data['timeStamp']).round('1s')[0]),
                                                "%Y-%m-%d %H:%M:%S")
@@ -204,7 +201,7 @@ def script_handler(working_directory, file_name, input_data):
             # current variables
             record_out = OrderedDict({'twoMinuteIndex': two_min_index})
             record_out['sessionId'] = session_event_id
-            record_out['sessionType'] = session_type
+            record_out['sessionType'] = '1'
             record_out['timeStart'] = i
             record_out['phaseLF'] = None
             record_out['phaseRF'] = None
