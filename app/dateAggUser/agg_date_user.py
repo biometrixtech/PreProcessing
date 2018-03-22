@@ -58,22 +58,17 @@ def script_handler(input_data):
         mongo_collection_date = mongo_database[config.MONGO_COLLECTION_DATE]
 
         team_id = input_data.get('TeamId', None)
-        training_group_id = input_data.get('TrainingGroupId', None)
+        training_group_id = input_data.get('TrainingGroupIds', None)
         user_id = input_data.get('UserId', None)
-        session_type = input_data.get('SessionType', None)
-        if session_type is not None:
-            session_type = str(session_type)
         user_mass = input_data.get('UserMass', 155) * 4.4482
 
         event_date = input_data.get('EventDate')
 
         # get aggregated data for all sessions sessions for current_day
-        current_day = _get_session_data(mongo_collection_session, user_id,
-                                        event_date, session_type)
+        current_day = _get_session_data(mongo_collection_session, user_id, event_date)
 
         # grab maximum required historical data
-        hist_records = _get_hist_data(mongo_collection_date, user_id,
-                                      event_date, session_type, period=7)
+        hist_records = _get_hist_data(mongo_collection_date, user_id, event_date, period=7)
 
         current = pandas.DataFrame({'eventDate': event_date,
                                     'totalGRF': current_day['totalGRF'],
@@ -99,7 +94,7 @@ def script_handler(input_data):
         record_out = OrderedDict({'teamId': team_id})
         record_out['userId'] = user_id
         record_out['eventDate'] = str(event_date)
-        record_out['sessionType'] = session_type
+        record_out['sessionType'] = '1'
 
         # grf
         record_out['totalGRF'] = current_day['totalGRF']
@@ -245,15 +240,15 @@ def _publish_alert(record_out, category, subcategory, granularity, value):
     alert.publish()
 
 
-def _get_session_data(collection, user_id, event_date, session_type):
-    """ Get aggregated data for the sessions (of given session_type) by the user for given date
+def _get_session_data(collection, user_id, event_date):
+    """ Get aggregated data for the sessions by the user for given date
     Aggregation is done using mongo api
     Returns:
         dictionary with aggregated values for the day
     """
     pipeline = [{'$match': {'userId': {'$eq': user_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
+                            'sessionType': {'$eq': '1'}
                            }
                 },
                 {'$group': {'_id': {'userId': "$userId"},
@@ -334,7 +329,7 @@ def _get_session_data(collection, user_id, event_date, session_type):
     return docs[0]
 
 
-def _get_hist_data(collection, user_id, event_date, session_type, period):
+def _get_hist_data(collection, user_id, event_date, period):
     """
     Get max historical data for acwr computation
     currently only returning totalGRF and totalAccel
@@ -345,7 +340,7 @@ def _get_hist_data(collection, user_id, event_date, session_type, period):
     start_date = str(event_date_dt - timedelta(days=total_days))
     # get history excluding current day
     docs = list(collection.find({'userId': {'$eq': user_id},
-                                 'sessionType': {'$eq': session_type},
+                                 'sessionType': {'$eq': '1'},
                                  'eventDate': {'$gte': start_date, '$lt': event_date}},
                                 {'eventDate': 1,
                                  'totalGRF': 1,

@@ -81,9 +81,9 @@ def script_handler(input_data):
         # read from prod for testing
 #        mongo_client = MongoClient('172.31.64.60,172.31.38.53,172.31.6.25', replicaset='sessionRS')
 #        mongo_database = mongo_client['movementStats']
-##        # Authenticate
+#        # Authenticate
 #        mongo_database.authenticate('statsUser', 'BioMx211', mechanism='SCRAM-SHA-1')
-###        mongo_collection = mongo_database['dateStats']
+#        mongo_collection = mongo_database['dateStats']
 #        mongo_collection_progcomp = mongo_database['progCompDateStats']
         # connect to all relevant collections
         mongo_collection_date = mongo_database_session[config.MONGO_COLLECTION_DATE]
@@ -93,15 +93,12 @@ def script_handler(input_data):
         mongo_collection_twomin = mongo_database_twomin[config.MONGO_COLLECTION_TWOMIN]
         mongo_collection_twomintg = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTG]
 
-        training_group_ids = input_data.get('TrainingGroupId', None)
-        session_type = input_data.get('SessionType', None)
-        if session_type is not None:
-            session_type = str(session_type)
+        training_group_ids = input_data.get('TrainingGroupIds', None) or {}
         event_date = input_data.get('EventDate')
 
         for tg_id in training_group_ids:
             # get twoMinute aggregated TG data
-            tg_two_min = _aggregate_tg_twomin(mongo_collection_twomin, tg_id, event_date, session_type)
+            tg_two_min = _aggregate_tg_twomin(mongo_collection_twomin, tg_id, event_date)
             for two_min in tg_two_min:
                 # for each two minute record, sort the variables in order
                 two_min_record = OrderedDict()
@@ -118,11 +115,10 @@ def script_handler(input_data):
                 mongo_collection_twomintg.replace_one(query, two_min_record, upsert=True)
     
             # get date level aggregated data for TG (minus prog comp)
-            tg_date = _aggregate_tg(mongo_collection_date, tg_id, event_date, session_type)
+            tg_date = _aggregate_tg(mongo_collection_date, tg_id, event_date)
 
             # grab maximum required historical data
-            hist_records = _get_hist_data(mongo_collection_datetg, tg_id,
-                                          event_date, session_type=session_type, period=7)
+            hist_records = _get_hist_data(mongo_collection_datetg, tg_id, event_date, period=7)
     
             current = pandas.DataFrame({'eventDate': event_date,
                                         'totalGRF': tg_date['totalGRF'],
@@ -147,10 +143,7 @@ def script_handler(input_data):
             prog_comps = ['grf', 'totalAccel', 'plane', 'stance']
             for var in prog_comps:
                 out_var = var+'ProgramComposition'
-                tg_date[out_var] = _aggregate_tg_progcomp(mongo_collection_progcomp, var,
-                                                           tg_id=tg_id,
-                                                           event_date=event_date,
-                                                           session_type=session_type)
+                tg_date[out_var] = _aggregate_tg_progcomp(mongo_collection_progcomp, var, tg_id=tg_id, event_date=event_date)
             # For TG date data, sort the variables in order
             record_out = OrderedDict()
             for tg_var in tg_vars:
@@ -168,20 +161,17 @@ def script_handler(input_data):
             query = {'trainingGroupId': tg_id, 'eventDate': event_date}
             mongo_collection_datetg.replace_one(query, record_out, upsert=True)
 
-
     except Exception as e:
         logger.info(e)
         logger.info('Process did not complete successfully! See error below!')
         raise
 
-def _aggregate_tg_twomin(collection, tg_id, event_date, session_type):
+
+def _aggregate_tg_twomin(collection, tg_id, event_date):
     pipeline = [{'$match': {'trainingGroups': {'$eq': tg_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
-                           }
-                },
+                            'sessionType': {'$eq': '1'}}},
                 {'$group': {'_id': {'twoMinuteIndex': '$twoMinuteIndex'},
-#                            'trainingGroupId': {'$first': '$teamId'},
                             'eventDate': {'$first': '$eventDate'},
                             'sessionType': {'$first': '$sessionType'},
                             'twoMinuteIndex': {'$first': '$twoMinuteIndex'},
@@ -208,66 +198,52 @@ def _aggregate_tg_twomin(collection, tg_id, event_date, session_type):
                             'hipControl': {'$sum': {'$multiply': ['$hipControl', '$totalGRF']}},
                             'ankleControl': {'$sum': {'$multiply': ['$ankleControl', '$totalGRF']}},
                             'controlLF': {'$sum': {'$multiply': ['$controlLF', '$LFgRF']}},
-                            'controlRF': {'$sum': {'$multiply': ['$controlRF', '$RFgRF']}}
-                           }
-                },
-                {'$project':{'_id': 0,
-#                             'trainingGroupId':1,
-                             'userId': None,
-                             'eventDate': 1,
-                             'sessionType': 1,
-                             'twoMinuteIndex': 1,
-                             'totalGRF': {'$divide': ['$totalGRF', '$userCount']},
-                             'optimalGRF': {'$divide': ['$optimalGRF', '$userCount']},
-                             'irregularGRF': {'$divide': ['$irregularGRF', '$userCount']},
-                             'control': {'$divide': ['$control', '$totalGRF']},
-                             'consistency': {'$divide': ['$consistency', '$totalGRF']},
-                             'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
-                             'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                             'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
-                             'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}
-                                                                     ]
-                                                       }
-                                              },
-                             'totalAccel': {'$divide': ['$totalAccel', '$userCount']},
-                             'irregularAccel': {'$divide': ['$irregularAccel', '$userCount']},
-                             'LFgRF': {'$divide': ['$LFgRF', '$userCount']},
-                             'RFgRF': {'$divide': ['$RFgRF', '$userCount']},
-                             'singleLegGRF': {'$divide': ['$singleLegGRF', '$userCount']},
-                             'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
-                                                          ]
-                                            },
-                             'percIrregular': {'$multiply': [{'$divide': ['$irregularGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
-                                                          ]
-                                            },
-                             'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
-                             'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
-                             'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
-                             'ankleConsistency': {'$divide': ['$ankleConsistency', '$totalGRF']},
-                             'consistencyLF': {'$divide': ['$consistencyLF', '$LFgRF']},
-                             'consistencyRF': {'$divide': ['$consistencyRF', '$RFgRF']},
-                             'hipControl': {'$divide': ['$hipControl', '$totalGRF']},
-                             'ankleControl': {'$divide': ['$ankleControl', '$totalGRF']},
-                             'controlLF': {'$divide': ['$controlLF', '$LFgRF']},
-                             'controlRF': {'$divide': ['$controlRF', '$RFgRF']}
-                            }
-                }
-               ]
+                            'controlRF': {'$sum': {'$multiply': ['$controlRF', '$RFgRF']}}}},
+                {'$project': {
+                    '_id': 0,
+                    'userId': None,
+                    'eventDate': 1,
+                    'sessionType': 1,
+                    'twoMinuteIndex': 1,
+                    'totalGRF': {'$divide': ['$totalGRF', '$userCount']},
+                    'optimalGRF': {'$divide': ['$optimalGRF', '$userCount']},
+                    'irregularGRF': {'$divide': ['$irregularGRF', '$userCount']},
+                    'control': {'$divide': ['$control', '$totalGRF']},
+                    'consistency': {'$divide': ['$consistency', '$totalGRF']},
+                    'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
+                    'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                    'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
+                    'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                                                             {'$divide': ['$percRightGRF', '$singleLegGRF']}]}},
+                    'totalAccel': {'$divide': ['$totalAccel', '$userCount']},
+                    'irregularAccel': {'$divide': ['$irregularAccel', '$userCount']},
+                    'LFgRF': {'$divide': ['$LFgRF', '$userCount']},
+                    'RFgRF': {'$divide': ['$RFgRF', '$userCount']},
+                    'singleLegGRF': {'$divide': ['$singleLegGRF', '$userCount']},
+                    'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100]},
+                    'percIrregular': {'$multiply': [{'$divide': ['$irregularGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100]},
+                    'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
+                    'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
+                    'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
+                    'ankleConsistency': {'$divide': ['$ankleConsistency', '$totalGRF']},
+                    'consistencyLF': {'$divide': ['$consistencyLF', '$LFgRF']},
+                    'consistencyRF': {'$divide': ['$consistencyRF', '$RFgRF']},
+                    'hipControl': {'$divide': ['$hipControl', '$totalGRF']},
+                    'ankleControl': {'$divide': ['$ankleControl', '$totalGRF']},
+                    'controlLF': {'$divide': ['$controlLF', '$LFgRF']},
+                    'controlRF': {'$divide': ['$controlRF', '$RFgRF']}}}]
+
     # get all the two minute aggregated records for the team and sort by twoMinIndex
     tg_stats = list(collection.aggregate(pipeline))
     tg_stats = sorted(tg_stats, key=lambda k: k['twoMinuteIndex'])
     team_all = []
     for two_min in tg_stats:
         # for each twoMinuteIndex, get the list of all athlete records
-        TwoMinIndex = two_min['twoMinuteIndex']
+        two_min_index = two_min['twoMinuteIndex']
         ath_pipeline = [{'$match': {'trainingGroups': {'$eq': tg_id},
                                     'eventDate': {'$eq': event_date},
-                                    'sessionType': {'$eq': session_type},
-                                    'twoMinuteIndex': {'$eq': TwoMinIndex}
-                                   }
-                        },
-                       ]
+                                    'sessionType': {'$eq': '1'},
+                                    'twoMinuteIndex': {'$eq': two_min_index}}}]
         ath_stats = list(collection.aggregate(ath_pipeline))
         # sort each athlete record to proper order of variables
         ath_stats_sorted = []
@@ -288,15 +264,13 @@ def _aggregate_tg_twomin(collection, tg_id, event_date, session_type):
     return tg_stats
 
 
-def _aggregate_tg_progcomp(collection, var, tg_id, event_date, session_type):
+def _aggregate_tg_progcomp(collection, var, tg_id, event_date):
     """Aggregate progComp for the team
     """
     prog_var = '$'+var+'ProgramComposition'
     pipeline = [{'$match': {'trainingGroups': {'$eq': tg_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
-                           }
-                },
+                            'sessionType': {'$eq': '1'}}},
                 {'$unwind': prog_var},
                 {'$group': {'_id': {'binNumber': prog_var+".binNumber"},
                             'binNumber': {'$first': prog_var+".binNumber"},
@@ -306,10 +280,7 @@ def _aggregate_tg_progcomp(collection, var, tg_id, event_date, session_type):
                             'optimalGRF': {'$avg': prog_var+'.optimalGRF'},
                             'irregularGRF': {'$avg': prog_var+'.irregularGRF'},
                             'totalAcceleration': {'$avg': prog_var+'.totalAcceleration'},
-                            'msElapsed': {'$avg': prog_var+'.msElapsed'}
-                           }
-                }
-               ]
+                            'msElapsed': {'$avg': prog_var+'.msElapsed'}}}]
     docs = list(collection.aggregate(pipeline))
     bins = []
     for doc in docs:
@@ -332,14 +303,12 @@ def _aggregate_tg_progcomp(collection, var, tg_id, event_date, session_type):
     return sorted(bins, key=lambda k: k['binNumber'])
 
 
-def _aggregate_tg(collection, tg_id, event_date, session_type):
+def _aggregate_tg(collection, tg_id, event_date):
     """Aggregate team data for the given date
     """
     pipeline = [{'$match': {'trainingGroups': {'$eq': tg_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
-                           }
-                },
+                            'sessionType': {'$eq': '1'}}},
                 {'$group': {'_id': {'trainingGroupId': "$trainingGroups"},
                             'trainingGroupId': {'$first': '$trainingGroups'},
                             'eventDate': {'$first': '$eventDate'},
@@ -368,63 +337,50 @@ def _aggregate_tg(collection, tg_id, event_date, session_type):
                             'hipControl': {'$sum': {'$multiply': ['$hipControl', '$totalGRF']}},
                             'ankleControl': {'$sum': {'$multiply': ['$ankleControl', '$totalGRF']}},
                             'controlLF': {'$sum': {'$multiply': ['$controlLF', '$LFgRF']}},
-                            'controlRF': {'$sum': {'$multiply': ['$controlRF', '$RFgRF']}}
-                           }
-                },
-                {'$project':{'_id': 0,
-                             'trainingGroupId':1,
-                             'userId': None,
-                             'eventDate': 1,
-                             'sessionType': 1,
-                             'totalGRF': {'$divide': ['$totalGRF', '$userCount']},
-                             'optimalGRF': {'$divide': ['$optimalGRF', '$userCount']},
-                             'irregularGRF': {'$divide': ['$irregularGRF', '$userCount']},
-                             'control': {'$divide': ['$control', '$totalGRF']},
-                             'consistency': {'$divide': ['$consistency', '$totalGRF']},
-                             'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
-                             'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                             'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
-                             'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}
-                                                                     ]
-                                                       }
-                                              },
-                             'totalAccel': {'$divide': ['$totalAccel', '$userCount']},
-                             'irregularAccel': {'$divide': ['$irregularAccel', '$userCount']},
-                             'LFgRF': {'$divide': ['$LFgRF', '$userCount']},
-                             'RFgRF': {'$divide': ['$RFgRF', '$userCount']},
-                             'singleLegGRF': {'$divide': ['$singleLegGRF', '$userCount']},
-                             'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
-                                                          ]
-                                            },
-                             'percIrregular': {'$multiply': [{'$divide': ['$irregularGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
-                                                          ]
-                                            },
-                             'fatigue': 1,
-                             'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
-                             'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
-                             'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
-                             'ankleConsistency': {'$divide': ['$ankleConsistency', '$totalGRF']},
-                             'consistencyLF': {'$divide': ['$consistencyLF', '$LFgRF']},
-                             'consistencyRF': {'$divide': ['$consistencyRF', '$RFgRF']},
-                             'hipControl': {'$divide': ['$hipControl', '$totalGRF']},
-                             'ankleControl': {'$divide': ['$ankleControl', '$totalGRF']},
-                             'controlLF': {'$divide': ['$controlLF', '$LFgRF']},
-                             'controlRF': {'$divide': ['$controlRF', '$RFgRF']}
-                            }
-                }
-               ]
-    ath_pipeline = [{'$match': {'trainingGroups': {'$eq': tg_id},
-                            'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
-                           }
-                     }
-                    ]
+                            'controlRF': {'$sum': {'$multiply': ['$controlRF', '$RFgRF']}}}},
+                {'$project': {
+                    '_id': 0,
+                    'trainingGroupId': 1,
+                    'userId': None,
+                    'eventDate': 1,
+                    'sessionType': 1,
+                    'totalGRF': {'$divide': ['$totalGRF', '$userCount']},
+                    'optimalGRF': {'$divide': ['$optimalGRF', '$userCount']},
+                    'irregularGRF': {'$divide': ['$irregularGRF', '$userCount']},
+                    'control': {'$divide': ['$control', '$totalGRF']},
+                    'consistency': {'$divide': ['$consistency', '$totalGRF']},
+                    'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
+                    'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                    'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
+                    'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                                                             {'$divide': ['$percRightGRF', '$singleLegGRF']}]}},
+                    'totalAccel': {'$divide': ['$totalAccel', '$userCount']},
+                    'irregularAccel': {'$divide': ['$irregularAccel', '$userCount']},
+                    'LFgRF': {'$divide': ['$LFgRF', '$userCount']},
+                    'RFgRF': {'$divide': ['$RFgRF', '$userCount']},
+                    'singleLegGRF': {'$divide': ['$singleLegGRF', '$userCount']},
+                    'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100]},
+                    'percIrregular': {'$multiply': [{'$divide': ['$irregularGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100]},
+                    'fatigue': 1,
+                    'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
+                    'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
+                    'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
+                    'ankleConsistency': {'$divide': ['$ankleConsistency', '$totalGRF']},
+                    'consistencyLF': {'$divide': ['$consistencyLF', '$LFgRF']},
+                    'consistencyRF': {'$divide': ['$consistencyRF', '$RFgRF']},
+                    'hipControl': {'$divide': ['$hipControl', '$totalGRF']},
+                    'ankleControl': {'$divide': ['$ankleControl', '$totalGRF']},
+                    'controlLF': {'$divide': ['$controlLF', '$LFgRF']},
+                    'controlRF': {'$divide': ['$controlRF', '$RFgRF']}}}]
+    ath_pipeline = [{'$match': {
+        'trainingGroups': {'$eq': tg_id},
+        'eventDate': {'$eq': event_date},
+        'sessionType': {'$eq': '1'}
+    }}]
     tg_stats = list(collection.aggregate(pipeline))[0]
     ath_stats = list(collection.aggregate(ath_pipeline))
     athlete_stats = []
     for athlete in ath_stats:
-#        return athlete
         single_ath = OrderedDict()
         for ath_var in athlete_vars:
             single_ath[ath_var] = athlete[ath_var]
@@ -435,7 +391,7 @@ def _aggregate_tg(collection, tg_id, event_date, session_type):
     return tg_stats
 
 
-def _get_hist_data(collection, tg_id, event_date, session_type, period):
+def _get_hist_data(collection, tg_id, event_date, period):
     """
     Get max historical data for acwr computation
     currently only returning totalGRF and totalAccel
@@ -446,7 +402,7 @@ def _get_hist_data(collection, tg_id, event_date, session_type, period):
     start_date = str(event_date_dt - timedelta(days=total_days))
     # get history excluding current day
     docs = list(collection.find({'trainingGroups': {'$eq': tg_id},
-                                 'sessionType': {'eq': session_type},
+                                 'sessionType': {'eq': '1'},
                                  'eventDate': {'$gte': start_date, '$lt': event_date}},
                                 {'eventDate': 1,
                                  'totalGRF': 1,
@@ -472,15 +428,15 @@ def _compute_awcr(hist, period, event_date):
     chronic_period_start = chronic_period_end - timedelta(days=4*period-1)
 
     # subset acute data and compute acute value
-    acute_data = hist.loc[(hist.eventDate >= str(acute_period_start)) &\
+    acute_data = hist.loc[(hist.eventDate >= str(acute_period_start)) &
                           (hist.eventDate <= str(acute_period_end))]
     acute = acute_data.sum()
     acute.totalAccel = acute.totalAccel / acute_data.shape[0] * period
     acute.totalGRF = acute.totalGRF / acute_data.shape[0] * period
 
     # subset chronic data and compute chronic value
-    chronic_data = hist.loc[(hist.eventDate >= str(chronic_period_start)) &\
-                             (hist.eventDate <= str(chronic_period_end))]
+    chronic_data = hist.loc[(hist.eventDate >= str(chronic_period_start)) &
+                            (hist.eventDate <= str(chronic_period_end))]
     data_start_date = datetime.strptime(chronic_data.eventDate[0], '%Y-%m-%d').date()
     diff = chronic_period_end - data_start_date
     if diff.days >= 10 and chronic_data.shape[0] >= 4:
@@ -496,39 +452,3 @@ def _compute_awcr(hist, period, event_date):
                               'totalGRF': None})
 
     return acwr
-
-
-if __name__ == '__main__':
-    import time
-    start = time.time()
-    input_data = OrderedDict()
-    input_data = OrderedDict()
-    input_data['TeamId'] = 'test_team'
-    input_data['TrainingGroupId'] = ['test_tg1', 'test_tg2']
-    input_data['UserId'] = 'test_user'
-    input_data['SessionEventId'] = 'test_session'
-    input_data['SessionType'] = '1'
-    input_data['UserMass'] = 155
-    input_data['EventDate'] = '2017-03-20'
-
-    os.environ['ENVIRONMENT'] = 'Dev'
-    os.environ['MONGO_HOST_SESSION'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
-    os.environ['MONGO_USER_SESSION'] = 'statsUser'
-    os.environ['MONGO_PASSWORD_SESSION'] = 'BioMx211'
-    os.environ['MONGO_DATABASE_SESSION'] = 'movementStats'
-    os.environ['MONGO_REPLICASET_SESSION'] = '---'
-    os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test3'
-    os.environ['MONGO_COLLECTION_DATETEAM'] = 'dateStatsTeam_test3'
-    os.environ['MONGO_COLLECTION_DATETG'] = 'dateStatsTG_test3'
-    os.environ['MONGO_COLLECTION_PROGCOMP'] = 'progCompDateStats_test3'
-    os.environ['MONGO_HOST_TWOMIN'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
-    os.environ['MONGO_USER_TWOMIN'] = 'statsUser'
-    os.environ['MONGO_PASSWORD_TWOMIN'] = 'BioMx211'
-    os.environ['MONGO_DATABASE_TWOMIN'] = 'movementStats'
-    os.environ['MONGO_REPLICASET_TWOMIN'] = '---'
-    os.environ['MONGO_COLLECTION_TWOMIN'] = 'twoMinuteStats_test3'
-    os.environ['MONGO_COLLECTION_TWOMINTEAM'] = 'twoMinuteStatsTeam_test3'
-    os.environ['MONGO_COLLECTION_TWOMINTG'] = 'twoMinuteStatsTG_test3'
-
-    result = script_handler(input_data)
-    print(time.time() - start)

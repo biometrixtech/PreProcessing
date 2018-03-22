@@ -94,13 +94,10 @@ def script_handler(input_data):
         mongo_collection_twominteam = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTEAM]
         
         team_id = input_data.get('TeamId', None)
-        session_type = input_data.get('SessionType', None)
-        if session_type is not None:
-            session_type = str(session_type)
         event_date = input_data.get('EventDate')
 
         # get twoMinute aggregated team data
-        team_two_min = _aggregate_team_twomin(mongo_collection_twomin, team_id, event_date, session_type)
+        team_two_min = _aggregate_team_twomin(mongo_collection_twomin, team_id, event_date)
         for two_min in team_two_min:
             # for each two minute record, sort the variables in order
             two_min_record = OrderedDict()
@@ -115,11 +112,10 @@ def script_handler(input_data):
             mongo_collection_twominteam.replace_one(query, two_min_record, upsert=True)
 
         # get date level aggregated data for team (minus prog comp)
-        team_date = _aggregate_team(mongo_collection_date, team_id, event_date, session_type)
+        team_date = _aggregate_team(mongo_collection_date, team_id, event_date)
 
         # grab maximum required historical data
-        hist_records = _get_hist_data(mongo_collection_dateteam, team_id,
-                                      event_date, session_type, period=7)
+        hist_records = _get_hist_data(mongo_collection_dateteam, team_id, event_date, period=7)
 
         current = pandas.DataFrame({'eventDate': event_date,
                                     'totalGRF': team_date['totalGRF'],
@@ -145,8 +141,7 @@ def script_handler(input_data):
         for var in prog_comps:
             out_var = var+'ProgramComposition'
             team_date[out_var] = _aggregate_team_progcomp(mongo_collection_progcomp, var,
-                                                          team_id=team_id, event_date=event_date,
-                                                          session_type=session_type)
+                                                          team_id=team_id, event_date=event_date)
         # For team date data, sort the variables in order
         record_out = OrderedDict()
         for team_var in team_vars:
@@ -169,10 +164,10 @@ def script_handler(input_data):
         raise
 
 
-def _aggregate_team_twomin(collection, team_id, event_date, session_type):
+def _aggregate_team_twomin(collection, team_id, event_date):
     pipeline = [{'$match': {'teamId': {'$eq': team_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
+                            'sessionType': {'$eq': '1'}
                            }
                 },
                 {'$group': {'_id': {'teamId': "$teamId",
@@ -256,11 +251,11 @@ def _aggregate_team_twomin(collection, team_id, event_date, session_type):
     team_all = []
     for two_min in team_stats:
         # for each twoMinuteIndex, get the list of all athlete records
-        TwoMinIndex = two_min['twoMinuteIndex']
+        two_min_index = two_min['twoMinuteIndex']
         ath_pipeline = [{'$match': {'teamId': {'$eq': team_id},
                                     'eventDate': {'$eq': event_date},
-                                    'sessionType': {'$eq': session_type},
-                                    'twoMinuteIndex': {'$eq': TwoMinIndex}
+                                    'sessionType': {'$eq': '1'},
+                                    'twoMinuteIndex': {'$eq': two_min_index}
                                    }
                         },
                        ]
@@ -282,13 +277,13 @@ def _aggregate_team_twomin(collection, team_id, event_date, session_type):
     return team_stats
 
 
-def _aggregate_team_progcomp(collection, var, team_id, event_date, session_type):
+def _aggregate_team_progcomp(collection, var, team_id, event_date):
     """Aggregate progComp for the team
     """
     prog_var = '$'+var+'ProgramComposition'
     pipeline = [{'$match': {'teamId': {'$eq': team_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
+                            'sessionType': {'$eq': '1'}
                            }
                 },
                 {'$unwind': prog_var},
@@ -326,12 +321,12 @@ def _aggregate_team_progcomp(collection, var, team_id, event_date, session_type)
     return sorted(bins, key=lambda k: k['binNumber'])
 
 
-def _aggregate_team(collection, team_id, event_date, session_type):
+def _aggregate_team(collection, team_id, event_date):
     """Aggregate team data for the given date
     """
     pipeline = [{'$match': {'teamId': {'$eq': team_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
+                            'sessionType': {'$eq': '1'}
                            }
                 },
                 {'$group': {'_id': {'teamId': "$teamId"},
@@ -366,7 +361,7 @@ def _aggregate_team(collection, team_id, event_date, session_type):
                            }
                 },
                 {'$project':{'_id': 0,
-                             'teamId':1,
+                             'teamId': 1,
                              'userId': None,
                              'eventDate': 1,
                              'sessionType': 1,
@@ -379,10 +374,8 @@ def _aggregate_team(collection, team_id, event_date, session_type):
                              'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
                              'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
                              'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}
-                                                                     ]
-                                                       }
-                                              },
+                                                                      {'$divide': ['$percRightGRF', '$singleLegGRF']}
+                              ]}},
                              'totalAccel': {'$divide': ['$totalAccel', '$userCount']},
                              'irregularAccel': {'$divide': ['$irregularAccel', '$userCount']},
                              'LFgRF': {'$divide': ['$LFgRF', '$userCount']},
@@ -410,7 +403,7 @@ def _aggregate_team(collection, team_id, event_date, session_type):
                ]
     ath_pipeline = [{'$match': {'teamId': {'$eq': team_id},
                             'eventDate': {'$eq': event_date},
-                            'sessionType': {'$eq': session_type}
+                            'sessionType': {'$eq': '1'}
                            }
                      }
                     ]
@@ -426,7 +419,7 @@ def _aggregate_team(collection, team_id, event_date, session_type):
     return team_stats
 
 
-def _get_hist_data(collection, team_id, event_date, session_type, period):
+def _get_hist_data(collection, team_id, event_date, period):
     """
     Get max historical data for acwr computation
     currently only returning totalGRF and totalAccel
@@ -437,7 +430,7 @@ def _get_hist_data(collection, team_id, event_date, session_type, period):
     start_date = str(event_date_dt - timedelta(days=total_days))
     # get history excluding current day
     docs = list(collection.find({'teamId': {'$eq': team_id},
-                                 'sessionType': {'$eq': session_type},
+                                 'sessionType': {'$eq': '1'},
                                  'eventDate': {'$gte': start_date, '$lt': event_date}},
                                 {'eventDate': 1,
                                  'totalGRF': 1,

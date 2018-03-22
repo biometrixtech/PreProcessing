@@ -148,9 +148,9 @@ def main():
             send_success(meta_data, {})
             exit(0)
 
-        sensor_data_filename = input_data.get('SensorDataFilename')
-        os.environ['SENSOR_DATA_FILENAME'] = sensor_data_filename
-        working_directory = os.path.join('/net/efs/preprocessing', sensor_data_filename)
+        session_id = input_data.get('SessionId')
+        os.environ['SESSION_ID'] = session_id
+        working_directory = os.path.join('/net/efs/preprocessing', session_id)
 
         if script == 'downloadandchunk':
             print('Running downloadAndChunk()')
@@ -159,12 +159,12 @@ def main():
                 raise Exception("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
 
             from downloadAndChunk import downloadAndChunk
-            tmp_combined_file = downloadAndChunk.script_handler(sensor_data_filename)
+            tmp_combined_file = downloadAndChunk.script_handler(session_id)
 
             # Upload combined file back to s3
             s3_client = boto3.client('s3')
             s3_bucket = 'biometrix-decode'
-            s3_client.upload_file(tmp_combined_file, s3_bucket, sensor_data_filename + '_combined')
+            s3_client.upload_file(tmp_combined_file, s3_bucket, session_id + '_combined')
 
             # Create the working directory
             mkdir(working_directory)
