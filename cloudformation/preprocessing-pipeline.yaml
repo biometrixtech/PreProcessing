@@ -1145,7 +1145,7 @@ Resources:
                                             "ResultPath": "$.AggregateBlocks",
                                             "Next": "AggregateBlocks"
                                         },
-                                        "Aggregateblocks": {
+                                        "AggregateBlocks": {
                                             "Type": "Task",
                                             "InputPath": "$.AggregateBlocks",
                                             "Resource": "${StepFunctionsActivity}",
