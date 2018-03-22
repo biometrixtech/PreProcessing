@@ -93,7 +93,7 @@ def script_handler(input_data):
         mongo_collection_twomin = mongo_database_twomin[config.MONGO_COLLECTION_TWOMIN]
         mongo_collection_twomintg = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTG]
 
-        training_group_ids = input_data.get('TrainingGroupIds', None)
+        training_group_ids = input_data.get('TrainingGroupIds', None) or {}
         event_date = input_data.get('EventDate')
 
         for tg_id in training_group_ids:
