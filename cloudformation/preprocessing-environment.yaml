@@ -367,7 +367,7 @@ Resources:
                     Version: "2012-10-17"
                     Statement:
                       - Action:
-                          - "s3:PutItem"
+                          - "s3:PutObject"
                         Effect: "Allow"
                         Resource: { "Fn::Sub": "arn:aws:s3:::${S3Bucket}/*" }
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-apigateway-${AWS::Region}" }
