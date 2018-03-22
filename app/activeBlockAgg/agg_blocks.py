@@ -29,8 +29,6 @@ Config = namedtuple('Config', [
 
 
 def script_handler(working_directory, input_data):
-    logger.info('Running blocksAgg on "{}"'.format(file_name))
-    logger.info("Definitely running")
 
     try:
         config = Config(
