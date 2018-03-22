@@ -311,7 +311,6 @@ Resources:
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
-                    QUERYPOSTGRES_LAMBDA_ARN: { "Fn::ImportValue": { "Fn::Sub": "QuerypostgresLambdaArn-${Environment}" } }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -454,43 +453,6 @@ Resources:
             FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-prepare-scoring" }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-scoring" } }
-              - { Key: "Management", Value: "managed" }
-              - { Key: "Project", Value: "preprocessing" }
-              - { Key: "Environment", Value: { Ref: "Environment" } }
-
-    LambdaWritePostgres:
-        Type: "AWS::Lambda::Function"
-        Properties:
-            Code:
-                ZipFile: !Sub |
-                    import boto3, json, os
-                    def handler(event, context):
-                        lambda_client = boto3.client('lambda', region_name='us-west-2')
-                        res = json.loads(lambda_client.invoke(
-                            FunctionName=os.environ['QUERYPOSTGRES_LAMBDA_ARN'],
-                            Payload=json.dumps({
-                                "Queries": [{
-                                    "Query": "UPDATE session_events SET session_success=True, updated_at = now() WHERE id = %s",
-                                    "Parameters": [event['ReadDatabase']['SessionId']]
-                                }],
-                                "Config": {"ENVIRONMENT": os.environ['ENVIRONMENT']}
-                            }),
-                        )['Payload'].read())
-                        if res['Errors'][0] is not None:
-                            raise Exception(res['Errors'][0])
-                        return {}
-
-            Environment:
-                Variables:
-                    ENVIRONMENT: { Ref: "Environment" }
-                    QUERYPOSTGRES_LAMBDA_ARN: { "Fn::ImportValue": { "Fn::Sub": "QuerypostgresLambdaArn-${Environment}" } }
-            Handler: "index.handler"
-            Runtime: "python3.6"
-            Timeout: "30"
-            Role: { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] }
-            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-writepostgres" }
-            Tags:
-              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-writepostgres" } }
               - { Key: "Management", Value: "managed" }
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
@@ -1045,16 +1007,6 @@ Resources:
                         "Aggregate1": {
                             "Type": "Parallel",
                             "Branches": [
-                                {
-                                    "StartAt": "WritePostgres",
-                                    "States": {
-                                        "WritePostgres": {
-                                            "Type": "Task",
-                                            "Resource": "${LambdaWritePostgres.Arn}",
-                                            "End": true
-                                        }
-                                    }
-                                },
                                 {
                                     "StartAt": "BuildAggregateProgComp",
                                     "States": {
