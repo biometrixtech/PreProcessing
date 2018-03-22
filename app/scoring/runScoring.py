@@ -89,7 +89,7 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
     # Write debug data to s3
     import cStringIO
     import boto3
-    columns = ['epoch_time', 'grf', 'total_accel',
+    columns = ['epoch_time', 'active', 'grf', 'total_accel',
                'symmetry', 'hip_symmetry', 'ankle_symmetry',
                'control', 'hip_control', 'ankle_control', 'control_lf', 'control_rf']
     fileobj = cStringIO.StringIO()
