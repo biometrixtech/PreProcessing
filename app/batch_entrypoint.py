@@ -262,12 +262,12 @@ def main():
         elif script == 'aggregateblocks':
             print('Computing block aggregations')
             load_parameters([
-                'MONGO_HOST_BLOCKS',
-                'MONGO_USER_BLOCKS',
-                'MONGO_PASSWORD_BLOCKS',
-                'MONGO_DATABASE_BLOCKS',
-                'MONGO_COLLECTION_BLOCKS',
-                'MONGO_REPLICASET_BLOCKS',
+                'MONGO_HOST_ACTIVEBLOCKS',
+                'MONGO_USER_ACTIVEBLOCKS',
+                'MONGO_PASSWORD_ACTIVEBLOCKS',
+                'MONGO_DATABASE_ACTIVEBLOCKS',
+                'MONGO_COLLECTION_ACTIVEBLOCKS',
+                'MONGO_REPLICASET_ACTIVEBLOCKS',
             ])
             from activeBlockAgg import agg_blocks
             agg_blocks.script_handler(

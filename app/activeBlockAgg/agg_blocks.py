@@ -28,7 +28,7 @@ Config = namedtuple('Config', [
 ])
 
 
-def script_handler(working_directory, file_name, input_data):
+def script_handler(working_directory, input_data):
     logger.info('Running blocksAgg on "{}"'.format(file_name))
     logger.info("Definitely running")
 
@@ -36,12 +36,12 @@ def script_handler(working_directory, file_name, input_data):
         config = Config(
             AWS=False,
             ENVIRONMENT=os.environ['ENVIRONMENT'],
-            MONGO_HOST=os.environ['MONGO_HOST_BLOCKS'],
-            MONGO_USER=os.environ['MONGO_USER_BLOCKS'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_BLOCKS'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE_BLOCKS'],
-            MONGO_COLLECTION=os.environ['MONGO_COLLECTION_BLOCKS'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_BLOCKS'] if os.environ['MONGO_REPLICASET_BLOCKS'] != '---' else None,
+            MONGO_HOST=os.environ['MONGO_HOST_ACTIVEBLOCKS'],
+            MONGO_USER=os.environ['MONGO_USER_ACTIVEBLOCKS'],
+            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_ACTIVEBLOCKS'],
+            MONGO_DATABASE=os.environ['MONGO_DATABASE_ACTIVEBLOCKS'],
+            MONGO_COLLECTION=os.environ['MONGO_COLLECTION_ACTIVEBLOCKS'],
+            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_ACTIVEBLOCKS'] if os.environ['MONGO_REPLICASET_ACTIVEBLOCKS'] != '---' else None,
         )
 
         # first collection
