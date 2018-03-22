@@ -125,7 +125,10 @@ def script_handler(working_directory, input_data):
         data['consistency_rf'] = data['consistency_rf'] * active_ind
         # segment data into blocks
         active_blocks = define_blocks(data['active'].values)
+        print("starting aggregation in blocks")
+        print(active_blocks)
         for block in active_blocks:
+            print(block)
             block_start_index = active_blocks[block][0][0]
             block_end_index = active_blocks[block][-1][1]
             block_start = pandas.to_datetime(data['epoch_time'][block_start_index], unit='ms')
