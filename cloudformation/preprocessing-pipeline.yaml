@@ -496,6 +496,45 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
 
+    LambdaPrepareAggregateBlocks:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: !Sub |
+                    def handler(event, context):
+                        return {
+                            "Meta": {
+                                "ActivityArn": "${StepFunctionsActivity}",
+                                "ExecutionArn": event['Meta']['ExecutionArn'],
+                                "ExecutionName": event['Meta']['ExecutionName'],
+                                "Environment": "${Environment}",
+                                "NoopJobDefinition": "${BatchJobDefinition}"
+                            },
+                            "Branches": [
+                                {
+                                    "Resource": {
+                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
+                                        "BatchJobDefinition": "${BatchJobDefinition}",
+                                        "BatchJob": "aggregateblocks",
+                                        "Memory": 4096,
+                                        "Vcpus": 4,
+                                    },
+                                    "InputPath": "$"
+                                }
+                            ],
+                            "Input": event["ReadDatabase"]
+                        }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-prepare-aggregateblocks" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-prepare-aggregateblocks" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
     LambdaPrepareAggregateTwomin:
         Type: "AWS::Lambda::Function"
         Properties:
@@ -1093,6 +1132,26 @@ Resources:
                                             "TimeoutSeconds": 600,
                                             "HeartbeatSeconds": 600,
                                             "ResultPath": "$.AggregateTwomin",
+                                            "End": true
+                                        }
+                                    }
+                                },
+                                {
+                                    "StartAt": "BuildAggregateBlocksContext",
+                                    "States": {
+                                        "BuildAggregateBlocksContext": {
+                                            "Type": "Task",
+                                            "Resource": "${LambdaPrepareAggregateBlocks.Arn}",
+                                            "ResultPath": "$.AggregateBlocks",
+                                            "Next": "AggregateBlocks"
+                                        },
+                                        "Aggregateblocks": {
+                                            "Type": "Task",
+                                            "InputPath": "$.AggregateBlocks",
+                                            "Resource": "${StepFunctionsActivity}",
+                                            "TimeoutSeconds": 600,
+                                            "HeartbeatSeconds": 600,
+                                            "ResultPath": "$.AggregateBlocks",
                                             "End": true
                                         }
                                     }
