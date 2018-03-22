@@ -23,6 +23,7 @@ from controlScore import control_score
 from scoring import score
 import columnNames as cols
 from exceptions import NoHistoricalDataException
+from define_boundaries import define_bounds
 
 logger = logging.getLogger()
 
@@ -104,6 +105,7 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
     sdata.to_csv(fileobj, index=False, na_rep='', columns=cols.column_scoring_out)
     _logger("DONE WRITING OUTPUT FILE")
 
+    #TODO replace computing boundaries for twoMin by active blocks
     # Calculate 15 minute cutoff points
     sdata.set_index(pd.to_datetime(sdata.epoch_time, unit='ms'), drop=False, inplace=True)
     groups = sdata.resample('16T')
@@ -111,6 +113,8 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
     # Off-by-two error occurs (probably one for the column headers, and one for splitting before/after a line?).  We also
     # have to ignore the last split, which will end up out-of-range
     boundaries = [x + 2 for x in np.where(sdata.time_stamp.isin(data_end))[0].tolist()][0:-1]
+
+    # boundaries = define_bounds(sdata.active.values)
 
     return boundaries
 
