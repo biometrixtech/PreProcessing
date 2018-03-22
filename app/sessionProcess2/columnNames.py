@@ -14,6 +14,7 @@ incoming_from_accessory = ['epoch_time', 'corrupt',
 
 column_session2_out = ['obs_index', 'time_stamp', 'epoch_time', 'ms_elapsed',
                        'loading_lf', 'loading_rf',
+                       'active',
                        'phase_lf',  'phase_rf', 'impact_phase_lf', 'impact_phase_rf',
                        'grf', 'grf_lf', 'grf_rf', 'grf_bal_phase',
                        'contra_hip_drop_lf', 'contra_hip_drop_rf',
