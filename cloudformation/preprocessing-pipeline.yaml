@@ -284,7 +284,7 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
 
-    LambdaReadPostgres:
+    LambdaReadData:
         Type: "AWS::Lambda::Function"
         Properties:
             Code:
@@ -301,7 +301,7 @@ Resources:
                         return {
                             "SessionId": session_id,
                             "Version": session['version'],
-                            "EventDate": session.get('eventDate', None),
+                            "EventDate": session.get('eventDate', '').split('T')[0],
                             "TeamId": session.get('teamId', None),
                             "TrainingGroupIds": session.get('trainingGroupIds', None),
                             "UserId": session.get('userId', None),
@@ -316,9 +316,9 @@ Resources:
             Runtime: "python3.6"
             Timeout: "30"
             Role: { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] }
-            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-readpostgres" }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-readdata" }
             Tags:
-              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-readpostgres" } }
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-readdata" } }
               - { Key: "Management", Value: "managed" }
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
@@ -662,6 +662,7 @@ Resources:
             Code:
                 ZipFile: !Sub |
                     def handler(event, context):
+                        training_group_ids = event["ReadDatabase"]["TrainingGroupIds"] or {}
                         return {
                             "Meta": {
                                 "ActivityArn": "${StepFunctionsActivity}",
@@ -683,7 +684,7 @@ Resources:
                                 }
                             ],
                             "Input": event["ReadDatabase"],
-                            "LinearityGroup": event["ReadDatabase"]["TrainingGroupId"][0] if len(event["ReadDatabase"]["TrainingGroupId"]) else ''
+                            "LinearityGroup": training_group_ids[0] if len(training_group_ids) else ''
                         }
             Handler: "index.handler"
             Runtime: "python3.6"
@@ -943,11 +944,11 @@ Resources:
                                     }
                                 },
                                 {
-                                    "StartAt": "ReadDatabase",
+                                    "StartAt": "ReadData",
                                     "States": {
-                                        "ReadDatabase": {
+                                        "ReadData": {
                                             "Type": "Task",
-                                            "Resource": "${LambdaReadPostgres.Arn}",
+                                            "Resource": "${LambdaReadData.Arn}",
                                             "ResultPath": "$.Output.ReadDatabase",
                                             "OutputPath": "$.Output",
                                             "End": true
