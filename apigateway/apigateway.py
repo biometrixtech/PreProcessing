@@ -49,7 +49,7 @@ def handle_session_create():
     if 'sensors' not in request.json:
         raise InvalidSchemaException('Missing required parameter sensors')
 
-    user_id = team_id = training_group_ids = None
+    user_id = team_id = training_group_ids = mass = None
     accessory = get_accessory_from_auth(request.headers['Authorization'])
     if 'owner_id' in accessory:
         print(accessory['owner_id'])
@@ -59,6 +59,7 @@ def handle_session_create():
             user_id = user['user_id']
             team_id = user['team_id']
             training_group_ids = set(user['training_group_ids'])
+            mass = user['mass']['kg']
         else:
             # TODO
             print('Accessory owner_id does not exist')
@@ -71,6 +72,7 @@ def handle_session_create():
     session = Session(
         session_id=str(uuid.uuid4()),
         user_id=user_id,
+        user_mass=mass,
         team_id=team_id,
         training_group_ids=training_group_ids,
         event_date=request.json['event_date'],

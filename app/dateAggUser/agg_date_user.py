@@ -60,7 +60,7 @@ def script_handler(input_data):
         team_id = input_data.get('TeamId', None)
         training_group_id = input_data.get('TrainingGroupIds', None)
         user_id = input_data.get('UserId', None)
-        user_mass = input_data.get('UserMass', 155) * 4.4482
+        user_mass = input_data.get('UserMassKg', None)
 
         event_date = input_data.get('EventDate')
 

@@ -88,7 +88,7 @@ def script_handler(working_directory, input_data):
         data_out['sessionType'] = input_data.get('SessionType', None)
         if data_out['sessionType'] is not None:
             data_out['sessionType'] = str(data_out['sessionType'])
-        data_out['userMass'] = input_data.get('UserMass', 155) * 4.4482
+        data_out['userMass'] = float(input_data.get('UserMassKg', None))
         data_out['eventDate'] = input_data.get('EventDate', None)
 
         # Compute the max grf and totalAccel for each .5s window for use in program comp

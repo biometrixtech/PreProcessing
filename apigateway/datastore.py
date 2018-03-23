@@ -124,6 +124,7 @@ class SessionDatastore(DynamodbDatastore):
         item = {
             'id': session.session_id,
             'userId': session.user_id,
+            'userMass': Decimal(session.user_mass),
             'teamId': session.team_id,
             'trainingGroupIds': session.training_group_ids,
             'eventDate': session.event_date,
@@ -141,6 +142,7 @@ class SessionDatastore(DynamodbDatastore):
         return Session(
             session_id=item['id'],
             user_id=item.get('userId', None),
+            user_mass=item.get('userMass', None),
             team_id=item.get('teamId', None),
             training_group_ids=item.get('trainingGroupId', None),
             event_date=item.get('eventDate', None),

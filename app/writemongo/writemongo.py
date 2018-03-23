@@ -105,7 +105,7 @@ def script_handler(working_directory, file_name, input_data):
         session_type = input_data.get('SessionType', None)
         if session_type is not None:
             session_type = str(session_type)
-        user_mass = input_data.get('UserMass', 155) * 4.4482
+        user_mass = input_data.get('UserMassKg', None)
 
         # Compute the max grf and totalAccel for each .5s window for use in program comp
         data['half_sec'] = pandas.DatetimeIndex(pandas.to_datetime(data.epochTime, unit='ms')).round('500ms')

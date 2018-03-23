@@ -7,6 +7,7 @@ class Session(Serialisable):
     def __init__(self, *,
                  session_id,
                  user_id,
+                 user_mass,
                  team_id,
                  training_group_ids,
                  event_date,
@@ -18,6 +19,7 @@ class Session(Serialisable):
                  ):
         self.session_id = session_id
         self.user_id = user_id
+        self.user_mass = user_mass
         self.team_id = team_id
         self.training_group_ids = training_group_ids
         self.event_date = event_date
@@ -31,6 +33,7 @@ class Session(Serialisable):
         ret = {
             'id': self.session_id,
             'user_id': self.user_id,
+            'user_mass': self.user_mass,
             'team_id': self.team_id,
             'training_group_ids': self.training_group_ids,
             'event_date': self.event_date,
