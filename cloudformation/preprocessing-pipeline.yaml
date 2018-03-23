@@ -305,7 +305,7 @@ Resources:
                             "TeamId": session.get('teamId', None),
                             "TrainingGroupIds": session.get('trainingGroupIds', None),
                             "UserId": session.get('userId', None),
-                            "UserMass": session.get('userMass', None) or 72.5, # kilograms
+                            "UserMassKg": session.get('userMass', None) or 72.5, # kilograms
                         }
 
             Environment:

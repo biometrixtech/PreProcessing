@@ -84,7 +84,7 @@ def script_handler(working_directory, input_data):
         user_id = input_data.get('UserId', None)
 #        training_session_log_id = input_data.get('TrainingSessionLogId', None)
         session_event_id = input_data.get('SessionId', None)
-        user_mass = input_data.get('UserMass', 155) * 4.4482
+        user_mass = input_data.get('UserMassKg', None)
         event_date = input_data.get('EventDate')
 
         # Prep for session aggregation

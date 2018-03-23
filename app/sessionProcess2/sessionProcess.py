@@ -48,7 +48,7 @@ def mkdir(path):
 
 
 def load_user_mass(data):
-    return float(data.get('UserMass', 160)) * 0.453592
+    return float(data.get('UserMassKg'))
 
 
 def load_grf_model(config):
