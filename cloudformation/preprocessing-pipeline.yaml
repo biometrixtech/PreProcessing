@@ -516,7 +516,7 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateblocks",
-                                        "Memory": 4096,
+                                        "Memory": 8192,
                                         "Vcpus": 4,
                                     },
                                     "InputPath": "$"
