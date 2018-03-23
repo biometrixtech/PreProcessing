@@ -63,6 +63,7 @@ def script_handler(working_directory, file_name, input_data):
 
         # rename columns to match mongo
         data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed', 'sessionDuration',
+                        'active',
                         'loadingLF', 'loadingRF',
                         'phaseLF', 'phaseRF', 'lfImpactPhase', 'rfImpactPhase',
                         'total', 'LF', 'RF', 'constructive', 'destructive', 'destrMultiplier', 'sessionGRFElapsed',

@@ -259,6 +259,23 @@ def main():
             )
             send_success(meta_data, {})
 
+        elif script == 'aggregateblocks':
+            print('Computing block aggregations')
+            load_parameters([
+                'MONGO_HOST_ACTIVEBLOCKS',
+                'MONGO_USER_ACTIVEBLOCKS',
+                'MONGO_PASSWORD_ACTIVEBLOCKS',
+                'MONGO_DATABASE_ACTIVEBLOCKS',
+                'MONGO_COLLECTION_ACTIVEBLOCKS',
+                'MONGO_REPLICASET_ACTIVEBLOCKS',
+            ])
+            from activeBlockAgg import agg_blocks
+            agg_blocks.script_handler(
+                working_directory,
+                input_data
+            )
+            send_success(meta_data, {})
+
         elif script == 'aggregatetwomin':
             print('Computing two minute aggregations')
             load_parameters([

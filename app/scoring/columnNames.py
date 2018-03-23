@@ -79,6 +79,7 @@ column_scoring_out = [
     'epoch_time',
     'ms_elapsed',
     'session_duration',
+    'active',
     'loading_lf',
     'loading_rf',
     'phase_lf',

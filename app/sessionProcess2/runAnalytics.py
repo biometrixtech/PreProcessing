@@ -37,6 +37,7 @@ import quatConvs as qc
 import prePreProcessing as ppp
 from extractGeometry import extract_geometry
 from runRelativeCME import run_relative_CMEs
+from unit_blocks import define_unit_blocks
 
 logger = logging.getLogger()
 psycopg2.extras.register_uuid()
@@ -395,6 +396,9 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
 
     # MAGNITUDE OF GRF DURING BALANCE PHASE
     data.grf_bal_phase = bpf.bal_phase_force(data) / (data.mass * 1000)
+
+    # DEFINE UNIT ACTIVE BLOCKS
+    data.active = define_unit_blocks(data.total_accel)
 
     # combine into data table
     length = len(data.LaX)
