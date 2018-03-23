@@ -130,8 +130,8 @@ def script_handler(working_directory, input_data):
             print(block)
             block_start_index = active_blocks[block][0][0]
             block_end_index = active_blocks[block][-1][1]
-            block_start = pandas.to_datetime(data['epoch_time'][block_start_index], unit='ms')
-            block_end = pandas.to_datetime(data['epoch_time'][block_end_index], unit='ms')
+            block_start = str(pandas.to_datetime(data['epoch_time'][block_start_index], unit='ms'))
+            block_end = str(pandas.to_datetime(data['epoch_time'][block_end_index], unit='ms'))
             block_data = data.loc[block_start_index:block_end_index, :]
             record_out = OrderedDict()
             record_out['userId'] = user_id
@@ -151,8 +151,8 @@ def script_handler(working_directory, input_data):
             for unit_block in active_blocks[block]:
                 unit_block_data = data.loc[unit_block[0]:unit_block[1]]
                 unit_block_record = OrderedDict()
-                unit_block_start = pandas.to_datetime(data['epoch_time'][unit_block[0]], unit='ms')
-                unit_block_end = pandas.to_datetime(data['epoch_time'][unit_block[1]], unit='ms')
+                unit_block_start = str(pandas.to_datetime(data['epoch_time'][unit_block[0]], unit='ms'))
+                unit_block_end = str(pandas.to_datetime(data['epoch_time'][unit_block[1]], unit='ms'))
                 unit_block_record['timeStart'] = unit_block_start
                 unit_block_record['timeEnd'] = unit_block_end
 
