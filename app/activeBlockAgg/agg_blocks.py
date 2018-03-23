@@ -267,28 +267,3 @@ def _aggregate(data, record):
     record['percIrregular'] = (1 - perc_optimal_block) * 100
 
     return record
-
-
-if __name__ == '__main__':
-    import time
-    start = time.time()
-    input_data = OrderedDict()
-    input_data['TeamId'] = 'test_team'
-    input_data['TrainingGroupId'] = ['test_tg1', 'test_tg2']
-    input_data['UserId'] = 'test_user'
-    input_data['SessionEventId'] = 'test_session'
-    input_data['SessionType'] = '1'
-    input_data['UserMass'] = 77
-    input_data['EventDate'] = '2017-03-20'
-
-    os.environ['ENVIRONMENT'] = 'Dev'
-    os.environ['MONGO_HOST_BLOCKS'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
-    os.environ['MONGO_USER_BLOCKS'] = 'statsUser'
-    os.environ['MONGO_PASSWORD_BLOCKS'] = 'BioMx211'
-    os.environ['MONGO_DATABASE_BLOCKS'] = 'movementStats'
-    os.environ['MONGO_COLLECTION_BLOCKS'] = 'blockStats_test5'
-    os.environ['MONGO_REPLICASET_BLOCKS'] = '---'
-    file_loc = 'C:\\Users\\Administrator\\Desktop\\active_blocks\\input_data\\'
-    in_file_name = '43adad06-d27d-4b2d-a34c-abd52269b04d_01_transformed'
-    block_ranges = script_handler(file_loc, in_file_name, input_data)
-    print(time.time() - start)

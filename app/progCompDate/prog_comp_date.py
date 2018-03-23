@@ -144,27 +144,3 @@ def _aggregate_progcomp(collection, var, user_id, event_date):
         bins.append(single_bin)
 
     return sorted(bins, key=lambda k: k['binNumber'])
-
-if __name__ == '__main__':
-    import time
-    start = time.time()
-    input_data = OrderedDict()
-    input_data['TeamId'] = 'test_team'
-    input_data['TrainingGroupId'] = ['test_tg1', 'test_tg2']
-    input_data['UserId'] = 'test_user'
-    input_data['SessionEventId'] = 'test_session'
-    input_data['SessionType'] = '1'
-    input_data['UserMass'] = 133
-    input_data['EventDate'] = '2017-03-20'
-
-    os.environ['ENVIRONMENT'] = 'Dev'
-    os.environ['MONGO_HOST_SESSION'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
-    os.environ['MONGO_USER_SESSION'] = 'statsUser'
-    os.environ['MONGO_PASSWORD_SESSION'] = 'BioMx211'
-    os.environ['MONGO_DATABASE_SESSION'] = 'movementStats'
-    os.environ['MONGO_COLLECTION_PROGCOMP'] = 'progCompStats_test2'
-    os.environ['MONGO_COLLECTION_PROGCOMPDATE'] = 'progCompDateStats_test2'
-    os.environ['MONGO_REPLICASET_SESSION'] = '---'
-    file_name = 'C:\\Users\\Administrator\\Desktop\\python_aggregation\\605a9a17-24bf-4fdc-b539-02adbb28a628'
-    prog_comp = script_handler(input_data)
-    print(time.time() - start)

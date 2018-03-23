@@ -390,27 +390,3 @@ def _compute_awcr(hist, period, event_date):
                               'totalGRF': None})
 
     return acwr
-
-
-if __name__ == '__main__':
-    import time
-    start = time.time()
-    input_data = OrderedDict()
-    input_data['TeamId'] = 'test_team'
-    input_data['TrainingGroupId'] = ['test_tg1', 'test_tg2']
-    input_data['UserId'] = 'test_user'
-    input_data['SessionEventId'] = 'test_session'
-    input_data['SessionType'] = '1'
-    input_data['UserMass'] = 155
-    input_data['EventDate'] = '2017-03-20'
-
-    os.environ['ENVIRONMENT'] = 'Dev'
-    os.environ['MONGO_HOST_SESSION'] = 'ec2-34-210-169-8.us-west-2.compute.amazonaws.com:27017'
-    os.environ['MONGO_USER_SESSION'] = 'statsUser'
-    os.environ['MONGO_PASSWORD_SESSION'] = 'BioMx211'
-    os.environ['MONGO_DATABASE_SESSION'] = 'movementStats'
-    os.environ['MONGO_COLLECTION_SESSION'] = 'sessionStats_test3'
-    os.environ['MONGO_COLLECTION_DATE'] = 'dateStats_test3'
-    os.environ['MONGO_REPLICASET_SESSION'] = '---'
-    script_handler(input_data)
-    print(time.time() - start)
