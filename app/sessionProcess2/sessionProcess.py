@@ -30,8 +30,11 @@ Config = namedtuple('Config', [
     'ENVIRONMENT',
     'MS_MODEL_PATH',
     'MS_MODEL',
+    'LF_MS_MODEL',
+    'RF_MS_MODEL',
     'MS_SCALER_PATH',
     'MS_SCALER',
+    'SL_MS_SCALER'
 ])
 
 
