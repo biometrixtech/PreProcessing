@@ -70,13 +70,13 @@ def load_rf_grf_model(config):
     return load_model(path)
 
 def load_grf_scaler(config):
-    path = os.path.join(config.MS_SCALER_PATH, config.MS_SCALER)
+    path = os.path.join(config.MS_MODEL_PATH, config.MS_SCALER)
     logger.info("Loading grf scaler from {}".format(path))
     with open(path) as model_file:
         return pickle.load(model_file)
 
 def load_sl_grf_scaler(config):
-    path = os.path.join(config.MS_SCALER_PATH, config.SL_MS_SCALER)
+    path = os.path.join(config.MS_MODEL_PATH, config.SL_MS_SCALER)
     logger.info("Loading sl_grf scaler from {}".format(path))
     with open(path) as model_file:
         return pickle.load(model_file)
