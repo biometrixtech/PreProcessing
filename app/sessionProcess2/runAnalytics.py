@@ -43,7 +43,7 @@ logger = logging.getLogger()
 psycopg2.extras.register_uuid()
 
 
-def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
+def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, sc, sc_single_leg, hip_n_transform):
     """Creates object attributes according to session analysis process.
 
     Args:
@@ -119,8 +119,22 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     data.mass = mass*9.807/1000 # convert mass from kg to kN
     grf_data, nan_row = prepare_data(data, sc)
 
+
+    grf_data_sl, nan_row_sl = prepare_data(data, sc_single_leg, sl=True)
+
     # predict grf
     grf = grf_fit.predict(grf_data).reshape(-1,)
+
+    # predict left grf (binary 0(air) or 1(ground))
+    grf_lf = grf_fit_left.predict(grf_data_sl).reshape(-1,)
+    sl_grf_cutoff= .5
+    grf_lf[grf_lf <= sl_grf_cutoff] = 0
+    grf_lf[grf_lf > sl_grf_cutoff] = 1
+
+    # predict right grf (binary 0(air) or 1(ground))
+    grf_rf = grf_fit_right.predict(grf_data_sl).reshape(-1,)
+    grf_rf[grf_rf <= sl_grf_cutoff] = 0
+    grf_rf[grf_rf > sl_grf_cutoff] = 1
 
     # pass predicted data through low-pass filter
     grf = _filter_data(grf, cutoff=18)
@@ -130,15 +144,27 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
     # fill in nans for rows with missing predictors
     length = len(data_in)
     grf_temp = np.ones(length)
+    grf_lf_temp = np.ones(length)
+    grf_rf_temp = np.ones(length)
     grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
+    grf_lf_temp[np.array(list(set(range(length)) - set(nan_row_sl)))] = grf_lf
+    grf_rf_temp[np.array(list(set(range(length)) - set(nan_row_sl)))] = grf_rf
     # Insert nan for grf where data needed to predict was missing
     if len(nan_row) != 0:
         for i in nan_row:
             grf_temp[i] = np.nan
 
-    data.grf = grf_temp*1000
+    # for right and left grf indicator, in case of missing predictors, assign previous value
+    if len(nan_row_sl) != 0:
+        for i in nan_row_sl:
+            grf_lf_temp[i] = grf_lf_temp[i - 1]
+            grf_rf_temp[i] = grf_rf_temp[i - 1]
 
-    del grf_data, nan_row, grf_fit, grf, grf_temp
+    data.grf = grf_temp*1000
+    data.grf_lf = grf_lf_temp
+    data.grf_rf = grf_rf_temp
+
+    del grf_data, nan_row, grf_fit, grf, grf_temp, grf_lf, grf_rf, grf_lf_temp, grf_rf_temp
     logger.info('DONE WITH GRF PREDICTION!')
 
     # update phase with grf information
@@ -156,6 +182,8 @@ def run_session(data_in, file_version, mass, grf_fit, sc, hip_n_transform):
         data.phase_lf,
         data.phase_rf
     ) = phase.update_phase_grf(data.grf,
+                               data.grf_lf,
+                               data.grf_rf,
                                data.phase_lf,
                                data.phase_rf,
                                mass)
