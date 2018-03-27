@@ -21,10 +21,11 @@ def register_job_definition(job_name, commands):
                     mkdir /net /net/efs ; \
                     mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=10,retrans=2 efs.internal:/ /net/efs 2>&1 ; \
                     {commands}; \
-                ".format(commands=commands)
+                ".format(commands='; '.join(commands))
             ],
             "readonlyRootFilesystem": False,
-            "privileged": True
+            "privileged": True,
+            "jobRoleArn": 'arn:aws:iam::887689817172:role/preprocessing-{}-execute-{}'.format(args.environment, args.region)
         }
     )
     print("Registered new job definition (revision {})".format(res['revision']))
@@ -87,13 +88,19 @@ if __name__ == '__main__':
     else:
         initialise_arn = register_job_definition(
             'maintenance-initialiseefs',
-            'mkdir -p /net/efs/preprocessing /net/efs/globalmodels /net/efs/globalscalers'
+            ['mkdir -p /net/efs/preprocessing /net/efs/globalmodels /net/efs/globalscalers']
         )
-        install_arn = register_job_definition(
-            'maintenance-downloadmodels',
-            'aws s3 cp s3://biometrix-globalmodels/dev/grf_model_v2_0.h5 /net/efs/globalmodels/grf_model_v2_0.h5; ' +
-            'aws s3 cp s3://biometrix-globalmodels/dev/scaler_model_v2_0.pkl /net/efs/globalscalers/scaler_model_v2_0.pkl ;'
-        )
+        commands = ['apk update && apk add aws-cli']
+        models = [
+            'grf_model_v2_0.h5',
+            'grf_model_left_v2_1.h5',
+            'grf_model_right_v2_1.h5',
+            'scaler_model_v2_0.pkl',
+            'scaler_model_single_v2_1.pkl',
+        ]
+        for model in models:
+            commands.append('aws s3 cp s3://biometrix-globalmodels/{env}/{model} /net/efs/globalmodels/{model}'.format(env=args.environment, model=model))
+        install_arn = register_job_definition('maintenance-downloadmodels', commands)
     print('Running job {}'.format(initialise_arn))
 
     initialise_id = submit_job(initialise_arn, '00000000-0000-0000-0000-maintenance-initialiseefs')
