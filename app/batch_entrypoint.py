@@ -210,7 +210,11 @@ def main():
 
         elif script == 'sessionprocess2':
             print('Running sessionprocess2()')
-            load_parameters(['MS_MODEL', 'MS_SCALER'])
+            load_parameters(['MS_MODEL',
+                             'LF_MS_MODEL',
+                             'RF_MS_MODEL',
+                             'MS_SCALER',
+                             'SL_MS_SCALER'])
             # Use theano backend for keras
             os.environ['KERAS_BACKEND'] = 'theano'
             from sessionProcess2 import sessionProcess

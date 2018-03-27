@@ -57,12 +57,12 @@ def load_grf_model(config):
     return load_model(path)
 
 def load_lf_grf_model(config):
-    path = os.path.join(config.LF_MS_MODEL_PATH, config.LF_MS_MODEL)
+    path = os.path.join(config.MS_MODEL_PATH, config.LF_MS_MODEL)
     logger.info("Loading grf model from {}".format(path))
     return load_model(path)
 
 def load_rf_grf_model(config):
-    path = os.path.join(config.RF_MS_MODEL_PATH, config.RF_MS_MODEL)
+    path = os.path.join(config.MS_MODEL_PATH, config.RF_MS_MODEL)
     logger.info("Loading grf model from {}".format(path))
     return load_model(path)
 
@@ -73,7 +73,7 @@ def load_grf_scaler(config):
         return pickle.load(model_file)
 
 def load_sl_grf_scaler(config):
-    path = os.path.join(config.SL_MS_SCALER_PATH, config.SL_MS_SCALER)
+    path = os.path.join(config.MS_SCALER_PATH, config.SL_MS_SCALER)
     logger.info("Loading grf scaler from {}".format(path))
     with open(path) as model_file:
         return pickle.load(model_file)
@@ -377,8 +377,11 @@ def script_handler(working_directory, file_name, data):
             ENVIRONMENT=os.environ['ENVIRONMENT'],
             MS_MODEL_PATH='/net/efs/globalmodels',
             MS_MODEL=os.environ['MS_MODEL'],
+            LF_MS_MODEL=os.environ['LF_MS_MODEL'],
+            RF_MS_MODEL=os.environ['RF_MS_MODEL'],
             MS_SCALER_PATH='/net/efs/globalscalers',
             MS_SCALER=os.environ['MS_SCALER'],
+            SL_MS_SCALER=os.environ['SL_MS_SCALER'],
         )
         mkdir(os.path.join(working_directory, 'sessionprocess2'))
 
