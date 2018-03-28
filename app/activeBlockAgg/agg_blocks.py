@@ -130,6 +130,8 @@ def script_handler(working_directory, input_data):
             print(block)
             block_start_index = active_blocks[block][0][0]
             block_end_index = active_blocks[block][-1][1]
+            if block_end_index >= len(data):
+                block_end_index = len(data) - 1
             block_start = str(pandas.to_datetime(data['epoch_time'][block_start_index], unit='ms'))
             block_end = str(pandas.to_datetime(data['epoch_time'][block_end_index], unit='ms'))
             block_data = data.loc[block_start_index:block_end_index, :]
