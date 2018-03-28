@@ -95,10 +95,13 @@ Resources:
 
                       - Action:
                           - "s3:GetObject"
-                          - "s3:PutObject"
                           - "s3:ListBucket"
                         Effect: "Allow"
-                        Resource: "*"
+                        Resource:
+                          - "arn:aws:s3:::biometrix-globalmodels"
+                          - "arn:aws:s3:::biometrix-globalmodels/*"
+                          - { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}" }
+                          - { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}/*" }
 
                       - Action:
                           - "states:SendTaskFailure"
