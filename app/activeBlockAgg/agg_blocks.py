@@ -151,10 +151,14 @@ def script_handler(working_directory, input_data):
 
             unit_blocks = []
             for unit_block in active_blocks[block]:
-                unit_block_data = data.loc[unit_block[0]:unit_block[1]]
+                unit_block_start_index = unit_block[0]
+                unit_block_end_index = unit_block[1]
+                if unit_block_end_index >= len(data):
+                    unit_block_end_index = len(data) - 1
+                unit_block_data = data.loc[unit_block_start_index:unit_block_end_index]
                 unit_block_record = OrderedDict()
-                unit_block_start = str(pandas.to_datetime(data['epoch_time'][unit_block[0]], unit='ms'))
-                unit_block_end = str(pandas.to_datetime(data['epoch_time'][unit_block[1]], unit='ms'))
+                unit_block_start = str(pandas.to_datetime(data['epoch_time'][unit_block_start_index], unit='ms'))
+                unit_block_end = str(pandas.to_datetime(data['epoch_time'][unit_block_end_index], unit='ms'))
                 unit_block_record['timeStart'] = unit_block_start
                 unit_block_record['timeEnd'] = unit_block_end
 
