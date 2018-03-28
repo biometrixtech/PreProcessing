@@ -98,8 +98,8 @@ Resources:
                 Projection:
                     ProjectionType: "ALL"
                 ProvisionedThroughput:
-                    ReadCapacityUnits: 1
-                    WriteCapacityUnits: 1
+                    ReadCapacityUnits: 5
+                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
               - IndexName: "teamId-eventDate"
                 KeySchema:
                   - { AttributeName: "teamId", KeyType: "HASH" }
@@ -107,8 +107,8 @@ Resources:
                 Projection:
                     ProjectionType: "ALL"
                 ProvisionedThroughput:
-                    ReadCapacityUnits: 1
-                    WriteCapacityUnits: 1
+                    ReadCapacityUnits: 5
+                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
               - IndexName: "trainingGroupId-eventDate"
                 KeySchema:
                   - { AttributeName: "trainingGroupId", KeyType: "HASH" }
@@ -116,8 +116,8 @@ Resources:
                 Projection:
                     ProjectionType: "ALL"
                 ProvisionedThroughput:
-                    ReadCapacityUnits: 1
-                    WriteCapacityUnits: 1
+                    ReadCapacityUnits: 5
+                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
             StreamSpecification:
                 StreamViewType: "NEW_AND_OLD_IMAGES"
 
