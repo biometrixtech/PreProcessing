@@ -104,6 +104,15 @@ Resources:
                           - { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}/*" }
 
                       - Action:
+                          - "s3:GetObject"
+                          - "s3:ListBucket"
+                          - "s3:PutObject"
+                        Effect: "Allow"
+                        Resource:
+                          - "arn:aws:s3:::biometrix-decode"
+                          - "arn:aws:s3:::biometrix-decode/*"
+
+                      - Action:
                           - "states:SendTaskFailure"
                           - "states:SendTaskHeartbeat"
                           - "states:SendTaskSuccess"
