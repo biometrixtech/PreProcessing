@@ -56,7 +56,9 @@ def get_user_from_id(user_id):
         }
     )
     if user_res.status_code == 200:
-        return user_res.json()['user']
+        ret = user_res.json()['user']
+        print(json.dumps({'user': ret}))
+        return ret
     else:
         return None
 
