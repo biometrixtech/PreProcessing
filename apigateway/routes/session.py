@@ -3,13 +3,11 @@ from flask import request, Blueprint
 import base64
 import boto3
 import datetime
-import json
 import os
 import uuid
 
 from auth import get_accessory_from_auth, get_user_from_id
 from datastore import SessionDatastore
-from serialisable import json_serialise
 from exceptions import InvalidSchemaException, ApplicationException, NoSuchEntityException, DuplicateEntityException
 from models.session import Session
 
@@ -70,7 +68,7 @@ def handle_session_create():
 @app.route('/<session_id>', methods=['GET'])
 def handle_session_get(session_id):
     session = get_session_by_id(session_id)
-    return json.dumps({'session': session}, default=json_serialise)
+    return {'session': session}
 
 
 @app.route('/<session_id>/upload', methods=['POST'])
@@ -91,7 +89,7 @@ def handle_session_upload(session_id):
     print('Uploading to s3://{}/{}'.format(s3_bucket, s3_key))
     boto3.client('s3').upload_file('/tmp/binary', s3_bucket, s3_key)
 
-    return json.dumps({'session': session}, default=json_serialise)
+    return {'session': session}
 
 
 @app.route('/<session_id>', methods=['PATCH'])
@@ -103,7 +101,7 @@ def handle_session_patch(session_id):
         session.session_status = 'UPLOAD_COMPLETE'
 
     store.put(session, True)
-    return json.dumps({'session': session}, default=json_serialise)
+    return {'session': session}
 
 
 @xray_recorder.capture('routes.session.get_session_by_id')
