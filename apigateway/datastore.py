@@ -121,9 +121,9 @@ class SessionDatastore(DynamodbDatastore):
                 raise Exception('One of user_id, team_id, training_group_id must be specified')
 
             if status is not None:
-                fx = Attr('sessionStatus').eq(status)
+                fx = Attr('session_status').eq(status)
             else:
-                fx = Attr('sessionStatus').exists()
+                fx = Attr('session_status').exists()
 
         return self._query_dynamodb(index_name, key_condition_expression=kcx, filter_expression=fx)
 

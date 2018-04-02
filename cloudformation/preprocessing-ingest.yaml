@@ -199,7 +199,7 @@ Resources:
                                 # Ready for processing
                                 session_event_updates.set("session_status", 'UPLOAD_COMPLETE')
 
-                            condition_expression = Attr('id').not_exists() | Attr('sessionStatus').is_in(['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS'])
+                            condition_expression = Attr('id').not_exists() | Attr('session_status').is_in(['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS'])
                             ddb_session_events_table.update_item(
                                 Key={'id': s3_basepath},
                                 ConditionExpression=condition_expression,
@@ -293,12 +293,12 @@ Resources:
                                     if len(query_results):
                                         boto3.resource('dynamodb').Table(os.environ['DYNAMODB_TABLE_NAME']).update_item(
                                             Key={'id': new_object['id']},
-                                            ConditionExpression=Attr('id').not_exists() | Attr('sessionStatus').eq('UPLOAD_IN_PROGRESS'),
+                                            ConditionExpression=Attr('id').not_exists() | Attr('session_status').eq('UPLOAD_IN_PROGRESS'),
                                             UpdateExpression="""SET
-                                                eventDate = :event_date,
-                                                createdDate = :created_date,
-                                                userId = :user_id,
-                                                teamId = :team_id,
+                                                event_date = :event_date,
+                                                created_date = :created_date,
+                                                user_id = :user_id,
+                                                team_id = :team_id,
                                                 trainingGroupId = :tg_id""",
                                             ExpressionAttributeValues={':' + k: v for k, v in query_results[0].items()},
                                         )

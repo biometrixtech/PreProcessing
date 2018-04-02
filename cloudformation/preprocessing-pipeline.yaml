@@ -211,8 +211,8 @@ Resources:
 
                     def handler(data, _):
                         session_event_updates = DynamodbUpdate()
-                        session_event_updates.set("updatedDate", datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
-                        session_event_updates.set("sessionStatus", data['SessionStatus'])
+                        session_event_updates.set("updated_date", datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+                        session_event_updates.set("session_status", data['SessionStatus'])
 
                         ddb_session_events_table.update_item(
                             Key={'id': data['SessionId']},
