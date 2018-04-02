@@ -31,7 +31,7 @@ def handle_session_create():
         updated_date=now,
     )
 
-    accessory = get_accessory_from_auth(request.headers['Authorization'])
+    accessory = get_accessory_from_auth()
     session.accessory_id = accessory['mac_address']
     for sensor in request.json['sensors']:
         if isinstance(sensor, dict):
