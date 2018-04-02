@@ -36,7 +36,6 @@ app.register_blueprint(session_routes, url_prefix='/preprocessing/session')
 @app.route('/preprocessing/status', methods=['POST'])
 def handle_status():
     access = get_authorisation_from_auth(request.headers['Authorization'])
-    print(json.dumps(access))
     sessions = get_sessions_for_date_and_access(
         request.json['start_date'],
         request.json['end_date'],
@@ -47,9 +46,8 @@ def handle_status():
     ret = {'sessions': {}}
     for status in ['UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS', 'PROCESSING_COMPLETE', 'PROCESSING_FAILED']:
         ret['sessions'][status] = [s for s in sessions if s.session_status == status]
-    print(ret)
 
-    return json.dumps(ret, sort_keys=True, default=json_serialise)
+    return ret
 
 
 @xray_recorder.capture('entrypoints.apigateway.get_notifications_for_date_and_access')

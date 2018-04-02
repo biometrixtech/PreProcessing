@@ -9,7 +9,7 @@ from exceptions import UnauthorizedException
 @xray_recorder.capture('entrypoints.apigateway.get_authorisation_from_auth')
 def get_authorisation_from_auth(auth):
     jwt_token = jwt.decode(auth, verify=False)
-    print(jwt_token)
+    print(json.dumps({'jwt_token': jwt_token}))
     if 'sub' in jwt_token:
         user_id = jwt_token['sub'].split(':')[-1]
     else:

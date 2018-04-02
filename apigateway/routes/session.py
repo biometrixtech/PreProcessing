@@ -39,10 +39,10 @@ def handle_session_create():
             session.sensor_ids.add(str(sensor))
 
     if 'owner_id' in accessory:
-        print(accessory['owner_id'])
+        print(json.dumps({'session_user_id': accessory['owner_id']}))
         user = get_user_from_id(accessory['owner_id'])
         if user is not None:
-            print(user)
+            print(json.dumps({'session_user': user}))
             session.user_id = user['user_id']
             session.team_id = user['team_id']
             session.training_group_ids = set(user['training_group_ids'])
@@ -53,7 +53,7 @@ def handle_session_create():
         store.put(session)
         return {'session': session}, 201
     except DuplicateEntityException:
-        print('Session already created with id {}'.format(session.get_id()))
+        print(json.dumps({'message': 'Session already created with id {}'.format(session.get_id())}))
         return {'session': get_session_by_id(session.get_id(), store)}, 200
 
 
@@ -78,7 +78,7 @@ def handle_session_upload(session_id):
     # For now, we integrate with the ingest subservice by saving the file to the S3 ingest bucket.
     s3_bucket = os.environ['S3_INGEST_BUCKET_NAME']
     s3_key = '{}_{}'.format(session.session_id, part_number)
-    print('Uploading to s3://{}/{}'.format(s3_bucket, s3_key))
+    print(json.dumps({'message': 'Uploading to s3://{}/{}'.format(s3_bucket, s3_key)}))
     boto3.client('s3').upload_file('/tmp/binary', s3_bucket, s3_key)
 
     return {'session': session}
