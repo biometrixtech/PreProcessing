@@ -1,16 +1,11 @@
 *.zip
 *.pyc
-app/Under_Construction/*.pyc
-app/Under_Construction/hypothesis_testing/.hypothesis/
-app/Under_Construction/.hypothesis/
-app/Under_Construction/hypothesis_testing/*.pyc
-app/Under_Construction/integration_testing/*/*.pyc
-.DS_Store
 cache/pip/*
 !cache/pip/empty
 
 apigateway/*
-!apigateway/entrypoints
+!apigateway/routes
 !apigateway/*.py
+!apigateway/models
 !apigateway/pip_requirements
 !apigateway/schemas

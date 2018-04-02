@@ -1,4 +1,3 @@
-from session import Session
 from abc import abstractmethod, ABCMeta
 from aws_xray_sdk.core import xray_recorder
 from boto3.dynamodb.conditions import Key, Attr
@@ -6,6 +5,8 @@ from decimal import Decimal
 from datetime import datetime
 import boto3
 import os
+
+from models.session import Session
 
 
 class Datastore(object):
