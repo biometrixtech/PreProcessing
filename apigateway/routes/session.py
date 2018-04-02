@@ -16,6 +16,7 @@ app = Blueprint('sensor', __name__)
 
 
 @app.route('/', methods=['POST'])
+@xray_recorder.capture('routes.session.create')
 def handle_session_create():
     if 'event_date' not in request.json:
         raise InvalidSchemaException('Missing required parameter event_date')
@@ -33,6 +34,7 @@ def handle_session_create():
 
     accessory = get_accessory_from_auth()
     session.accessory_id = accessory['mac_address']
+    xray_recorder.current_subsegment().put_annotation('accessory_id', accessory['mac_address'])
     for sensor in request.json['sensors']:
         if isinstance(sensor, dict):
             session.sensor_ids.add(sensor['mac_address'])
@@ -48,9 +50,10 @@ def handle_session_create():
             session.team_id = user['team_id']
             session.training_group_ids = set(user['training_group_ids'])
             session.user_mass = user['mass']['kg']
+            xray_recorder.current_subsegment().put_annotation('user_id', session.user_id)
 
+    store = SessionDatastore()
     try:
-        store = SessionDatastore()
         store.put(session)
         return {'session': session}, 201
     except DuplicateEntityException:
@@ -59,17 +62,23 @@ def handle_session_create():
 
 
 @app.route('/<session_id>', methods=['GET'])
+@xray_recorder.capture('routes.session.get')
 def handle_session_get(session_id):
     session = get_session_by_id(session_id)
+    xray_recorder.current_subsegment().put_annotation('accessory_id', session.accessory_id)
+    xray_recorder.current_subsegment().put_annotation('user_id', session.user_id)
     return {'session': session}
 
 
 @app.route('/<session_id>/upload', methods=['POST'])
+@xray_recorder.capture('routes.session.upload')
 def handle_session_upload(session_id):
     if request.headers['Content-Type'] != 'application/octet-stream':
         raise ApplicationException(415, 'UnsupportedContentType', 'This endpoint requires the Content-Type application/octet-stream')
 
     session = get_session_by_id(session_id)
+    xray_recorder.current_subsegment().put_annotation('accessory_id', session.accessory_id)
+    xray_recorder.current_subsegment().put_annotation('user_id', session.user_id)
 
     part_number = str(int(datetime.datetime.now().timestamp() * 1000))
 
@@ -86,9 +95,12 @@ def handle_session_upload(session_id):
 
 
 @app.route('/<session_id>', methods=['PATCH'])
+@xray_recorder.capture('routes.session.patch')
 def handle_session_patch(session_id):
     store = SessionDatastore()
     session = get_session_by_id(session_id, store)
+    xray_recorder.current_subsegment().put_annotation('accessory_id', session.accessory_id)
+    xray_recorder.current_subsegment().put_annotation('user_id', session.user_id)
 
     if 'session_status' in request.json and request.json['session_status'] == 'UPLOAD_COMPLETE':
         session.session_status = 'UPLOAD_COMPLETE'
