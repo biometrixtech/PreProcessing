@@ -24,12 +24,20 @@ def handle_session_create():
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
     session = Session(
         event_date=request.json['event_date'],
+        end_date=request.json.get('end_date', None),
         session_status='CREATE_COMPLETE',
         created_date=now,
         updated_date=now,
     )
 
     accessory = get_accessory_from_auth(request.headers['Authorization'])
+    session.accessory_id = accessory['mac_address']
+    for sensor in request.json['sensors']:
+        if isinstance(sensor, dict):
+            session.sensor_ids.add(sensor['mac_address'])
+        else:
+            session.sensor_ids.add(str(sensor))
+
     if 'owner_id' in accessory:
         print(accessory['owner_id'])
         user = get_user_from_id(accessory['owner_id'])

@@ -131,11 +131,14 @@ class SessionDatastore(DynamodbDatastore):
     def item_to_dynamodb(session):
         item = {
             'id': session.get_id(),
+            'accessory_id': session.accessory_id,
+            'sensor_ids': session.sensor_ids,
             'user_id': session.user_id,
             'user_mass': Decimal(session.user_mass),
             'team_id': session.team_id,
             'training_group_ids': session.training_group_ids,
             'event_date': session.event_date,
+            'end_date': session.end_date,
             'session_status': session.session_status,
             'created_date': session.created_date,
             'updated_date': datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -150,12 +153,14 @@ class SessionDatastore(DynamodbDatastore):
         session = Session(
             session_id=item['id'],
             event_date=item.get('event_date', item.get('eventDate', None)),
+            end_date=item.get('end_date', None),
             created_date=item.get('created_date', item.get('createdDate', None)),
             updated_date=item.get('updated_date', item.get('updatedDate', None)),
             session_status=item.get('session_status', item.get('sessionStatus', None)),
             version=item.get('version', None),
             s3_files=item.get('s3_files', item.get('s3Files', None)),
         )
+        session.accessory_id = item.get('sensor_ids', set())
         session.user_id = item.get('user_id', item.get('userId', None))
         session.user_mass = item.get('user_mass', item.get('userMass', None))
         session.team_id = item.get('team_id', item.get('teamId', None))

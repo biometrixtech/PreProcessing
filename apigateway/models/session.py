@@ -6,6 +6,7 @@ class Session(Serialisable):
 
     def __init__(self, *,
                  event_date,
+                 end_date,
                  session_status,
                  created_date,
                  updated_date,
@@ -15,12 +16,15 @@ class Session(Serialisable):
                  ):
         self.session_id = session_id
         self.event_date = event_date
+        self.end_date = end_date
         self.session_status = session_status
         self.created_date = created_date
         self.updated_date = updated_date
         self.version = version
         self.s3_files = s3_files
 
+        self.accessory_id = None
+        self.sensor_ids = set()
         self.user_id = None
         self.user_mass = None
         self.team_id = None
@@ -31,6 +35,8 @@ class Session(Serialisable):
 
     def _generate_uuid(self):
         unique_key = 'http://session.fathomai.com/{}_{}_{}_{}'.format(
+            self.accessory_id,
+            ','.join(sorted(self.sensor_ids)),
             self.user_id,
             self.event_date,
         )
