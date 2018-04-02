@@ -9,8 +9,8 @@ import uuid
 
 from auth import get_accessory_from_auth, get_user_from_id
 from datastore import SessionDatastore
-from exceptions import InvalidSchemaException, ApplicationException, NoSuchEntityException
 from serialisable import json_serialise
+from exceptions import InvalidSchemaException, ApplicationException, NoSuchEntityException, DuplicateEntityException
 from models.session import Session
 
 app = Blueprint('sensor', __name__)
@@ -56,9 +56,15 @@ def handle_session_create():
         version='2.3',
         s3_files=None
     )
-    store.put(session)
-    # TODO save sensors
-    return json.dumps({'session': session}, default=json_serialise), 201
+
+
+    try:
+        store = SessionDatastore()
+        store.put(session)
+        return {'session': session}, 201
+    except DuplicateEntityException:
+        print('Session already created with id {}'.format(session.get_id()))
+        return {'session': get_session_by_id(session.get_id(), store)}, 200
 
 
 @app.route('/<session_id>', methods=['GET'])
@@ -104,8 +110,8 @@ def handle_session_patch(session_id):
 def get_session_by_id(session_id, store=None):
     session_id = session_id.lower()
 
-    if not validate_uuid4(session_id):
-        raise InvalidSchemaException('session_id must be a uuid')
+    if not validate_uuid(session_id, 5) and not validate_uuid(session_id, 4):
+        raise InvalidSchemaException('session_id must be a uuid, not "{}"'.format(session_id))
 
     store = store or SessionDatastore()
     session = store.get(session_id=session_id)
@@ -115,9 +121,9 @@ def get_session_by_id(session_id, store=None):
         raise NoSuchEntityException()
 
 
-def validate_uuid4(uuid_string):
+def validate_uuid(uuid_string, version):
     try:
-        val = uuid.UUID(uuid_string, version=4)
+        val = uuid.UUID(uuid_string, version=version)
         # If the uuid_string is a valid hex code, but an invalid uuid4, the UUID.__init__
         # will convert it to a valid uuid4. This is bad for validation purposes.
         return val.hex == uuid_string.replace('-', '')

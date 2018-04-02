@@ -1,11 +1,11 @@
 from serialisable import Serialisable
 from decimal import Decimal
+import uuid
 
 
 class Session(Serialisable):
 
     def __init__(self, *,
-                 session_id,
                  user_id,
                  user_mass,
                  team_id,
@@ -14,8 +14,9 @@ class Session(Serialisable):
                  session_status,
                  created_date,
                  updated_date,
-                 version,
-                 s3_files
+                 session_id=None,
+                 version='2.3',
+                 s3_files=None
                  ):
         self.session_id = session_id
         self.user_id = user_id
@@ -29,9 +30,19 @@ class Session(Serialisable):
         self.version = version
         self.s3_files = s3_files
 
+    def get_id(self):
+        return self.session_id or self._generate_uuid()
+
+    def _generate_uuid(self):
+        unique_key = 'http://session.fathomai.com/{}_{}_{}_{}'.format(
+            self.user_id,
+            self.event_date,
+        )
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, unique_key))
+
     def json_serialise(self):
         ret = {
-            'id': self.session_id,
+            'id': self.get_id(),
             'user_id': self.user_id,
             'user_mass': self.user_mass,
             'team_id': self.team_id,
@@ -40,7 +51,5 @@ class Session(Serialisable):
             'session_status': self.session_status,
             'created_date': self.created_date,
             'updated_date': self.updated_date,
-            # 'version': self.version,
-            # 's3_files': self.s3_files,
         }
         return ret

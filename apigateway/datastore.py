@@ -1,11 +1,13 @@
 from abc import abstractmethod, ABCMeta
 from aws_xray_sdk.core import xray_recorder
 from boto3.dynamodb.conditions import Key, Attr
+from botocore.exceptions import ClientError
 from decimal import Decimal
 from datetime import datetime
 import boto3
 import os
 
+from exceptions import DuplicateEntityException
 from models.session import Session
 
 
@@ -26,8 +28,13 @@ class DynamodbDatastore(Datastore):
     def put(self, items, allow_patch=False):
         if not isinstance(items, list):
             items = [items]
-        for item in items:
-            self._put_dynamodb(item, allow_patch)
+        try:
+            for item in items:
+                self._put_dynamodb(item, allow_patch)
+        except ClientError as e:
+            if 'ConditionalCheckFailed' in str(e) and not allow_patch:
+                raise DuplicateEntityException
+            raise e
 
     def _query_dynamodb(self, index_name, key_condition_expression, filter_expression=None, exclusive_start_key=None):
         # This nasty splatting is required because boto3 chokes on trying to set things like IndexName to None if you
@@ -123,7 +130,6 @@ class SessionDatastore(DynamodbDatastore):
     @staticmethod
     def item_to_dynamodb(session):
         item = {
-            'id': session.session_id,
             'userId': session.user_id,
             'userMass': Decimal(session.user_mass),
             'teamId': session.team_id,
@@ -132,6 +138,7 @@ class SessionDatastore(DynamodbDatastore):
             'sessionStatus': session.session_status,
             'createdDate': session.created_date,
             'updatedDate': datetime.now().isoformat()[:-6] + 'Z',
+            'id': session.get_id(),
             'version': session.version,
             's3Files': session.s3_files,
         }
