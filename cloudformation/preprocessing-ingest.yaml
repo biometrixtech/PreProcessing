@@ -190,14 +190,14 @@ Resources:
                                 # Assume version 2
                                 version = '2.3'
 
-                            session_event_updates.add("s3Files", {s3_key})
-                            session_event_updates.set("updatedDate", now_time)
+                            session_event_updates.add("s3_files", {s3_key})
+                            session_event_updates.set("updated_date", now_time)
                             session_event_updates.set("version", version)
-                            session_event_updates.set("sessionStatus", 'UPLOAD_IN_PROGRESS')
+                            session_event_updates.set("session_status", 'UPLOAD_IN_PROGRESS')
 
                             if part == 'complete' or version == '1.0':
                                 # Ready for processing
-                                session_event_updates.set("sessionStatus", 'UPLOAD_COMPLETE')
+                                session_event_updates.set("session_status", 'UPLOAD_COMPLETE')
 
                             condition_expression = Attr('id').not_exists() | Attr('sessionStatus').is_in(['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS'])
                             ddb_session_events_table.update_item(
@@ -266,8 +266,8 @@ Resources:
                             old_object = extract_dynamodb_object(record['dynamodb'].get('OldImage', {}))
 
                             if record['eventName'] == 'MODIFY':
-                                new_status = new_object.get('sessionStatus', '???')
-                                old_status = old_object.get('sessionStatus', '???')
+                                new_status = new_object.get('session_status', '???')
+                                old_status = old_object.get('session_status', '???')
 
                                 if new_status == 'UPLOAD_COMPLETE' and old_status != 'UPLOAD_COMPLETE':
                                     # Begin processing
@@ -275,7 +275,7 @@ Resources:
                                         trigger_sfn(new_object['id'], new_object['version'])
 
                             elif record['eventName'] == 'INSERT':
-                                if 'eventDate' not in new_object or not new_object['eventDate']:
+                                if 'event_date' not in new_object or not new_object['event_date']:
                                     # Need to pull in the data from postgres
                                     query_results = query_postgres(
                                         """SELECT

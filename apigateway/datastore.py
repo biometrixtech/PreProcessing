@@ -99,7 +99,7 @@ class SessionDatastore(DynamodbDatastore):
     def get(self, *, session_id=None, event_date=None, status=None, user_id=None, team_id=None, training_group_id=None):
         if session_id is not None:
             kcx = Key('id').eq(session_id)
-            fx = Attr('sessionStatus').exists()
+            fx = Attr('session_status').exists()
             index_name = None
 
         else:
@@ -130,36 +130,37 @@ class SessionDatastore(DynamodbDatastore):
     @staticmethod
     def item_to_dynamodb(session):
         item = {
-            'userId': session.user_id,
-            'userMass': Decimal(session.user_mass),
-            'teamId': session.team_id,
-            'trainingGroupIds': session.training_group_ids,
-            'eventDate': session.event_date,
-            'sessionStatus': session.session_status,
-            'createdDate': session.created_date,
-            'updatedDate': datetime.now().isoformat()[:-6] + 'Z',
             'id': session.get_id(),
+            'user_id': session.user_id,
+            'user_mass': Decimal(session.user_mass),
+            'team_id': session.team_id,
+            'training_group_ids': session.training_group_ids,
+            'event_date': session.event_date,
+            'session_status': session.session_status,
+            'created_date': session.created_date,
+            'updated_date': datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
             'version': session.version,
-            's3Files': session.s3_files,
+            's3_files': session.s3_files,
         }
 
         return {k: v for k, v in item.items() if v}
 
     @staticmethod
     def item_from_dynamodb(item):
-        return Session(
+        session = Session(
             session_id=item['id'],
-            user_id=item.get('userId', None),
-            user_mass=item.get('userMass', None),
-            team_id=item.get('teamId', None),
-            training_group_ids=item.get('trainingGroupId', None),
-            event_date=item.get('eventDate', None),
-            session_status=item.get('sessionStatus', None),
-            created_date=item.get('createdDate', None),
-            updated_date=item.get('updatedDate', None),
+            event_date=item.get('event_date', item.get('eventDate', None)),
+            created_date=item.get('created_date', item.get('createdDate', None)),
+            updated_date=item.get('updated_date', item.get('updatedDate', None)),
+            session_status=item.get('session_status', item.get('sessionStatus', None)),
             version=item.get('version', None),
-            s3_files=item.get('s3Files', None),
+            s3_files=item.get('s3_files', item.get('s3Files', None)),
         )
+        session.user_id = item.get('user_id', item.get('userId', None))
+        session.user_mass = item.get('user_mass', item.get('userMass', None))
+        session.team_id = item.get('team_id', item.get('teamId', None))
+        session.training_group_ids = item.get('training_group_ids', item.get('trainingGroupId', None))
+        return session
 
     @property
     def _dynamodb_table_name(self):

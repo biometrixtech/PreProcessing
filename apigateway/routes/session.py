@@ -21,40 +21,24 @@ def handle_session_create():
     if 'sensors' not in request.json:
         raise InvalidSchemaException('Missing required parameter sensors')
 
-    user_id = team_id = training_group_ids = mass = None
+    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    session = Session(
+        event_date=request.json['event_date'],
+        session_status='CREATE_COMPLETE',
+        created_date=now,
+        updated_date=now,
+    )
+
     accessory = get_accessory_from_auth(request.headers['Authorization'])
     if 'owner_id' in accessory:
         print(accessory['owner_id'])
         user = get_user_from_id(accessory['owner_id'])
         if user is not None:
             print(user)
-            user_id = user['user_id']
-            team_id = user['team_id']
-            training_group_ids = set(user['training_group_ids'])
-            mass = user['mass']['kg']
-        else:
-            # TODO
-            print('Accessory owner_id does not exist')
-    else:
-        # TODO
-        print('Accessory has no owner_id set')
-
-    store = SessionDatastore()
-    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-    session = Session(
-        session_id=None,
-        user_id=user_id,
-        user_mass=mass,
-        team_id=team_id,
-        training_group_ids=training_group_ids,
-        event_date=request.json['event_date'],
-        session_status='CREATE_COMPLETE',
-        created_date=now,
-        updated_date=now,
-        version='2.3',
-        s3_files=None
-    )
-
+            session.user_id = user['user_id']
+            session.team_id = user['team_id']
+            session.training_group_ids = set(user['training_group_ids'])
+            session.user_mass = user['mass']['kg']
 
     try:
         store = SessionDatastore()

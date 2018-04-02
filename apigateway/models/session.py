@@ -1,15 +1,10 @@
 from serialisable import Serialisable
-from decimal import Decimal
 import uuid
 
 
 class Session(Serialisable):
 
     def __init__(self, *,
-                 user_id,
-                 user_mass,
-                 team_id,
-                 training_group_ids,
                  event_date,
                  session_status,
                  created_date,
@@ -19,16 +14,17 @@ class Session(Serialisable):
                  s3_files=None
                  ):
         self.session_id = session_id
-        self.user_id = user_id
-        self.user_mass = user_mass
-        self.team_id = team_id
-        self.training_group_ids = training_group_ids
         self.event_date = event_date
         self.session_status = session_status
         self.created_date = created_date
         self.updated_date = updated_date
         self.version = version
         self.s3_files = s3_files
+
+        self.user_id = None
+        self.user_mass = None
+        self.team_id = None
+        self.training_group_ids = set()
 
     def get_id(self):
         return self.session_id or self._generate_uuid()
