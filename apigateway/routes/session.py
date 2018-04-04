@@ -59,7 +59,7 @@ def handle_session_create():
         return {'session': session}, 201
     except DuplicateEntityException:
         print(json.dumps({'message': 'Session already created with id {}'.format(session.get_id())}))
-        return {'session': get_session_by_id(session.get_id(), store)}, 200
+        return {'session': get_session_by_id(session.get_id(), store)}, 201
 
 
 @app.route('/<session_id>', methods=['GET'])
