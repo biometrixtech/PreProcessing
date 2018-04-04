@@ -58,7 +58,7 @@ def detect_still(data):
 
     dummy_balphase = []  # dummy variable to store indexes of balance phase
 
-    abs_acc = total_acc_mag.reshape(-1, 1)  # creating an array of absolute acceleration values
+    abs_acc = total_acc_mag.values.reshape(-1, 1)  # creating an array of absolute acceleration values
     len_acc = len(total_acc_mag)  # length of acceleration value
 
     for i in range(len_acc - bal_win + 1):
