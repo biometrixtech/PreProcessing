@@ -18,11 +18,11 @@ def script_handler(base_name):
 
     try:
         dynamodb_resource = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ['ENVIRONMENT']))
-        records = _query_dynamodb(dynamodb_resource, Key('id').eq(base_name))
+        session = _query_dynamodb(dynamodb_resource, Key('id').eq(base_name))
 
-        if len(records) == 0 or 's3Files' not in records[0]:
+        if session is None or ('s3_files' not in session and 's3Files' not in session):
             logger.info('downloadAndChunk() called, but there are no corresponding upload records')
-        s3_files = sorted(list(records[0]['s3Files']))
+        s3_files = sorted(list(session.get('s3_files', session.get('s3Files'))))
         logger.info(s3_files)
 
         # Download file
@@ -38,7 +38,7 @@ def script_handler(base_name):
         else:
             # Concatenate the files together first
             concat_filename = '/tmp/{}'.format(base_name)
-            logger.info('Concatenating {} chunks to {}'.format(len(records), concat_filename))
+            logger.info('Concatenating {} chunks to {}'.format(len(s3_files), concat_filename))
             for s3_key in s3_files:
                 # Paranoia since we're injecting this into a shell
                 if not re.match('^[a-z0-9\-_]+$', s3_key):
@@ -52,23 +52,10 @@ def script_handler(base_name):
         raise
 
 
-def _query_dynamodb(resource, key_condition_expression, exclusive_start_key=None):
-    if exclusive_start_key is not None:
-        ret = resource.query(
-            Select='ALL_ATTRIBUTES',
-            Limit=10000,
-            KeyConditionExpression=key_condition_expression,
-            ExclusiveStartKey=exclusive_start_key,
-        )
-    else:
-        ret = resource.query(
-            Select='ALL_ATTRIBUTES',
-            Limit=10000,
-            KeyConditionExpression=key_condition_expression,
-        )
-    if 'LastEvaluatedKey' in ret:
-        # There are more records to be scanned
-        return ret['Items'] + _query_dynamodb(key_condition_expression, ret['LastEvaluatedKey'])
-    else:
-        # No more items
-        return ret['Items']
+def _query_dynamodb(resource, key_condition_expression):
+    ret = resource.query(
+        Select='ALL_ATTRIBUTES',
+        Limit=10000,
+        KeyConditionExpression=key_condition_expression,
+    )
+    return ret['Items'][0] if len(ret['Items']) else None

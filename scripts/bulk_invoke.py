@@ -20,13 +20,13 @@ def invoke_lambda(s3_bucket, s3_key, timestamp):
 def process_file(s3_bucket, basename):
     # Reset the status flag in dynamodb to UPLOAD_IN_PROGRESS
     ddb_session_events_table = dynamodb_resource.Table('preprocessing-{}-ingest-sessions'.format(args.environment))
-    print('    Setting sessionStatus to UPLOAD_IN_PROGRESS')
+    print('    Setting session_status to UPLOAD_IN_PROGRESS')
     ddb_session_events_table.update_item(
         Key={'id': basename},
-        UpdateExpression='SET sessionStatus = :sessionStatus, updatedDate = :updatedDate',
+        UpdateExpression='SET session_status = :session_status, updated_date = :updated_date',
         ExpressionAttributeValues={
-            ':sessionStatus': 'UPLOAD_IN_PROGRESS',
-            ':updatedDate': datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+            ':session_status': 'UPLOAD_IN_PROGRESS',
+            ':updated_date': datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         },
     )
 
@@ -37,12 +37,12 @@ def process_file(s3_bucket, basename):
             invoke_lambda(s3_bucket, s3_file, last_modified.strftime("%Y-%m-%dT%H:%M:%SZ"))
     else:
         # Just set the status flag to completed again
-        print('    Setting sessionStatus to UPLOAD_COMPLETE')
+        print('    Setting session_status to UPLOAD_COMPLETE')
         ddb_session_events_table.update_item(
             Key={'id': basename},
             ConditionExpression=Attr('id').exists(),
-            UpdateExpression='SET sessionStatus = :sessionStatus',
-            ExpressionAttributeValues={':sessionStatus': 'UPLOAD_COMPLETE'},
+            UpdateExpression='SET session_status = :session_status',
+            ExpressionAttributeValues={':session_status': 'UPLOAD_COMPLETE'},
         )
 
 

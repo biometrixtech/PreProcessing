@@ -75,12 +75,14 @@ The client __must__ submit a request body containing a JSON object with the foll
 ```
 {
     "sensors": [ MacAddress, MacAddress, MacAddress ],
-    "event_date": Datetime
+    "event_date": Datetime,
+    "end_date": Datetime
 }
 ```
 
 * `sensors` __must__ be a list of exactly three MacAddresses, each of which is the ID of a sensor from which data is being collected.
 * `event_date` __should__ reflect the time that the practice session began.
+* `end_date` __should__ reflect the time that the practice session ended.
 
 ```
 POST /v1/session HTTP/1.1
@@ -101,7 +103,7 @@ Authorization: eyJraWQ...ajBc4VQ
 
 ##### Responses
  
- If the registration was successful, the Service __will__ respond with HTTP Status `201 Created`, with a body with the following syntax:
+ If the registration was successful, the Service __will__ respond with HTTP Status `200 Ok` or `201 Created`, with a body with the following syntax:
  
 ```
 {

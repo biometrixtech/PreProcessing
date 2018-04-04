@@ -1,46 +1,60 @@
 from serialisable import Serialisable
-from decimal import Decimal
+import uuid
 
 
 class Session(Serialisable):
 
     def __init__(self, *,
-                 session_id,
-                 user_id,
-                 user_mass,
-                 team_id,
-                 training_group_ids,
                  event_date,
+                 end_date,
                  session_status,
                  created_date,
                  updated_date,
-                 version,
-                 s3_files
+                 session_id=None,
+                 version='2.3',
+                 s3_files=None
                  ):
         self.session_id = session_id
-        self.user_id = user_id
-        self.user_mass = user_mass
-        self.team_id = team_id
-        self.training_group_ids = training_group_ids
         self.event_date = event_date
+        self.end_date = end_date
         self.session_status = session_status
         self.created_date = created_date
         self.updated_date = updated_date
         self.version = version
         self.s3_files = s3_files
 
+        self.accessory_id = None
+        self.sensor_ids = set()
+        self.user_id = None
+        self.user_mass = None
+        self.team_id = None
+        self.training_group_ids = set()
+
+    def get_id(self):
+        return self.session_id or self._generate_uuid()
+
+    def _generate_uuid(self):
+        unique_key = 'http://session.fathomai.com/{}_{}_{}_{}'.format(
+            self.accessory_id,
+            ','.join(sorted(self.sensor_ids)),
+            self.user_id,
+            self.event_date,
+        )
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, unique_key))
+
     def json_serialise(self):
         ret = {
-            'id': self.session_id,
+            'id': self.get_id(),
+            'accessory_id': self.accessory_id,
+            'sensor_ids': self.sensor_ids,
             'user_id': self.user_id,
             'user_mass': self.user_mass,
             'team_id': self.team_id,
             'training_group_ids': self.training_group_ids,
             'event_date': self.event_date,
             'session_status': self.session_status,
+            'end_date': self.event_date,
             'created_date': self.created_date,
             'updated_date': self.updated_date,
-            # 'version': self.version,
-            # 's3_files': self.s3_files,
         }
         return ret
