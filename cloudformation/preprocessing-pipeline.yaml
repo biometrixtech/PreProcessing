@@ -315,7 +315,7 @@ Resources:
                             "Version": session['version'],
                             "EventDate": session.get('event_date', '').split('T')[0],
                             "TeamId": session.get('team_id', None),
-                            "TrainingGroupIds": session.get('training_group_ids', None),
+                            "TrainingGroupIds": list(session.get('training_group_ids', None)),
                             "UserId": session.get('user_id', None),
                             "UserMassKg": session.get('user_mass', None) or 72.5, # kilograms
                         }

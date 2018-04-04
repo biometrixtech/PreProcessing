@@ -160,7 +160,8 @@ class SessionDatastore(DynamodbDatastore):
             version=item.get('version', None),
             s3_files=item.get('s3_files', item.get('s3Files', None)),
         )
-        session.accessory_id = item.get('sensor_ids', set())
+        session.accessory_id = item.get('accessory_id', None)
+        session.sensor_ids = item.get('sensor_ids', set())
         session.user_id = item.get('user_id', item.get('userId', None))
         session.user_mass = item.get('user_mass', item.get('userMass', None))
         session.team_id = item.get('team_id', item.get('teamId', None))

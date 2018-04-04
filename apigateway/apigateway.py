@@ -40,7 +40,7 @@ app.register_blueprint(session_routes, url_prefix='/preprocessing/session')
 @app.route('/v1/status', methods=['POST'])
 @app.route('/preprocessing/status', methods=['POST'])
 def handle_status():
-    access = get_authorisation_from_auth(request.headers['Authorization'])
+    access = get_authorisation_from_auth()
     sessions = get_sessions_for_date_and_access(
         request.json['start_date'],
         request.json['end_date'],

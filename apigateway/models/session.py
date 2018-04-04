@@ -45,12 +45,15 @@ class Session(Serialisable):
     def json_serialise(self):
         ret = {
             'id': self.get_id(),
+            'accessory_id': self.accessory_id,
+            'sensor_ids': self.sensor_ids,
             'user_id': self.user_id,
             'user_mass': self.user_mass,
             'team_id': self.team_id,
             'training_group_ids': self.training_group_ids,
             'event_date': self.event_date,
             'session_status': self.session_status,
+            'end_date': self.event_date,
             'created_date': self.created_date,
             'updated_date': self.updated_date,
         }
