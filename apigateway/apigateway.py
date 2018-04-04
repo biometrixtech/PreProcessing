@@ -1,16 +1,21 @@
-from aws_xray_sdk.core import xray_recorder, patch_all
 from flask import request, Response, jsonify
 from flask_lambda import FlaskLambda
 import json
+import os
 import sys
 import traceback
+
+# Break out of Lambda's X-Ray sandbox so we can define our own segments and attach metadata, annotations, etc, to them
+lambda_task_root_key = os.getenv('LAMBDA_TASK_ROOT')
+del os.environ['LAMBDA_TASK_ROOT']
+from aws_xray_sdk.core import patch_all, xray_recorder
+patch_all()
+os.environ['LAMBDA_TASK_ROOT'] = lambda_task_root_key
 
 from auth import get_authorisation_from_auth
 from exceptions import ApplicationException
 from datastore import SessionDatastore
 from serialisable import json_serialise
-
-patch_all()
 
 
 class ApiResponse(Response):
@@ -93,6 +98,15 @@ def handler(event, context):
     # Trim trailing slashes from urls
     event['path'] = event['path'].rstrip('/')
 
+    # Pass tracing info to X-Ray
+    xray_recorder.begin_segment(
+        name='preprocessing.{}.fathomai.com'.format(os.environ['ENVIRONMENT']),
+        parent_id=event['headers'].get('X-Amzn-Trace-Parent-Id', None)
+    )
+    xray_recorder.current_segment().put_http_meta('url', 'https://{}{}'.format(event['headers']['Host'], event['path'].lower()))
+    xray_recorder.current_segment().put_http_meta('method', event['httpMethod'])
+    xray_recorder.current_segment().put_http_meta('user_agent', event['headers']['User-Agent'])
+
     ret = app(event, context)
     ret['headers'].update({
         'Access-Control-Allow-Methods': 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
@@ -105,6 +119,11 @@ def handler(event, context):
 
     if ret['headers']['Content-Type'] == 'application/octet-stream':
         ret['isBase64Encoded'] = True
+
+    # xray_recorder.current_segment().http['response'] = {'status': ret['statusCode']}
+    xray_recorder.current_segment().put_http_meta('status', ret['statusCode'])
+    xray_recorder.current_segment().apply_status_code(ret['statusCode'])
+    xray_recorder.end_segment()
 
     print(json.dumps(ret))
     return ret

@@ -1,4 +1,5 @@
 from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core.models.trace_header import TraceHeader
 from flask import request
 import json
 import jwt
@@ -59,6 +60,7 @@ def get_accessory_from_id(accessory_id):
         headers={
             'Authorization': get_api_service_token(),
             'Accept': 'application/json',
+            'X-Amzn-Trace-Id-Safe': get_xray_trace_header(),
         }
     )
     if accessory_res.status_code == 200:
@@ -75,6 +77,7 @@ def get_user_from_id(user_id):
         headers={
             'Authorization': get_api_service_token(),
             'Accept': 'application/json',
+            'X-Amzn-Trace-Id-Safe': get_xray_trace_header(),
         }
     )
     if user_res.status_code == 200:
@@ -88,3 +91,12 @@ def get_user_from_id(user_id):
 def get_api_service_token():
     # TODO
     return jwt.encode({'sub': '00000000-0000-4000-8000-000000000000'}, 'secret', algorithm='HS256')
+
+
+def get_xray_trace_header():
+    xray_segment = xray_recorder.current_subsegment()
+    return TraceHeader(
+        root=xray_segment.trace_id,
+        parent=xray_segment.id,
+        sampled=xray_segment.sampled,
+    ).to_header_str()

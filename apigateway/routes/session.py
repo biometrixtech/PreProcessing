@@ -1,4 +1,5 @@
 from aws_xray_sdk.core import xray_recorder
+from boto3.s3.transfer import TransferConfig, S3Transfer
 from flask import request, Blueprint
 import base64
 import boto3
@@ -34,7 +35,7 @@ def handle_session_create():
 
     accessory = get_accessory_from_auth()
     session.accessory_id = accessory['mac_address']
-    xray_recorder.current_subsegment().put_annotation('accessory_id', accessory['mac_address'])
+    xray_recorder.current_segment().put_annotation('accessory_id', accessory['mac_address'])
     for sensor in request.json['sensors']:
         if isinstance(sensor, dict):
             session.sensor_ids.add(sensor['mac_address'])
@@ -50,7 +51,7 @@ def handle_session_create():
             session.team_id = user['team_id']
             session.training_group_ids = set(user['training_group_ids'])
             session.user_mass = user['mass']['kg']
-            xray_recorder.current_subsegment().put_annotation('user_id', session.user_id)
+            xray_recorder.current_segment().put_annotation('user_id', session.user_id)
 
     store = SessionDatastore()
     try:
@@ -65,8 +66,8 @@ def handle_session_create():
 @xray_recorder.capture('routes.session.get')
 def handle_session_get(session_id):
     session = get_session_by_id(session_id)
-    xray_recorder.current_subsegment().put_annotation('accessory_id', session.accessory_id)
-    xray_recorder.current_subsegment().put_annotation('user_id', session.user_id)
+    xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
+    xray_recorder.current_segment().put_annotation('user_id', session.user_id)
     return {'session': session}
 
 
@@ -77,8 +78,9 @@ def handle_session_upload(session_id):
         raise ApplicationException(415, 'UnsupportedContentType', 'This endpoint requires the Content-Type application/octet-stream')
 
     session = get_session_by_id(session_id)
-    xray_recorder.current_subsegment().put_annotation('accessory_id', session.accessory_id)
-    xray_recorder.current_subsegment().put_annotation('user_id', session.user_id)
+    xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
+    xray_recorder.current_segment().put_annotation('sensor_id', ','.join(session.sensor_ids))
+    xray_recorder.current_segment().put_annotation('user_id', session.user_id)
 
     part_number = str(int(datetime.datetime.now().timestamp() * 1000))
 
@@ -89,7 +91,9 @@ def handle_session_upload(session_id):
     s3_bucket = os.environ['S3_INGEST_BUCKET_NAME']
     s3_key = '{}_{}'.format(session.session_id, part_number)
     print(json.dumps({'message': 'Uploading to s3://{}/{}'.format(s3_bucket, s3_key)}))
-    boto3.client('s3').upload_file('/tmp/binary', s3_bucket, s3_key)
+    # Need to use single threading to prevent X Ray tracing errors
+    config = TransferConfig(use_threads=False)
+    S3Transfer(client=boto3.client('s3'), config=config).upload_file('/tmp/binary', s3_bucket, s3_key)
 
     return {'session': session}
 
@@ -99,8 +103,8 @@ def handle_session_upload(session_id):
 def handle_session_patch(session_id):
     store = SessionDatastore()
     session = get_session_by_id(session_id, store)
-    xray_recorder.current_subsegment().put_annotation('accessory_id', session.accessory_id)
-    xray_recorder.current_subsegment().put_annotation('user_id', session.user_id)
+    xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
+    xray_recorder.current_segment().put_annotation('user_id', session.user_id)
 
     if 'session_status' in request.json and request.json['session_status'] == 'UPLOAD_COMPLETE':
         session.session_status = 'UPLOAD_COMPLETE'
