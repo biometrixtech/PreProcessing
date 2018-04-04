@@ -209,7 +209,6 @@ def main():
             send_success(meta_data, ret)
 
         elif script == 'sessionprocess2':
-            print('Running sessionprocess2()')
             load_parameters(['MS_MODEL',
                              'LF_MS_MODEL',
                              'RF_MS_MODEL',
@@ -217,7 +216,13 @@ def main():
                              'SL_MS_SCALER'])
             # Use theano backend for keras
             os.environ['KERAS_BACKEND'] = 'theano'
-            from sessionProcess2 import sessionProcess
+            if input_data.get('Sensors') == 3:
+            print('Running sessionprocess on multi-sensor data')
+                from sessionProcess2 import sessionProcess
+            elif input_data.get('Sensors') == 1:
+            print('Running sessionprocess on single-sensor data')
+                from sessionprocess1 import sessionProcess
+
             sessionProcess.script_handler(
                 working_directory,
                 input_data.get('Filename', None),
@@ -226,8 +231,13 @@ def main():
             send_success(meta_data, {})
 
         elif script == 'scoring':
-            print('Running scoring()')
-            from scoring import scoringProcess
+            if input_data.get('Sensors') == 3:
+            print('Running scoring on multi-sensor data')
+                from scoring import scoringProcess
+            elif input_data.get('Sensors') == 1:
+            print('Running scoring on single-sensor data')
+                from scoring1 import scoringProcess
+
             boundaries = scoringProcess.script_handler(
                 working_directory,
                 input_data.get('Filenames', None),
@@ -247,7 +257,6 @@ def main():
             send_success(meta_data, {"Filenames": file_names})
 
         elif script == 'aggregatesession':
-            print('Computing session aggregations')
             load_parameters([
                 'MONGO_HOST_SESSION',
                 'MONGO_USER_SESSION',
@@ -256,7 +265,12 @@ def main():
                 'MONGO_COLLECTION_SESSION',
                 'MONGO_REPLICASET_SESSION',
             ])
-            from sessionAgg import agg_session
+            if input_data.get('Sensors') == 3:
+                print('Computing session aggregations on multi-sensor data')
+                from sessionAgg import agg_session
+            elif input_data.get('Sensors') == 1:
+                print('Computing session aggregations on single sensor data')
+                from sessionAgg1 import agg_session
             agg_session.script_handler(
                 working_directory,
                 input_data
@@ -264,7 +278,6 @@ def main():
             send_success(meta_data, {})
 
         elif script == 'aggregateblocks':
-            print('Computing block aggregations')
             load_parameters([
                 'MONGO_HOST_ACTIVEBLOCKS',
                 'MONGO_USER_ACTIVEBLOCKS',
@@ -273,7 +286,13 @@ def main():
                 'MONGO_COLLECTION_ACTIVEBLOCKS',
                 'MONGO_REPLICASET_ACTIVEBLOCKS',
             ])
-            from activeBlockAgg import agg_blocks
+            if input_data.get('Sensors') == 3:
+                print('Computing block multi-sensor data')
+                from activeBlockAgg import agg_blocks
+            elif input_data.get('Sensors') == 1:
+                print('Computing block single-sensor data')
+                from activeBlockAgg1 import agg_blocks
+
             agg_blocks.script_handler(
                 working_directory,
                 input_data
@@ -281,7 +300,6 @@ def main():
             send_success(meta_data, {})
 
         elif script == 'aggregatetwomin':
-            print('Computing two minute aggregations')
             load_parameters([
                 'MONGO_HOST_TWOMIN',
                 'MONGO_USER_TWOMIN',
@@ -290,7 +308,12 @@ def main():
                 'MONGO_COLLECTION_TWOMIN',
                 'MONGO_REPLICASET_TWOMIN',
             ])
-            from twoMinuteAgg import agg_twomin
+            if input_data.get('Sensors') == 3:
+                print('Computing two minute aggregations on multi-sensor data')
+                from twoMinuteAgg import agg_twomin
+            if input_data.get('Sensors') == 1:
+                print('Computing two minute aggregations on single-sensor data')
+                from twoMinuteAgg1 import agg_twomin
             agg_twomin.script_handler(
                 working_directory,
                 input_data.get('Filename', None),
@@ -317,39 +340,47 @@ def main():
             send_success(meta_data, {})
 
         elif script == 'aggregateprogcomp':
-            print('Computing program composition aggregations')
-            load_parameters([
-                'MONGO_HOST_SESSION',
-                'MONGO_USER_SESSION',
-                'MONGO_PASSWORD_SESSION',
-                'MONGO_DATABASE_SESSION',
-                'MONGO_REPLICASET_SESSION',
-                'MONGO_COLLECTION_PROGCOMP',
-            ])
-            from progComp import prog_comp
+            if input_data.get('Sensors') == 3:
+                print('Computing program composition aggregations')
+                load_parameters([
+                    'MONGO_HOST_SESSION',
+                    'MONGO_USER_SESSION',
+                    'MONGO_PASSWORD_SESSION',
+                    'MONGO_DATABASE_SESSION',
+                    'MONGO_REPLICASET_SESSION',
+                    'MONGO_COLLECTION_PROGCOMP',
+                ])
+                from progComp import prog_comp
 
-            prog_comp.script_handler(
-                working_directory,
-                input_data
-            )
+                prog_comp.script_handler(
+                    working_directory,
+                    input_data
+                )
+            else:
+                print('Program composition is not needed for single-sensor data')
+
             send_success(meta_data, {})
 
         elif script == 'aggregateprogcompdate':
-            print('Computing program composition date aggregations')
-            load_parameters([
-                'MONGO_HOST_SESSION',
-                'MONGO_USER_SESSION',
-                'MONGO_PASSWORD_SESSION',
-                'MONGO_DATABASE_SESSION',
-                'MONGO_REPLICASET_SESSION',
-                'MONGO_COLLECTION_PROGCOMP',
-                'MONGO_COLLECTION_PROGCOMPDATE',
-            ])
-            from progCompDate import prog_comp_date
+            if input_data.get('Sensors') == :3
+                print('Computing program composition date aggregations')
+                load_parameters([
+                    'MONGO_HOST_SESSION',
+                    'MONGO_USER_SESSION',
+                    'MONGO_PASSWORD_SESSION',
+                    'MONGO_DATABASE_SESSION',
+                    'MONGO_REPLICASET_SESSION',
+                    'MONGO_COLLECTION_PROGCOMP',
+                    'MONGO_COLLECTION_PROGCOMPDATE',
+                ])
+                from progCompDate import prog_comp_date
 
-            prog_comp_date.script_handler(
-                input_data
-            )
+                prog_comp_date.script_handler(
+                    input_data
+                )
+            else:
+                print('Program composition is not needed for single-sensor data')
+
             send_success(meta_data, {})
 
         elif script == 'aggregateteam':

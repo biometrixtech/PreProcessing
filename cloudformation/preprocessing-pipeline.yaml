@@ -416,6 +416,7 @@ Resources:
                                         "BodyFrameTransforms": event['TransformAndPlacement']['Output']['BodyFrameTransforms'],
                                         "HipNeutralYaw": event['TransformAndPlacement']['Output']['HipNeutralYaw'],
                                         "Placement": event['TransformAndPlacement']['Output']['Placement'],
+                                        "Sensors": event['TransformAndPlacement']['Output']['Sensors'],
                                     }
                                 }
                                 for f in event['DownloadAndChunk']['Output']['Filenames']
@@ -460,7 +461,8 @@ Resources:
                             ],
                             "Input": {
                                 **event["ReadDatabase"],
-                                **{"Filenames": event['DownloadAndChunk']['Output']['Filenames']}
+                                **{"Filenames": event['DownloadAndChunk']['Output']['Filenames'],
+                                   "Sensors": event['TransformAndPlacement']['Output']['Sensors'],}
                             }
                         }
             Handler: "index.handler"
@@ -500,7 +502,10 @@ Resources:
                                     "InputPath": "$"
                                 }
                             ],
-                            "Input": event["ReadDatabase"]
+                            "Input": {
+                                **event["ReadDatabase"],
+                                **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}},
+
                         }
             Handler: "index.handler"
             Runtime: "python3.6"
@@ -539,7 +544,10 @@ Resources:
                                     "InputPath": "$"
                                 }
                             ],
-                            "Input": event["ReadDatabase"]
+                            "Input": {
+                                **event["ReadDatabase"],
+                                **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
+                                },
                         }
             Handler: "index.handler"
             Runtime: "python3.6"
@@ -580,7 +588,11 @@ Resources:
                                 for i in range(len(event['Scoring']['Output']['Filenames']))
                             ],
                             "Input": [
-                                {**event["ReadDatabase"], **{"Filename": f}}
+                                {**event["ReadDatabase"],
+                                 **{"Filename": f,
+                                    "Sensors": event['TransformAndPlacement']['Output']['Sensors']
+                                   }
+                                }
                                 for f in event['Scoring']['Output']['Filenames']
                             ]
                         }
@@ -741,7 +753,10 @@ Resources:
                                     "InputPath": "$"
                                 }
                             ],
-                            "Input": event["ReadDatabase"]
+                            "Input": {
+                                **event["ReadDatabase"],
+                                **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
+                                },
                         }
             Handler: "index.handler"
             Runtime: "python3.6"
@@ -780,7 +795,10 @@ Resources:
                                     "InputPath": "$"
                                 }
                             ],
-                            "Input": event["ReadDatabase"]
+                            "Input": {
+                                **event["ReadDatabase"],
+                                **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
+                                },
                         }
             Handler: "index.handler"
             Runtime: "python3.6"
