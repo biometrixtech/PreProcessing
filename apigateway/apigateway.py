@@ -9,6 +9,7 @@ import traceback
 lambda_task_root_key = os.getenv('LAMBDA_TASK_ROOT')
 del os.environ['LAMBDA_TASK_ROOT']
 from aws_xray_sdk.core import patch_all, xray_recorder
+from aws_xray_sdk.core.models.trace_header import TraceHeader
 patch_all()
 os.environ['LAMBDA_TASK_ROOT'] = lambda_task_root_key
 
@@ -99,13 +100,20 @@ def handler(event, context):
     event['path'] = event['path'].rstrip('/')
 
     # Pass tracing info to X-Ray
-    xray_recorder.begin_segment(
-        name='preprocessing.{}.fathomai.com'.format(os.environ['ENVIRONMENT']),
-        parent_id=event['headers'].get('X-Amzn-Trace-Parent-Id', None)
-    )
-    xray_recorder.current_segment().put_http_meta('url', 'https://{}{}'.format(event['headers']['Host'], event['path'].lower()))
+    if 'X-Amzn-Trace-Id-Safe' in event['headers']:
+        xray_trace = TraceHeader.from_header_str(event['headers']['X-Amzn-Trace-Id-Safe'])
+        xray_recorder.begin_segment(
+            name='preprocessing.{}.fathomai.com'.format(os.environ['ENVIRONMENT']),
+            traceid=xray_trace.root,
+            parent_id=xray_trace.parent
+        )
+    else:
+        xray_recorder.begin_segment(name='preprocessing.{}.fathomai.com'.format(os.environ['ENVIRONMENT']))
+
+    xray_recorder.current_segment().put_http_meta('url', 'https://{}{}'.format(event['headers']['Host'], event['path']))
     xray_recorder.current_segment().put_http_meta('method', event['httpMethod'])
     xray_recorder.current_segment().put_http_meta('user_agent', event['headers']['User-Agent'])
+    xray_recorder.current_segment().put_annotation('environment', os.environ['ENVIRONMENT'])
 
     ret = app(event, context)
     ret['headers'].update({
