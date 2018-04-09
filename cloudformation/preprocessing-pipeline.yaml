@@ -359,7 +359,7 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "transformandplacement",
-                                        "Memory": 1024,
+                                        "Memory": 4096,
                                         "Vcpus": 2,
                                     },
                                     "InputPath": "$"
@@ -406,7 +406,7 @@ Resources:
                                     },
                                     "InputPath": "$[{}]".format(i)
                                 }
-                                for i in range(len(event['DownloadAndChunk']['Output']['Filenames']))
+                                for i in range(len(event['TransformAndPlacement']['Output']['Filenames']))
                             ],
                             "Input": [
                                 {

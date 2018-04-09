@@ -158,35 +158,37 @@ def main():
             if not os.path.isdir('/net/efs/preprocessing'):
                 raise Exception("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
 
+            # Create the working directory
+            mkdir(working_directory)
             from downloadAndChunk import downloadAndChunk
-            tmp_combined_file = downloadAndChunk.script_handler(session_id)
+            combined_file = downloadAndChunk.script_handler(session_id,
+                os.path.join(working_directory, 'downloadandchunk'))
 
             # Upload combined file back to s3
             s3_client = boto3.client('s3')
             s3_bucket = 'biometrix-decode'
-            s3_client.upload_file(tmp_combined_file, s3_bucket, session_id + '_combined')
+            s3_client.upload_file(combined_file, s3_bucket, session_id + '_combined')
 
-            # Create the working directory
-            mkdir(working_directory)
 
-            from chunk import chunk
-            mkdir(os.path.join(working_directory, 'downloadandchunk'))
-            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
-                file_names = chunk.chunk_by_line(
-                    tmp_combined_file,
-                    os.path.join(working_directory, 'downloadandchunk'),
-                    100000  # 100,000 records per chunk
-                    )
-            else:
-                file_names = chunk.chunk_by_byte(
-                    tmp_combined_file,
-                    os.path.join(working_directory, 'downloadandchunk'),
-                    100000 * 40  # 100,000 records, 40 bytes per record
-                )
 
-            os.remove(tmp_combined_file)
+            # from chunk import chunk
+            # mkdir(os.path.join(working_directory, 'downloadandchunk'))
+            # if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+            #     file_names = chunk.chunk_by_line(
+            #         tmp_combined_file,
+            #         os.path.join(working_directory, 'downloadandchunk'),
+            #         100000  # 100,000 records per chunk
+            #         )
+            # else:
+            #     file_names = chunk.chunk_by_byte(
+            #         tmp_combined_file,
+            #         os.path.join(working_directory, 'downloadandchunk'),
+            #         100000 * 40  # 100,000 records, 40 bytes per record
+            #     )
 
-            send_success(meta_data, {"Filenames": file_names})
+            # os.remove(tmp_combined_file)
+
+            send_success(meta_data, {"Filenames": [session_id]})
 
         elif script == 'transformandplacement':
             print('Running transformandplacement()')
@@ -206,6 +208,21 @@ def main():
                     working_directory,
                     input_data.get('Filename', None)
                 )
+            from chunk import chunk
+            # mkdir(os.path.join(working_directory, 'downloadandchunk'))
+            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+                file_names = chunk.chunk_by_line(
+                    os.path.join(working_directory, 'downloadandchunk', session_id),
+                    os.path.join(working_directory, 'downloadandchunk'),
+                    100000  # 100,000 records per chunk
+                    )
+            else:
+                file_names = chunk.chunk_by_byte(
+                    os.path.join(working_directory, 'downloadandchunk', session_id),
+                    os.path.join(working_directory, 'downloadandchunk'),
+                    100000 * 40  # 100,000 records, 40 bytes per record
+                )
+            ret["Filenames"] = file_names
             send_success(meta_data, ret)
 
         elif script == 'sessionprocess2':
