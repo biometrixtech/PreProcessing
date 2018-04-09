@@ -7,9 +7,9 @@ from quatConvs import euler_to_quat, quat_to_euler
 from quatOps import quat_conj, quat_avg
 
 
-def compute_transform(data, placement):
+def compute_transform(data, placement, sensors=3):
     data.reset_index(inplace=True, drop=True)
-    start, end = detect_still(data)
+    start, end = detect_still(data, sensors, placement[1])
     data = data.loc[start:end, :]
     data.reset_index(inplace=True, drop=True)
 
@@ -46,7 +46,7 @@ def compute_transform_from_average(left_quaternion, hip_quaternion, right_quater
             hip_neutral_quaternion.tolist()[0])
 
 
-def detect_still(data):
+def detect_still(data, sensors, hip):
     """Detect part of data with activity for placement detection
     """
     thresh = 5.  # threshold to detect balance phase
@@ -54,7 +54,11 @@ def detect_still(data):
     acc_mag_0 = np.sqrt(data.aX0 ** 2 + data.aY0 ** 2 + data.aZ0 ** 2)
     acc_mag_1 = np.sqrt(data.aX1 ** 2 + data.aY1 ** 2 + data.aZ1 ** 2)
     acc_mag_2 = np.sqrt(data.aX2 ** 2 + data.aY2 ** 2 + data.aZ2 ** 2)
-    total_acc_mag = acc_mag_0 + acc_mag_1 + acc_mag_2
+    if sensors == 3:
+        total_acc_mag = acc_mag_0 + acc_mag_1 + acc_mag_2
+    elif sensors == 1:
+        total_acc_mag = acc_mag_0 if hip == 0 else acc_mag_1 if hip == 1 else acc_mag_2
+        thresh = 4.
 
     dummy_balphase = []  # dummy variable to store indexes of balance phase
 
