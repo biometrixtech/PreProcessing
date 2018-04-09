@@ -31,7 +31,7 @@ def _decode_magn(magn_data, nrow):
     magn_magnitude = magn_temp >> shift # shift to right by 3
     magn_magnitude = magn_magnitude * 32 # multiply by 32 to calculate magnitude in mGauss
 
-    corrupt_enum = magn_temp & 7
+    # corrupt_enum = magn_temp & 7
     return np.concatenate((magn_magnitude.reshape(-1, 1),
                            corrupt_enum.reshape(-1, 1)), axis=1)
 
@@ -146,13 +146,6 @@ def read_file(filename):
     ms_elapsed = np.ediff1d(timestamp, to_begin=10)
     pos_timestamp = ms_elapsed>=0
     output_pd = output_pd.iloc[pos_timestamp]
-    output_pd = output_pd.loc[100:, :]
     output_pd.reset_index(inplace=True, drop=True)
     
     return output_pd
-
-
-if __name__ == '__main__':
-#    import timeit
-    data = read_file('test5')
-#    print(timeit.timeit('read_file("test5")', setup='from __main__ import read_file', number=1))
