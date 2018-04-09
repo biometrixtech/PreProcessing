@@ -161,6 +161,7 @@ def main():
             # Create the working directory
             mkdir(working_directory)
             from downloadAndChunk import downloadAndChunk
+            mkdir(os.path.join(working_directory, 'downloadandchunk'))
             combined_file = downloadAndChunk.script_handler(session_id,
                 os.path.join(working_directory, 'downloadandchunk'))
 
