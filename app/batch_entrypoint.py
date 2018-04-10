@@ -201,7 +201,8 @@ def main():
                         'Hip': [1, 0, 0, 0],
                         'Right': [1, 0, 0, 0],
                     },
-                    'HipNeutralYaw': [1, 0, 0, 0]
+                    'HipNeutralYaw': [1, 0, 0, 0],
+                    'Sensors': 3,
                 }
             else:
                 from transform_and_placement import transform_and_placement
