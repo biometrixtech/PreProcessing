@@ -32,6 +32,7 @@ def _decode_magn(magn_data, nrow):
     magn_magnitude = magn_magnitude * 32 # multiply by 32 to calculate magnitude in mGauss
 
     # corrupt_enum = magn_temp & 7
+    corrupt_enum = magn_temp # corrupt indicator changed
     return np.concatenate((magn_magnitude.reshape(-1, 1),
                            corrupt_enum.reshape(-1, 1)), axis=1)
 
