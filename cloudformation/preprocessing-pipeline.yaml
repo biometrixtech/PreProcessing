@@ -419,7 +419,7 @@ Resources:
                                         "Sensors": event['TransformAndPlacement']['Output']['Sensors'],
                                     }
                                 }
-                                for f in event['DownloadAndChunk']['Output']['Filenames']
+                                for f in event['TransformAndPlacement']['Output']['Filenames']
                             ]
                         }
             Handler: "index.handler"
