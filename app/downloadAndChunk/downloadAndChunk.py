@@ -48,6 +48,10 @@ def script_handler(base_name, output_dir):
             # Concatenate the files together first
             # concat_filename = '/tmp/{}'.format(base_name)
             concat_filename = os.path.join(output_dir, base_name)
+            try:
+                os.remove(concat_filename)
+            except OSError:
+                pass
             logger.info('Concatenating {} chunks to {}'.format(len(s3_files), concat_filename))
             for s3_key in s3_files:
                 # Paranoia since we're injecting this into a shell
