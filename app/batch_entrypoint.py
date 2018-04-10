@@ -239,7 +239,7 @@ def main():
                 from sessionProcess2 import sessionProcess
             elif input_data.get('Sensors') == 1:
                 print('Running sessionprocess on single-sensor data')
-                from sessionprocess1 import sessionProcess
+                from sessionProcess1 import sessionProcess
 
             sessionProcess.script_handler(
                 working_directory,
@@ -250,10 +250,10 @@ def main():
 
         elif script == 'scoring':
             if input_data.get('Sensors') == 3:
-            print('Running scoring on multi-sensor data')
+                print('Running scoring on multi-sensor data')
                 from scoring import scoringProcess
             elif input_data.get('Sensors') == 1:
-            print('Running scoring on single-sensor data')
+                print('Running scoring on single-sensor data')
                 from scoring1 import scoringProcess
 
             boundaries = scoringProcess.script_handler(
@@ -329,7 +329,7 @@ def main():
             if input_data.get('Sensors') == 3:
                 print('Computing two minute aggregations on multi-sensor data')
                 from twoMinuteAgg import agg_twomin
-            if input_data.get('Sensors') == 1:
+            elif input_data.get('Sensors') == 1:
                 print('Computing two minute aggregations on single-sensor data')
                 from twoMinuteAgg1 import agg_twomin
             agg_twomin.script_handler(
@@ -380,7 +380,7 @@ def main():
             send_success(meta_data, {})
 
         elif script == 'aggregateprogcompdate':
-            if input_data.get('Sensors') == :3
+            if input_data.get('Sensors') == 3:
                 print('Computing program composition date aggregations')
                 load_parameters([
                     'MONGO_HOST_SESSION',
