@@ -226,6 +226,8 @@ def main():
                     100000 * 40  # 100,000 records, 40 bytes per record
                 )
             ret["Filenames"] = file_names
+            # Faking data to test pipeline
+            ret["Sensors"] = 1
             os.remove(combined_file)
             send_success(meta_data, ret)
 
