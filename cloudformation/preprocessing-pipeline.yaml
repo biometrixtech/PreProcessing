@@ -461,7 +461,7 @@ Resources:
                             ],
                             "Input": {
                                 **event["ReadDatabase"],
-                                **{"Filenames": event['DownloadAndChunk']['Output']['Filenames'],
+                                **{"Filenames": event['TransformAndPlacement']['Output']['Filenames'],
                                    "Sensors": event['TransformAndPlacement']['Output']['Sensors'],}
                             }
                         }
