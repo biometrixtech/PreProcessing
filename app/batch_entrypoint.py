@@ -248,6 +248,7 @@ def main():
                 input_data.get('Filename', None),
                 input_data
             )
+            print(meta_data)
             send_success(meta_data, {})
 
         elif script == 'scoring':
