@@ -235,10 +235,10 @@ def main():
             # Use theano backend for keras
             os.environ['KERAS_BACKEND'] = 'theano'
             if input_data.get('Sensors') == 3:
-            print('Running sessionprocess on multi-sensor data')
+                print('Running sessionprocess on multi-sensor data')
                 from sessionProcess2 import sessionProcess
             elif input_data.get('Sensors') == 1:
-            print('Running sessionprocess on single-sensor data')
+                print('Running sessionprocess on single-sensor data')
                 from sessionprocess1 import sessionProcess
 
             sessionProcess.script_handler(
