@@ -1,20 +1,14 @@
 from __future__ import print_function
 
-from collections import namedtuple
-from pymongo import MongoClient
-import logging
+from collections import namedtuple, OrderedDict
 import os
-import pandas
-import numpy
-import sys
-from collections import OrderedDict
 from datetime import datetime, timedelta
 
-from alert import Alert
+import numpy
+import pandas
+from pymongo import MongoClient
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+from alert import Alert
 
 Config = namedtuple('Config', [
     'AWS',
@@ -28,9 +22,26 @@ Config = namedtuple('Config', [
     'MONGO_REPLICASET',
 ])
 
+def connect_mongo(config):
+    """Connect to relevant mongo database and collections
+    """
+    # Connect to mongo
+    mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
+
+    mongo_database = mongo_client[config.MONGO_DATABASE]
+
+    # Authenticate
+    mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD,
+                                mechanism='SCRAM-SHA-1')
+
+    mongo_collection_session = mongo_database[config.MONGO_COLLECTION_SESSION]
+    mongo_collection_date = mongo_database[config.MONGO_COLLECTION_DATE]
+
+    return mongo_collection_session, mongo_collection_date
+
 
 def script_handler(input_data):
-    logger.info("Definitely running")
+    print("Definitely running")
 
     try:
         config = Config(
@@ -45,17 +56,7 @@ def script_handler(input_data):
             MONGO_REPLICASET=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
         )
 
-        # Connect to mongo
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
-
-        mongo_database = mongo_client[config.MONGO_DATABASE]
-
-        # Authenticate
-        mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD,
-                                    mechanism='SCRAM-SHA-1')
-
-        mongo_collection_session = mongo_database[config.MONGO_COLLECTION_SESSION]
-        mongo_collection_date = mongo_database[config.MONGO_COLLECTION_DATE]
+        mongo_collection_session, mongo_collection_date = connect_mongo(config)
 
         team_id = input_data.get('TeamId', None)
         training_group_id = input_data.get('TrainingGroupIds', None)
@@ -155,11 +156,11 @@ def script_handler(input_data):
 
         query = {'userId': user_id, 'eventDate': event_date}
         mongo_collection_date.replace_one(query, record_out, upsert=True)
-        logger.info("Finished writing date!")
+        print("Finished writing date!")
 
     except Exception as e:
-        logger.info(e)
-        logger.info('Process did not complete successfully! See error below!')
+        print(e)
+        print('Process did not complete successfully! See error below!')
         raise
 
 
@@ -190,11 +191,12 @@ def _publish_alerts(record_out, acwr):
                        record_out['ankleSymmetry']]
     min_symm = numpy.min(symmetry_scores)
     max_symm = numpy.max(symmetry_scores)
-    symm_comp_diff = numpy.abs(min_symm - max_symm)
-    if min_symm < 50 or symm_comp_diff > 30:
-        _publish_alert(record_out, category=3, subcategory=2, granularity='total', value=2)
-    elif 50 <= min_symm < 65 or 20 <= symm_comp_diff < 30:
-        _publish_alert(record_out, category=3, subcategory=2, granularity='total', value=1)
+    if min_symm is not None and max_symm is not None:
+        symm_comp_diff = numpy.abs(min_symm - max_symm)
+        if min_symm < 50 or symm_comp_diff > 30:
+            _publish_alert(record_out, category=3, subcategory=2, granularity='total', value=2)
+        elif 50 <= min_symm < 65 or 20 <= symm_comp_diff < 30:
+            _publish_alert(record_out, category=3, subcategory=2, granularity='total', value=1)
 
     # Control
     control_scores = [record_out['control'],
@@ -204,11 +206,13 @@ def _publish_alerts(record_out, acwr):
                       record_out['controlRF']]
     min_cont = numpy.min(control_scores)
     max_cont = numpy.max(control_scores)
-    control_comp_diff = numpy.abs(min_cont - max_cont)
-    if min_cont < 50 or control_comp_diff > 30:
-        _publish_alert(record_out, category=3, subcategory=3, granularity='total', value=2)
-    elif 50 <= min_cont < 65 or 20 <= control_comp_diff < 30:
-        _publish_alert(record_out, category=3, subcategory=3, granularity='total', value=1)
+    print(min_cont, max_cont)
+    if min_cont is not None and max_cont is not None:
+        control_comp_diff = numpy.abs(min_cont - max_cont)
+        if min_cont < 50 or control_comp_diff > 30:
+            _publish_alert(record_out, category=3, subcategory=3, granularity='total', value=2)
+        elif 50 <= min_cont < 65 or 20 <= control_comp_diff < 30:
+            _publish_alert(record_out, category=3, subcategory=3, granularity='total', value=1)
 
     # Consistency
     # consistency_scores = [record_out['consistency'],
@@ -218,11 +222,12 @@ def _publish_alerts(record_out, acwr):
     #                       record_out['consistencyRF']]
     # min_cons = numpy.min(consistency_scores)
     # max_cons = numpy.max(consistency_scores)
-    # consistency_comp_diff = numpy.abs(min_cons - max_cons)
-    # if min_cons < 50 or consistency_comp_diff > 30:
-    #     _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=2)
-    # elif 50 <= min_cons < 65 or 20 <= consistency_comp_diff < 30:
-    #     _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=1)
+    # if min_cons is not None and max_cons is not None:
+    #     consistency_comp_diff = numpy.abs(min_cons - max_cons)
+    #     if min_cons < 50 or consistency_comp_diff > 30:
+    #         _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=2)
+    #     elif 50 <= min_cons < 65 or 20 <= consistency_comp_diff < 30:
+    #         _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=1)
 
 
 def _publish_alert(record_out, category, subcategory, granularity, value):
@@ -259,68 +264,60 @@ def _get_session_data(collection, user_id, event_date):
                             'totalGRF': {'$sum': '$totalGRF'},
                             'optimalGRF': {'$sum': '$optimalGRF'},
                             'irregularGRF': {'$sum': '$irregularGRF'},
-                            'control': {'$sum': {'$multiply': ['$control', '$totalGRF']}},
-                            'consistency': {'$sum': {'$multiply': ['$consistency', '$totalGRF']}},
-                            'symmetry': {'$sum': {'$multiply': ['$symmetry', '$totalGRF']}},
+                            'control': weighted_sum('control', 'totalAccel'),
+                            'consistency': weighted_sum('consistency', 'totalAccel'),
+                            'symmetry': weighted_sum('symmetry', 'totalAccel'),
                             'trainingGroups': {'$first': '$trainingGroups'},
                             'LFgRF': {'$sum': '$LFgRF'},
                             'RFgRF': {'$sum': '$RFgRF'},
                             'singleLegGRF': {'$sum': '$singleLegGRF'},
-                            'percLeftGRF': {'$sum': {'$multiply': ['$percLeftGRF', '$singleLegGRF']}},
-                            'percRightGRF': {'$sum': {'$multiply': ['$percRightGRF', '$singleLegGRF']}},
+                            'percLeftGRF': weighted_sum('percLeftGRF', 'singleLegGRF'),
+                            'percRightGRF': weighted_sum('percRightGRF', 'singleLegGRF'),
                             'fatigue': {'$avg': '$sessionFatigue'},
                             'totalAccel': {'$sum': '$totalAccel'},
                             'irregularAccel': {'$sum': '$irregularAccel'},
-                            'hipSymmetry': {'$sum': {'$multiply': ['$hipSymmetry', '$totalGRF']}},
-                            'ankleSymmetry': {'$sum': {'$multiply': ['$ankleSymmetry', '$totalGRF']}},
-                            'hipConsistency': {'$sum': {'$multiply': ['$hipConsistency', '$totalGRF']}},
-                            'ankleConsistency': {'$sum': {'$multiply': ['$ankleConsistency', '$totalGRF']}},
-                            'consistencyLF': {'$sum': {'$multiply': ['$consistencyLF', '$LFgRF']}},
-                            'consistencyRF': {'$sum': {'$multiply': ['$consistencyRF', '$RFgRF']}},
-                            'hipControl': {'$sum': {'$multiply': ['$hipControl', '$totalGRF']}},
-                            'ankleControl': {'$sum': {'$multiply': ['$ankleControl', '$totalGRF']}},
-                            'controlLF': {'$sum': {'$multiply': ['$controlLF', '$LFgRF']}},
-                            'controlRF': {'$sum': {'$multiply': ['$controlRF', '$RFgRF']}}
+                            'hipSymmetry': weighted_sum('hipSymmetry', 'totalAccel'),
+                            'ankleSymmetry': weighted_sum('ankleSymmetry', 'totalAccel'),
+                            'hipConsistency': weighted_sum('hipConsistency', 'totalAccel'),
+                            'ankleConsistency': weighted_sum('ankleConsistency', 'totalAccel'),
+                            'consistencyLF': weighted_sum('consistencyLF', 'totalAccel'),
+                            'consistencyRF': weighted_sum('consistencyRF', 'totalAccel'),
+                            'hipControl': weighted_sum('hipControl', 'totalAccel'),
+                            'ankleControl': weighted_sum('ankleControl', 'totalAccel'),
+                            'controlLF': weighted_sum('controlLF', 'totalAccel'),
+                            'controlRF': weighted_sum('controlRF', 'totalAccel'),
                            }
                 },
                 {'$project':{'_id': 0,
                              'userId':1,
-                             'totalGRF': 1,
-                             'optimalGRF':1,
-                             'irregularGRF':1,
-                             'control': {'$divide': ['$control', '$totalGRF']},
-                             'consistency': {'$divide': ['$consistency', '$totalGRF']},
-                             'symmetry': {'$divide': ['$symmetry', '$totalGRF']},
+                             'totalGRF': {'$cond': [{'$eq': ['$totalGRF', 0]}, None, '$totalGRF']},
+                             'optimalGRF': {'$cond': [{'$eq': ['$optimalGRF', 0]}, None, '$optimalGRF']},
+                             'irregularGRF': {'$cond': [{'$eq': ['$irregularGRF', 0]}, None, '$irregularGRF']},
+                             'control': divide('control', 'totalAccel'),
+                             'consistency': divide('consistency', 'totalAccel'),
+                             'symmetry': divide('symmetry', 'totalAccel'),
                              'trainingGroups': 1,
-                             'percLeftGRF': {'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                             'percRightGRF': {'$divide': ['$percRightGRF', '$singleLegGRF']},
-                             'percLRGRFDiff': {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
-                                                                                 {'$divide': ['$percRightGRF', '$singleLegGRF']}
-                                                                     ]
-                                                       }
-                                              },
-                             'totalAccel': 1,
-                             'irregularAccel': 1,
-                             'LFgRF': 1,
-                             'RFgRF': 1,
-                             'singleLegGRF': 1,
-                             'percOptimal': {'$multiply': [{'$divide': ['$optimalGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
-                                                          ]
-                                            },
-                             'percIrregular': {'$multiply': [{'$divide': ['$irregularGRF', {'$sum': ['$optimalGRF', '$irregularGRF']}]}, 100
-                                                          ]
-                                            },
+                             'percLeftGRF': divide('percLeftGRF', 'singleLegGRF', 1),
+                             'percRightGRF': divide('percRightGRF', 'singleLegGRF', 1),
+                             'percLRGRFDiff': get_perc_diff(),
+                             'totalAccel': {'$cond': [{'$eq': ['$totalAccel', 0]}, None, '$totalAccel']},
+                             'irregularAccel': {'$cond': [{'$eq': ['$irregularAccel', 0]}, None, '$irregularAccel']},
+                             'LFgRF': {'$cond': [{'$eq': ['$LFgRF', 0]}, None, '$LFgRF']},
+                             'RFgRF': {'$cond': [{'$eq': ['$RFgRF', 0]}, None, '$RFgRF']},
+                             'singleLegGRF': {'$cond': [{'$eq': ['$singleLegGRF', 0]}, None, '$singleLegGRF']},
+                             'percOptimal': get_perc_optimal(),
+                             'percIrregular': get_perc_irregular(),
                              'fatigue': 1,
-                             'hipSymmetry': {'$divide': ['$hipSymmetry', '$totalGRF']},
-                             'ankleSymmetry': {'$divide': ['$ankleSymmetry', '$totalGRF']},
-                             'hipConsistency': {'$divide': ['$hipConsistency', '$totalGRF']},
-                             'ankleConsistency': {'$divide': ['$ankleConsistency', '$totalGRF']},
-                             'consistencyLF': {'$divide': ['$consistencyLF', '$LFgRF']},
-                             'consistencyRF': {'$divide': ['$consistencyRF', '$RFgRF']},
-                             'hipControl': {'$divide': ['$hipControl', '$totalGRF']},
-                             'ankleControl': {'$divide': ['$ankleControl', '$totalGRF']},
-                             'controlLF': {'$divide': ['$controlLF', '$LFgRF']},
-                             'controlRF': {'$divide': ['$controlRF', '$RFgRF']}
+                             'hipSymmetry': divide('hipSymmetry', 'totalAccel'),
+                             'ankleSymmetry': divide('ankleSymmetry', 'totalAccel'),
+                             'hipConsistency': divide('hipConsistency', 'totalAccel'),
+                             'ankleConsistency': divide('ankleConsistency', 'totalAccel'),
+                             'consistencyLF': divide('consistencyLF', 'totalAccel'),
+                             'consistencyRF': divide('consistencyRF', 'totalAccel'),
+                             'hipControl': divide('hipControl', 'totalAccel'),
+                             'ankleControl': divide('ankleControl', 'totalAccel'),
+                             'controlLF': divide('controlLF', 'totalAccel'),
+                             'controlRF': divide('controlRF', 'totalAccel'),
                             }
                 }
                ]
@@ -368,7 +365,8 @@ def _compute_awcr(hist, period, event_date):
     # subset acute data and compute acute value
     acute_data = hist.loc[(hist.eventDate >= str(acute_period_start)) &\
                           (hist.eventDate <= str(acute_period_end))]
-    acute = acute_data.sum()
+    acute = acute_data.sum(skipna=True)
+    acute.fillna(value=numpy.nan, inplace=True)
     acute.totalAccel = acute.totalAccel / acute_data.shape[0] * period
     acute.totalGRF = acute.totalGRF / acute_data.shape[0] * period
 
@@ -379,14 +377,57 @@ def _compute_awcr(hist, period, event_date):
     diff = chronic_period_end - data_start_date
     if diff.days >= 10 and chronic_data.shape[0] >= 4:
         chronic = chronic_data.sum()
+        chronic.fillna(value=numpy.nan, inplace=True)
         chronic.totalAccel = chronic.totalAccel / chronic_data.shape[0] * period
         chronic.totalGRF = chronic.totalGRF / chronic_data.shape[0] * period
         del acute['eventDate']
         del chronic['eventDate']
 
         acwr = acute/chronic
+        acwr[numpy.isnan(acwr)] = None
     else:
         acwr = pandas.Series({'totalAccel': None,
                               'totalGRF': None})
 
     return acwr
+
+def divide(var0, var1, cond_var=0):
+    """Dict for conditional division in mongo by checking existence of variable
+    """
+    if cond_var == 0:
+        return {'$cond': [{'$eq': ['$'+var0, 0]}, None, {'$divide': ['$'+var0, '$'+var1]}]}
+    elif cond_var == 1:
+        return {'$cond': [{'$eq': ['$'+var1, 0]}, None, {'$divide': ['$'+var0, '$'+var1]}]}
+
+
+def weighted_sum(var, weight):
+    """Dict for weighted sum in mongo
+    """
+    return {'$sum': {'$multiply': ['$'+var, '$'+weight]}}
+
+
+def get_perc_optimal():
+    """Dict for percOptimal mongo agg
+    """
+    return {'$cond': [{'$eq': ['$totalAccel', 0]},
+                      None,
+                      {'$multiply':
+                          [{'$divide': [{'$subtract': ['$totalAccel', '$irregularAccel']},
+                                        '$totalAccel']}, 100]}]}
+
+
+def get_perc_irregular():
+    """Dict for percIrregular mongo agg
+    """
+    return {'$cond': [{'$eq': ['$totalAccel', 0]},
+                      None,
+                      {'$multiply': [{'$divide': ['$irregularAccel', '$totalAccel']}, 100]}]}
+
+
+def get_perc_diff():
+    """Dict for percLRGRFDiff mongo agg
+    """
+    return {'$cond': [{'$eq': ['$singleLegGRF', 0]},
+                      None, {'$abs': {'$subtract': [{'$divide': ['$percLeftGRF', '$singleLegGRF']},
+                                                    {'$divide': ['$percRightGRF', '$singleLegGRF']}
+                                                   ]}}]}
