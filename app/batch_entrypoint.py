@@ -211,19 +211,21 @@ def main():
                 )
             from chunk import chunk
             # mkdir(os.path.join(working_directory, 'downloadandchunk'))
+            combined_file = os.path.join(working_directory, 'downloadandchunk', session_id)
             if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
                 file_names = chunk.chunk_by_line(
-                    os.path.join(working_directory, 'downloadandchunk', session_id),
+                    combined_file,
                     os.path.join(working_directory, 'downloadandchunk'),
                     100000  # 100,000 records per chunk
                     )
             else:
                 file_names = chunk.chunk_by_byte(
-                    os.path.join(working_directory, 'downloadandchunk', session_id),
+                    combined_file,
                     os.path.join(working_directory, 'downloadandchunk'),
                     100000 * 40  # 100,000 records, 40 bytes per record
                 )
             ret["Filenames"] = file_names
+            os.remove(combined_file)
             send_success(meta_data, ret)
 
         elif script == 'sessionprocess2':
