@@ -227,7 +227,7 @@ def main():
                 )
             ret["Filenames"] = file_names
             # Faking data to test pipeline
-            ret["Sensors"] = 1
+            # ret["Sensors"] = 1
             os.remove(combined_file)
             send_success(meta_data, ret)
 
