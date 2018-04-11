@@ -1,15 +1,3 @@
-from __future__ import print_function
-
-import os
-import copy
-
-from decode_data import read_file
-from placement_detection import detect_placement, shift_accel
-from transform_calculation import compute_transform
-from sensor_use_detection import detect_single_sensor, detect_data_truncation
-from exceptions import PlacementDetectionException
-
-
 def script_handler(working_directory, file_name):
 
     try:
@@ -28,23 +16,28 @@ def script_handler(working_directory, file_name):
             # any of the sensors
             truncated, single_sensor, index = detect_data_truncation(data, placement)
             if truncated:
-                print('Truncated')
-                tmp_filename = filepath + '_tmp'
-                # truncate combined file at lines where truncation was detected
-                os.system(
-                    'head -c {bytes} {filepath} > {truncated_filename}'.format(
-                        bytes=(index) * 40,
-                        filepath=filepath,
-                        truncated_filename=tmp_filename
+                if index < 2000:
+                    print('File too short after truncation. Stopping execution')
+                    raise PlacementDetectionException('File too short after truncation.')
+                else:
+                    print('Truncated')
+                    tmp_filename = filepath + '_tmp'
+                    # truncate combined file at lines where truncation was detected
+                    os.system(
+                        'head -c {bytes} {filepath} > {truncated_filename}'.format(
+                            bytes=(index) * 40,
+                            filepath=filepath,
+                            truncated_filename=tmp_filename
+                            )
                         )
-                    )
-                # copy tmp_file to replace the original file
-                os.system('cat {tmp_filename} > {filepath}'.format(
-                    tmp_filename=tmp_filename,
-                    filepath=filepath))
-                # finally delete temporary file
-                os.remove(tmp_filename)
+                    # copy tmp_file to replace the original file
+                    os.system('cat {tmp_filename} > {filepath}'.format(
+                        tmp_filename=tmp_filename,
+                        filepath=filepath))
+                    # finally delete temporary file
+                    os.remove(tmp_filename)
             elif single_sensor:
+                print('single Sensor')
                 sensors = 1
 
             body_frame_transforms = compute_transform(data_sub, placement, sensors)
@@ -67,6 +60,29 @@ def script_handler(working_directory, file_name):
             sensors = 1
             # detect the single sensor being used
             placement = detect_single_sensor(data)
+            truncated, single_sensor, index = detect_data_truncation(data, placement, sensors)
+            if truncated:
+                if index <= 2000:
+                    print('File too short after truncation. Stopping execution')
+                    raise PlacementDetectionException('File too short after truncation.')
+                else:
+                    print('Truncated')
+                    tmp_filename = filepath + '_tmp'
+                    # truncate combined file at lines where truncation was detected
+                    os.system(
+                        'head -c {bytes} {filepath} > {truncated_filename}'.format(
+                            bytes=(index) * 40,
+                            filepath=filepath,
+                            truncated_filename=tmp_filename
+                            )
+                        )
+                    # copy tmp_file to replace the original file
+                    os.system('cat {tmp_filename} > {filepath}'.format(
+                        tmp_filename=tmp_filename,
+                        filepath=filepath))
+                    # finally delete temporary file
+                    os.remove(tmp_filename)
+                
             # get transformation values
             data_sub = copy.copy(data.loc[0:2000, :])
             shift_accel(data_sub)
