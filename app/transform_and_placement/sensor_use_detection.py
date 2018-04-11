@@ -27,9 +27,9 @@ def detect_hip_sensor(accel, win=100, thresh=1):
         right are dummy placementes
         Note: Exception is raised and processing halted if hip sensor cannot be identified
     """
-    sensor0 = np.abs(accel[0] - np.mean(accel[0][0:100]))
-    sensor1 = np.abs(accel[1] - np.mean(accel[1][0:100]))
-    sensor2 = np.abs(accel[2] - np.mean(accel[2][0:100]))
+    sensor0 = accel[0]
+    sensor1 = accel[1]
+    sensor2 = accel[2]
 
     count_sensor0 = np.array([0, 0, 0])
     count_sensor1 = np.array([0, 0, 0])
@@ -51,17 +51,21 @@ def detect_hip_sensor(accel, win=100, thresh=1):
     ratio_sensor0 = np.array([count_sensor0[1], count_sensor0[2]])/ float(count_sensor0[0])
     ratio_sensor1 = np.array([count_sensor1[0], count_sensor1[2]])/ float(count_sensor1[1])
     ratio_sensor2 = np.array([count_sensor2[0], count_sensor2[1]])/ float(count_sensor2[2])
-    # check if first sensor is hip
-    if np.all(ratio_sensor0 <= 0.5) and movement_perc[0] >= .2:
-        placement = [1, 0, 2]
-    # check if second sensor is hip
-    elif np.all(ratio_sensor1 <= 0.5) and movement_perc[1] >= .2:
-        placement = [0, 1, 2]
-    # check if third sensor is hip
-    elif np.all(ratio_sensor2 <= 0.5) and movement_perc[2] >= .2:
-        placement = [0, 2, 1]
+
+    if np.sum(movement_perc >= .2) == 1:
+        # check if first sensor is hip
+        if np.all(ratio_sensor0 <= 0.5) and movement_perc[0] >= .2:
+            placement = [1, 0, 2]
+        # check if second sensor is hip
+        elif np.all(ratio_sensor1 <= 0.5) and movement_perc[1] >= .2:
+            placement = [0, 1, 2]
+        # check if third sensor is hip
+        elif np.all(ratio_sensor2 <= 0.5) and movement_perc[2] >= .2:
+            placement = [0, 2, 1]
+        else:
+            raise PlacementDetectionException('Failed placement and cannot detect hip sensor')
     else:
-        raise PlacementDetectionException('Placement Detection Failed and cannot detect single sensor in use')
+        raise PlacementDetectionException('Failed placement and cannot detect hip sensor')
     return placement
 
 
@@ -70,6 +74,13 @@ def check_active(sensor0, sensor1, sensor2, accel_thresh, perc=.2):
     """
     result = [0, 0, 0]
     mov_thresh = perc * len(sensor0)
+    mean_sensor0 = np.mean(sensor0)
+    mean_sensor1 = np.mean(sensor1)
+    mean_sensor2 = np.mean(sensor2)
+
+    sensor0 = np.abs(sensor0 - mean_sensor0)
+    sensor1 = np.abs(sensor1 - mean_sensor1)
+    sensor2 = np.abs(sensor2 - mean_sensor2)
     if np.sum(sensor0 > accel_thresh) > mov_thresh:
         result[0] = 1
     if np.sum(sensor1 > accel_thresh) > mov_thresh:
@@ -82,6 +93,9 @@ def check_active(sensor0, sensor1, sensor2, accel_thresh, perc=.2):
 
 def detect_data_truncation(data, placement):
     """Check accel values to see if truncation is necessary
+    Inputs:
+        data: pandas dataframe with the whole session
+        placement: placement array [left, hip, right]
     Output:
         Tuple with values (truncate, single_sensor, truncation_index)
             truncate=True if truncation is required
@@ -91,11 +105,6 @@ def detect_data_truncation(data, placement):
     sensor0 = np.sqrt(np.sum(data.loc[:, ['aX0', 'aY0', 'aZ0']].values ** 2, axis=1))
     sensor1 = np.sqrt(np.sum(data.loc[:, ['aX1', 'aY1', 'aZ1']].values ** 2, axis=1))
     sensor2 = np.sqrt(np.sum(data.loc[:, ['aX2', 'aY2', 'aZ2']].values ** 2, axis=1))
-
-    sensor0 = np.abs(sensor0 - np.mean(sensor0[0:100]))
-    sensor1 = np.abs(sensor1 - np.mean(sensor1[0:100]))
-    sensor2 = np.abs(sensor2 - np.mean(sensor2[0:100]))
-
 
     left = sensor0 if placement[0] == 0 else sensor1 if placement[0] == 1 else sensor2
     hip = sensor0 if placement[1] == 0 else sensor1 if placement[1] == 1 else sensor2
