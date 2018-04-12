@@ -129,39 +129,35 @@ def detect_data_truncation(data, placement, sensors=3):
     hip = active_all[:, 1]
     right = active_all[:, 2]
 
-    missing_left = 0
-    missing_hip = 0
-    missing_right = 0
-
+    missing_left = missing_hip = missing_right = 0
+    cont_missing_left = cont_missing_hip = cont_missing_right = 0
     if sensors == 3:
         counter = 0
         for l, h, r in zip(left, hip, right):
+            cont_missing_left = cont_missing_left + 1 if l == 0 else 0
+            cont_missing_hip = cont_missing_hip + 1 if h == 0 else 0
+            cont_missing_right = cont_missing_right + 1 if r == 0 else 0
             if l == 1 or r == 1:
                 # if there's no movement in hip when there's movement in one of the legs for 5 mins
-                # truncate data
-                if missing_hip > 60:
+                # total or any continuous 7 mins, truncate data
+                if missing_hip > 60 or cont_missing_hip > 84:
                     print('Truncating data as movement in hip not detected for extended period')
                     return (True, False, (counter - 60) * win)
-                elif h == 0:
-                    missing_hip += 1
                 else:
-                    missing_hip = 0
+                    missing_hip = missing_hip + 1 if h == 0 else 0
             if h == 1:
                 # If there's no movement in either of the legs for >5 mins when there's movement
-                #in hip we're assuming user either took off the sensors or
-                # sensor fell off and processing as single sensor
-                if missing_left > 60 or missing_right > 60:
+                # in hip or for a continuous 7 minutes without considering hips, 
+                # we're assuming user either took off the sensors or sensor fell off and
+                # processing as single sensor
+                if missing_left > 60 or missing_right > 60 or \
+                cont_missing_left > 84 or cont_missing_right > 84:
                     print('Feet inactive for extended period. Moving to single sensor.')
                     return (False, True, None)
                 else:
-                    if l == 0:
-                        missing_left += 1
-                    else:
-                        missing_left = 0
-                    if r == 0:
-                        missing_right += 1
-                    else:
-                        missing_right = 0
+                    missing_left = missing_left + 1 if l == 0 else 0
+                    missing_right = missing_right + 1 if r == 0 else 0
+
             counter += 1
     elif sensors == 1:
         # for single sensor, determine if it needs to be truncated single sensor
@@ -173,11 +169,10 @@ def detect_data_truncation(data, placement, sensors=3):
             if missing_hip >= 84:
                 print("Truncating data as movement in hip not detected for extended period")
                 return(True, True, (counter - 84) * win)
-            elif h == 0:
-                missing_hip += 1
             else:
-                missing_hip = 0
+                missing_hip = missing_hip + 1 if h == 0 else 0
             counter += 1
 
     # if turncation or single sensor is not required, return default
     return (False, False, None)
+
