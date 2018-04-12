@@ -38,19 +38,25 @@ def detect_hip_sensor(accel, win=100, thresh=1):
     i = 0
     while i < len(accel[0]) - win:
         active = check_active(sensor0[i:i+win], sensor1[i:i+win], sensor2[i:i+win], thresh)
-        if active[0] == 1:
-            count_sensor0 += active
-        if active[1] == 1:
-            count_sensor1 += active
-        if active[2] == 1:
-            count_sensor2 += active
+        count_sensor0 = count_sensor0 + active if active[0] == 1 else count_sensor0
+        count_sensor1 = count_sensor1 + active if active[1] == 1 else count_sensor1
+        count_sensor2 = count_sensor2 + active if active[2] == 1 else count_sensor2
         i += win
         counts += 1
 
     movement_perc = np.array([count_sensor0[0], count_sensor1[1], count_sensor2[2]]) / float(counts)
-    ratio_sensor0 = np.array([count_sensor0[1], count_sensor0[2]])/ float(count_sensor0[0])
-    ratio_sensor1 = np.array([count_sensor1[0], count_sensor1[2]])/ float(count_sensor1[1])
-    ratio_sensor2 = np.array([count_sensor2[0], count_sensor2[1]])/ float(count_sensor2[2])
+    if count_sensor0[0] > 0:
+        ratio_sensor0 = np.array([count_sensor0[1], count_sensor0[2]])/ float(count_sensor0[0])
+    else:
+        ratio_sensor0 = np.array([0., 0.])
+    if count_sensor1[1] > 0:
+        ratio_sensor1 = np.array([count_sensor1[0], count_sensor1[2]])/ float(count_sensor1[1])
+    else:
+        ratio_sensor1 = np.array([0., 0.])
+    if count_sensor2[2] > 0:
+        ratio_sensor2 = np.array([count_sensor2[0], count_sensor2[1]])/ float(count_sensor2[2])
+    else:
+        ratio_sensor2 = np.array([0., 0.])
 
     if np.sum(movement_perc >= .2) == 1:
         # check if first sensor is hip
