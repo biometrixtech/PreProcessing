@@ -135,7 +135,7 @@ def script_handler(working_directory, input_data):
         # fatigue data
         record_out['percOptimal'] = perc_optimal_session * 100
         record_out['percIrregular'] = (1 - perc_optimal_session) * 100
-        record_out['startMovementQuality'] = start_movement_quality
+        # record_out['startMovementQuality'] = start_movement_quality
         record_out['sessionFatigue'] = session_fatigue
 
         # enforce validity of scores
