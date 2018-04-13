@@ -6,6 +6,8 @@ cache/pip/*
 apigateway/*
 !apigateway/routes
 !apigateway/*.py
+apigateway/itsdangerous.py
+apigateway/flask_lambda.py
 !apigateway/models
 !apigateway/pip_requirements
 !apigateway/schemas

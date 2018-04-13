@@ -15,6 +15,7 @@ def detect_placement(data):
     start, end = detect_activity(data)
     for i in range(len(start)):
         try:
+#            print(start[i], end[i])
             data_sub = data.loc[start[i]:end[i], :]
             data_sub.reset_index(inplace=True, drop=True)
             hip_sensor_id = identify_hip_sensor(data_sub)
@@ -131,7 +132,7 @@ def detect_activity(data):
 
     dummy_balphase = []  # dummy variable to store indexes of balance phase
 
-    abs_acc = total_acc_mag.reshape(-1, 1)  # creating an array of absolute acceleration values
+    abs_acc = total_acc_mag.values.reshape(-1, 1)  # creating an array of absolute acceleration values
     len_acc = len(total_acc_mag)  # length of acceleration value
 
     for i in range(len_acc-bal_win+1):
@@ -228,15 +229,14 @@ def identify_hip_sensor(data):
     sum_sq_2 = np.nansum(data.aX2**2 + data.aY2**2 + data.aZ2**2) / 1000
 
     ratio = [0, 0, 0]
-    ratio[0] = np.min([sum_sq_1, sum_sq_2]) / sum_sq_0
-    ratio[1] = np.min([sum_sq_0, sum_sq_2]) / sum_sq_1
-    ratio[2] = np.min([sum_sq_0, sum_sq_1]) / sum_sq_2
-
-    if np.max(ratio) == ratio[0] and ratio[0] >= 1.1:
+    ratio[0] = [sum_sq_1, sum_sq_2] / sum_sq_0
+    ratio[1] = [sum_sq_0, sum_sq_2] / sum_sq_1
+    ratio[2] = [sum_sq_0, sum_sq_1] / sum_sq_2
+    if np.all(ratio[0] >= 1.1) and .5 < ratio[0][0] / ratio[0][1] < 2:
         return 0
-    elif np.max(ratio) == ratio[1] and ratio[1] >= 1.1:
+    elif np.all(ratio[1] >= 1.1) and .5 < ratio[1][0] / ratio[1][1] < 2:
         return 1
-    elif np.max(ratio) == ratio[2] and ratio[2] >= 1.1:
+    elif np.all(ratio[2] >= 1.1) and .5 < ratio[2][0] / ratio[2][1] < 2:
         return 2
     else:
         raise PlacementDetectionException('Could not detect hip sensor from ratios {}'.format(ratio))
@@ -247,7 +247,7 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
     """
     skew1 = skew(pitch_foot1[np.isfinite(pitch_foot1)])
     skew2 = skew(pitch_foot2[np.isfinite(pitch_foot2)])
-    print(skew1, skew2)
+#    print(skew1, skew2)
     threshold = 0.35
 
     if skew1 < -threshold and skew2 > threshold:

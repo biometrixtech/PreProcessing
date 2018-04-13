@@ -12,7 +12,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def script_handler(base_name):
+def script_handler(base_name, output_dir):
 
     logger.info('Running downloadAndChunk on "{}"'.format(base_name))
 
@@ -34,10 +34,24 @@ def script_handler(base_name):
             logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
 
         if len(s3_files) == 1:
-            return '/tmp/{}'.format(s3_files)[0]
+            s3_key = s3_files[0]
+            # Paranoia since we're injecting this into a shell
+            if not re.match('^[a-z0-9\-_]+$', s3_key):
+                raise Exception('Insecure S3 key: {}'.format(s3_key))
+            source_filename = '/tmp/{}'.format(s3_key)
+            destination_filename = os.path.join(output_dir, base_name)
+            subprocess.check_call('cp {source_file} {dest_file}'.format(
+                    source_file=source_filename,
+                    dest_file=destination_filename), shell=True)
+            return destination_filename
         else:
             # Concatenate the files together first
-            concat_filename = '/tmp/{}'.format(base_name)
+            # concat_filename = '/tmp/{}'.format(base_name)
+            concat_filename = os.path.join(output_dir, base_name)
+            try:
+                os.remove(concat_filename)
+            except OSError:
+                pass
             logger.info('Concatenating {} chunks to {}'.format(len(s3_files), concat_filename))
             for s3_key in s3_files:
                 # Paranoia since we're injecting this into a shell

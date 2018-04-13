@@ -100,7 +100,7 @@ def script_handler(working_directory, input_data):
         max_half_sec = data.groupby('half_sec').agg(f)
         max_half_sec.columns = ['totalNormMax', 'totalAccelMax']
         data = data.join(max_half_sec, on='half_sec')
-        data.loc[:, 'totalNormMax'] = data.totalNormMax / data_out['userMass'] * 1000000
+        data.loc[:, 'totalNormMax'] = data.totalNormMax / data_out['userMass'] * 1000000 * 9.803
 
         prog_comp_columns = ['min',
                              'max',
