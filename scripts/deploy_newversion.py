@@ -113,8 +113,9 @@ def await_stack_update(stack):
 def update_git_branch():
     try:
         git_dir = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../PreProcessing'))
-        os.system("git -C {} branch -f {}-{} {}".format(git_dir, args.environment, args.region, args.batchjob_version))
-        os.system("git -C {} push origin {}-{} --force".format(git_dir, args.environment, args.region))
+        branch_name = '{}-{}-app'.format(args.environment, args.region)
+        os.system("git -C {} update-ref refs/heads/{} {}".format(git_dir, branch_name, args.batchjob_version))
+        os.system("git -C {} push origin {} --force".format(git_dir, branch_name))
     except CalledProcessError as e:
         print(e.output, colour=Fore.RED)
         raise
