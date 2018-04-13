@@ -83,11 +83,6 @@ Parameters:
         AllowedValues: [ "true", "false" ]
         Default: "false"
         Description: "Whether to create the ingest stack"
-    BatchJobVersion:
-        Type: "String"
-        Description: "The git commit hash of the `batchjob` code to deploy"
-        AllowedPattern: "[a-f0-9]{40}"
-        ConstraintDescription: "Must be a 40-hex-digit Git full commit hash"
     PollerVersion:
         Type: "String"
         Description: "The git commit hash of the `sfnbatch` poller to deploy"
@@ -253,7 +248,7 @@ Resources:
         Properties:
             Parameters:
                 Environment: { Ref: "Environment" }
-                BatchJobVersion: { Ref: "BatchJobVersion" }
+                BatchJobVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline" } }
               - { Key: "Management", Value: "managed" }
@@ -385,8 +380,10 @@ Resources:
         Type: "AWS::Lambda::Function"
         Properties:
             Code:
-                S3Bucket: { "Fn::Sub": "biometrix-infrastructure-${AWS::Region}" }
-                S3Key: { "Fn::Sub": "lambdas/preprocessing-${Environment}/apigateway.zip" }
+                S3Bucket: { "Fn::ImportValue": "InfrastructureBucketName" }
+                S3Key: { "Fn::Sub": [ "lambdas/preprocessing/${TemplateVersion}/apigateway.zip", {
+                    TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+                } ] }
             Environment:
                 Variables:
                     DYNAMODB_TABLENAME_SESSIONS: { "Fn::GetAtt": [ "IngestStack", "Outputs.SessionEventsTableName" ] }
