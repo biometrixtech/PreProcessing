@@ -242,9 +242,10 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "compute" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-compute.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-compute.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreateCompute"
 
@@ -264,9 +265,10 @@ Resources:
               - { Key: "Project", Value: "compute" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "pipeline" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-pipeline.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-pipeline.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreatePipeline"
 
@@ -289,9 +291,10 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "ingest" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-ingest.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-ingest.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreateIngest"
 
@@ -341,9 +344,10 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "sfnbatch" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-monitoring.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-monitoring.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreateMonitoring"
 
