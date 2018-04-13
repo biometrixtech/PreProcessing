@@ -4,8 +4,19 @@ from __future__ import print_function
 import boto3
 import os
 import subprocess
+import glob
+import shutil
+import zipfile
 
 aws_region = 'us-west-2'
+
+
+def replace_in_file(filename, old, new):
+    with open(filename, 'r') as file:
+        filedata = file.read()
+    filedata = filedata.replace(old, new)
+    with open(filename, 'w') as file:
+        file.write(filedata)
 
 
 def upload_cf_template(template, s3_bucket):
