@@ -20,7 +20,7 @@ def detect_single_sensor(data):
     return placement
 
 
-def detect_hip_sensor(accel, win=100, thresh=1):
+def detect_hip_sensor(accel, win=100, thresh=2.):
     """Check for long period of inactivity
     Output:
         placement list with [left, hip, right] placement only hip is true placement. Left and
