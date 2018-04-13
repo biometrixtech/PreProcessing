@@ -32,7 +32,7 @@ def script_handler(working_directory, file_name):
                     print('File too short after truncation. Stopping execution')
                     raise PlacementDetectionException('File too short after truncation.')
                 else:
-                    print('Truncated')
+                    print('Truncated at index: {}'.format(index))
                     tmp_filename = filepath + '_tmp'
                     # truncate combined file at lines where truncation was detected
                     os.system(
@@ -78,7 +78,7 @@ def script_handler(working_directory, file_name):
                     print('File too short after truncation. Stopping execution')
                     raise PlacementDetectionException('File too short after truncation.')
                 else:
-                    print('Truncated')
+                    print('Truncated at index: {}'.format(index))
                     tmp_filename = filepath + '_tmp'
                     # truncate combined file at lines where truncation was detected
                     os.system(
