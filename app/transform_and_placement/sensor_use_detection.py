@@ -143,7 +143,7 @@ def detect_data_truncation(data, placement, sensors=3):
         counter = 0
         for l, h, r in zip(left, hip, right):
             cont_missing_left = cont_missing_left + 1 if l == 0 else 0
-            cont_missing_hip = cont_missing_hip + 1 if h == 0 else 0
+            # cont_missing_hip = cont_missing_hip + 1 if h == 0 else 0
             cont_missing_right = cont_missing_right + 1 if r == 0 else 0
             if l == 1 or r == 1:
                 # if there's no movement in hip when there's movement in one of the legs for 5 mins
