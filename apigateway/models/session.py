@@ -53,7 +53,7 @@ class Session(Serialisable):
             'training_group_ids': self.training_group_ids,
             'event_date': self.event_date,
             'session_status': self.session_status,
-            'end_date': self.event_date,
+            'end_date': self.end_date,
             'created_date': self.created_date,
             'updated_date': self.updated_date,
         }
