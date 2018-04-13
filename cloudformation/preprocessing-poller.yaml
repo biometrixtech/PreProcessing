@@ -1,0 +1,277 @@
+# A template that creates an ECS cluster serving the sfnbatch poller
+# Version: da39a3ee5e6b4b0d3255bfef95601890afd80709
+#
+# Copyright 2017 Melon Software Ltd (UK), all rights reserved
+#
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Creates an ECS cluster running the sfnbatch poller"
+
+Parameters:
+
+    Project:
+        Description: "The name of the project"
+        Type: "String"
+    Environment:
+        Description: "The name of the environment"
+        Type: "String"
+
+    # Passed nested parameters
+    Vpc:
+        Description: "The ID of the VPC"
+        Type: "AWS::EC2::VPC::Id"
+    PrivateSubnets:
+        Description: "The IDs of the subnets to launch instances in"
+        Type: "List<AWS::EC2::Subnet::Id>"
+    ActivityArn:
+        Description: "The ARN of the Activity to listen for"
+        Type: "String"
+    SqsQueueName:
+        Description: "The ARN of the FIFO SQS Queue to use for linearity enforcement"
+        Type: "String"
+        Default: ""
+
+    InstanceSize:
+        AllowedValues: [ "t2.micro" ]
+        Default: "t2.micro"
+        Description: "The desired EC2 instance size"
+        Type: "String"
+
+    PollerVersion:
+        Default: "latest"
+        Description: "Docker tag of version to deploy"
+        Type: "String"
+        
+Mappings:
+    AWSRegionToAMI:
+        us-east-1:
+            AmiId: "ami-eca289fb"
+        us-east-2:
+            AmiId: "ami-446f3521"
+        us-west-1:
+            AmiId: "ami-9fadf8ff"
+        us-west-2:
+            AmiId: "ami-7abc111a"
+        eu-west-1:
+            AmiId: "ami-a1491ad2"
+        eu-central-1:
+            AmiId: "ami-54f5303b"
+        ap-northeast-1:
+            AmiId: "ami-9cd57ffd"
+        ap-southeast-1:
+            AmiId: "ami-a900a3ca"
+        ap-southeast-2:
+            AmiId: "ami-5781be34"
+
+    TemplateVersion:
+        Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
+
+Resources:
+
+    ##########################################################################################################
+    ##  SECURITY
+    ##########################################################################################################
+
+    Ec2InstanceStartupRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "ec2.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+            RoleName: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller-ec2-${AWS::Region}" }
+
+    Ec2InstanceStartupProfile:
+        Type: "AWS::IAM::InstanceProfile"
+        Properties:
+            Path: "/"
+            Roles: [ { Ref: "Ec2InstanceStartupRole" } ]
+
+    Ec2SecurityGroup:
+        Type: "AWS::EC2::SecurityGroup"
+        Properties:
+            GroupName: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller-ec2" }
+            GroupDescription: "Security group for EC2 instances"
+            VpcId: { Ref: "Vpc" }
+            SecurityGroupIngress:
+                # All ports open from internal access
+              - IpProtocol: "tcp"
+                FromPort: "0"
+                ToPort: "65535"
+                CidrIp: { "Fn::Sub": "10.0.0.0/16" }
+
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller-ec2" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: { Ref: "Project" } }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    EcsServiceRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                  - Effect: "Allow"
+                    Principal:
+                        Service: [ "ecs.amazonaws.com" ]
+                    Action:
+                      - "sts:AssumeRole"
+            Path: "/"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
+            RoleName: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller-ecs-${AWS::Region}" }
+
+    EcsContainerRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "ecs-tasks.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            Policies:
+              - PolicyName: "logs"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "logs:CreateLogGroup"
+                          - "logs:CreateLogStream"
+                          - "logs:PutLogEvents"
+                        Effect: "Allow"
+                        Resource: "*"
+              - PolicyName: "execution"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "states:GetActivityTask"
+                          - "states:SendTaskHeartbeat"
+                          - "batch:DescribeJobDefinitions"
+                          - "batch:DescribeJobQueues"
+                          - "batch:SubmitJob"
+                          - "sqs:ReceiveMessage"
+                          - "sqs:SendMessage"
+                        Effect: "Allow"
+                        Resource: "*"
+            RoleName: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-ecscontainer-${AWS::Region}" }
+
+    ##########################################################################################################
+    ##  CLUSTER
+    ##########################################################################################################
+
+    LaunchConfiguration:
+        Type: "AWS::AutoScaling::LaunchConfiguration"
+        Properties:
+            ImageId: { "Fn::FindInMap": [ "AWSRegionToAMI", { Ref: "AWS::Region" }, "AmiId" ] }
+            SecurityGroups: [ { Ref: "Ec2SecurityGroup" } ]
+            InstanceType: { Ref: "InstanceSize" }
+            IamInstanceProfile: { Ref: "Ec2InstanceStartupProfile" }
+            UserData:
+                Fn::Base64:
+                    !Sub |
+                        #!/bin/sh
+                        echo "AWS_DEFAULT_REGION=${AWS::Region}" >> /etc/environment
+                        export AWS_DEFAULT_REGION=${AWS::Region}
+                        echo ECS_CLUSTER=${EcsCluster} >> /etc/ecs/ecs.config
+
+
+    AutoScalingGroup:
+        Type: "AWS::AutoScaling::AutoScalingGroup"
+        Properties:
+            VPCZoneIdentifier: { Ref: "PrivateSubnets" }
+            LaunchConfigurationName: { Ref: "LaunchConfiguration" }
+            MinSize: 2
+            MaxSize: 2
+            DesiredCapacity: 2
+            TerminationPolicies: [ "OldestLaunchConfiguration", "OldestInstance", "Default" ]
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller" }, PropagateAtLaunch: true }
+              - { Key: "Management", Value: "managed", PropagateAtLaunch: true }
+              - { Key: "Project", Value: { Ref: "Project" }, PropagateAtLaunch: true }
+              - { Key: "Environment", Value: { Ref: "Environment" }, PropagateAtLaunch: true }
+
+    EcsCluster:
+        Type: "AWS::ECS::Cluster"
+        Properties:
+            ClusterName: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller" }
+
+    ##########################################################################################################
+    ##  POLLER SERVICE
+    ##########################################################################################################
+
+    CloudwatchLogsGroup:
+        Type: "AWS::Logs::LogGroup"
+        Properties:
+            LogGroupName: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller" }
+            RetentionInDays: 14
+
+    TaskDefinition:
+        Type: "AWS::ECS::TaskDefinition"
+        Properties:
+            ContainerDefinitions:
+              - Cpu: "10"
+                Environment:
+                  - { Name: "AWS_DEFAULT_REGION", Value: { Ref: "AWS::Region" } }
+                  - { Name: "ACTIVITY_ARN", Value: { Ref: "ActivityArn" } }
+                  - { Name: "SQS_QUEUE_NAME", Value: { Ref: "SqsQueueName" } }
+                  - { Name: "SOURCE", Value: "SFN" }
+                  - { Name: "WORKER_NAME", Value: "sfn-poller" }
+                Image: { "Fn::Join": [ ":", [ { "Fn::ImportValue": "EcrRepositorySfnbatch" }, { Ref: "PollerVersion" } ] ] }
+                LogConfiguration:
+                    LogDriver: "awslogs"
+                    Options:
+                        awslogs-group: { Ref: "CloudwatchLogsGroup" }
+                        awslogs-region: { Ref: "AWS::Region" }
+                Memory: 128
+                Name: "sfnbatch-poller"
+            Family: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller" }
+            TaskRoleArn: { Ref: "EcsContainerRole" }
+
+    EcsService:
+        Type: "AWS::ECS::Service"
+        Properties:
+            TaskDefinition: { Ref: "TaskDefinition" }
+            DesiredCount: 2
+            Cluster: { Ref: "EcsCluster" }
+            PlacementStrategies:
+              - Field: "host"
+                Type: "spread"
+            ServiceName: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller" }
+
+    TaskDefinitionSqs:
+        Type: "AWS::ECS::TaskDefinition"
+        Properties:
+            ContainerDefinitions:
+              - Cpu: "10"
+                Environment:
+                  - { Name: "AWS_DEFAULT_REGION", Value: { Ref: "AWS::Region" } }
+                  - { Name: "ACTIVITY_ARN", Value: { Ref: "ActivityArn" } }
+                  - { Name: "SQS_QUEUE_NAME", Value: { Ref: "SqsQueueName" } }
+                  - { Name: "SOURCE", Value: "SQS" }
+                  - { Name: "WORKER_NAME", Value: "sfn-poller" }
+                Image: { "Fn::Join": [ ":", [ { "Fn::ImportValue": "EcrRepositorySfnbatch" }, { Ref: "PollerVersion" } ] ] }
+                LogConfiguration:
+                    LogDriver: "awslogs"
+                    Options:
+                        awslogs-group: { Ref: "CloudwatchLogsGroup" }
+                        awslogs-region: { Ref: "AWS::Region" }
+                Memory: 128
+                Name: "sfnbatch-poller-sqs"
+            Family: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller-sqs" }
+            TaskRoleArn: { Ref: "EcsContainerRole" }
+
+    EcsServiceSqs:
+        Type: "AWS::ECS::Service"
+        Properties:
+            TaskDefinition: { Ref: "TaskDefinitionSqs" }
+            DesiredCount: 2
+            Cluster: { Ref: "EcsCluster" }
+            PlacementStrategies:
+              - Field: "host"
+                Type: "spread"
+            ServiceName: { "Fn::Sub": "${Project}-${Environment}-sfnbatch-poller-sqs" }
