@@ -1,4 +1,5 @@
 # A template that creates an environment
+# Version: da39a3ee5e6b4b0d3255bfef95601890afd80709
 #
 # Copyright 2017 Melon Software Ltd (UK), all rights reserved.  Used under license.
 #
@@ -82,16 +83,6 @@ Parameters:
         AllowedValues: [ "true", "false" ]
         Default: "false"
         Description: "Whether to create the ingest stack"
-    PollerTemplate:
-        Type: "String"
-        Default: "https://s3.amazonaws.com/biometrix-infrastructure/cloudformation/sfn-batch-poller.yaml"
-        Description: "Path to an S3 file containing the CloudFormation template for the sfn-batch poller cluster"
-
-    BatchJobVersion:
-        Type: "String"
-        Description: "The git commit hash of the `batchjob` code to deploy"
-        AllowedPattern: "[a-f0-9]{40}"
-        ConstraintDescription: "Must be a 40-hex-digit Git full commit hash"
     PollerVersion:
         Type: "String"
         Description: "The git commit hash of the `sfnbatch` poller to deploy"
@@ -109,6 +100,11 @@ Parameters:
         MinValue: 1
         Type: "Number"
 
+Mappings:
+    TemplateVersion:
+        Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
+        Infrastructure: { Commit: "438cfa1991ac6bfac3ceb11f5a2b980a773ea06e" }
+
 Metadata:
     "AWS::CloudFormation::Interface":
         ParameterGroups:
@@ -121,7 +117,6 @@ Metadata:
               - "CreateCompute"
               - "CreatePipeline"
               - "CreateIngest"
-              - "PollerTemplate"
           - Label: { default: "Configuration" }
             Parameters:
               - "MultiAz"
@@ -145,7 +140,6 @@ Metadata:
             CreateCompute: { default: "Create compute stack?" }
             CreatePipeline: { default: "Create pipieline stack?" }
             CreateIngest: { default: "Create ingest stack?" }
-            PollerTemplate: { default: "CF template: sfn-batch poller" }
             BatchJobVersion: { default: "batchjob" }
             PollerVersion: { default: "sfnbatch poller" }
             MongoDbPeeringVpc: { default: "MongoDB VPN ID" }
@@ -156,7 +150,7 @@ Conditions:
     CreateCompute: { "Fn::And": [ { Condition: "CreateVpc" }, { "Fn::Equals": [ { Ref: "CreateCompute" }, "true" ] } ] }
     CreatePipeline: { "Fn::And": [ { Condition: "CreateCompute" }, { "Fn::Equals": [ { Ref: "CreatePipeline" }, "true" ] } ] }
     CreateIngest: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] } ] }
-    CreatePoller: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerTemplate" }, "" ] } ] } ] }
+    CreatePoller: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerVersion" }, "" ] } ] } ] }
     CreateMonitoring: { "Fn::And": [ { "Condition": "CreateCompute" }, { "Condition": "CreatePipeline" } ] }
 
 Resources:
@@ -205,9 +199,10 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "compute" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure-${Environment}/vpc.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure/${TemplateVersion}/vpc.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreateVpc"
 
@@ -237,9 +232,10 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "compute" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-compute.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-compute.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreateCompute"
 
@@ -252,16 +248,17 @@ Resources:
         Properties:
             Parameters:
                 Environment: { Ref: "Environment" }
-                BatchJobVersion: { Ref: "BatchJobVersion" }
+                BatchJobVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline" } }
               - { Key: "Management", Value: "managed" }
               - { Key: "Project", Value: "compute" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "pipeline" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-pipeline.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-pipeline.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreatePipeline"
 
@@ -284,9 +281,10 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "ingest" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-ingest.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-ingest.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreateIngest"
 
@@ -312,7 +310,10 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "sfnbatch" }
-            TemplateURL: { Ref: "PollerTemplate" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-poller.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreatePoller"
 
@@ -336,9 +337,10 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "sfnbatch" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing-${Environment}/preprocessing-monitoring.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-monitoring.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 10
         Condition: "CreateMonitoring"
 
@@ -378,8 +380,10 @@ Resources:
         Type: "AWS::Lambda::Function"
         Properties:
             Code:
-                S3Bucket: { "Fn::Sub": "biometrix-infrastructure-${AWS::Region}" }
-                S3Key: { "Fn::Sub": "lambdas/preprocessing-${Environment}/apigateway.zip" }
+                S3Bucket: { "Fn::ImportValue": "InfrastructureBucketName" }
+                S3Key: { "Fn::Sub": [ "lambdas/preprocessing/${TemplateVersion}/apigateway.zip", {
+                    TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+                } ] }
             Environment:
                 Variables:
                     DYNAMODB_TABLENAME_SESSIONS: { "Fn::GetAtt": [ "IngestStack", "Outputs.SessionEventsTableName" ] }
@@ -414,7 +418,8 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
               - { Key: "Service", Value: "apigateway" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure-${Environment}/apigateway.yaml",
-                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
-            ] }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure/${TemplateVersion}/apigateway.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
+            } ] }
             TimeoutInMinutes: 30
