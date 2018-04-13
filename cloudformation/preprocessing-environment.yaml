@@ -1,4 +1,5 @@
 # A template that creates an environment
+# Version: da39a3ee5e6b4b0d3255bfef95601890afd80709
 #
 # Copyright 2017 Melon Software Ltd (UK), all rights reserved.  Used under license.
 #
@@ -108,6 +109,10 @@ Parameters:
         Description: "The write capacity of the DynamoDb table"
         MinValue: 1
         Type: "Number"
+
+Mappings:
+    TemplateVersion:
+        Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
 
 Metadata:
     "AWS::CloudFormation::Interface":

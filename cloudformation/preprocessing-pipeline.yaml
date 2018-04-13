@@ -1,4 +1,5 @@
 # A template that creates the processing pipeline for biometric data
+# Version: da39a3ee5e6b4b0d3255bfef95601890afd80709
 #
 # Copyright 2017 Melon Software Ltd (UK), all rights reserved
 #
@@ -13,7 +14,11 @@ Parameters:
 
     BatchJobVersion:
         Type: "String"
-        Description: "The version of the downloadandchunk batch job to run"
+        Description: "The version of the batch jobs to run"
+
+Mappings:
+    TemplateVersion:
+        Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
 
 Metadata:
     "AWS::CloudFormation::Interface":

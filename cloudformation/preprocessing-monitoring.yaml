@@ -1,4 +1,5 @@
 # A template that creates monitoring for a preprocessing pipeline
+# Version: da39a3ee5e6b4b0d3255bfef95601890afd80709
 #
 # Copyright 2018 Melon Software Ltd (UK), all rights reserved.  Used under license.
 #
@@ -35,6 +36,10 @@ Parameters:
 
 Conditions:
     CreateAutoscaling: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "AutoscalingSchedule" }, "" ] } ] }
+
+Mappings:
+    TemplateVersion:
+        Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
 
 Resources:
 
