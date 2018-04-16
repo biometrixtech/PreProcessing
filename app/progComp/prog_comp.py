@@ -118,8 +118,14 @@ def script_handler(working_directory, input_data):
         # replace nans with None
         # data = data.where((pandas.notnull(data)), None)
         # logger.info("Filtered out null values")
-        total_ind = numpy.array([k != 3 for k in data.phaseLF])
+        total_ind = numpy.array([numpy.isfinite(k) for k in data['constructive']])
         data['total'] = data['total'].fillna(value=numpy.nan) * total_ind
+        lf_ind = numpy.array([k in [0, 1, 4, 6] for k in data['phaseLF']])
+        rf_ind = numpy.array([k in [0, 2, 5, 7] for k in data['phaseRF']])
+        lf_ground = lf_ind * ~rf_ind  # only lf in ground
+        rf_ground = ~lf_ind * rf_ind  # only rf in ground
+        data['lf_only_grf'] = data['total'].fillna(value=numpy.nan) * lf_ground
+        data['rf_only_grf'] = data['total'].fillna(value=numpy.nan) * rf_ground
 
         # get program compositions
         data_out['grfProgramComposition'] = _grf_prog_comp(data, data_out['userMass'], agg_vars,
@@ -150,7 +156,6 @@ def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         grf_bins = numpy.array([0, 1.40505589, 1.68606707, 1.96707825, 2.24808943, 2.52910061,
                                 2.81011179, 3.09112296, 3.37213414, 3.65314532, 100])
         grf_labels = range(10)
-        agg_vars = ['total', 'constructive', 'destructive', 'totalAccel', 'msElapsed']
         prog_comp = data.groupby(pandas.cut(data["totalNormMax"], grf_bins, labels=grf_labels))
         prog_comp_grf = pandas.DataFrame()
         prog_comp_grf['min'] = numpy.array(grf_bins[0:10]) * user_mass
@@ -158,9 +163,18 @@ def _grf_prog_comp(data, user_mass, agg_vars, prog_comp_columns):
         prog_comp_grf['binNumber'] = grf_labels
         for pc_var in agg_vars:
             prog_comp_grf[pc_var] = prog_comp[pc_var].sum()
-        prog_comp_grf['percOptimal'] = prog_comp_grf['constructive'] / prog_comp_grf['total'] * 100
-        prog_comp_grf['percIrregular'] = prog_comp_grf['destructive'] / prog_comp_grf['total'] * 100
+        percOptimal = prog_comp_grf['constructive'] / prog_comp_grf['total'] * 100
+        # adding grf distribution to percOptimal calculation
+        lf_only_grf = prog_comp['lf_only_grf'].sum()
+        rf_only_grf = prog_comp['rf_only_grf'].sum()
+        perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100
+        perc_distr[numpy.isnan(perc_distr)] = 0.
+        prog_comp_grf['percOptimal'] = (2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
+        prog_comp_grf['percIrregular'] = 100. - prog_comp_grf['percOptimal']
         prog_comp_grf.columns = prog_comp_columns
+        # use new definition of percOptimal in optimal and irregular GRF
+        prog_comp_grf['optimalGRF'] = prog_comp_grf['percOptimal'] * prog_comp_grf['totalGRF'] / 100
+        prog_comp_grf['irregularGRF'] = prog_comp_grf['percIrregular'] * prog_comp_grf['totalGRF'] / 100
         prog_comp_grf = prog_comp_grf.where((pandas.notnull(prog_comp_grf)), None)
         grf = prog_comp_grf.to_dict(orient='records')
         grf_sorted = []
@@ -187,9 +201,19 @@ def _accel_prog_comp(data, agg_vars, prog_comp_columns):
         prog_comp_accel['binNumber'] = accel_labels
         for pc_var in agg_vars:
             prog_comp_accel[pc_var] = prog_comp[pc_var].sum()
-        prog_comp_accel['percOptimal'] = prog_comp_accel['constructive'] / prog_comp_accel['total'] * 100
-        prog_comp_accel['percIrregular'] = prog_comp_accel['destructive'] / prog_comp_accel['total'] * 100
+        percOptimal = prog_comp_accel['constructive'] / prog_comp_accel['total'] * 100
+        # adding grf distribution to percOptimal calculation
+        lf_only_grf = prog_comp['lf_only_grf'].sum()
+        rf_only_grf = prog_comp['rf_only_grf'].sum()
+        perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100
+        perc_distr[numpy.isnan(perc_distr)] = 0.
+        prog_comp_accel['percOptimal'] = (2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
+        prog_comp_accel['percIrregular'] = 100. - prog_comp_accel['percOptimal']
         prog_comp_accel.columns = prog_comp_columns
+
+        # use new definition of percOptimal in optimal and irregular GRF
+        prog_comp_accel['optimalGRF'] = prog_comp_accel['percOptimal'] * prog_comp_accel['totalGRF'] / 100
+        prog_comp_accel['irregularGRF'] = prog_comp_accel['percIrregular'] * prog_comp_accel['totalGRF'] / 100
         prog_comp_accel = prog_comp_accel.where((pandas.notnull(prog_comp_accel)), None)
         accel = prog_comp_accel.to_dict(orient='records')
         accel_sorted = []
@@ -216,9 +240,20 @@ def _plane_prog_comp(data, agg_vars, prog_comp_columns):
         pc_plane['binNumber'] = plane_inds
         for pc_var in agg_vars:
             pc_plane[pc_var] = pc[pc_var].sum()
-        pc_plane['percOptimal'] = pc_plane['constructive'] / pc_plane['total'] * 100
-        pc_plane['percIrregular'] = pc_plane['destructive'] / pc_plane['total'] * 100
+        percOptimal = pc_plane['constructive'] / pc_plane['total'] * 100
+
+        # update percOptimal with inclusion of grf distribution
+        lf_only_grf = pc['lf_only_grf'].sum()
+        rf_only_grf = pc['rf_only_grf'].sum()
+        perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100.
+        perc_distr[numpy.isnan(perc_distr)] = 0.
+        pc_plane['percOptimal'] = (2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
+        pc_plane['percIrregular'] = 100. - pc_plane['percOptimal']
         pc_plane.columns = prog_comp_columns
+
+        # update optimal and irregular GRF to use updated definition of percOptimal
+        pc_plane['optimalGRF'] = pc_plane['percOptimal'] * pc_plane['totalGRF'] / 100
+        pc_plane['irregularGRF'] = pc_plane['percIrregular'] * pc_plane['totalGRF'] / 100
         stat_bins = [0]
         rot_bins = [1, 5, 6, 7, 11, 12, 13, 15]
         lat_bins = [2, 5, 8, 9, 11, 12, 14, 15]
@@ -265,9 +300,20 @@ def _stance_prog_comp(data, agg_vars, prog_comp_columns):
         pc_stance['binNumber'] = stance_bins
         for pc_var in agg_vars:
             pc_stance[pc_var] = pc[pc_var].sum()
-        pc_stance['percOptimal'] = pc_stance['constructive'] / pc_stance['total'] * 100
-        pc_stance['percIrregular'] = pc_stance['destructive'] / pc_stance['total'] * 100
+        percOptimal = pc_stance['constructive'] / pc_stance['total'] * 100
+
+        # update percOptimal with inclusion of grf distribution
+        lf_only_grf = pc['lf_only_grf'].sum()
+        rf_only_grf = pc['rf_only_grf'].sum()
+        perc_distr = numpy.abs(lf_only_grf - rf_only_grf) / (lf_only_grf + rf_only_grf) * 100
+        perc_distr[numpy.isnan(perc_distr)] = 0.
+        pc_stance['percOptimal'] = (2. * percOptimal + (1. - perc_distr/100.)**2 * 100.) / 3.
+        pc_stance['percIrregular'] = 100. - pc_stance['percOptimal']
         pc_stance.columns = prog_comp_columns
+
+        # update optimal and irregular GRF to use updated definition of percOptimal
+        pc_stance['optimalGRF'] = pc_stance['percOptimal'] * pc_stance['totalGRF'] / 100
+        pc_stance['irregularGRF'] = pc_stance['percIrregular'] * pc_stance['totalGRF'] / 100
 
         stance = pc_stance.to_dict(orient='records')
         stance_sorted = []

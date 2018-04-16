@@ -83,7 +83,7 @@ def convert_epochtime_datetime_mselapsed(epoch_time):
 
     dummy_time_elapsed = np.ediff1d(epoch_time, to_begin=0)
     for i in enumerate(epoch_time):
-        dummy_time_stamp.append(datetime.datetime.fromtimestamp(np.array(
+        dummy_time_stamp.append(datetime.datetime.utcfromtimestamp(np.array(
             epoch_time[i[0]]/1000.)).strftime('%Y-%m-%d %H:%M:%S.%f'))
 
     return np.array(dummy_time_stamp).reshape(-1, 1), \

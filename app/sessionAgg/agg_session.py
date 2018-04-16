@@ -89,7 +89,7 @@ def script_handler(working_directory, input_data):
 
         # Prep for session aggregation
         # grf
-        total_ind = numpy.array([k != 3 for k in data['phaseLF']])
+        total_ind = numpy.array([numpy.isfinite(k) for k in data['constructive']])
         lf_ind = numpy.array([k in [0, 1, 4, 6] for k in data['phaseLF']])
         rf_ind = numpy.array([k in [0, 2, 5, 7] for k in data['phaseRF']])
         lf_ground = lf_ind * ~rf_ind  # only lf in ground
@@ -112,7 +112,10 @@ def script_handler(working_directory, input_data):
         total_grf = numpy.sum(data['total_grf'])
         const_grf = numpy.nansum(data['const_grf'])
         dest_grf = numpy.nansum(data['dest_grf'])
-        perc_optimal_session = const_grf / (const_grf + dest_grf)
+        if const_grf == 0 and dest_grf == 0:
+            perc_optimal_session = 1.
+        else:
+            perc_optimal_session = const_grf / (const_grf + dest_grf)
         if total_grf == 0 or numpy.isnan(total_grf):
             total_grf = 1e-6
         lf_grf = numpy.sum(data['lf_grf'])
@@ -135,6 +138,13 @@ def script_handler(working_directory, input_data):
         perc_left_grf = lf_only_grf / lf_rf_grf * 100
         perc_right_grf = rf_only_grf / lf_rf_grf * 100
         perc_distr = numpy.abs(perc_left_grf - perc_right_grf)
+
+        # update perc_optimal to take into account grf distribution
+        perc_optimal_session = (2. * perc_optimal_session + (1. - perc_distr / 100.)**2 ) / 3.
+        # update optimal and irregular grf with new definition of perc_optimal
+        const_grf = perc_optimal_session * total_grf
+        dest_grf = (1. - perc_optimal_session) * total_grf
+
         # control aggregation
         control = numpy.sum(data['control']*data['total_grf']) / total_grf
         hip_control = numpy.sum(data['hipControl']*data['total_grf']) / total_grf
@@ -156,14 +166,13 @@ def script_handler(working_directory, input_data):
 
         # acceleration aggregation
         total_accel = numpy.nansum(data['totalAccel'])
-        irregular_accel = numpy.nansum(data['irregularAccel'])
+        irregular_accel = total_accel * (1 - perc_optimal_session)
+        # irregular_accel = numpy.nansum(data['irregularAccel'])
 
         # fatigue analysis
-        session_fatigue = _fatigue_analysis(data, var='perc_optimal')
-        print(session_fatigue)
-        if numpy.isnan(session_fatigue):
-            print('session fatigue nan')
-            session_fatigue = 0
+        start_movement_quality, session_fatigue = _fatigue_analysis(data, var='perc_optimal')
+        # print(session_fatigue)
+
 
         # create ordered dictionary object
         # current variables
@@ -223,6 +232,7 @@ def script_handler(working_directory, input_data):
         # fatigue data
         record_out['percOptimal'] = perc_optimal_session * 100
         record_out['percIrregular'] = (1 - perc_optimal_session) * 100
+        record_out['startMovementQuality'] = start_movement_quality
         record_out['sessionFatigue'] = session_fatigue
 
         # enforce validity of scores
@@ -296,9 +306,26 @@ def _fatigue_analysis(data, var):
     """
     data.set_index(pandas.to_datetime(data.epochTime, unit='ms'), drop=False, inplace=True)
     groups = data.resample('2T')
-    series = groups[var].mean() * 100
+    if var == 'perc_optimal':
+        series = groups[var].mean() * 100
+    else:
+        total_grf = groups['total_grf'].sum()
+        series = groups[var].sum() / total_grf
     series = numpy.array(series)
     series = series[~numpy.isnan(series)]
     coefficients = numpy.polyfit(range(len(series)), series, 1)
+
+    # slope * len for total change
     fatigue = coefficients[0] * len(series)
-    return fatigue
+    if numpy.isnan(fatigue):
+        fatigue = None
+
+    # use intercept for start
+    start = coefficients[1]
+    if numpy.isnan(start):
+        start = None
+    elif start > 100:
+        start = 100
+    elif start < 0:
+        start = 0
+    return start, fatigue

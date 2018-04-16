@@ -102,7 +102,7 @@ def script_handler(working_directory, file_name, input_data):
 
         # Prep for 2min aggregation
         # grf
-        total_ind = numpy.array([k != 3 for k in data['phaseLF']])
+        total_ind = numpy.array([numpy.isfinite(k) for k in data['constructive']])
         lf_ind = numpy.array([k in [0, 1, 4, 6] for k in data['phaseLF']])
         rf_ind = numpy.array([k in [0, 2, 5, 7] for k in data['phaseRF']])
         lf_ground = lf_ind * ~rf_ind # only lf in ground
@@ -144,36 +144,54 @@ def script_handler(working_directory, file_name, input_data):
             total_grf = numpy.sum(data_2m['total_grf'])
             const_grf = numpy.nansum(data_2m['const_grf'])
             dest_grf = numpy.nansum(data_2m['dest_grf'])
-            if const_grf == 0:
-                const_grf = 1e-6
-            if dest_grf == 0:
-                dest_grf = 1e-6
-            perc_optimal_twomin = const_grf / (const_grf + dest_grf)
+            if const_grf == 0 and dest_grf == 0: # 
+                perc_optimal_twomin = 1.
+            else:
+                perc_optimal_twomin = const_grf / (const_grf + dest_grf)
+
             if total_grf == 0 or numpy.isnan(total_grf):
                 total_grf = 1e-6
             lf_grf = numpy.sum(data_2m['lf_grf'])
             if lf_grf == 0  or numpy.isnan(lf_grf):
                 lf_grf = 1e-6
             lf_only_grf = numpy.sum(data_2m['lf_only_grf'])
-            if lf_only_grf == 0  or numpy.isnan(lf_only_grf):
-                print('zero left')
-                lf_only_grf = 1e-6
+            # if lf_only_grf == 0  or numpy.isnan(lf_only_grf):
+                # print('zero left')
+                # lf_only_grf = 1e-6
             rf_grf = numpy.sum(data_2m['rf_grf'])
             if rf_grf == 0 or numpy.isnan(rf_grf):
                 rf_grf = 1e-6
             rf_only_grf = numpy.sum(data_2m['rf_only_grf'])
-            if rf_only_grf == 0 or numpy.isnan(rf_only_grf):
-                print('zero right')
-                rf_only_grf = 1e-6
+            # if rf_only_grf == 0 or numpy.isnan(rf_only_grf):
+                # print('zero right')
+                # rf_only_grf = 1e-6
             lf_rf_grf = lf_only_grf + rf_only_grf
 
             # grf aggregation
+            # 
+            if lf_only_grf == 0. or numpy.isnan(lf_only_grf) or rf_only_grf == 0. or numpy.isnan(rf_only_grf):
+                # if there's not enough data for left or right only grf, pass Null for relevant variables
+                # do not update perc_optimal
+                perc_distr = None
+                perc_left_grf = None
+                perc_right_grf = None
+            else:
+                # compute perc_distr and update perc_optimal with perc_distr
+                perc_left_grf = lf_only_grf / lf_rf_grf * 100
+                perc_right_grf = rf_only_grf / lf_rf_grf * 100
+                perc_distr = numpy.abs(perc_left_grf - perc_right_grf) 
+
+                # update perc_optimal to take into account grf distribution
+                perc_optimal_twomin = (2. * perc_optimal_twomin + (1. - perc_distr / 100.)**2 ) / 3.
+
+            # update optimal and irregular grf with possibly updated definition of perc_optimal
+            const_grf = perc_optimal_twomin * total_grf
+            dest_grf = (1. - perc_optimal_twomin) * total_grf
+
             total_accumulated_grf += total_grf
             optimal_accumulated_grf += const_grf
             irregular_accumulated_grf += dest_grf
-            perc_left_grf = lf_only_grf / lf_rf_grf * 100
-            perc_right_grf = rf_only_grf / lf_rf_grf * 100
-            perc_distr = numpy.abs(perc_left_grf - perc_right_grf)
+
             # control aggregation
             control = numpy.sum(data_2m['control']*data_2m['total_grf']) / total_grf
             hip_control = numpy.sum(data_2m['hipControl']*data_2m['total_grf']) / total_grf
@@ -195,7 +213,8 @@ def script_handler(working_directory, file_name, input_data):
 
             # acceleration aggregation
             total_accel = numpy.nansum(data_2m['totalAccel'])
-            irregular_accel = numpy.nansum(data_2m['irregularAccel'])
+            # irregular_accel = numpy.nansum(data_2m['irregularAccel'])
+            irregular_accel = total_accel * (1 - perc_optimal_twomin)
             two_min_index = int(start_time/numpy.timedelta64(1, '2m'))
 
             # create ordered dictionary object
