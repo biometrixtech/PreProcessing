@@ -173,6 +173,8 @@ def script_handler(working_directory, input_data):
         start_movement_quality, session_fatigue = _fatigue_analysis(data, var='perc_optimal')
         # print(session_fatigue)
 
+        # contact duration analysis
+        length_lf, length_rf = _contact_duration(data)
 
         # create ordered dictionary object
         # current variables
@@ -234,6 +236,26 @@ def script_handler(working_directory, input_data):
         record_out['percIrregular'] = (1 - perc_optimal_session) * 100
         record_out['startMovementQuality'] = start_movement_quality
         record_out['sessionFatigue'] = session_fatigue
+
+        # contact duration
+        if len(length_lf) > 5 and len(length_rf) > 5:
+            record_out['contactDurationLF'] = numpy.mean(length_lf)
+            record_out['contactDurationRF'] = numpy.mean(length_rf)
+            record_out['contactDurationLFStd'] = numpy.std(length_lf)
+            record_out['contactDurationRFStd'] = numpy.std(length_rf)
+            record_out['contactDurationLFLower'] = numpy.percentile(length_lf, 25)
+            record_out['contactDurationLFUpper'] = numpy.percentile(length_lf, 75)
+            record_out['contactDurationRFLower'] = numpy.percentile(length_rf, 25)
+            record_out['contactDurationRFUpper'] = numpy.percentile(length_rf, 75)
+        else:
+            record_out['contactDurationLF'] = None
+            record_out['contactDurationRF'] = None
+            record_out['contactDurationLFStd'] = None
+            record_out['contactDurationRFStd'] = None
+            record_out['contactDurationLFLower'] = None
+            record_out['contactDurationLFUpper'] = None
+            record_out['contactDurationRFLower'] = None
+            record_out['contactDurationRFUpper'] = None
 
         # enforce validity of scores
         scor_cols = ['symmetry',
@@ -329,3 +351,62 @@ def _fatigue_analysis(data, var):
     elif start < 0:
         start = 0
     return start, fatigue
+
+def _contact_duration(data):
+    """compute mean, std, min and max of contact duration for left and right foot using phase and ms_elapsed
+    
+    """
+    min_gc = 100.
+    max_gc = 1000.
+    import copy
+    phase_lf = copy.copy(data.phaseLF.values)
+    phase_rf = copy.copy(data.phaseRF.values)
+    phase_lf[numpy.array([i in [1, 4, 6] for i in phase_lf])] = 0
+    phase_rf[numpy.array([i in [2, 5, 7] for i in phase_rf])] = 0
+
+    ranges_lf = _get_ranges(phase_lf, 0)
+    ranges_rf = _get_ranges(phase_rf, 0)
+
+    length_lf = data.epochTime[ranges_lf[:, 1]].values - data.epochTime[ranges_lf[:, 0]].values
+    length_rf = data.epochTime[ranges_rf[:, 1]].values - data.epochTime[ranges_rf[:, 0]].values
+
+    # subset to only get the points where ground contacts are within a reasonable window
+    length_lf = length_lf[(length_lf > min_gc) & (length_lf < max_gc)]
+    length_rf = length_rf[(length_rf > min_gc) & (length_rf < max_gc)]
+    return length_lf, length_rf
+    if len(length_lf) > 5 and len(length_rf) > 5:
+        return numpy.mean(length_lf), numpy.mean(length_rf), numpy.std(length_lf), numpy.std(length_rf)
+    else:
+        return None, None, None, None
+
+
+def _get_ranges(col_data, value):
+    """
+    Determine the start and end of each impact.
+    
+    Args:
+        col_data
+        value: int, value to get ranges for
+    Returns:
+        ranges: 2d array, start and end index for each occurance of value
+    """
+
+    # determine where column data is the relevant value
+    is_value = numpy.array(numpy.array(col_data == value).astype(int)).reshape(-1, 1)
+
+    if is_value[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = numpy.abs(numpy.ediff1d(is_value, to_begin=t_b))
+    if is_value[-1] == 1:
+        if absdiff[-1] == 0:
+            absdiff[-1] = 1
+        else:
+            absdiff[-1] = 0
+    # determine the number of consecutive NaNs
+    ranges = numpy.where(absdiff == 1)[0].reshape((-1, 2))
+
+    return ranges
