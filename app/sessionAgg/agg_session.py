@@ -374,10 +374,6 @@ def _contact_duration(data):
     length_lf = length_lf[(length_lf > min_gc) & (length_lf < max_gc)]
     length_rf = length_rf[(length_rf > min_gc) & (length_rf < max_gc)]
     return length_lf, length_rf
-    if len(length_lf) > 5 and len(length_rf) > 5:
-        return numpy.mean(length_lf), numpy.mean(length_rf), numpy.std(length_lf), numpy.std(length_rf)
-    else:
-        return None, None, None, None
 
 
 def _get_ranges(col_data, value):
