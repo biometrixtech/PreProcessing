@@ -171,6 +171,16 @@ def _aggregate(data, record):
     record['consistencyLF'] = None
     record['consistencyRF'] = None
 
+    # Null contact duration variables for single sensor processing
+    record['contactDurationLF'] = None
+    record['contactDurationRF'] = None
+    record['contactDurationLFStd'] = None
+    record['contactDurationRFStd'] = None
+    record['contactDurationLF25'] = None
+    record['contactDurationLF75'] = None
+    record['contactDurationRF25'] = None
+    record['contactDurationRF75'] = None
+
     # enforce validity of scores
     scor_cols = ['symmetry',
                  'hipSymmetry',

@@ -138,6 +138,16 @@ def script_handler(working_directory, input_data):
         record_out['startMovementQuality'] = start_movement_quality
         record_out['sessionFatigue'] = session_fatigue
 
+        # Null contact duration variables for single sensor processing
+        record_out['contactDurationLF'] = None
+        record_out['contactDurationRF'] = None
+        record_out['contactDurationLFStd'] = None
+        record_out['contactDurationRFStd'] = None
+        record_out['contactDurationLFLower'] = None
+        record_out['contactDurationLFUpper'] = None
+        record_out['contactDurationRFLower'] = None
+        record_out['contactDurationRFUpper'] = None
+
         # enforce validity of scores
         scor_cols = ['symmetry',
                      'hipSymmetry',
