@@ -125,6 +125,7 @@ Resources:
                     WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
             StreamSpecification:
                 StreamViewType: "NEW_AND_OLD_IMAGES"
+        DeletionPolicy : "Retain"
 
     SessionEventsReadPolicy:
         Type: "AWS::IAM::ManagedPolicy"

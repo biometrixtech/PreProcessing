@@ -53,7 +53,7 @@ Parameters:
             "r4", "r4.large", "r4.xlarge", "r4.2xlarge", "r4.4xlarge", "r4.8xlarge", "r4.16xlarge",
             "x1", "x1.16xlarge", "x1.32xlarge"
         ]
-        Default: "m3.medium"
+        Default: "optimal"
         Description: "What type the EC2 instances should be"
     ComputeEc2Ami:
         Type: "AWS::EC2::Image::Id"
@@ -61,6 +61,7 @@ Parameters:
         Description: "The AMI to build the EC2 instances from"
     ComputeEc2Keypair:
         Type: "String"
+        Default: ""
         Description: "A SSH keypair to grant access to instances"
 
     CreateVpc:
