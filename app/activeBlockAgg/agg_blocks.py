@@ -255,10 +255,10 @@ def _aggregate(data, record):
         record['contactDurationRF'] = numpy.mean(length_rf)
         record['contactDurationLFStd'] = numpy.std(length_lf)
         record['contactDurationRFStd'] = numpy.std(length_rf)
-        record['contactDurationLFLower'] = numpy.percentile(length_lf, 25)
-        record['contactDurationLFUpper'] = numpy.percentile(length_lf, 75)
-        record['contactDurationRFLower'] = numpy.percentile(length_rf, 25)
-        record['contactDurationRFUpper'] = numpy.percentile(length_rf, 75)
+        record['contactDurationLFLower'] = numpy.percentile(length_lf, 5)
+        record['contactDurationLFUpper'] = numpy.percentile(length_lf, 95)
+        record['contactDurationRFLower'] = numpy.percentile(length_rf, 5)
+        record['contactDurationRFUpper'] = numpy.percentile(length_rf, 95)
     else:
         record['contactDurationLF'] = None
         record['contactDurationRF'] = None
@@ -304,8 +304,8 @@ def _contact_duration(data):
     """compute mean, std, min and max of contact duration for left and right foot using phase and ms_elapsed
     
     """
-    min_gc = 100
-    max_gc = 1000
+    min_gc = 80.
+    max_gc = 1500.
     phase_lf = copy.copy(data.phase_lf.values)
     phase_rf = copy.copy(data.phase_rf.values)
     phase_lf[numpy.array([i in [1, 4, 6] for i in phase_lf])] = 0

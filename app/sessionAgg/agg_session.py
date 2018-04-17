@@ -244,10 +244,10 @@ def script_handler(working_directory, input_data):
             record_out['contactDurationRF'] = numpy.mean(length_rf)
             record_out['contactDurationLFStd'] = numpy.std(length_lf)
             record_out['contactDurationRFStd'] = numpy.std(length_rf)
-            record_out['contactDurationLFLower'] = numpy.percentile(length_lf, 25)
-            record_out['contactDurationLFUpper'] = numpy.percentile(length_lf, 75)
-            record_out['contactDurationRFLower'] = numpy.percentile(length_rf, 25)
-            record_out['contactDurationRFUpper'] = numpy.percentile(length_rf, 75)
+            record_out['contactDurationLFLower'] = numpy.percentile(length_lf, 5)
+            record_out['contactDurationLFUpper'] = numpy.percentile(length_lf, 95)
+            record_out['contactDurationRFLower'] = numpy.percentile(length_rf, 5)
+            record_out['contactDurationRFUpper'] = numpy.percentile(length_rf, 95)
         else:
             record_out['contactDurationLF'] = None
             record_out['contactDurationRF'] = None
@@ -357,8 +357,8 @@ def _contact_duration(data):
     """compute mean, std, min and max of contact duration for left and right foot using phase and ms_elapsed
     
     """
-    min_gc = 100.
-    max_gc = 1000.
+    min_gc = 80.
+    max_gc = 1500.
     phase_lf = copy.copy(data.phaseLF.values)
     phase_rf = copy.copy(data.phaseRF.values)
     phase_lf[numpy.array([i in [1, 4, 6] for i in phase_lf])] = 0
