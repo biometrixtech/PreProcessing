@@ -10,6 +10,7 @@ import numpy
 #import datetime
 import sys
 from collections import OrderedDict
+import copy
 
 from alert import Alert
 
@@ -358,7 +359,6 @@ def _contact_duration(data):
     """
     min_gc = 100.
     max_gc = 1000.
-    import copy
     phase_lf = copy.copy(data.phaseLF.values)
     phase_rf = copy.copy(data.phaseRF.values)
     phase_lf[numpy.array([i in [1, 4, 6] for i in phase_lf])] = 0
