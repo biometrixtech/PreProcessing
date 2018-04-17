@@ -181,6 +181,7 @@ def script_handler(working_directory, input_data):
 def _aggregate(data, record):
     """Aggregates different variables for block/unitBlocks
     """
+    data.reset_index(drop=True, inplace=True)
     const_grf = numpy.nansum(data['const_grf'])
     dest_grf = numpy.nansum(data['dest_grf'])
     if const_grf == 0 and dest_grf == 0:
@@ -244,6 +245,29 @@ def _aggregate(data, record):
     record['consistencyLF'] = numpy.sum(data['consistency_lf']) / record['LFgRF']
     record['consistencyRF'] = numpy.sum(data['consistency_rf']) / record['RFgRF']
 
+    # contact duration analysis
+    length_lf, length_rf = _contact_duration(data)
+
+    # contact duration
+    if len(length_lf) > 5 and len(length_rf) > 5:
+        record['contactDurationLF'] = numpy.mean(length_lf)
+        record['contactDurationRF'] = numpy.mean(length_rf)
+        record['contactDurationLFStd'] = numpy.std(length_lf)
+        record['contactDurationRFStd'] = numpy.std(length_rf)
+        record['contactDurationLFLower'] = numpy.percentile(length_lf, 25)
+        record['contactDurationLFUpper'] = numpy.percentile(length_lf, 75)
+        record['contactDurationRFLower'] = numpy.percentile(length_rf, 25)
+        record['contactDurationRFUpper'] = numpy.percentile(length_rf, 75)
+    else:
+        record['contactDurationLF'] = None
+        record['contactDurationRF'] = None
+        record['contactDurationLFStd'] = None
+        record['contactDurationRFStd'] = None
+        record['contactDurationLF25'] = None
+        record['contactDurationLF75'] = None
+        record['contactDurationRF25'] = None
+        record['contactDurationRF75'] = None
+
     # enforce validity of scores
     scor_cols = ['symmetry',
                  'hipSymmetry',
@@ -273,3 +297,59 @@ def _aggregate(data, record):
     record['percIrregular'] = (1 - perc_optimal_block) * 100
 
     return record
+
+
+def _contact_duration(data):
+    """compute mean, std, min and max of contact duration for left and right foot using phase and ms_elapsed
+    
+    """
+    min_gc = 100
+    max_gc = 1000
+    import copy
+    phase_lf = copy.copy(data.phase_lf.values)
+    phase_rf = copy.copy(data.phase_rf.values)
+    phase_lf[numpy.array([i in [1, 4, 6] for i in phase_lf])] = 0
+    phase_rf[numpy.array([i in [2, 5, 7] for i in phase_rf])] = 0
+
+    ranges_lf = _get_ranges(phase_lf, 0)
+    ranges_rf = _get_ranges(phase_rf, 0)
+    length_lf = data.epoch_time[ranges_lf[:, 1]].values - data.epoch_time[ranges_lf[:, 0]].values
+    length_rf = data.epoch_time[ranges_rf[:, 1]].values - data.epoch_time[ranges_rf[:, 0]].values
+
+    # subset to only get the points where ground contacts are within a reasonable window
+    length_lf = length_lf[(length_lf > min_gc) & (length_lf < max_gc)]
+    length_rf = length_rf[(length_rf > min_gc) & (length_rf < max_gc)]
+
+    return length_lf, length_rf
+
+
+def _get_ranges(col_data, value):
+    """
+    Determine the start and end of each impact.
+    
+    Args:
+        col_data
+        value: int, value to get ranges for
+    Returns:
+        ranges: 2d array, start and end index for each occurance of value
+    """
+
+    # determine where column data is the relevant value
+    is_value = numpy.array(numpy.array(col_data == value).astype(int)).reshape(-1, 1)
+
+    if is_value[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = numpy.abs(numpy.ediff1d(is_value, to_begin=t_b))
+    if is_value[-1] == 1:
+        if absdiff[-1] == 0:
+            absdiff[-1] = 1
+        else:
+            absdiff[-1] = 0
+    # determine the number of consecutive NaNs
+    ranges = numpy.where(absdiff == 1)[0].reshape((-1, 2))
+
+    return ranges
