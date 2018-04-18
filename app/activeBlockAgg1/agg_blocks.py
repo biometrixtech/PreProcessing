@@ -176,10 +176,10 @@ def _aggregate(data, record):
     record['contactDurationRF'] = None
     record['contactDurationLFStd'] = None
     record['contactDurationRFStd'] = None
-    record['contactDurationLF25'] = None
-    record['contactDurationLF75'] = None
-    record['contactDurationRF25'] = None
-    record['contactDurationRF75'] = None
+    record['contactDurationLFLower'] = None
+    record['contactDurationLFUpper'] = None
+    record['contactDurationRFLower'] = None
+    record['contactDurationRFUpper'] = None
 
     # enforce validity of scores
     scor_cols = ['symmetry',
