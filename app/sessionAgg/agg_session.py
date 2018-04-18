@@ -239,7 +239,7 @@ def script_handler(working_directory, input_data):
         record_out['sessionFatigue'] = session_fatigue
 
         # contact duration
-        if len(length_lf) > 5 and len(length_rf) > 5:
+        if len(length_lf) >= 5 and len(length_rf) >= 5:
             record_out['contactDurationLF'] = numpy.mean(length_lf)
             record_out['contactDurationRF'] = numpy.mean(length_rf)
             record_out['contactDurationLFStd'] = numpy.std(length_lf)

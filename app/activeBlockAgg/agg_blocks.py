@@ -250,7 +250,7 @@ def _aggregate(data, record):
     length_lf, length_rf = _contact_duration(data)
 
     # contact duration
-    if len(length_lf) > 5 and len(length_rf) > 5:
+    if len(length_lf) >= 5 and len(length_rf) >= 5:
         record['contactDurationLF'] = numpy.mean(length_lf)
         record['contactDurationRF'] = numpy.mean(length_rf)
         record['contactDurationLFStd'] = numpy.std(length_lf)
