@@ -249,26 +249,6 @@ def _aggregate(data, record):
     # contact duration analysis
     length_lf, length_rf = _contact_duration(data)
 
-    # contact duration
-    if len(length_lf) >= 5 and len(length_rf) >= 5:
-        record['contactDurationLF'] = numpy.mean(length_lf)
-        record['contactDurationRF'] = numpy.mean(length_rf)
-        record['contactDurationLFStd'] = numpy.std(length_lf)
-        record['contactDurationRFStd'] = numpy.std(length_rf)
-        record['contactDurationLFLower'] = numpy.percentile(length_lf, 5)
-        record['contactDurationLFUpper'] = numpy.percentile(length_lf, 95)
-        record['contactDurationRFLower'] = numpy.percentile(length_rf, 5)
-        record['contactDurationRFUpper'] = numpy.percentile(length_rf, 95)
-    else:
-        record['contactDurationLF'] = None
-        record['contactDurationRF'] = None
-        record['contactDurationLFStd'] = None
-        record['contactDurationRFStd'] = None
-        record['contactDurationLFLower'] = None
-        record['contactDurationLFUpper'] = None
-        record['contactDurationRFLower'] = None
-        record['contactDurationRFUpper'] = None
-
     # enforce validity of scores
     scor_cols = ['symmetry',
                  'hipSymmetry',
@@ -296,6 +276,26 @@ def _aggregate(data, record):
     # fatigue
     record['percOptimal'] = perc_optimal_block * 100
     record['percIrregular'] = (1 - perc_optimal_block) * 100
+
+    # contact duration
+    if len(length_lf) >= 5 and len(length_rf) >= 5:
+        record['contactDurationLF'] = numpy.mean(length_lf)
+        record['contactDurationRF'] = numpy.mean(length_rf)
+        record['contactDurationLFStd'] = numpy.std(length_lf)
+        record['contactDurationRFStd'] = numpy.std(length_rf)
+        record['contactDurationLFLower'] = numpy.percentile(length_lf, 5)
+        record['contactDurationLFUpper'] = numpy.percentile(length_lf, 95)
+        record['contactDurationRFLower'] = numpy.percentile(length_rf, 5)
+        record['contactDurationRFUpper'] = numpy.percentile(length_rf, 95)
+    else:
+        record['contactDurationLF'] = None
+        record['contactDurationRF'] = None
+        record['contactDurationLFStd'] = None
+        record['contactDurationRFStd'] = None
+        record['contactDurationLFLower'] = None
+        record['contactDurationLFUpper'] = None
+        record['contactDurationRFLower'] = None
+        record['contactDurationRFUpper'] = None
 
     return record
 
