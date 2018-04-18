@@ -309,7 +309,9 @@ def _contact_duration(data):
     phase_lf = copy.copy(data.phase_lf.values)
     phase_rf = copy.copy(data.phase_rf.values)
     phase_lf[numpy.array([i in [1, 4, 6] for i in phase_lf])] = 0
+    phase_lf[numpy.array([i == 0 for i in data.active.values])] = 1
     phase_rf[numpy.array([i in [2, 5, 7] for i in phase_rf])] = 0
+    phase_rf[numpy.array([i == 0 for i in data.active.values])] = 1
 
     ranges_lf = _get_ranges(phase_lf, 0)
     ranges_rf = _get_ranges(phase_rf, 0)
