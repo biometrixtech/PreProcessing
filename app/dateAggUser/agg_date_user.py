@@ -309,7 +309,7 @@ def _get_session_data(collection, user_id, event_date):
                              'singleLegGRF': {'$cond': [{'$eq': ['$singleLegGRF', 0]}, None, '$singleLegGRF']},
                              'percOptimal': get_perc_optimal(),
                              'percIrregular': get_perc_irregular(),
-                             'startMovementQuality': 1,
+                             'startMovementQuality': {'$cond': [{'$eq': ['$startMovementQuality', 0]}, None, '$startMovementQuality']},
                              'fatigue': 1,
                              'hipSymmetry': divide('hipSymmetry', 'totalAccel'),
                              'ankleSymmetry': divide('ankleSymmetry', 'totalAccel'),
@@ -387,7 +387,7 @@ def _compute_awcr(hist, period, event_date):
         del chronic['eventDate']
 
         acwr = acute/chronic
-        acwr[numpy.isnan(acwr)] = None
+        acwr = acwr.where((pandas.notnull(acwr)), None)
     else:
         acwr = pandas.Series({'totalAccel': None,
                               'totalGRF': None})

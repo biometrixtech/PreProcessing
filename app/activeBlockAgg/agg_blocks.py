@@ -87,7 +87,7 @@ def script_handler(working_directory, input_data):
         logger.info("Removed temporary file")
 
         team_id = input_data.get('TeamId', None)
-        training_group_id = input_data.get('TrainingGroupId', None)
+        training_group_id = input_data.get('TrainingGroupIds', None)
         user_id = input_data.get('UserId', None)
         session_event_id = input_data.get('SessionId', None)
         user_mass = input_data.get('UserMassKg', None)
