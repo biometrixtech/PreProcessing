@@ -13,12 +13,14 @@ from datastore import SessionDatastore
 from exceptions import InvalidSchemaException, ApplicationException, NoSuchEntityException, DuplicateEntityException
 from models.session import Session
 
-app = Blueprint('sensor', __name__)
+app = Blueprint('session', __name__)
 
 
 @app.route('/', methods=['POST'])
 @xray_recorder.capture('routes.session.create')
 def handle_session_create():
+    if not isinstance(request.json, dict):
+        raise InvalidSchemaException('Request body must be a dictionary')
     if 'event_date' not in request.json:
         raise InvalidSchemaException('Missing required parameter event_date')
     if 'sensors' not in request.json:
