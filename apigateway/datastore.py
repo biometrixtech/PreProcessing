@@ -134,7 +134,7 @@ class SessionDatastore(DynamodbDatastore):
             'accessory_id': session.accessory_id,
             'sensor_ids': session.sensor_ids,
             'user_id': session.user_id,
-            'user_mass': Decimal(session.user_mass),
+            'user_mass': Decimal(str(session.user_mass)) if session.user_mass is not None else None,
             'team_id': session.team_id,
             'training_group_ids': session.training_group_ids,
             'event_date': session.event_date,
