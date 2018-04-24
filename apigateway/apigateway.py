@@ -1,3 +1,4 @@
+from builtins import FileNotFoundError
 from flask import request, Response, jsonify
 from flask_lambda import FlaskLambda
 import json
@@ -22,7 +23,7 @@ from serialisable import json_serialise
 class ApiResponse(Response):
     @classmethod
     def force_type(cls, rv, environ=None):
-        if isinstance(rv, dict):
+        if isinstance(rv, (dict, list)):
             # Round-trip through our JSON serialiser to make it parseable by AWS's
             rv = json.loads(json.dumps(rv, sort_keys=True, default=json_serialise))
             rv = jsonify(rv)
@@ -69,6 +70,16 @@ def get_sessions_for_date_and_access(start_date, end_date, allowed_users, allowe
     all_sessions = sorted(user_sessions + team_sessions + tg_sessions, key=attrgetter('event_date'))
 
     return all_sessions
+
+
+def get_api_version():
+    try:
+        with open('version', 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return '0' * 40
+    except:
+        return '???'
 
 
 @app.errorhandler(500)
@@ -120,6 +131,7 @@ def handler(event, context):
         'Access-Control-Allow-Methods': 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
         'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token',
         'Access-Control-Allow-Origin': '*',
+        'X-Version': get_api_version(),
     })
 
     # Unserialise JSON output so AWS can immediately serialise it again...
