@@ -65,11 +65,12 @@ def script_handler(input_data):
 
         data_out = {}
         data_out['teamId'] = input_data.get('TeamId', None)
-        data_out['trainingGroups'] = input_data.get('TrainingGroupId', None)
+        data_out['trainingGroups'] = input_data.get('TrainingGroupIds', None)
         data_out['userId'] = input_data.get('UserId', None)
-        data_out['sessionType'] = input_data.get('SessionType', None)
-        if data_out['sessionType'] is not None:
-            data_out['sessionType'] = str(data_out['sessionType'])
+        data_out['sessionType'] = '1'
+        # data_out['sessionType'] = input_data.get('SessionType', None)
+        # if data_out['sessionType'] is not None:
+            # data_out['sessionType'] = str(data_out['sessionType'])
         data_out['eventDate'] = input_data.get('EventDate', None)
 
         # Add program composition lists to date data

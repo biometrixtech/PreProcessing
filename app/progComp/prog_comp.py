@@ -85,9 +85,10 @@ def script_handler(working_directory, input_data):
         data_out['trainingGroups'] = input_data.get('TrainingGroupIds', None)
         data_out['userId'] = input_data.get('UserId', None)
         data_out['sessionId'] = input_data.get('SessionId', None)
-        data_out['sessionType'] = input_data.get('SessionType', None)
-        if data_out['sessionType'] is not None:
-            data_out['sessionType'] = str(data_out['sessionType'])
+        data_out['sessionType'] = '1'
+        # data_out['sessionType'] = input_data.get('SessionType', None)
+        # if data_out['sessionType'] is not None:
+            # data_out['sessionType'] = str(data_out['sessionType'])
         data_out['userMass'] = float(input_data.get('UserMassKg', None))
         data_out['eventDate'] = input_data.get('EventDate', None)
 

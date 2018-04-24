@@ -370,7 +370,7 @@ def _aggregate_tg(collection, tg_id, event_date):
                               'singleLegGRF': divide('singleLegGRF', 'userCount'),
                               'percOptimal': get_perc_optimal(),
                               'percIrregular': get_perc_irregular(),
-                             'startMovementQuality': 1,
+                             'startMovementQuality': {'$cond': [{'$eq': ['$startMovementQuality', 0]}, None, '$startMovementQuality']},
                               'fatigue': 1,
                               'hipSymmetry': divide('hipSymmetry', 'totalAccel'),
                               'ankleSymmetry': divide('ankleSymmetry', 'totalAccel'),
