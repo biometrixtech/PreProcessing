@@ -387,7 +387,7 @@ def _compute_awcr(hist, period, event_date):
         del chronic['eventDate']
 
         acwr = acute/chronic
-        acwr[numpy.isnan(acwr)] = None
+        acwr = acwr.where((pandas.notnull(acwr)), None)
     else:
         acwr = pandas.Series({'totalAccel': None,
                               'totalGRF': None})
