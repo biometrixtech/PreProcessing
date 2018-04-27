@@ -13,6 +13,7 @@ from collections import OrderedDict
 import copy
 
 from alert import Alert
+from detect_peaks import detect_peaks
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
@@ -175,7 +176,20 @@ def script_handler(working_directory, input_data):
         # print(session_fatigue)
 
         # contact duration analysis
-        length_lf, length_rf = _contact_duration(data)
+        length_lf = _contact_duration(data.phaseLF.values,
+                                      data.active.values,
+                                      data.epochTime.values,
+                                      ground_phases=[1, 4, 6])
+        length_rf = _contact_duration(data.phaseRF.values,
+                                      data.active.values,
+                                      data.epochTime.values,
+                                      ground_phases=[2, 5, 7])
+        # peak grf
+        # normalize grf by user's mass and remove scaling
+        grf =  data.total_grf.values * 1000000. / user_mass / 9.807
+        peak_grf_lf, peak_grf_rf = _peak_grf(grf,
+                                             data.phaseLF.values,
+                                             data.phaseRF.values)
 
         # create ordered dictionary object
         # current variables
@@ -238,26 +252,6 @@ def script_handler(working_directory, input_data):
         record_out['startMovementQuality'] = start_movement_quality
         record_out['sessionFatigue'] = session_fatigue
 
-        # contact duration
-        if len(length_lf) >= 5 and len(length_rf) >= 5:
-            record_out['contactDurationLF'] = numpy.mean(length_lf)
-            record_out['contactDurationRF'] = numpy.mean(length_rf)
-            record_out['contactDurationLFStd'] = numpy.std(length_lf)
-            record_out['contactDurationRFStd'] = numpy.std(length_rf)
-            record_out['contactDurationLFLower'] = numpy.percentile(length_lf, 5)
-            record_out['contactDurationLFUpper'] = numpy.percentile(length_lf, 95)
-            record_out['contactDurationRFLower'] = numpy.percentile(length_rf, 5)
-            record_out['contactDurationRFUpper'] = numpy.percentile(length_rf, 95)
-        else:
-            record_out['contactDurationLF'] = None
-            record_out['contactDurationRF'] = None
-            record_out['contactDurationLFStd'] = None
-            record_out['contactDurationRFStd'] = None
-            record_out['contactDurationLFLower'] = None
-            record_out['contactDurationLFUpper'] = None
-            record_out['contactDurationRFLower'] = None
-            record_out['contactDurationRFUpper'] = None
-
         # enforce validity of scores
         scor_cols = ['symmetry',
                      'hipSymmetry',
@@ -281,6 +275,9 @@ def script_handler(working_directory, input_data):
                     record_out[key] = 100
             except TypeError:
                 pass
+
+        record_out = _get_contact_duration_stats(length_lf, length_rf, record_out)
+        record_out = _get_peak_grf_stats(peak_grf_lf, peak_grf_rf, record_out)
 
         _publish_alerts(record_out)
 
@@ -353,33 +350,34 @@ def _fatigue_analysis(data, var):
         start = 0
     return start, fatigue
 
-def _contact_duration(data):
-    """compute mean, std, min and max of contact duration for left and right foot using phase and ms_elapsed
+
+def _contact_duration(phase, active, epoch_time, ground_phases):
+    """compute contact duration in ms given phase data
     
     """
     min_gc = 80.
     max_gc = 1500.
-    phase_lf = copy.copy(data.phaseLF.values)
-    phase_rf = copy.copy(data.phaseRF.values)
-    phase_lf[numpy.array([i in [1, 4, 6] for i in phase_lf])] = 0
-    phase_rf[numpy.array([i in [2, 5, 7] for i in phase_rf])] = 0
 
-    ranges_lf = _get_ranges(phase_lf, 0)
-    ranges_rf = _get_ranges(phase_rf, 0)
+    # enumerate phase such that all ground contacts are 0
+    _phase = copy.copy(phase)
+    _phase[numpy.array([i in ground_phases for i in _phase])] = 0
+    _phase[numpy.array([i == 0 for i in active])] = 1
 
-    length_lf = data.epochTime[ranges_lf[:, 1]].values - data.epochTime[ranges_lf[:, 0]].values
-    length_rf = data.epochTime[ranges_rf[:, 1]].values - data.epochTime[ranges_rf[:, 0]].values
+    # get index ranges for ground contacts
+    ranges = _get_ranges(_phase, 0)
+    length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
 
     # subset to only get the points where ground contacts are within a reasonable window
-    length_lf = length_lf[(length_lf > min_gc) & (length_lf < max_gc)]
-    length_rf = length_rf[(length_rf > min_gc) & (length_rf < max_gc)]
-    return length_lf, length_rf
+    length = length[(length >= min_gc) & (length <= max_gc)]
+    return length
 
 
 def _get_ranges(col_data, value):
     """
-    Determine the start and end of each impact.
-    
+    For a given categorical data, determine start and end index for the given value
+    start: index where it first occurs
+    end: index after the last occurence
+
     Args:
         col_data
         value: int, value to get ranges for
@@ -390,13 +388,18 @@ def _get_ranges(col_data, value):
     # determine where column data is the relevant value
     is_value = numpy.array(numpy.array(col_data == value).astype(int)).reshape(-1, 1)
 
+    # if data starts with given value, range starts with index 0
     if is_value[0] == 1:
         t_b = 1
     else:
         t_b = 0
 
-    # mark where column data changes to and from NaN
+    # mark where column data changes to and from the given value
     absdiff = numpy.abs(numpy.ediff1d(is_value, to_begin=t_b))
+
+    # handle the closing edge
+    # if the data ends with the given value, if it was the only point, ignore the range,
+    # else assign the last index as end of range
     if is_value[-1] == 1:
         if absdiff[-1] == 0:
             absdiff[-1] = 1
@@ -406,3 +409,131 @@ def _get_ranges(col_data, value):
     ranges = numpy.where(absdiff == 1)[0].reshape((-1, 2))
 
     return ranges
+
+
+def _peak_grf(grf, phase_lf, phase_rf):
+    """Identifies instances of peak grf within block and aggregates them
+    """
+    mph = 1.686
+#    grf = grf * 1000000. / mass / 9.807
+    grf_lf = copy.copy(grf)
+    grf_rf = copy.copy(grf)
+
+    lf_ind = numpy.array([k in [0, 1, 4, 6] for k in phase_lf])
+    rf_ind = numpy.array([k in [0, 2, 5, 7] for k in phase_rf])
+    lf_ground = lf_ind * ~rf_ind  # only lf in ground
+    rf_ground = ~lf_ind * rf_ind  # only rf in ground
+
+    grf_lf[~lf_ground] = 0
+    grf_rf[~rf_ground] = 0
+
+    peaks_lf = detect_peaks(grf_lf, mph=mph, mpd=1)
+    peaks_rf = detect_peaks(grf_rf, mph=mph, mpd=1)
+    peaks_lf = grf_lf[peaks_lf]
+    peaks_rf = grf_rf[peaks_rf]
+
+    return peaks_lf, peaks_rf
+
+
+def _get_peak_grf_stats(peak_grf_lf, peak_grf_rf, record):
+    if len(peak_grf_lf) == 0 or len(peak_grf_rf) == 0:
+        record['peakGrfLF'] = None
+        record['peakGrfLFStd'] = None
+        record['peakGrfLF5'] = None
+        record['peakGrfLF50'] = None
+        record['peakGrfLF75'] = None
+        record['peakGrfLF95'] = None
+        record['peakGrfLF99'] = None
+        record['peakGrfLFMax'] = None
+
+        record['peakGrfRF'] = None
+        record['peakGrfRFStd'] = None
+        record['peakGrfRF5'] = None
+        record['peakGrfRF50'] = None
+        record['peakGrfRF75'] = None
+        record['peakGrfRF95'] = None
+        record['peakGrfRF99'] = None
+        record['peakGrfRFMax'] = None
+
+    else:
+        if len(peak_grf_lf) >= 5:
+            record['peakGrfLF'] = numpy.mean(peak_grf_lf)
+            record['peakGrfLFStd'] = numpy.std(peak_grf_lf)
+            record['peakGrfLF5'] = numpy.percentile(peak_grf_lf, 5)
+            record['peakGrfLF50'] = numpy.percentile(peak_grf_lf, 50)
+            record['peakGrfLF75'] = numpy.percentile(peak_grf_lf, 75)
+            record['peakGrfLF95'] = numpy.percentile(peak_grf_lf, 95)
+            record['peakGrfLF99'] = numpy.percentile(peak_grf_lf, 99)
+            record['peakGrfLFMax'] = numpy.max(peak_grf_lf)
+        else:
+            record['peakGrfLF'] = numpy.mean(peak_grf_lf)
+            record['peakGrfLFStd'] = None
+            record['peakGrfLF5'] = numpy.min(peak_grf_lf)
+            record['peakGrfLF50'] = numpy.percentile(peak_grf_lf, 50)
+            record['peakGrfLF75'] = numpy.max(peak_grf_lf)
+            record['peakGrfLF95'] = numpy.max(peak_grf_lf)
+            record['peakGrfLF99'] = numpy.max(peak_grf_lf)
+            record['peakGrfLFMax'] = numpy.max(peak_grf_lf)
+
+        if len(peak_grf_rf) >= 5:
+            record['peakGrfRF'] = numpy.mean(peak_grf_rf)
+            record['peakGrfRFStd'] = numpy.std(peak_grf_rf)
+            record['peakGrfRF5'] = numpy.percentile(peak_grf_rf, 5)
+            record['peakGrfRF50'] = numpy.percentile(peak_grf_rf, 50)
+            record['peakGrfRF75'] = numpy.percentile(peak_grf_rf, 75)
+            record['peakGrfRF95'] = numpy.percentile(peak_grf_rf, 95)
+            record['peakGrfRF99'] = numpy.percentile(peak_grf_rf, 99)
+            record['peakGrfRFMax'] = numpy.max(peak_grf_rf)
+        else:
+            record['peakGrfRF'] = numpy.mean(peak_grf_rf)
+            record['peakGrfRFStd'] = None
+            record['peakGrfRF5'] = numpy.min(peak_grf_rf)
+            record['peakGrfRF50'] = numpy.percentile(peak_grf_rf, 50)
+            record['peakGrfRF75'] = numpy.max(peak_grf_rf)
+            record['peakGrfRF95'] = numpy.max(peak_grf_rf)
+            record['peakGrfRF99'] = numpy.max(peak_grf_rf)
+            record['peakGrfRFMax'] = numpy.max(peak_grf_rf)
+    return record
+
+
+def _get_contact_duration_stats(length_lf, length_rf, record):
+    if len(length_lf) == 0 or len(length_rf) == 0:
+        record['contactDurationLF'] = None
+        record['contactDurationLFStd'] = None
+        record['contactDurationLF5'] = None
+        record['contactDurationLF50'] = None
+        record['contactDurationLF95'] = None
+
+        record['contactDurationRF'] = None
+        record['contactDurationRFStd'] = None
+        record['contactDurationRF5'] = None
+        record['contactDurationRF50'] = None
+        record['contactDurationRF95'] = None
+    else:
+        if len(length_lf) >= 5:
+            record['contactDurationLF'] = numpy.mean(length_lf)
+            record['contactDurationLFStd'] = numpy.std(length_lf)
+            record['contactDurationLF5'] = numpy.percentile(length_lf, 5)
+            record['contactDurationLF50'] = numpy.percentile(length_lf, 50)
+            record['contactDurationLF95'] = numpy.percentile(length_lf, 95)
+        else:
+            record['contactDurationLF'] = numpy.mean(length_lf)
+            record['contactDurationLFStd'] = None
+            record['contactDurationLF5'] = numpy.min(length_lf)
+            record['contactDurationLF50'] = numpy.percentile(length_lf, 50)
+            record['contactDurationLF95'] = numpy.max(length_lf)
+    
+        if len(length_rf) >= 5:
+            record['contactDurationRF'] = numpy.mean(length_rf)
+            record['contactDurationRFStd'] = numpy.std(length_rf)
+            record['contactDurationRF5'] = numpy.percentile(length_rf, 5)
+            record['contactDurationRF50'] = numpy.percentile(length_rf, 50)
+            record['contactDurationRF95'] = numpy.percentile(length_rf, 95)
+        else:
+            record['contactDurationRF'] = numpy.mean(length_rf)
+            record['contactDurationRFStd'] = None
+            record['contactDurationRF5'] = numpy.min(length_rf)
+            record['contactDurationRF50'] = numpy.percentile(length_rf, 50)
+            record['contactDurationRF95'] = numpy.min(length_rf)
+
+    return record
