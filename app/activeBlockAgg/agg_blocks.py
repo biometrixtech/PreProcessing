@@ -177,8 +177,7 @@ def script_handler(working_directory, input_data):
             mongo_collection.replace_one(query, record_out, upsert=True)
 
             logger.info("Wrote a bock record")
-        return active_blocks
-
+        
     except Exception as e:
         logger.info(e)
         logger.info('Process did not complete successfully! See error below!')
@@ -217,6 +216,7 @@ def _aggregate(data, record, mass):
         perc_optimal_block = (2. * perc_optimal_block + (1. - perc_distr / 100.)**2) / 3.
     # GRF aggregation
     record['duration'] = (data['epoch_time'].values[-1] - data['epoch_time'].values[0]) / 1000.
+    record['totalGRF'] = numpy.sum(data['total_grf'])
     record['totalGRFAvg'] = record['totalGRF'] / numpy.sum(data['total_ind']) * 1000000. / mass / 9.807
     record['optimalGRF'] = perc_optimal_block * record['totalGRF']
     record['irregularGRF'] = (1. - perc_optimal_block) * record['totalGRF']
@@ -231,12 +231,11 @@ def _aggregate(data, record, mass):
 
     # accel aggregation
     record['totalAccel'] = numpy.nansum(data['total_accel'])
-#    print(len(numpy.where(numpy.isnan(data.total_accel))[0]))
-    record['totalAccelAvg'] = record['totalAccel'] / numpy.sum(data['active']) * 10000
-#    record['totalAccelAvg'] = record['totalAccel'] / len(data) * 10000
+    record['totalAccelAvg'] = _peak_accel(data['total_accel'].values)
+#    record['totalAccelAvg'] = record['totalAccel'] / numpy.sum(data['active']) * 10000
     record['irregularAccel'] = numpy.nansum(data['irregular_accel'])
-
-    if record['totalGRF'] == 0:        # control aggregation
+    if record['totalGRF'] == 0:
+        # control aggregation
         record['control'] = None
         record['hipControl'] = None
         record['ankleControl'] = None
@@ -335,7 +334,6 @@ def _aggregate(data, record, mass):
                                   data.active.values,
                                   data.epoch_time.values,
                                   ground_phases=[2, 5, 7])
-#    length_lf, length_rf = _contact_duration(data)
 
     record = _get_contact_duration_stats(length_lf, length_rf, record)
 
@@ -433,6 +431,18 @@ def _peak_grf(grf, phase_lf, phase_rf):
     peaks_rf = grf_rf[peaks_rf]
 
     return peaks_lf, peaks_rf
+
+
+def _peak_accel(total_accel):
+    """Get averate of peak_accel for given data
+    """
+    accel = total_accel * 10000.
+    peaks = detect_peaks(accel, mph=15, mpd=5)
+    peak_accel = accel[peaks]
+    if len(peak_accel) >= 2:
+        return numpy.percentile(peak_accel, 95)
+    else:
+        return 0
 
 def _get_peak_grf_stats(peak_grf_lf, peak_grf_rf, record):
     if len(peak_grf_lf) == 0 or len(peak_grf_rf) == 0:
