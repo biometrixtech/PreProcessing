@@ -11,6 +11,7 @@ import sys
 from collections import OrderedDict
 
 from active_blocks import define_blocks
+from detect_peaks import detect_peaks
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
@@ -136,7 +137,9 @@ def _aggregate(data, record):
     """Aggregates different variables for block/unitBlocks
     """
     # GRF aggregation
+    record['duration'] = (data['epoch_time'].values[-1] - data['epoch_time'].values[0]) / 1000.
     record['totalGRF'] = None
+    record['totalGRFAvg'] = None
     record['optimalGRF'] = None
     record['irregularGRF'] = None
     record['LFgRF'] = None
@@ -150,6 +153,7 @@ def _aggregate(data, record):
 
     # accel aggregation
     record['totalAccel'] = numpy.nansum(data['total_accel'])
+    record['totalAccelAvg'] = _peak_accel(data['total_accel'].values)
     record['irregularAccel'] = numpy.nansum(data['irregular_accel'])
 
     # control aggregation
@@ -173,13 +177,35 @@ def _aggregate(data, record):
 
     # Null contact duration variables for single sensor processing
     record['contactDurationLF'] = None
-    record['contactDurationRF'] = None
     record['contactDurationLFStd'] = None
+    record['contactDurationLF5'] = None
+    record['contactDurationLF50'] = None
+    record['contactDurationLF95'] = None
+
+    record['contactDurationRF'] = None
     record['contactDurationRFStd'] = None
-    record['contactDurationLFLower'] = None
-    record['contactDurationLFUpper'] = None
-    record['contactDurationRFLower'] = None
-    record['contactDurationRFUpper'] = None
+    record['contactDurationRF5'] = None
+    record['contactDurationRF50'] = None
+    record['contactDurationRF95'] = None
+
+    record['peakGrfLF'] = None
+    record['peakGrfLFStd'] = None
+    record['peakGrfLF5'] = None
+    record['peakGrfLF50'] = None
+    record['peakGrfLF75'] = None
+    record['peakGrfLF95'] = None
+    record['peakGrfLF99'] = None
+    record['peakGrfLFMax'] = None
+
+    record['peakGrfRF'] = None
+    record['peakGrfRFStd'] = None
+    record['peakGrfRF5'] = None
+    record['peakGrfRF50'] = None
+    record['peakGrfRF75'] = None
+    record['peakGrfRF95'] = None
+    record['peakGrfRF99'] = None
+    record['peakGrfRFMax'] = None
+
 
     # enforce validity of scores
     scor_cols = ['symmetry',
@@ -211,3 +237,15 @@ def _aggregate(data, record):
     record['percIrregular'] = (1 - perc_optimal_block) * 100
 
     return record
+
+def _peak_accel(total_accel):
+    """Get averate of peak_accel for given data
+    """
+    accel = total_accel * 10000.
+    peaks = detect_peaks(accel, mph=15, mpd=5)
+    peak_accel = accel[peaks]
+    if len(peak_accel) >= 2:
+        return numpy.percentile(peak_accel, 95)
+    else:
+        return 0
+
