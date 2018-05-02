@@ -23,16 +23,16 @@ Mappings:
         downloadandchunk:       { Memory: 2048, Vcpus: 2 }
         transformandplacement:  { Memory: 4096, Vcpus: 2 }
         sessionprocess2:        { Memory: 1024, Vcpus: 2 }
-        scoring:                { Memory: 8192, Vcpus: 4 }
-        aggregatesession:       { Memory: 8192, Vcpus: 4 }
-        aggregateblocks:        { Memory: 8192, Vcpus: 4 }
+        scoring:                { Memory: 7650, Vcpus: 2 }
+        aggregatesession:       { Memory: 7650, Vcpus: 2 }
+        aggregateblocks:        { Memory: 7650, Vcpus: 2 }
         aggregatetwomin:        { Memory: 2048, Vcpus: 2 }
-        aggregatedateuser:      { Memory: 4096, Vcpus: 4 }
+        aggregatedateuser:      { Memory: 512,  Vcpus: 1 }
         aggregateteam:          { Memory: 512,  Vcpus: 1 }
         aggregatetraininggroup: { Memory: 512,  Vcpus: 1 }
-        aggregateprogcomp:      { Memory: 8192, Vcpus: 4 }
-        aggregateprogcompdate:  { Memory: 4096, Vcpus: 4 }
-        cleanup:                { Memory: 256,  Vcpus: 2 }
+        aggregateprogcomp:      { Memory: 7650, Vcpus: 2 }
+        aggregateprogcompdate:  { Memory: 512,  Vcpus: 1 }
+        cleanup:                { Memory: 256,  Vcpus: 1 }
 
 Metadata:
     "AWS::CloudFormation::Interface":
