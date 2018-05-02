@@ -123,8 +123,16 @@ def handle_session_patch(session_id):
     xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
     xray_recorder.current_segment().put_annotation('user_id', session.user_id)
 
-    if 'session_status' in request.json and request.json['session_status'] == 'UPLOAD_COMPLETE':
-        session.session_status = 'UPLOAD_COMPLETE'
+    if 'session_status' in request.json:
+        allowed_transitions = [
+            ('UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE'),
+            ('PROCESSING_COMPLETE', 'UPLOAD_IN_PROGRESS'),
+            ('PROCESSING_FAILED', 'UPLOAD_IN_PROGRESS'),
+        ]
+        if (session.session_status, request.json['session_status']) in allowed_transitions:
+            session.session_status = request.json['session_status']
+        else:
+            raise InvalidSchemaException('Transition from {} to {} is not allowed'.format(session.session_status, request.json['session_status']))
 
     store.put(session, True)
     return {'session': session}
