@@ -93,6 +93,7 @@ Resources:
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
+                    TEMPLATE_VERSION: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
 
     MonitoringLambda:
         Type: "AWS::Lambda::Function"
