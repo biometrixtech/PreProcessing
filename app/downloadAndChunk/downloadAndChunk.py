@@ -38,7 +38,7 @@ def script_handler(base_name, output_dir):
             s3_client.download_file(s3_bucket, s3_key, tmp_filename)
             logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
             with open(tmp_filename, 'rb') as f:
-                file_hash = hashlib.sha256(f.read()).digest()
+                file_hash = hashlib.sha256(f.read()).digest().encode('hex')
             if file_hash in file_hashes:
                 print('Duplicate: {} (hash {})'.format(s3_key, file_hash))
                 duplicate_files.add(s3_key)
