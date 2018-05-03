@@ -39,19 +39,13 @@ def get_authorisation_from_auth():
     }
 
 
-def get_accessory_from_auth():
+def get_accessory_id_from_auth():
     jwt_token = jwt.decode(get_jwt_from_request(), verify=False)
     print(json.dumps({'jwt_token': jwt_token}))
     if 'username' in jwt_token:
-        accessory_id = jwt_token['username']
+        return jwt_token['username']
     else:
         raise UnauthorizedException('Sessions can only be created by hardware-authenticated clients')
-
-    accessory = get_accessory_from_id(accessory_id)
-    if accessory is None:
-        raise UnauthorizedException()
-
-    return accessory
 
 
 def get_accessory_from_id(accessory_id):
