@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import print_function
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 from uuid import UUID
