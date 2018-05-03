@@ -1,110 +1,140 @@
-#!/usr/bin/python3
-import argparse
+#!/usr/bin/env python3
+from boto3.dynamodb.conditions import Attr, Key
+from botocore.exceptions import ClientError
 from uuid import UUID
-
+import argparse
 import boto3
 import datetime
-import time
-from boto3.dynamodb.conditions import Attr
+
+from colorama import Fore, Style
+
+try:
+    import builtins as __builtin__
+except ImportError:
+    import __builtin__
 
 
-def invoke_lambda(s3_bucket, s3_key, timestamp):
-    payload = '{"Records":[{"s3":{"bucket":{"name":"' + s3_bucket + '"},"object":{"key":"' + s3_key + '"}}, "eventTime": "' + timestamp + '"}]}'
-    print(" " * 4 + s3_key)
-    lambda_client.invoke(
-        FunctionName='preprocessing-{}-ingest-trigger'.format(args.environment),
-        Payload=payload,
+def print(*args, **kwargs):
+    if 'colour' in kwargs:
+        __builtin__.print(kwargs['colour'], end="")
+        del kwargs['colour']
+
+        end = kwargs.get('end', '\n')
+        kwargs['end'] = ''
+        __builtin__.print(*args, **kwargs)
+
+        __builtin__.print(Style.RESET_ALL, end=end)
+
+    else:
+        __builtin__.print(*args, **kwargs)
+
+
+def get_dynamodb(table, session_id):
+    ret = table.query(
+        Select='ALL_ATTRIBUTES',
+        Limit=10000,
+        KeyConditionExpression=Key('id').eq(session_id),
     )
+    return ret['Items'][0] if len(ret['Items']) else None
 
 
-def process_file(s3_bucket, basename):
-    # Reset the status flag in dynamodb to UPLOAD_IN_PROGRESS
-    ddb_session_events_table = dynamodb_resource.Table('preprocessing-{}-ingest-sessions'.format(args.environment))
-    print('    Setting session_status to UPLOAD_IN_PROGRESS')
-    ddb_session_events_table.update_item(
-        Key={'id': basename},
+def update_session_status(table, session_id, session_status):
+    print('    Setting session_status to {}'.format(session_status))
+    table.update_item(
+        Key={'id': session_id},
         UpdateExpression='SET session_status = :session_status, updated_date = :updated_date',
         ExpressionAttributeValues={
-            ':session_status': 'UPLOAD_IN_PROGRESS',
+            ':session_status': session_status,
             ':updated_date': datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         },
     )
 
-    if args.reimport:
-        # Simulate a CloudWatch Event as if the file was newly-uploaded.  But keep the same 'uploaded at'
-        # timestamp to avoid duplicate records
-        for s3_file, last_modified in list_s3_files(s3_bucket, basename):
-            invoke_lambda(s3_bucket, s3_file, last_modified.strftime("%Y-%m-%dT%H:%M:%SZ"))
+
+def process_session(session_id):
+    dest_sessions_table = boto3.resource('dynamodb', region_name=args.region).Table('preprocessing-{}-ingest-sessions'.format(args.environment))
+
+    if args.copy_from_environment or args.copy_from_region:
+        # Copy the dynamodb record from one arg/region to the other
+        source_region = args.copy_from_region or args.region
+        source_environment = args.copy_from_environment or args.environment
+        source_sessions_table = boto3.resource('dynamodb', region_name=source_region).Table('preprocessing-{}-ingest-sessions'.format(source_environment))
+
+        print('    Copying the session record from {}-{}'.format(source_environment, source_region))
+
+        try:
+            existing_record = get_dynamodb(source_sessions_table, session_id)
+            existing_record['session_status'] = 'UPLOAD_IN_PROGRESS'
+            existing_record['updated_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+            s3_files = existing_record['s3_files']
+            del existing_record['s3_files']
+            dest_sessions_table.put_item(
+                Item=existing_record,
+                ConditionExpression=Attr('id').not_exists()
+            )
+        except ClientError as e:
+            if 'ConditionalCheckFailed' in str(e):
+                print('    A session with id {} already exists in {}-{}'.format(session_id, args.environment, args.region), colour=Fore.RED)
+                exit(1)
+            raise
+
+        # Copy the S3 files
+        source_bucket = boto3.resource('s3').Bucket('biometrix-preprocessing-{}-{}'.format(source_environment, source_region))
+        dest_bucket = boto3.resource('s3').Bucket('biometrix-preprocessing-{}-{}'.format(args.environment, args.region))
+        count = 1
+        for s3_file in s3_files:
+            print('    Copying {}/{} ({})'.format(count, len(s3_files), s3_file))
+            dest_bucket.copy({'Bucket': source_bucket.name, 'Key': s3_file}, s3_file)
+            count += 1
+
     else:
-        # Just set the status flag to completed again
-        print('    Setting session_status to UPLOAD_COMPLETE')
-        ddb_session_events_table.update_item(
-            Key={'id': basename},
-            ConditionExpression=Attr('id').exists(),
-            UpdateExpression='SET session_status = :session_status',
-            ExpressionAttributeValues={':session_status': 'UPLOAD_COMPLETE'},
-        )
+        # Reset the status flag in dynamodb to UPLOAD_IN_PROGRESS
+        update_session_status(dest_sessions_table, session_id, 'UPLOAD_IN_PROGRESS')
+
+    # Finally set the status flag to completed again to start processing
+    update_session_status(dest_sessions_table, session_id, 'UPLOAD_COMPLETE')
 
 
-def list_s3_files(s3_bucket, prefix, marker=''):
-    ret = []
-    resp = s3_client.list_objects(Bucket=s3_bucket, Prefix=prefix, Marker=marker)
-    if 'Contents' not in resp:
-        raise Exception('File {} not present in S3')
-    ret.extend([(x['Key'], x['LastModified']) for x in resp['Contents'] if x['Key'][-8:] != 'combined'])
-    if resp['IsTruncated']:
-        ret.extend(list_s3_files(s3_bucket, prefix, ret[-1]))
-    return sorted(ret)
-
-
-def validate_uuid4(uuid_string):
+def validate_uuid5(uuid_string):
     try:
-        val = UUID(uuid_string, version=4)
+        val = UUID(uuid_string, version=5)
         # If the uuid_string is a valid hex code, but an invalid uuid4, the UUID.__init__
         # will convert it to a valid uuid4. This is bad for validation purposes.
-        return val.hex == uuid_string.replace('-', '')
+        if val.hex == uuid_string.replace('-', ''):
+            return uuid_string
     except ValueError:
         # If it's a value error, then the string is not a valid hex code for a UUID.
-        return False
+        pass
+    raise argparse.ArgumentTypeError('{} is not a valid uuid'.format(uuid_string))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Invoke a test file')
-    parser.add_argument('files',
-                        type=str,
+    parser.add_argument('sessions',
                         nargs='+',
-                        help='The file(s) to run')
+                        type=validate_uuid5,
+                        help='The session(s) to run')
     parser.add_argument('--region', '-r',
-                        type=str,
                         help='AWS Region',
                         default='us-west-2')
     parser.add_argument('--environment', '-e',
-                        type=str,
                         help='Environment',
                         default='dev')
-    parser.add_argument('--bucket', '-b',
-                        type=str,
-                        help='S3 bucket',
-                        default='biometrix-preprocessing-{environment}-{region}')
-    parser.add_argument('--reimport',
-                        action='store_true',
-                        dest='reimport',
-                        help='Import all parts individually')
+    parser.add_argument('--copy-from-environment',
+                        dest='copy_from_environment',
+                        help='Environment to copy file from')
+    parser.add_argument('--copy-from-region',
+                        dest='copy_from_region',
+                        help='Environment to copy file from')
 
     args = parser.parse_args()
 
-    dynamodb_resource = boto3.resource('dynamodb', region_name=args.region)
-    lambda_client = boto3.client('lambda', region_name=args.region)
-    s3_client = boto3.client('s3')
-
-    files = args.files
-    bucket = args.bucket.format(environment=args.environment, region=args.region)
+    if args.copy_from_environment or args.copy_from_region:
+        # Need to check that the region-environment pair is different
+        if (args.copy_from_region or args.region) == args.region and (args.copy_from_environment or args.environment) == args.environment:
+            parser.error('--copy-from-region and --copy-from-environment must point to a different environment')
 
     count = 1
-    for key in files:
-        print('Invoking  {count}/{total} ({key})'.format(count=count, total=len(files), key=key))
-        if not validate_uuid4(key):
-            print('{} is not a valid uuid'.format(key))
-            continue
-        process_file(bucket, key)
+    for session in args.sessions:
+        print('Invoking  {count}/{total} ({session})'.format(count=count, total=len(args.sessions), session=session), colour=Fore.CYAN)
+        process_session(session)
         count += 1
