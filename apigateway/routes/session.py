@@ -35,25 +35,13 @@ def handle_session_create():
         updated_date=now,
     )
 
-    accessory = get_accessory_from_auth()
-    session.accessory_id = accessory['mac_address']
-    xray_recorder.current_segment().put_annotation('accessory_id', accessory['mac_address'])
+    session.accessory_id = get_accessory_id_from_auth()
+    xray_recorder.current_segment().put_annotation('accessory_id', accessory_id)
     for sensor in request.json['sensors']:
         if isinstance(sensor, dict):
             session.sensor_ids.add(sensor['mac_address'])
         else:
             session.sensor_ids.add(str(sensor))
-
-    if 'owner_id' in accessory:
-        print(json.dumps({'session_user_id': accessory['owner_id']}))
-        user = get_user_from_id(accessory['owner_id'])
-        if user is not None:
-            print(json.dumps({'session_user': user}))
-            session.user_id = user['user_id']
-            session.team_id = user['team_id']
-            session.training_group_ids = set(user['training_group_ids'])
-            session.user_mass = user['mass']['kg']
-            xray_recorder.current_segment().put_annotation('user_id', session.user_id)
 
     store = SessionDatastore()
     try:
