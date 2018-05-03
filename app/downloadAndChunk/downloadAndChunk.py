@@ -42,7 +42,7 @@ def script_handler(base_name, output_dir):
             files_by_hash.setdefault(file_hash, []).append(s3_key)
             print(json.dumps(files_by_hash))
 
-        s3_files = sorted([files[0] for files in files_by_hash.values()])
+        s3_files = sorted([sorted(files)[0] for files in files_by_hash.values()])
         print(json.dumps(s3_files))
 
         if len(s3_files) == 1:
