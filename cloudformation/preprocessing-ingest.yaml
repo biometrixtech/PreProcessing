@@ -338,7 +338,7 @@ Resources:
                                 'SS': lambda x: frozenset(x),
                                 'L': lambda x: tuple(x),
                             }[t](v)
-                        return {attr_name: cast(*v.items()[0]) for attr_name, v in record.items()}
+                        return {attr_name: cast(*list(v.items())[0]) for attr_name, v in record.items()}
 
                     def update_dynamodb(session_id, updates):
                         update_expression = 'SET {} '.format(', '.join(["{} = :{}".format(k, k) for k in updates.keys()]))
