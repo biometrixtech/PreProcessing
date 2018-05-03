@@ -9,7 +9,7 @@ import re
 import os
 import uuid
 
-from auth import get_accessory_from_auth, get_user_from_id
+from auth import get_accessory_id_from_auth
 from datastore import SessionDatastore
 from exceptions import InvalidSchemaException, ApplicationException, NoSuchEntityException, DuplicateEntityException
 from models.session import Session
@@ -37,7 +37,7 @@ def handle_session_create():
     )
 
     session.accessory_id = get_accessory_id_from_auth()
-    xray_recorder.current_segment().put_annotation('accessory_id', accessory_id)
+    xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
     for sensor in request.json['sensors']:
         if isinstance(sensor, dict):
             session.sensor_ids.add(sensor['mac_address'])
