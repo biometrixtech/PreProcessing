@@ -46,6 +46,23 @@ class Spinner:
         time.sleep(self.delay)
 
 
+def get_stack_name():
+    cloudformation_client = boto3.client('cloudformation', region_name=args.region)
+    res = cloudformation_client.get_paginator('list_stacks').paginate(PaginationConfig={'MaxItems': 99999})
+    stacks = [s for page in res for s in page['StackSummaries']]
+
+    stack_names = [s['StackName'] for s in stacks
+                   if s['StackStatus'] != 'DELETE_COMPLETE'
+                   and s['StackName'].startswith('preprocessing-{}-PipelineCluster'.format(args.environment))]
+
+    if len(stack_names):
+        print('Updating stack {}'.format(stack_names[0]), colour=Fore.GREEN)
+        return stack_names[0]
+    else:
+        print('Could not find stack to update', colour=Fore.RED)
+        exit(1)
+
+
 def update_cf_stack(stack):
     print('Updating CloudFormation stack')
 
@@ -57,10 +74,7 @@ def update_cf_stack(stack):
             new_parameters.append({'ParameterKey': p['ParameterKey'], 'UsePreviousValue': True})
 
     stack.update(
-        TemplateURL='https://s3.amazonaws.com/biometrix-infrastructure-{region}/cloudformation/preprocessing-{environment}/preprocessing-environment.yaml'.format(
-            region=args.region,
-            environment=args.environment,
-        ),
+        UsePreviousTemplate=True,
         Parameters=new_parameters,
         Capabilities=['CAPABILITY_NAMED_IAM'],
     )
@@ -138,7 +152,7 @@ def print(*args, **kwargs):
 
 def main():
     cf_resource = boto3.resource('cloudformation', region_name=args.region)
-    stack = cf_resource.Stack('preprocessing-{}'.format(args.environment))
+    stack = cf_resource.Stack(get_stack_name())
 
     update_git_branch()
     if not args.noupdate:
@@ -160,6 +174,7 @@ if __name__ == '__main__':
     parser.add_argument('--region', '-r',
                         type=str,
                         choices=['us-east-1', 'us-west-2'],
+                        default='us-west-2',
                         help='AWS Region')
     parser.add_argument('--environment', '-e',
                         type=str,
