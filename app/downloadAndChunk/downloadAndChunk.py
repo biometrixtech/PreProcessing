@@ -2,6 +2,7 @@ from __future__ import print_function
 from boto3.dynamodb.conditions import Key
 import boto3
 import hashlib
+import json
 import logging
 import os
 import re
@@ -27,8 +28,7 @@ def script_handler(base_name, output_dir):
         logger.info(s3_files)
 
         # Keep track of the hashes of each chunk to prevent duplicate files
-        file_hashes = []
-        duplicate_files = set()
+        files_by_hash = {}
 
         # Download file
         s3_client = boto3.client('s3')
@@ -39,14 +39,11 @@ def script_handler(base_name, output_dir):
             logger.info('Downloaded "{}/{}" from S3'.format(s3_bucket, s3_key))
             with open(tmp_filename, 'rb') as f:
                 file_hash = hashlib.sha256(f.read()).digest().encode('hex')
-            if file_hash in file_hashes:
-                print('Duplicate: {} (hash {})'.format(s3_key, file_hash))
-                duplicate_files.add(s3_key)
-            else:
-                print('Not a duplicate: {} (hash {})'.format(s3_key, file_hash))
-                file_hashes.append(file_hash)
+            files_by_hash.setdefault(file_hash, []).append(s3_key)
+            print(json.dumps(files_by_hash))
 
-        s3_files = list(set(s3_files) - duplicate_files)
+        s3_files = sorted([files[0] for files in files_by_hash.values()])
+        print(json.dumps(s3_files))
 
         if len(s3_files) == 1:
             s3_key = s3_files[0]
