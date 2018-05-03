@@ -36,7 +36,7 @@ Parameters:
         ConstraintDescription: "Must be a valid IP CIDR range of the form x.x.x.x/x."
 
     ComputeEc2InstanceSize:
-        Type: "String"
+        Type: "CommaDelimitedList"
         AllowedValues: [
             "c3", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge",
             "c4", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge",
@@ -217,7 +217,7 @@ Resources:
             Parameters:
                 Ami: { Ref: "ComputeEc2Ami" }
                 Environment: { Ref: "Environment" }
-                InstanceSize: { Ref: "ComputeEc2InstanceSize" }
+                InstanceSize: { "Fn::Join": [ ",", { Ref: "ComputeEc2InstanceSize" } ] }
                 Keypair: { Ref: "ComputeEc2Keypair" }
                 MultiAz: { Ref: "MultiAz" }
                 PrivateHostedZoneId: { "Fn::GetAtt": [ "VpcStack", "Outputs.PrivateHostedZoneId" ] }

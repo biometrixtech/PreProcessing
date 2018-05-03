@@ -19,6 +19,20 @@ Parameters:
 Mappings:
     TemplateVersion:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
+    BatchJobResources:
+        downloadandchunk:       { Memory: 2048, Vcpus: 2 }
+        transformandplacement:  { Memory: 4096, Vcpus: 2 }
+        sessionprocess2:        { Memory: 1024, Vcpus: 2 }
+        scoring:                { Memory: 7650, Vcpus: 2 }
+        aggregatesession:       { Memory: 7650, Vcpus: 2 }
+        aggregateblocks:        { Memory: 7650, Vcpus: 2 }
+        aggregatetwomin:        { Memory: 2048, Vcpus: 2 }
+        aggregatedateuser:      { Memory: 512,  Vcpus: 1 }
+        aggregateteam:          { Memory: 512,  Vcpus: 1 }
+        aggregatetraininggroup: { Memory: 512,  Vcpus: 1 }
+        aggregateprogcomp:      { Memory: 7650, Vcpus: 2 }
+        aggregateprogcompdate:  { Memory: 512,  Vcpus: 1 }
+        cleanup:                { Memory: 256,  Vcpus: 1 }
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -268,6 +282,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -282,14 +297,18 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "downloadandchunk",
-                                        "Memory": 2048,
-                                        "Vcpus": 2,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
                             ],
                             "Input": event['SourceEvent']
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "downloadandchunk", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "downloadandchunk", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -344,6 +363,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -359,8 +379,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "transformandplacement",
-                                        "Memory": 4096,
-                                        "Vcpus": 2,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
@@ -370,6 +390,10 @@ Resources:
                                 **{"Filename": event['DownloadAndChunk']['Output']['Filenames'][0]}
                             }
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "transformandplacement", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "transformandplacement", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -386,6 +410,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -401,8 +426,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "sessionprocess2",
-                                        "Memory": 1024,
-                                        "Vcpus": 2,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$[{}]".format(i)
                                 }
@@ -422,6 +447,10 @@ Resources:
                                 for f in event['TransformAndPlacement']['Output']['Filenames']
                             ]
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "sessionprocess2", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "sessionprocess2", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -438,6 +467,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -453,8 +483,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "scoring",
-                                        "Memory": 8192,
-                                        "Vcpus": 4,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
@@ -465,6 +495,10 @@ Resources:
                                    "Sensors": event['TransformAndPlacement']['Output']['Sensors'],}
                             }
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "scoring", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "scoring", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -481,6 +515,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -496,8 +531,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatesession",
-                                        "Memory": 8192,
-                                        "Vcpus": 4,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
@@ -507,6 +542,10 @@ Resources:
                                 **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}},
 
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "aggregatesession", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "aggregatesession", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -523,6 +562,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -538,8 +578,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateblocks",
-                                        "Memory": 8192,
-                                        "Vcpus": 4,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
@@ -549,6 +589,10 @@ Resources:
                                 **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
                                 },
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "aggregateblocks", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "aggregateblocks", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -565,6 +609,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -580,8 +625,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatetwomin",
-                                        "Memory": 2048,
-                                        "Vcpus": 2,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$[{}]".format(i)
                                 }
@@ -596,6 +641,10 @@ Resources:
                                 for f in event['Scoring']['Output']['Filenames']
                             ]
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "aggregatetwomin", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "aggregatetwomin", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -612,6 +661,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -627,14 +677,18 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatedateuser",
-                                        "Memory": 4096,
-                                        "Vcpus": 4,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
                             ],
                             "Input": event["ReadDatabase"]
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "aggregatedateuser", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "aggregatedateuser", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -651,6 +705,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -666,8 +721,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateteam",
-                                        "Memory": 512,
-                                        "Vcpus": 1,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
@@ -675,6 +730,10 @@ Resources:
                             "Input": event["ReadDatabase"],
                             "LinearityGroup": event["ReadDatabase"]["TeamId"]
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "aggregateteam", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "aggregateteam", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -691,6 +750,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         training_group_ids = event["ReadDatabase"]["TrainingGroupIds"] or {}
                         return {
@@ -707,8 +767,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatetraininggroup",
-                                        "Memory": 512,
-                                        "Vcpus": 1,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
@@ -716,6 +776,10 @@ Resources:
                             "Input": event["ReadDatabase"],
                             "LinearityGroup": training_group_ids[0] if len(training_group_ids) else ''
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "aggregatetraininggroup", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "aggregatetraininggroup", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -732,6 +796,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -747,8 +812,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcomp",
-                                        "Memory": 8192,
-                                        "Vcpus": 4,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
@@ -758,6 +823,10 @@ Resources:
                                 **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
                                 },
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "aggregateprogcomp", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "aggregateprogcomp", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -774,6 +843,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -789,8 +859,8 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcompdate",
-                                        "Memory": 4096,
-                                        "Vcpus": 4,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
@@ -800,6 +870,10 @@ Resources:
                                 **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
                                 },
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "aggregateprogcompdate", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "aggregateprogcompdate", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -842,6 +916,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
+                    import os
                     def handler(event, context):
                         return {
                             "Meta": {
@@ -857,14 +932,18 @@ Resources:
                                         "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                         "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "cleanup",
-                                        "Memory": 256,
-                                        "Vcpus": 2,
+                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
                                     },
                                     "InputPath": "$"
                                 }
                             ],
                             "Input": event["ReadDatabase"]
                         }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "cleanup", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "cleanup", "Vcpus" ] }
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "30"

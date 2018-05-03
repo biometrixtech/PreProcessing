@@ -45,7 +45,7 @@ Parameters:
         Description: "The ID of public subnet alpha"
 
     InstanceSize:
-        Type: "String"
+        Type: "CommaDelimitedList"
         AllowedValues: [
             "c3", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge",
             "c4", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge",
@@ -279,11 +279,14 @@ Resources:
     BatchComputeEnvironment:
         Type: "AWS::Batch::ComputeEnvironment"
         Properties:
-            ComputeEnvironmentName: { "Fn::Sub": "preprocessing-${Environment}-compute" }
+            ComputeEnvironmentName: { "Fn::Sub": [
+                "preprocessing-${Environment}-compute-${InstanceSize}",
+                { InstanceSize: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] } }
+             ] }
             ComputeResources:
                 Ec2KeyPair: { Ref: "Keypair" }
                 InstanceRole: { Ref: "Ec2InstanceStartupProfile" }
-                InstanceTypes: [ { Ref: "InstanceSize" } ]
+                InstanceTypes: { Ref: "InstanceSize" }
                 MaxvCpus: 16
                 MinvCpus: 0
                 SecurityGroupIds:
