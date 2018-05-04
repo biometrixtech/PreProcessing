@@ -1,5 +1,5 @@
 from builtins import FileNotFoundError
-from flask import request, Response, jsonify
+from flask import request, Response
 from flask_lambda import FlaskLambda
 import json
 import os
@@ -24,9 +24,12 @@ class ApiResponse(Response):
     @classmethod
     def force_type(cls, rv, environ=None):
         if isinstance(rv, (dict, list)):
-            # Round-trip through our JSON serialiser to make it parseable by AWS's
-            rv = json.loads(json.dumps(rv, sort_keys=True, default=json_serialise))
-            rv = jsonify(rv)
+            # Round-trip through our JSON serialiser to make it parseable by AWS's. Use spaces to facilitate easier
+            # parsing on the accessory side.
+            rv = Response(
+                json.dumps(rv, sort_keys=True, default=json_serialise, separators=(', ', ': ')) + '\n',
+                mimetype='application/json'
+            )
         return super().force_type(rv, environ)
 
 
