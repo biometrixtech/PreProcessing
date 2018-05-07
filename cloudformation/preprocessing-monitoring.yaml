@@ -25,6 +25,10 @@ Parameters:
         Type: "String"
         Description: "The ARN of the ComputeEnvironment"
 
+    BatchComputeEnvironmentEcsClusterName:
+        Type: "String"
+        Description: "The name of the ComputeEnvironment ECS Cluster"
+
     PipelineStateMachineArn:
         Type: "String"
         Description: "The ARN of the Pipeline State Machine"
@@ -79,21 +83,6 @@ Resources:
                         Effect: "Allow"
                         Resource: "*"
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-monitor-lambda-${AWS::Region}" }
-
-    ExtractBatchEcsClusterName:
-        Type: "Custom::CodeBuildEcrImage"
-        Properties:
-            ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
-            Code: |
-                import boto3, os
-                ecs_client = boto3.client('ecs')
-                cluster_names = [arn.split('/')[-1] for arn in ecs_client.list_clusters()['clusterArns']]
-                relevant_names = [name for name in cluster_names if 'preprocessing-{}-compute_Batch_'.format(os.environ['ENVIRONMENT']) in name]
-                physical_resource_id = relevant_names[0] if len(relevant_names) else None
-            Environment:
-                Variables:
-                    ENVIRONMENT: { Ref: "Environment" }
-                    TEMPLATE_VERSION: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
 
     MonitoringLambda:
         Type: "AWS::Lambda::Function"
@@ -176,7 +165,7 @@ Resources:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
                     BATCH_COMPUTE_ENVIRONMENT: { Ref: "BatchComputeEnvironmentArn" }
-                    BATCH_ECS_CLUSTER: { Ref: "ExtractBatchEcsClusterName" }
+                    BATCH_ECS_CLUSTER: { Ref: "BatchComputeEnvironmentEcsClusterName" }
                     BATCH_JOB_QUEUE: { Ref: "BatchJobQueueArn" }
                     BATCH_EFS_ID: { Ref: "EfsId" }
                     STATE_MACHINE_ARN: { Ref: "PipelineStateMachineArn" }
@@ -452,7 +441,7 @@ Resources:
                             "view": "timeSeries",
                             "stacked": false,
                             "metrics": [
-                                [ "AWS/ECS", "CPUReservation", "ClusterName", "${ExtractBatchEcsClusterName}", { "stat": "Maximum", "color": "#7B241C", "label": "CPU Reserved" } ],
+                                [ "AWS/ECS", "CPUReservation", "ClusterName", "${BatchComputeEnvironmentEcsClusterName}", { "stat": "Maximum", "color": "#7B241C", "label": "CPU Reserved" } ],
                                 [ ".", "CPUUtilization", ".", ".", { "stat": "Maximum", "color": "#C0392B", "label": "CPU Utilised (maximum)" } ],
                                 [ "...", { "stat": "Average", "color": "#f7b6d2", "label": "CPU Utilised (average)" } ],
                                 [ ".", "MemoryReservation", ".", ".", { "stat": "Maximum", "color": "#1D8348", "yAxis": "right", "label": "Memory Reserved" } ],

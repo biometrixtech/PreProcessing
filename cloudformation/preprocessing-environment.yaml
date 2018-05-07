@@ -331,6 +331,7 @@ Resources:
                 EfsId: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.EfsId" ] }
                 BatchJobQueueArn: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.JobQueueArn" ] }
                 BatchComputeEnvironmentArn: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.ComputeEnvironmentArn" ] }
+                BatchComputeEnvironmentEcsClusterName: { "Fn::GetAtt": [ "ComputeCluster", "Outputs.ComputeEnvironmentEcsClusterName" ] }
                 PipelineStateMachineArn: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.StateMachineArn" ] }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-monitoring" } }
