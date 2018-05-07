@@ -410,4 +410,4 @@ Outputs:
 
     ComputeEnvironmentEcsClusterName:
         Description: "The name of the ComputeEnvironment ECS Cluster"
-        Value: { Ref: "BatchComputeEnvironment" }
+        Value: { Ref: "ExtractBatchEcsClusterName" }
