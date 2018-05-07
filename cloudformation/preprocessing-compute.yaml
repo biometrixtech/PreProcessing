@@ -319,6 +319,24 @@ Resources:
             Priority: 1
             State: "ENABLED"
 
+    ExtractBatchEcsClusterName:
+        Type: "Custom::CfnSnippet"
+        Properties:
+            ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
+            Code: |
+                import boto3, os
+                ecs_client = boto3.client('ecs')
+                compute_environment_name = os.environ['COMPUTE_ENVIRONMENT_ARN'].split('/')[-1]
+                cluster_names = [arn.split('/')[-1] for arn in ecs_client.list_clusters()['clusterArns']]
+                relevant_names = [name for name in cluster_names if name.startswith(compute_environment_name)]
+                physical_resource_id = relevant_names[0] if len(relevant_names) else None
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+                    COMPUTE_ENVIRONMENT_ARN: { Ref: "BatchComputeEnvironment" }
+        DependsOn:
+          - "BatchComputeEnvironment"
+
     ##########################################################################################################
     ##  BASTION
     ##########################################################################################################
@@ -389,3 +407,7 @@ Outputs:
     ComputeEnvironmentArn:
         Description: "The ARN of the ComputeEnvironment"
         Value: { Ref: "BatchComputeEnvironment" }
+
+    ComputeEnvironmentEcsClusterName:
+        Description: "The name of the ComputeEnvironment ECS Cluster"
+        Value: { Ref: "ExtractBatchEcsClusterName" }
