@@ -166,6 +166,43 @@ Resources:
 
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-execute-${AWS::Region}" }
 
+    SfnToCweRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "lambda.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+            Policies:
+              - PolicyName: "default"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "states:GetActivityTask"
+                        Effect: "Allow"
+                        Resource: { Ref: "StepFunctionsActivity" }
+
+                      - Action:
+                          - "batch:DescribeJobDefinitions"
+                          - "batch:DescribeJobQueues"
+                          - "batch:SubmitJob"
+                        Effect: "Allow"
+                        Resource: "*" # Batch doesn't support resource-level permissions
+
+                      - Action:
+                          - "events:PutEvents"
+                          - "cloudwatch:PutMetricData"
+                          - "logs:CreateLogStream"
+                          - "logs:PutLogEvents"
+                        Effect: "Allow"
+                        Resource: "*"
+            RoleName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" }
+
     ##########################################################################################################
     ##  BATCH
     ##########################################################################################################
@@ -1007,6 +1044,261 @@ Resources:
         Type: "AWS::StepFunctions::Activity"
         Properties:
             Name: { "Fn::Sub": "preprocessing-${Environment}" }
+
+    SfnToCweLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: !Sub |
+                    import boto3, datetime, json, os, signal, time
+
+                    class TimeoutException(Exception): pass
+                    def timeout_handler(_, __): raise TimeoutException()
+                    sfn_client = boto3.client('stepfunctions')
+                    cwe_client = boto3.client('events')
+
+                    def handler(_, context):
+                        # After 180 secs, call the timeout_handler() which raises an exception
+                        signal.signal(signal.SIGALRM, timeout_handler)
+                        signal.alarm(180)
+
+                        try:
+                            while True:
+                                # We have time to go for another pass
+                                print('{}ms remaining'.format(context.get_remaining_time_in_millis()))
+                                print('Polling for task_token')
+                                response = sfn_client.get_activity_task(
+                                    activityArn=os.environ['STEP_FUNCTIONS_ACTIVITY_ARN'],
+                                    workerName=context.log_stream_name[-80:]
+                                )
+                                print(response)
+                                task_token = response.get('taskToken', '')
+                                task_event = json.loads(response.get('input','""'))
+
+                                if task_token != '':
+                                    print('Putting SFN Activity as a CloudWatch Event')
+                                    payload = json.dumps({'task_token': task_token, 'task_event': task_event})
+                                    print(payload)
+                                    response = cwe_client.put_events(
+                                        Entries=[
+                                            {
+                                                'Time': datetime.datetime.now(),
+                                                'Source': 'customaws.stepfunctions',
+                                                'Resources': [
+                                                    os.environ['STEP_FUNCTIONS_ACTIVITY_ARN'],
+                                                    os.environ['STEP_FUNCTIONS_STATE_MACHINE_ARN'],
+                                                ],
+                                                'DetailType': 'Step Functions Activity Scheuduled',
+                                                'Detail': payload
+                                            },
+                                        ]
+                                    )
+                                    print(response)
+                                else:
+                                    # There are no tasks waiting to be scheduled.
+                                    print('No task waiting, sleeping')
+                                    time.sleep(5)
+                                    continue
+
+                        except TimeoutException:
+                            # When we get here, we have too little time left to be sure of managing a full cycle.  So if our job hasn't come up,
+                            # we need to fail the invocation so that SFN retries this task and starts a new invocation
+                            print("Time's up!")
+                            return {}
+
+                        finally:
+                            # Reset the alarm
+                            signal.alarm(0)
+
+            Environment:
+                Variables:
+                    STEP_FUNCTIONS_ACTIVITY_ARN: { Ref: "StepFunctionsActivity" }
+                    STEP_FUNCTIONS_STATE_MACHINE_ARN: { Ref: "StateMachine" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "300"
+            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    SfnToCweScheduledRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "ScheduledRule"
+            ScheduleExpression: "rate(5 minutes)"
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "SfnToCweLambda", "Arn" ] }
+                Id: "TargetFunctionV1"
+
+    SfnToCweInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { Ref: "SfnToCweLambda" }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "SfnToCweScheduledRule", "Arn" ] }
+
+    CweToBatchLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: !Sub |
+                    import boto3, copy, hashlib, json, os, re, time
+
+                    batch_client = boto3.client('batch')
+
+
+                    def handler(event, _):
+                        print(json.dumps(event))
+                        task_event = event['detail']['task_event']
+                        task_token = event['detail']['task_token']
+
+                        scheduled_execution_id = schedule_batch_jobs(task_event, task_token)
+                        print('Scheduled batch jobs, scheduled_execution_id={}'.format(scheduled_execution_id))
+
+
+                    def schedule_batch_jobs(event, task_token):
+                        meta = event.get('Meta', None)
+                        input_data = event.get('Input', None)
+                        branches = event.get('Branches', None)
+
+                        # Always include the task token to use in case of failure
+                        meta['TaskTokenFailure'] = task_token
+                        meta['Profiling'] = {
+                            'ScheduleTime': time.time(),
+                        }
+
+                        if len(branches) == 1:
+                            # Only one branch, can return immediately
+                            meta['TaskToken'] = task_token
+
+                        execution_name = meta.get('ExecutionName', hashlib.md5(meta['ExecutionArn'].encode('utf-8')).hexdigest())[:23]
+
+                        # Submit the jobs!
+                        job_ids = []
+                        for branch in branches:
+                            input_datum = get_json_path(input_data, branch['InputPath'])
+                            branch_name = hashlib.md5(json.dumps(input_datum, default=json_serial).encode('utf-8')).hexdigest()[:8]
+                            job_name = "{}-{}-{}".format(
+                                execution_name,
+                                branch['Resource']['BatchJob'],
+                                branch_name
+                            )
+
+                            branch_meta = copy.deepcopy(meta)
+                            branch_meta['Profiling']['BranchScheduleTime'] = time.time()
+
+                            job_id = submit_job(
+                                job_name,
+                                branch['Resource']['BatchJob'],
+                                branch_meta,
+                                input_datum,
+                                memory=branch['Resource'].get('Memory', 256),
+                                vcpus=branch['Resource'].get('Vcpus', 2)
+                            )
+                            job_ids.append(job_id)
+
+                        if len(branches) > 1:
+                            # Submit a blank job that depends on all the others that signals SFN
+                            meta['TaskToken'] = task_token
+                            submit_job("{}-{}".format(execution_name, 'noop'), 'noop', meta, {}, job_ids)
+
+                        return meta['ExecutionArn']
+
+
+                    def submit_job(job_name, job, meta, input, dependencies=None, memory=64, vcpus=1):
+                        # This nasty splatting is required because boto3 chokes on trying to set things like dependsOn to None if you
+                        # have no dependencies, you have to not pass the parameter at all
+                        response = batch_client.submit_job(**{k: v for k, v in {
+                            'jobName': job_name,
+                            'jobQueue': os.environ['BATCH_JOB_QUEUE_ARN'],
+                            'jobDefinition': os.environ['BATCH_JOB_DEFINITION_ARN'],
+                            'parameters': {
+                                "Job": job,
+                                "Meta": json.dumps(meta, default=json_serial),
+                                "Input": json.dumps(input, default=json_serial)
+                            },
+                            'dependsOn': [{'jobId': j} for j in dependencies] if dependencies else None,
+                            'containerOverrides': {
+                                "environment": [
+                                    {"name": "ENVIRONMENT", "value": os.environ['ENVIRONMENT']},
+                                    {"name": "AWS_DEFAULT_REGION", "value": os.environ['AWS_DEFAULT_REGION']},
+                                ],
+                                "memory": memory,
+                                "vcpus": vcpus,
+                            }
+                        }.items() if v is not None})
+                        print(response)
+                        return response['jobId']
+
+
+                    def get_json_path(source, path):
+                        if path == '$':
+                            return source
+                        parts = re.sub('\[([^\]]+)\]', '.\\1.', path).strip('.').split('.')
+                        if parts[0] != '$':
+                            raise Exception("Path must be based on '$'")
+                        if len(parts) > 2:
+                            raise Exception("Subpaths not currently supported")
+                        if isinstance(source, dict):
+                            if parts[1] not in source:
+                                raise Exception("Path '{}' not found in Input".format(path))
+                            return source[parts[1]]
+                        if isinstance(source, list):
+                            if len(source) < int(parts[1]):
+                                raise Exception("List index out of range")
+                            return source[int(parts[1])]
+
+
+                    def json_serial(obj):
+                        from datetime import datetime
+                        if isinstance(obj, datetime):
+                            serial = obj.isoformat()
+                            return serial
+                        raise TypeError("Type not serializable")
+
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+                    STEP_FUNCTIONS_ACTIVITY_ARN: { Ref: "StepFunctionsActivity" }
+                    STEP_FUNCTIONS_STATE_MACHINE_ARN: { Ref: "StateMachine" }
+                    BATCH_JOB_QUEUE_ARN: { "Fn::Sub": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute" }
+                    BATCH_JOB_DEFINITION_ARN: { Ref: "BatchJobDefinition" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "300"
+            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-cwetobatch" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-cwetobatch" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    CweToBatchTriggerRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "Triggered Rule"
+            EventPattern:
+                source: [ "customaws.stepfunctions" ]
+                resources: [ { Ref: "StepFunctionsActivity" } ]
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "CweToBatchLambda", "Arn" ] }
+                Id: "TargetFunctionV1"
+
+    CweToBatchInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { Ref: "CweToBatchLambda" }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "CweToBatchTriggerRule", "Arn" ] }
 
     StateMachine:
         Type: "AWS::StepFunctions::StateMachine"

@@ -84,11 +84,6 @@ Parameters:
         AllowedValues: [ "true", "false" ]
         Default: "false"
         Description: "Whether to create the ingest stack"
-    PollerVersion:
-        Type: "String"
-        Description: "The git commit hash of the `sfnbatch` poller to deploy"
-        AllowedPattern: "[a-f0-9]{7}"
-        ConstraintDescription: "Must be an 7-hex-digit Git short commit hash"
 
     AutoscalingSchedule:
         Type: "String"
@@ -127,10 +122,9 @@ Metadata:
               - "ComputeEc2InstanceSize"
               - "ComputeEc2Ami"
               - "ComputeEc2Keypair"
-          - Label: { default: "Code versions" }
+          - Label: { default: "Code version" }
             Parameters:
               - "BatchJobVersion"
-              - "PollerVersion"
 
         ParameterLabels:
             Environment: { default: "Environment" }
@@ -142,7 +136,6 @@ Metadata:
             CreatePipeline: { default: "Create pipieline stack?" }
             CreateIngest: { default: "Create ingest stack?" }
             BatchJobVersion: { default: "batchjob" }
-            PollerVersion: { default: "sfnbatch poller" }
             MongoDbPeeringVpc: { default: "MongoDB VPN ID" }
             MongoDbPeeringCidr: { default: "MongoDB VPN CIDR" }
 
@@ -151,7 +144,6 @@ Conditions:
     CreateCompute: { "Fn::And": [ { Condition: "CreateVpc" }, { "Fn::Equals": [ { Ref: "CreateCompute" }, "true" ] } ] }
     CreatePipeline: { "Fn::And": [ { Condition: "CreateCompute" }, { "Fn::Equals": [ { Ref: "CreatePipeline" }, "true" ] } ] }
     CreateIngest: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] } ] }
-    CreatePoller: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Not": [ { "Fn::Equals": [ { Ref: "PollerVersion" }, "" ] } ] } ] }
     CreateMonitoring: { "Fn::And": [ { "Condition": "CreateCompute" }, { "Condition": "CreatePipeline" } ] }
 
 Resources:
@@ -288,35 +280,6 @@ Resources:
             } ] }
             TimeoutInMinutes: 10
         Condition: "CreateIngest"
-
-    ##########################################################################################################
-    ##  SFN-BATCH POLLER
-    ##########################################################################################################
-
-    PollerCluster:
-        Type: "AWS::CloudFormation::Stack"
-        Properties:
-            Parameters:
-                Project: "preprocessing"
-                Environment: { Ref: "Environment" }
-                Vpc: { "Fn::GetAtt": [ "VpcStack", "Outputs.VpcId" ] }
-                PrivateSubnets: { "Fn::GetAtt": [ "VpcStack", "Outputs.PrivateSubnetIds" ] }
-                ActivityArn: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.ActivityArn" ] }
-                SqsQueueName: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.LinearitySqsQueueName" ] }
-                InstanceSize: "t2.micro"
-                PollerVersion: { Ref: "PollerVersion" }
-            Tags:
-              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-sfnbatch-poller" } }
-              - { Key: "Management", Value: "managed" }
-              - { Key: "Project", Value: "preprocessing" }
-              - { Key: "Environment", Value: { Ref: "Environment" } }
-              - { Key: "Service", Value: "sfnbatch" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/preprocessing/${TemplateVersion}/preprocessing-poller.yaml", {
-                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
-                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
-            } ] }
-            TimeoutInMinutes: 10
-        Condition: "CreatePoller"
 
     ##########################################################################################################
     ##  MONITORING
