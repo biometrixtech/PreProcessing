@@ -323,16 +323,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "downloadandchunk",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -404,17 +400,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "transformandplacement",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -451,17 +442,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "sessionprocess2",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -508,17 +494,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "scoring",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -556,17 +537,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatesession",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -603,17 +579,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateblocks",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -650,17 +621,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatetwomin",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -702,17 +668,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatedateuser",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -746,17 +707,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateteam",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -792,17 +748,12 @@ Resources:
                         training_group_ids = event["ReadDatabase"]["TrainingGroupIds"] or {}
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatetraininggroup",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -837,17 +788,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcomp",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -884,17 +830,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcompdate",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -957,17 +898,12 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
                                 "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "cleanup",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
