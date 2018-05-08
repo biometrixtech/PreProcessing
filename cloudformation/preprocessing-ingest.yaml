@@ -283,7 +283,7 @@ Resources:
                                 if user is not None:
                                     update_dynamodb(new_object['id'], {
                                         'team_id': user['team_id'],
-                                        'training_group_ids': set(user['training_group_ids']),
+                                        'training_group_ids': set(user['training_group_ids']) if len(user['training_group_ids']) else None,
                                         'user_mass': Decimal(str(user['mass']['kg'])),
                                     })
 
@@ -295,11 +295,11 @@ Resources:
 
                     def get_accessory_from_id(accessory_id):
                         ret = make_request('https://apis.{ENVIRONMENT}.fathomai.com/hardware/accessory/{ACCESSORY_ID}'.format(**os.environ, ACCESSORY_ID=accessory_id))
-                        return dict(ret).get('accessory', None)
+                        return ret.get('accessory', None) if isinstance(ret, dict) else None
 
                     def get_user_from_id(user_id):
                         ret = make_request('https://apis.{ENVIRONMENT}.fathomai.com/users/user/{USER_ID}'.format(**os.environ, USER_ID=user_id))
-                        return dict(ret).get('user', None)
+                        return ret.get('user', None) if isinstance(ret, dict) else None
 
                     def make_request(url):
                         # TODO
@@ -341,6 +341,7 @@ Resources:
                         return {attr_name: cast(*list(v.items())[0]) for attr_name, v in record.items()}
 
                     def update_dynamodb(session_id, updates):
+                        updates = {k:v for k,v in updates.items() if v is not None}
                         update_expression = 'SET {} '.format(', '.join(["{} = :{}".format(k, k) for k in updates.keys()]))
                         values = {':' + k: v for (k, v) in updates.items()}
                         print('Updating {} with parameters {}'.format(update_expression, values))
