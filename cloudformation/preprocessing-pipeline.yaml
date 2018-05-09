@@ -1080,7 +1080,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
-                    import boto3, copy, hashlib, json, os, re, time
+                    import boto3, copy, json, os, re, time
 
                     batch_client = boto3.client('batch')
 
@@ -1090,14 +1090,9 @@ Resources:
                         task_event = event['detail']['task_event']
                         task_token = event['detail']['task_token']
 
-                        scheduled_execution_id = schedule_batch_jobs(task_event, task_token)
-                        print('Scheduled batch jobs, scheduled_execution_id={}'.format(scheduled_execution_id))
-
-
-                    def schedule_batch_jobs(event, task_token):
-                        meta = event.get('Meta', None)
-                        input_data = event.get('Input', None)
-                        branches = event.get('Branches', None)
+                        meta = task_event.get('Meta', None)
+                        input_data = task_event.get('Input', None)
+                        branches = task_event.get('Branches', None)
 
                         # Always include the task token to use in case of failure
                         meta['TaskTokenFailure'] = task_token
@@ -1109,27 +1104,19 @@ Resources:
                             # Only one branch, can return immediately
                             meta['TaskToken'] = task_token
 
-                        execution_name = meta.get('ExecutionName', hashlib.md5(meta['ExecutionArn'].encode('utf-8')).hexdigest())[:23]
-
                         # Submit the jobs!
                         job_ids = []
-                        for branch in branches:
+                        for i, branch in enumerate(branches):
                             input_datum = get_json_path(input_data, branch['InputPath'])
-                            branch_name = hashlib.md5(json.dumps(input_datum, default=json_serial).encode('utf-8')).hexdigest()[:8]
-                            job_name = "{}-{}-{}".format(
-                                execution_name,
-                                branch['Resource']['BatchJob'],
-                                branch_name
-                            )
 
                             branch_meta = copy.deepcopy(meta)
                             branch_meta['Profiling']['BranchScheduleTime'] = time.time()
 
                             job_id = submit_job(
-                                job_name,
                                 branch['Resource']['BatchJob'],
                                 branch_meta,
                                 input_datum,
+                                index = str(i) if len(branches) > 1 else None,
                                 memory=branch['Resource'].get('Memory', 256),
                                 vcpus=branch['Resource'].get('Vcpus', 2)
                             )
@@ -1138,22 +1125,20 @@ Resources:
                         if len(branches) > 1:
                             # Submit a blank job that depends on all the others that signals SFN
                             meta['TaskToken'] = task_token
-                            submit_job("{}-{}".format(execution_name, 'noop'), 'noop', meta, {}, job_ids)
-
-                        return meta['ExecutionArn']
+                            submit_job('noop', meta, {}, dependencies=job_ids)
 
 
-                    def submit_job(job_name, job, meta, input, dependencies=None, memory=64, vcpus=1):
+                    def submit_job(job_name, job_meta, job_input, index=None, dependencies=None, memory=64, vcpus=1):
                         # This nasty splatting is required because boto3 chokes on trying to set things like dependsOn to None if you
                         # have no dependencies, you have to not pass the parameter at all
                         response = batch_client.submit_job(**{k: v for k, v in {
-                            'jobName': job_name,
+                            'jobName': '_'.join(filter(None, [job_meta['ExecutionName'], job_name, index])),
                             'jobQueue': os.environ['BATCH_JOB_QUEUE_ARN'],
                             'jobDefinition': os.environ['BATCH_JOB_DEFINITION_ARN'],
                             'parameters': {
-                                "Job": job,
-                                "Meta": json.dumps(meta, default=json_serial),
-                                "Input": json.dumps(input, default=json_serial)
+                                "Job": job_name,
+                                "Meta": json.dumps(job_meta, default=json_serial),
+                                "Input": json.dumps(job_input, default=json_serial)
                             },
                             'dependsOn': [{'jobId': j} for j in dependencies] if dependencies else None,
                             'containerOverrides': {
