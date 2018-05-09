@@ -986,65 +986,61 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
-                    import boto3, datetime, json, os, signal, time
+                    import boto3, botocore.config, datetime, json, os, time
 
-                    class TimeoutException(Exception): pass
-                    def timeout_handler(_, __): raise TimeoutException()
-                    sfn_client = boto3.client('stepfunctions')
+                    sfn_client = boto3.client('stepfunctions', config=botocore.config.Config(retries={'max_attempts': 0}))
                     cwe_client = boto3.client('events')
 
-                    def handler(_, context):
-                        # After 180 secs, call the timeout_handler() which raises an exception
-                        signal.signal(signal.SIGALRM, timeout_handler)
-                        signal.alarm(180)
 
-                        try:
-                            while True:
-                                # We have time to go for another pass
-                                print('{}ms remaining'.format(context.get_remaining_time_in_millis()))
-                                print('Polling for task_token')
-                                response = sfn_client.get_activity_task(
+                    def handler(_, context):
+
+                        payload = None
+                        while context.get_remaining_time_in_millis() / 1000 > 65:
+                            try:
+                                print('Polling for task token, {}ms remaining'.format(context.get_remaining_time_in_millis()))
+                                payload = sfn_client.get_activity_task(
                                     activityArn=os.environ['STEP_FUNCTIONS_ACTIVITY_ARN'],
                                     workerName=context.log_stream_name[-80:]
                                 )
-                                print(response)
-                                task_token = response.get('taskToken', '')
-                                task_event = json.loads(response.get('input','""'))
+                                print('Got response, {}ms remaining'.format(context.get_remaining_time_in_millis()))
+                                process_payload(payload)
+                                payload = None
+                            except Exception as e:
+                                print(str(e))
+                                continue
 
-                                if task_token != '':
-                                    print('Putting SFN Activity as a CloudWatch Event')
-                                    payload = json.dumps({'task_token': task_token, 'task_event': task_event})
-                                    print(payload)
-                                    response = cwe_client.put_events(
-                                        Entries=[
-                                            {
-                                                'Time': datetime.datetime.now(),
-                                                'Source': 'customaws.stepfunctions',
-                                                'Resources': [
-                                                    os.environ['STEP_FUNCTIONS_ACTIVITY_ARN'],
-                                                    os.environ['STEP_FUNCTIONS_STATE_MACHINE_ARN'],
-                                                ],
-                                                'DetailType': 'Step Functions Activity Scheuduled',
-                                                'Detail': payload
-                                            },
-                                        ]
-                                    )
-                                    print(response)
-                                else:
-                                    # There are no tasks waiting to be scheduled.
-                                    print('No task waiting, sleeping')
-                                    time.sleep(5)
-                                    continue
+                        # Process any last payload
+                        if payload is not None:
+                            process_payload(payload)
 
-                        except TimeoutException:
-                            # When we get here, we have too little time left to be sure of managing a full cycle.  So if our job hasn't come up,
-                            # we need to fail the invocation so that SFN retries this task and starts a new invocation
-                            print("Time's up!")
-                            return {}
+                    def process_payload(payload):
+                        print(json.dumps(payload))
+                        task_token = payload.get('taskToken', '')
+                        task_event = json.loads(payload.get('input','""'))
 
-                        finally:
-                            # Reset the alarm
-                            signal.alarm(0)
+                        if task_token != '':
+                            print('Putting SFN Activity as a CloudWatch Event')
+                            payload = json.dumps({'task_event': task_event, 'task_token': task_token})
+                            print(payload)
+                            response = cwe_client.put_events(
+                                Entries=[
+                                    {
+                                        'Time': datetime.datetime.now(),
+                                        'Source': 'customaws.stepfunctions',
+                                        'Resources': [
+                                            os.environ['STEP_FUNCTIONS_ACTIVITY_ARN'],
+                                            os.environ['STEP_FUNCTIONS_STATE_MACHINE_ARN'],
+                                        ],
+                                        'DetailType': 'Step Functions Activity Scheuduled',
+                                        'Detail': payload
+                                    },
+                                ]
+                            )
+                            print(json.dumps({'event_id': response['Entries'][0]['EventId']}))
+                        else:
+                            # There are no tasks waiting to be scheduled.
+                            print('No task waiting, sleeping')
+                            time.sleep(2)
 
             Environment:
                 Variables:
@@ -1065,7 +1061,7 @@ Resources:
         Type: "AWS::Events::Rule"
         Properties:
             Description: "ScheduledRule"
-            ScheduleExpression: "rate(5 minutes)"
+            ScheduleExpression: "rate(4 minutes)"
             State: "ENABLED"
             Targets:
               - Arn: { "Fn::GetAtt": [ "SfnToCweLambda", "Arn" ] }
