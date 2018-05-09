@@ -324,7 +324,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -401,7 +400,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -443,7 +441,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -495,7 +492,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -538,7 +534,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -580,7 +575,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -622,7 +616,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -669,7 +662,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -708,7 +700,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -722,7 +713,6 @@ Resources:
                                 }
                             ],
                             "Input": event["ReadDatabase"],
-                            "LinearityGroup": event["ReadDatabase"]["TeamId"]
                         }
             Environment:
                 Variables:
@@ -749,7 +739,6 @@ Resources:
                         training_group_ids = event["ReadDatabase"]["TrainingGroupIds"] or {}
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -763,7 +752,6 @@ Resources:
                                 }
                             ],
                             "Input": event["ReadDatabase"],
-                            "LinearityGroup": training_group_ids[0] if len(training_group_ids) else ''
                         }
             Environment:
                 Variables:
@@ -789,7 +777,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -831,7 +818,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -899,7 +885,6 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
                             "Branches": [
@@ -1013,6 +998,7 @@ Resources:
                         # Process any last payload
                         if payload is not None:
                             process_payload(payload)
+
 
                     def process_payload(payload):
                         print(json.dumps(payload))
