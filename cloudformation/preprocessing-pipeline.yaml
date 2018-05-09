@@ -199,6 +199,7 @@ Resources:
                           - "cloudwatch:PutMetricData"
                           - "logs:CreateLogStream"
                           - "logs:PutLogEvents"
+                          - "logs:DescribeLogStreams"
                         Effect: "Allow"
                         Resource: "*"
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" }
@@ -1216,6 +1217,105 @@ Resources:
             Action: "lambda:InvokeFunction"
             Principal: "events.amazonaws.com"
             SourceArn: { "Fn::GetAtt": [ "CweToBatchTriggerRule", "Arn" ] }
+
+    BatchEventsLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: !Sub |
+                    import boto3, datetime, json, os
+                    logs_client = boto3.client('logs')
+                    def handler(event, _):
+                        print(json.dumps(event))
+                        meta = json.loads(event['detail']['parameters']['Meta'])
+
+                        now = int(datetime.datetime.strptime(event['time'], "%Y-%m-%dT%H:%M:%SZ").timestamp())
+                        execution_name = meta['ExecutionName']
+
+                        if event['detail-type'] == "Batch Job State Change":
+                            message = {
+                                'job_name': event['detail']['jobName'].split('_', 1)[1],
+                                'job_status': event['detail']['status'],
+                                'job_id': event['detail']['jobId']
+                            }
+
+                            try:
+                                log_stream = event['detail']['attempts'][-1]['container']['logStreamName']
+                                message[
+                                    'log_url'] = 'https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={group};stream={stream}'.format(
+                                    region=os.environ['AWS_DEFAULT_REGION'],
+                                    group='/aws/batch/job',
+                                    stream=log_stream,
+                                )
+                            except:
+                                pass
+
+                            log(execution_name, json.dumps(message), now)
+
+
+                    def log(log_stream, message, now):
+                        for i in range(10):
+                            try:
+                                res = logs_client.describe_log_streams(
+                                    logGroupName='/biometrix/preprocessing/{ENVIRONMENT}'.format(**os.environ),
+                                    logStreamNamePrefix=log_stream
+                                )
+                                print(res)
+                                if len(res['logStreams']) == 0:
+                                    print('No log stream')
+                                    return
+
+                                sequence_token = res['logStreams'][0]['uploadSequenceToken']
+                                print(sequence_token)
+                                logs_client.put_log_events(
+                                    logGroupName='/biometrix/preprocessing/{ENVIRONMENT}'.format(**os.environ),
+                                    logStreamName=log_stream,
+                                    logEvents=[{'timestamp': now * 1000, 'message': message}],
+                                    sequenceToken=sequence_token
+                                )
+                                return
+                            except Exception as e:
+                                print(str(e))
+                                continue
+
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+                    STEP_FUNCTIONS_ACTIVITY_ARN: { Ref: "StepFunctionsActivity" }
+                    STEP_FUNCTIONS_STATE_MACHINE_ARN: { Ref: "StateMachine" }
+                    BATCH_JOB_QUEUE_ARN: { "Fn::Sub": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute" }
+                    BATCH_JOB_DEFINITION_ARN: { Ref: "BatchJobDefinition" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "300"
+            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-batch-stream" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-batch-stream" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    BatchEventsTriggerRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "Triggered Rule"
+            EventPattern:
+                source: [ "aws.batch" ]
+                detail:
+                    jobQueue: [ { "Fn::Sub": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute" } ]
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "BatchEventsLambda", "Arn" ] }
+                Id: "TargetFunctionV1"
+
+    BatchEventsInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { Ref: "BatchEventsLambda" }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "BatchEventsTriggerRule", "Arn" ] }
 
     StateMachine:
         Type: "AWS::StepFunctions::StateMachine"
