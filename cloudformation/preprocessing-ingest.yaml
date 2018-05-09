@@ -262,8 +262,8 @@ Resources:
         Properties:
             Code:
                 ZipFile: |
-                    import boto3, json, os, time, urllib.request
-                    from decimal import Decimal
+                    import boto3, datetime, decimal, json, os, time, urllib.request
+                    logs_client = boto3.client('logs')
 
                     def handler(event, _):
                         print(json.dumps(event))
@@ -273,7 +273,6 @@ Resources:
                             changes = { k : (old_object.get(k, None), new_object.get(k, None)) for k, _ in set(new_object.items()).symmetric_difference(set(old_object.items())) }
 
                             if 'session_status' in changes and changes['session_status'][1] == 'UPLOAD_COMPLETE':
-                                # Begin processing
                                 print('Beginning SFN execution')
                                 trigger_sfn(new_object['id'], new_object.get('version', '2.3'))
 
@@ -284,7 +283,7 @@ Resources:
                                     update_dynamodb(new_object['id'], {
                                         'team_id': user['team_id'],
                                         'training_group_ids': set(user['training_group_ids']) if len(user['training_group_ids']) else None,
-                                        'user_mass': Decimal(str(user['mass']['kg'])),
+                                        'user_mass': decimal.Decimal(str(user['mass']['kg'])),
                                     })
 
                             if 'accessory_id' in changes:
@@ -302,31 +301,33 @@ Resources:
                         return ret.get('user', None) if isinstance(ret, dict) else None
 
                     def make_request(url):
-                        # TODO
-                        authorisation = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDAifQ.B0cQFH950aef1Wi09GyooBirtCuB7tl9Rr0DPvwQwFE'
-                        headers = {'Authorization': authorisation, 'Accept': 'application/json'}
+                        headers = {'Authorization': os.environ['AUTH_JWT'], 'Accept': 'application/json'}
                         try:
                             with urllib.request.urlopen(urllib.request.Request(url, headers=headers)) as response:
                                 ret = json.loads(response.read())
                             print(json.dumps(ret))
                             return ret
-                        except urllib.error.HTTPError as e:
+                        except urllib.error.HTTPError:
                             return None
 
                     def trigger_sfn(session_id, version):
+                        now = int(datetime.datetime.utcnow().timestamp())
                         execution_name = '{}-{}'.format(session_id, int(time.time()))
+                        logs_client.create_log_stream(
+                            logGroupName=os.environ['LOG_GROUP_NAME'],
+                            logStreamName=execution_name
+                        )
+                        logs_client.put_log_events(
+                            logGroupName=os.environ['LOG_GROUP_NAME'],
+                            logStreamName=execution_name,
+                            logEvents=[{'timestamp': now * 1000, 'message': 'SFN Execution triggered'}]
+                        )
                         boto3.client('stepfunctions').start_execution(
                             stateMachineArn=os.environ['STATE_MACHINE_ARN'],
                             name=execution_name,
                             input=json.dumps({
-                                "Meta": {
-                                    "ExecutionArn": "{}:{}".format(os.environ['STATE_MACHINE_ARN'], execution_name),
-                                    "ExecutionName": execution_name,
-                                },
-                                "SourceEvent": {
-                                    "SessionId": session_id,
-                                    "SensorDataFileVersion": version,
-                                }
+                                "Meta": {"ExecutionName": execution_name},
+                                "SourceEvent": {"SessionId": session_id, "SensorDataFileVersion": version}
                             })
                         )
 
@@ -356,6 +357,8 @@ Resources:
                     DYNAMODB_TABLE_NAME: { Ref: "SessionEventsTable" }
                     ENVIRONMENT: { Ref: "Environment" }
                     STATE_MACHINE_ARN: { Ref: "StateMachineArn" }
+                    AUTH_JWT: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDAifQ.B0cQFH950aef1Wi09GyooBirtCuB7tl9Rr0DPvwQwFE'
+                    LOG_GROUP_NAME: { "Fn::Sub": "/biometrix/preprocessing/${Environment}" }
             Handler: "index.handler"
             MemorySize: "256"
             Runtime: "python3.6"
