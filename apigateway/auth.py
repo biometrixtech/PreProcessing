@@ -50,7 +50,7 @@ def get_accessory_id_from_auth():
 
 def get_accessory_from_id(accessory_id):
     accessory_res = requests.get(
-        'https://hardware.{ENVIRONMENT}.fathomai.com/v1/accessory/{ACCESSORY_ID}'.format(**os.environ, ACCESSORY_ID=accessory_id),
+        'https://hardware.{ENVIRONMENT}.fathomai.com/v1/accessory/{ACCESSORY_ID}'.format(ACCESSORY_ID=accessory_id, **os.environ),
         headers={
             'Authorization': get_api_service_token(),
             'Accept': 'application/json',
@@ -67,7 +67,7 @@ def get_accessory_from_id(accessory_id):
 
 def get_user_from_id(user_id):
     user_res = requests.get(
-        'https://users.{ENVIRONMENT}.fathomai.com/v1/user/{USER_ID}'.format(**os.environ, USER_ID=user_id),
+        'https://users.{ENVIRONMENT}.fathomai.com/v1/user/{USER_ID}'.format(USER_ID=user_id, **os.environ),
         headers={
             'Authorization': get_api_service_token(),
             'Accept': 'application/json',
