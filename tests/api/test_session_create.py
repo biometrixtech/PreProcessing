@@ -6,7 +6,7 @@ jwt_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6IjAwOjAwOjAwOj
 
 class TestSessionCreateNoAuth(BaseTest):
     endpoint = 'session'
-    method = 'GET'
+    method = 'POST'
     expected_status = 401
 
 
@@ -30,7 +30,7 @@ class TestSessionCreateOneSensor(BaseTest):
     method = 'POST'
     authorization = jwt_token
     body = {'event_date': '2001-01-01T01:23:45Z', 'sensors': ['11:11:11:11:11']}
-    expected_status = 401
+    expected_status = 201
 
 
 # class TestFirmwareGetInvalidVersion(BaseTest):

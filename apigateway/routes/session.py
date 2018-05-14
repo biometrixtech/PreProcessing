@@ -11,6 +11,7 @@ import uuid
 
 from auth import get_accessory_id_from_auth
 from datastore import SessionDatastore
+from decorators import authentication_required
 from exceptions import InvalidSchemaException, ApplicationException, NoSuchEntityException, DuplicateEntityException
 from models.session import Session
 
@@ -18,6 +19,7 @@ app = Blueprint('session', __name__)
 
 
 @app.route('/', methods=['POST'])
+@authentication_required
 @xray_recorder.capture('routes.session.create')
 def handle_session_create():
     if not isinstance(request.json, dict):
@@ -54,6 +56,7 @@ def handle_session_create():
 
 
 @app.route('/<session_id>', methods=['GET'])
+@authentication_required
 @xray_recorder.capture('routes.session.get')
 def handle_session_get(session_id):
     session = get_session_by_id(session_id)
@@ -63,6 +66,7 @@ def handle_session_get(session_id):
 
 
 @app.route('/<session_id>/upload', methods=['POST'])
+@authentication_required
 @xray_recorder.capture('routes.session.upload')
 def handle_session_upload(session_id):
     session = get_session_by_id(session_id)
@@ -104,6 +108,7 @@ def handle_session_upload(session_id):
 
 
 @app.route('/<session_id>', methods=['PATCH'])
+@authentication_required
 @xray_recorder.capture('routes.session.patch')
 def handle_session_patch(session_id):
     store = SessionDatastore()
