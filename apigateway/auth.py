@@ -43,7 +43,7 @@ def get_accessory_id_from_auth():
     jwt_token = jwt.decode(get_jwt_from_request(), verify=False)
     print(json.dumps({'jwt_token': jwt_token}))
     if 'username' in jwt_token:
-        return jwt_token['username']
+        return jwt_token['username'].upper()
     else:
         raise UnauthorizedException('Sessions can only be created by hardware-authenticated clients')
 

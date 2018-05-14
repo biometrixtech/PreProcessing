@@ -6,7 +6,7 @@ jwt_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiZTg1MTQ0ODktOG
 
 class TestStatusNoAuth(BaseTest):
     endpoint = 'status'
-    method = 'GET'
+    method = 'POST'
     expected_status = 401
 
 
