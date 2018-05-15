@@ -45,6 +45,8 @@ class BaseTest(unittest.TestCase):
             res = requests.get(endpoint, headers=self._get_headers())
         elif self.method == 'POST':
             res = requests.post(endpoint, json=self.body, headers=self._get_headers())
+        elif self.method == 'PATCH':
+            res = requests.patch(endpoint, json=self.body, headers=self._get_headers())
         else:
             self.fail('Unsupported method')
 
