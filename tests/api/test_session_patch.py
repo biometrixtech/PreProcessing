@@ -17,39 +17,40 @@ def _query_dynamodb(resource, key_condition_expression):
     return ret['Items'][0] if len(ret['Items']) else None
 
 
-class TestSessionCreateNoAuth(BaseTest):
-    endpoint = 'session'
-    method = 'POST'
+class TestSessionPatchNoAuth(BaseTest):
+    endpoint = 'session/911bffe6-2649-5b74-825a-7481bdf5920e'
+    method = 'PATCH'
     expected_status = 401
 
 
-class TestSessionCreateWrongMethod(BaseTest):
-    endpoint = 'session'
-    method = 'GET'
+class TestSessionPatchInvalidUuid(BaseTest):
+    endpoint = 'session/foobar'
+    method = 'PATCH'
     authorization = get_api_service_token()
-    expected_status = 405
-
-
-class TestSessionCreateEmptyBody(BaseTest):
-    endpoint = 'session'
-    method = 'POST'
-    authorization = jwt_token
-    body = None
     expected_status = 400
 
 
-class TestSessionCreateOneSensor(BaseTest):
-    endpoint = 'session'
-    method = 'POST'
+class TestSessionPatchNonExistent(BaseTest):
+    endpoint = 'session/00000000-0000-4000-8000-000000000000'
+    method = 'PATCH'
+    authorization = get_api_service_token()
+    expected_status = 404
+
+
+class TestSessionPatchUipToUc(BaseTest):
+    endpoint = 'session/911bffe6-2649-5b74-825a-7481bdf5920e'
+    method = 'PATCH'
     authorization = jwt_token
-    body = {'event_date': '2001-01-01T01:23:45Z', 'sensors': ['11:11:11:11:11']}
-    expected_status = 201
+    body = {'session_status': 'UPLOAD_COMPLETE'}
+    expected_status = 400
     expected_id = '911bffe6-2649-5b74-825a-7481bdf5920e'
 
     def validate_aws_pre(self):
         existing = _query_dynamodb(sessions_table, Key('id').eq(self.expected_id))
-        if existing is not None:
-            self.fail('Session should not exist prior to test')
+        if existing is None:
+            self.fail('Session should exist prior to test')
+        self.assertIn('session_status', existing)
+        self.assertEqual('CREATE_COMPLETE', existing['session_status'])
 
     def validate_aws_post(self):
         res = _query_dynamodb(sessions_table, Key('id').eq(self.expected_id))
@@ -57,17 +58,28 @@ class TestSessionCreateOneSensor(BaseTest):
             self.fail('Session should exist after test')
         self.assertIn('id', res)
         self.assertEqual(self.expected_id, res['id'])
+        self.assertIn('session_status', res)
+        self.assertEqual('CREATE_COMPLETE', res['session_status'])
 
     def validate_response(self, body, headers, status):
         self.assertIn('session', body)
         session = body['session']
         self.assertIn('id', session)
         self.assertEqual(self.expected_id, session['id'])
-        self.assertIn('session_status', session)
-        self.assertEqual('CREATE_COMPLETE', session['session_status'])
 
     def setUp(self):
-        sessions_table.delete_item(Key={'id': self.expected_id})
+        sessions_table.put_item(Item={
+            'accessory_id': '00:00:00:00:00',
+            'created_dateString': '2018-05-14T22:18:22Z',
+            'event_date': '2001-01-01T01:23:45Z',
+            'id': '911bffe6-2649-5b74-825a-7481bdf5920e',
+            'sensor_ids': ['11:11:11:11:11'],
+            'session_status': 'CREATE_COMPLETE',
+            'updated_date':	'2018-05-14T22:18:22Z',
+            'version': '2.3',
+        })
+        pass
 
     def tearDown(self):
         sessions_table.delete_item(Key={'id': self.expected_id})
+        pass
