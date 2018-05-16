@@ -120,7 +120,9 @@ def handle_session_patch(session_id):
         if (session.session_status, request.json['session_status']) in allowed_transitions:
             session.session_status = request.json['session_status']
         else:
-            raise InvalidSchemaException('Transition from {} to {} is not allowed'.format(session.session_status, request.json['session_status']))
+            # https://app.asana.com/0/654140198477919/673983533272813
+            return {'session': session}, 200
+            # raise InvalidSchemaException('Transition from {} to {} is not allowed'.format(session.session_status, request.json['session_status']))
 
     store.put(session, True)
     return {'session': session}
