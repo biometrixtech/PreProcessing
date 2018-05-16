@@ -126,7 +126,7 @@ def handle_session_patch(session_id):
             session.session_status = request.json['session_status']
         else:
             # https://app.asana.com/0/654140198477919/673983533272813
-            return {'session': session}, 200
+            return {'message': 'Currently at status {}, cannot change to {}'.format(session.session_status, request.json['session_status'])}, 200
             # raise InvalidSchemaException('Transition from {} to {} is not allowed'.format(session.session_status, request.json['session_status']))
 
     store.put(session, True)
