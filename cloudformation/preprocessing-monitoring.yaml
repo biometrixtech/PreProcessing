@@ -558,8 +558,67 @@ Resources:
                             },
                             "title": "DynamoDB - Sessions table"
                         }
+                    },
+                    {
+                        "type": "metric",
+                        "x": 12,
+                        "y": 30,
+                        "width": 12,
+                        "height": 6,
+                        "properties": {
+                            "view": "timeSeries",
+                            "stacked": false,
+                            "metrics": [
+                                [
+                                    "AWS/Lambda", "IteratorAge",
+                                    "FunctionName", "preprocessing-${Environment}-ingest-sessions-stream",
+                                    { "yAxis": "right", "stat": "Average", "period": 60 }
+                                ],
+                                [ ".", "Errors", ".", ".", { "stat": "Maximum", "period": 60 } ]
+                            ],
+                            "region": "${AWS::Region}",
+                            "title": "DynamoDB - Sessions stream",
+                            "period": 300
+                        }
                     }
                 ] }
+
+    ##########################################################################################################
+    ##  ALARMS
+    ##########################################################################################################
+
+    MonitoringAlarmTopic:
+        Type: "AWS::SNS::Topic"
+        Properties:
+            DisplayName: "PreProcessing infrastructure alarm notifications"
+            TopicName: { "Fn::Sub": "preprocessing-${Environment}-monitoringalarms" }
+
+    SnsDataQualitySubscriptionStephen:
+        Type: "AWS::SNS::Subscription"
+        Properties:
+            Endpoint: { "Fn::Sub": "stephen+dataquality-${Environment}@biometrixtech.com" }
+            Protocol: "email"
+            TopicArn: { Ref: "MonitoringAlarmTopic" }
+
+    SessionsStreamIteratorAgeAlarm:
+        Type: "AWS::CloudWatch::Alarm"
+        Properties:
+            ActionsEnabled: true
+            AlarmActions: [ { Ref: "MonitoringAlarmTopic" } ]
+            AlarmDescription: "Alerts when the Lambda processing DynamoDB Streams events gets backed up, probably due to an error"
+            AlarmName: { "Fn::Sub": "preprocessing-${Environment}-ingest-sessions-stream" }
+            ComparisonOperator: "GreaterThanThreshold"
+            Dimensions:
+              - Name: "FunctionName"
+                Value: { "Fn::Sub": "preprocessing-${Environment}-ingest-sessions-stream" }
+            EvaluationPeriods: 3
+            MetricName: "IteratorAge"
+            Namespace: "AWS/Lambda"
+            Period: 60
+            Statistic: "Average"
+            Threshold: 100000
+            TreatMissingData: "ignore"
+            Unit: "Milliseconds"
 
     ##########################################################################################################
     ##  SCHEDULED AUTOSCALING
