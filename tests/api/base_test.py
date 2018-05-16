@@ -11,6 +11,7 @@ class BaseTest(unittest.TestCase):
     body = None
     authorization = None
     expected_status = None
+    headers = {}
 
     longMessage = True
 
@@ -21,6 +22,7 @@ class BaseTest(unittest.TestCase):
         }
         if self.authorization is not None:
             headers['Authorization'] = self.authorization
+        headers.update(self.headers)
         return headers
 
     def validate_response(self, body, headers, status):
@@ -45,6 +47,8 @@ class BaseTest(unittest.TestCase):
             res = requests.get(endpoint, headers=self._get_headers())
         elif self.method == 'POST':
             res = requests.post(endpoint, json=self.body, headers=self._get_headers())
+        elif self.method == 'POST-RAW':
+            res = requests.post(endpoint, data=self.body, headers=self._get_headers())
         elif self.method == 'PATCH':
             res = requests.patch(endpoint, json=self.body, headers=self._get_headers())
         else:
