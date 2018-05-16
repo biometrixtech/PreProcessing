@@ -4,8 +4,7 @@
         { "s3_filename": "preprocessing-environment.yaml", "src": "cloudformation/preprocessing-environment.yaml" },
         { "s3_filename": "preprocessing-ingest.yaml", "src": "cloudformation/preprocessing-ingest.yaml" },
         { "s3_filename": "preprocessing-monitoring.yaml", "src": "cloudformation/preprocessing-monitoring.yaml" },
-        { "s3_filename": "preprocessing-pipeline.yaml", "src": "cloudformation/preprocessing-pipeline.yaml" },
-        { "s3_filename": "preprocessing-poller.yaml", "src": "cloudformation/preprocessing-poller.yaml" }
+        { "s3_filename": "preprocessing-pipeline.yaml", "src": "cloudformation/preprocessing-pipeline.yaml" }
     ],
     "lambdas": [
         {

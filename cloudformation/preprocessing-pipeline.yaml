@@ -166,6 +166,44 @@ Resources:
 
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-execute-${AWS::Region}" }
 
+    SfnToCweRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "lambda.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+            Policies:
+              - PolicyName: "default"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "states:GetActivityTask"
+                        Effect: "Allow"
+                        Resource: { Ref: "StepFunctionsActivity" }
+
+                      - Action:
+                          - "batch:DescribeJobDefinitions"
+                          - "batch:DescribeJobQueues"
+                          - "batch:SubmitJob"
+                        Effect: "Allow"
+                        Resource: "*" # Batch doesn't support resource-level permissions
+
+                      - Action:
+                          - "events:PutEvents"
+                          - "cloudwatch:PutMetricData"
+                          - "logs:CreateLogStream"
+                          - "logs:PutLogEvents"
+                          - "logs:DescribeLogStreams"
+                        Effect: "Allow"
+                        Resource: "*"
+            RoleName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" }
+
     ##########################################################################################################
     ##  BATCH
     ##########################################################################################################
@@ -286,16 +324,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "downloadandchunk",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -367,17 +400,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "transformandplacement",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -414,17 +441,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "sessionprocess2",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -471,17 +492,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "scoring",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -519,17 +534,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatesession",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -566,17 +575,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateblocks",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -613,17 +616,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatetwomin",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -665,17 +662,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatedateuser",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -709,17 +700,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateteam",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -728,7 +713,6 @@ Resources:
                                 }
                             ],
                             "Input": event["ReadDatabase"],
-                            "LinearityGroup": event["ReadDatabase"]["TeamId"]
                         }
             Environment:
                 Variables:
@@ -755,17 +739,11 @@ Resources:
                         training_group_ids = event["ReadDatabase"]["TrainingGroupIds"] or {}
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregatetraininggroup",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -774,7 +752,6 @@ Resources:
                                 }
                             ],
                             "Input": event["ReadDatabase"],
-                            "LinearityGroup": training_group_ids[0] if len(training_group_ids) else ''
                         }
             Environment:
                 Variables:
@@ -800,17 +777,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcomp",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -847,17 +818,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "aggregateprogcompdate",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -920,17 +885,11 @@ Resources:
                     def handler(event, context):
                         return {
                             "Meta": {
-                                "ActivityArn": "${StepFunctionsActivity}",
-                                "ExecutionArn": event['Meta']['ExecutionArn'],
                                 "ExecutionName": event['Meta']['ExecutionName'],
-                                "Environment": "${Environment}",
-                                "NoopJobDefinition": "${BatchJobDefinition}"
                             },
                             "Branches": [
                                 {
                                     "Resource": {
-                                        "BatchJobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                        "BatchJobDefinition": "${BatchJobDefinition}",
                                         "BatchJob": "cleanup",
                                         "Memory": int(os.environ['BATCH_JOB_MEMORY']),
                                         "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
@@ -1007,6 +966,342 @@ Resources:
         Type: "AWS::StepFunctions::Activity"
         Properties:
             Name: { "Fn::Sub": "preprocessing-${Environment}" }
+
+    SfnToCweLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: !Sub |
+                    import boto3, botocore.config, datetime, json, os, time
+
+                    sfn_client = boto3.client('stepfunctions', config=botocore.config.Config(retries={'max_attempts': 0}))
+                    cwe_client = boto3.client('events')
+
+
+                    def handler(_, context):
+
+                        payload = None
+                        while context.get_remaining_time_in_millis() / 1000 > 65:
+                            try:
+                                print('Polling for task token, {}ms remaining'.format(context.get_remaining_time_in_millis()))
+                                payload = sfn_client.get_activity_task(
+                                    activityArn=os.environ['STEP_FUNCTIONS_ACTIVITY_ARN'],
+                                    workerName=context.log_stream_name[-80:]
+                                )
+                                print('Got response, {}ms remaining'.format(context.get_remaining_time_in_millis()))
+                                process_payload(payload)
+                                payload = None
+                            except Exception as e:
+                                print(str(e))
+                                continue
+
+                        # Process any last payload
+                        if payload is not None:
+                            process_payload(payload)
+
+
+                    def process_payload(payload):
+                        print(json.dumps(payload))
+                        task_token = payload.get('taskToken', '')
+                        task_event = json.loads(payload.get('input','""'))
+
+                        if task_token != '':
+                            print('Putting SFN Activity as a CloudWatch Event')
+                            payload = json.dumps({'task_event': task_event, 'task_token': task_token})
+                            print(payload)
+                            response = cwe_client.put_events(
+                                Entries=[
+                                    {
+                                        'Time': datetime.datetime.now(),
+                                        'Source': 'customaws.stepfunctions',
+                                        'Resources': [
+                                            os.environ['STEP_FUNCTIONS_ACTIVITY_ARN'],
+                                            os.environ['STEP_FUNCTIONS_STATE_MACHINE_ARN'],
+                                        ],
+                                        'DetailType': 'Step Functions Activity Scheuduled',
+                                        'Detail': payload
+                                    },
+                                ]
+                            )
+                            print(json.dumps({'event_id': response['Entries'][0]['EventId']}))
+                        else:
+                            # There are no tasks waiting to be scheduled.
+                            print('No task waiting, sleeping')
+                            time.sleep(2)
+
+            Environment:
+                Variables:
+                    STEP_FUNCTIONS_ACTIVITY_ARN: { Ref: "StepFunctionsActivity" }
+                    STEP_FUNCTIONS_STATE_MACHINE_ARN: { Ref: "StateMachine" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "300"
+            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    SfnToCweScheduledRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "ScheduledRule"
+            ScheduleExpression: "rate(4 minutes)"
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "SfnToCweLambda", "Arn" ] }
+                Id: "TargetFunctionV1"
+
+    SfnToCweInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { Ref: "SfnToCweLambda" }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "SfnToCweScheduledRule", "Arn" ] }
+
+    CweToBatchLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: !Sub |
+                    import boto3, copy, json, os, re, time
+
+                    batch_client = boto3.client('batch')
+
+
+                    def handler(event, _):
+                        print(json.dumps(event))
+                        task_event = event['detail']['task_event']
+                        task_token = event['detail']['task_token']
+
+                        meta = task_event.get('Meta', None)
+                        input_data = task_event.get('Input', None)
+                        branches = task_event.get('Branches', None)
+
+                        # Always include the task token to use in case of failure
+                        meta['TaskTokenFailure'] = task_token
+                        meta['Profiling'] = {
+                            'ScheduleTime': time.time(),
+                        }
+
+                        if len(branches) == 1:
+                            # Only one branch, can return immediately
+                            meta['TaskToken'] = task_token
+
+                        # Submit the jobs!
+                        job_ids = []
+                        for i, branch in enumerate(branches):
+                            input_datum = get_json_path(input_data, branch['InputPath'])
+
+                            branch_meta = copy.deepcopy(meta)
+                            branch_meta['Profiling']['BranchScheduleTime'] = time.time()
+
+                            job_id = submit_job(
+                                branch['Resource']['BatchJob'],
+                                branch_meta,
+                                input_datum,
+                                index = str(i) if len(branches) > 1 else None,
+                                memory=branch['Resource'].get('Memory', 256),
+                                vcpus=branch['Resource'].get('Vcpus', 2)
+                            )
+                            job_ids.append(job_id)
+
+                        if len(branches) > 1:
+                            # Submit a blank job that depends on all the others that signals SFN
+                            meta['TaskToken'] = task_token
+                            submit_job('noop', meta, {}, dependencies=job_ids)
+
+
+                    def submit_job(job_name, job_meta, job_input, index=None, dependencies=None, memory=64, vcpus=1):
+                        # This nasty splatting is required because boto3 chokes on trying to set things like dependsOn to None if you
+                        # have no dependencies, you have to not pass the parameter at all
+                        response = batch_client.submit_job(**{k: v for k, v in {
+                            'jobName': '_'.join(filter(None, [job_meta['ExecutionName'], job_name, index])),
+                            'jobQueue': os.environ['BATCH_JOB_QUEUE_ARN'],
+                            'jobDefinition': os.environ['BATCH_JOB_DEFINITION_ARN'],
+                            'parameters': {
+                                "Job": job_name,
+                                "Meta": json.dumps(job_meta, default=json_serial),
+                                "Input": json.dumps(job_input, default=json_serial)
+                            },
+                            'dependsOn': [{'jobId': j} for j in dependencies] if dependencies else None,
+                            'containerOverrides': {
+                                "environment": [
+                                    {"name": "ENVIRONMENT", "value": os.environ['ENVIRONMENT']},
+                                    {"name": "AWS_DEFAULT_REGION", "value": os.environ['AWS_DEFAULT_REGION']},
+                                ],
+                                "memory": memory,
+                                "vcpus": vcpus,
+                            }
+                        }.items() if v is not None})
+                        print(response)
+                        return response['jobId']
+
+
+                    def get_json_path(source, path):
+                        if path == '$':
+                            return source
+                        parts = re.sub('\[([^\]]+)\]', '.\\1.', path).strip('.').split('.')
+                        if parts[0] != '$':
+                            raise Exception("Path must be based on '$'")
+                        if len(parts) > 2:
+                            raise Exception("Subpaths not currently supported")
+                        if isinstance(source, dict):
+                            if parts[1] not in source:
+                                raise Exception("Path '{}' not found in Input".format(path))
+                            return source[parts[1]]
+                        if isinstance(source, list):
+                            if len(source) < int(parts[1]):
+                                raise Exception("List index out of range")
+                            return source[int(parts[1])]
+
+
+                    def json_serial(obj):
+                        from datetime import datetime
+                        if isinstance(obj, datetime):
+                            serial = obj.isoformat()
+                            return serial
+                        raise TypeError("Type not serializable")
+
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+                    STEP_FUNCTIONS_ACTIVITY_ARN: { Ref: "StepFunctionsActivity" }
+                    STEP_FUNCTIONS_STATE_MACHINE_ARN: { Ref: "StateMachine" }
+                    BATCH_JOB_QUEUE_ARN: { "Fn::Sub": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute" }
+                    BATCH_JOB_DEFINITION_ARN: { Ref: "BatchJobDefinition" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "300"
+            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-cwetobatch" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-cwetobatch" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    CweToBatchTriggerRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "Triggered Rule"
+            EventPattern:
+                source: [ "customaws.stepfunctions" ]
+                resources: [ { Ref: "StepFunctionsActivity" } ]
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "CweToBatchLambda", "Arn" ] }
+                Id: "TargetFunctionV1"
+
+    CweToBatchInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { Ref: "CweToBatchLambda" }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "CweToBatchTriggerRule", "Arn" ] }
+
+    BatchEventsLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: !Sub |
+                    import boto3, datetime, json, os
+                    logs_client = boto3.client('logs')
+                    def handler(event, _):
+                        print(json.dumps(event))
+                        meta = json.loads(event['detail']['parameters']['Meta'])
+
+                        now = int(datetime.datetime.strptime(event['time'], "%Y-%m-%dT%H:%M:%SZ").timestamp())
+                        execution_name = meta['ExecutionName']
+
+                        if event['detail-type'] == "Batch Job State Change":
+                            message = {
+                                'job_name': event['detail']['jobName'].split('_', 1)[1],
+                                'job_status': event['detail']['status'],
+                                'job_id': event['detail']['jobId']
+                            }
+
+                            try:
+                                log_stream = event['detail']['attempts'][-1]['container']['logStreamName']
+                                message[
+                                    'log_url'] = 'https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={group};stream={stream}'.format(
+                                    region=os.environ['AWS_DEFAULT_REGION'],
+                                    group='/aws/batch/job',
+                                    stream=log_stream,
+                                )
+                            except:
+                                pass
+
+                            log(execution_name, json.dumps(message), now)
+
+
+                    def log(log_stream, message, now):
+                        for i in range(10):
+                            try:
+                                res = logs_client.describe_log_streams(
+                                    logGroupName='/biometrix/preprocessing/{ENVIRONMENT}'.format(**os.environ),
+                                    logStreamNamePrefix=log_stream
+                                )
+                                print(res)
+                                if len(res['logStreams']) == 0:
+                                    print('No log stream')
+                                    return
+
+                                sequence_token = res['logStreams'][0]['uploadSequenceToken']
+                                print(sequence_token)
+                                logs_client.put_log_events(
+                                    logGroupName='/biometrix/preprocessing/{ENVIRONMENT}'.format(**os.environ),
+                                    logStreamName=log_stream,
+                                    logEvents=[{'timestamp': now * 1000, 'message': message}],
+                                    sequenceToken=sequence_token
+                                )
+                                return
+                            except Exception as e:
+                                print(str(e))
+                                continue
+
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+                    STEP_FUNCTIONS_ACTIVITY_ARN: { Ref: "StepFunctionsActivity" }
+                    STEP_FUNCTIONS_STATE_MACHINE_ARN: { Ref: "StateMachine" }
+                    BATCH_JOB_QUEUE_ARN: { "Fn::Sub": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute" }
+                    BATCH_JOB_DEFINITION_ARN: { Ref: "BatchJobDefinition" }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "300"
+            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-batch-stream" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-batch-stream" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    BatchEventsTriggerRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "Triggered Rule"
+            EventPattern:
+                source: [ "aws.batch" ]
+                detail:
+                    jobQueue: [ { "Fn::Sub": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute" } ]
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "BatchEventsLambda", "Arn" ] }
+                Id: "TargetFunctionV1"
+
+    BatchEventsInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { Ref: "BatchEventsLambda" }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "BatchEventsTriggerRule", "Arn" ] }
 
     StateMachine:
         Type: "AWS::StepFunctions::StateMachine"
