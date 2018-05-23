@@ -189,7 +189,7 @@ def main():
 
             # os.remove(tmp_combined_file)
 
-            send_success(meta_data, {"Filenames": [session_id]})
+            send_success(meta_data, {"Filenames": [session_id], "FileCount": 1})
 
         elif script == 'transformandplacement':
             print('Running transformandplacement()')
@@ -226,6 +226,7 @@ def main():
                     100000 * 40  # 100,000 records, 40 bytes per record
                 )
             ret["Filenames"] = file_names
+            ret["FileCount"] = len(file_names)
             # Faking data to test pipeline
             # ret["Sensors"] = 1
             os.remove(combined_file)
@@ -252,7 +253,7 @@ def main():
                 input_data
             )
             print(meta_data)
-            send_success(meta_data, {})
+            send_success(meta_data, {"FileCount": 1})
 
         elif script == 'scoring':
             if input_data.get('Sensors') == 3:
@@ -278,7 +279,7 @@ def main():
                 boundaries
             )
 
-            send_success(meta_data, {"Filenames": file_names})
+            send_success(meta_data, {"Filenames": file_names, "FileCount": len(file_names)})
 
         elif script == 'aggregatesession':
             load_parameters([

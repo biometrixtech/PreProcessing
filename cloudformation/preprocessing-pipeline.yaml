@@ -326,16 +326,12 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "downloadandchunk",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "downloadandchunk",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": event['SourceEvent']
                         }
             Environment:
@@ -402,20 +398,13 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "transformandplacement",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
-                            "Input": {
-                                **event["ReadDatabase"],
-                                **{"Filename": event['DownloadAndChunk']['Output']['Filenames'][0]}
-                            }
+                            "Resource": {
+                                "BatchJob": "transformandplacement",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
+                            "Input": event["ReadDatabase"],
                         }
             Environment:
                 Variables:
@@ -443,30 +432,13 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "sessionprocess2",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$[{}]".format(i)
-                                }
-                                for i in range(len(event['TransformAndPlacement']['Output']['Filenames']))
-                            ],
-                            "Input": [
-                                {
-                                    **event["ReadDatabase"],
-                                    **{
-                                        "Filename": f,
-                                        "BodyFrameTransforms": event['TransformAndPlacement']['Output']['BodyFrameTransforms'],
-                                        "HipNeutralYaw": event['TransformAndPlacement']['Output']['HipNeutralYaw'],
-                                        "Placement": event['TransformAndPlacement']['Output']['Placement'],
-                                        "Sensors": event['TransformAndPlacement']['Output']['Sensors'],
-                                    }
-                                }
-                                for f in event['TransformAndPlacement']['Output']['Filenames']
-                            ]
+                            "Resource": {
+                                "BatchJob": "sessionprocess2",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": event['TransformAndPlacement']['Output']['FileCount'],
+                            "Input": {**event["ReadDatabase"], **event['TransformAndPlacement']['Output']},
                         }
             Environment:
                 Variables:
@@ -494,20 +466,17 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "scoring",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "scoring",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": {
                                 **event["ReadDatabase"],
                                 **{"Filenames": event['TransformAndPlacement']['Output']['Filenames'],
-                                   "Sensors": event['TransformAndPlacement']['Output']['Sensors'],}
+                                   "Sensors": event['TransformAndPlacement']['Output']['Sensors'],
+                                }
                             }
                         }
             Environment:
@@ -536,20 +505,16 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "aggregatesession",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "aggregatesession",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": {
                                 **event["ReadDatabase"],
-                                **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}},
-
+                                **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
+                            }
                         }
             Environment:
                 Variables:
@@ -577,20 +542,16 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "aggregateblocks",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "aggregateblocks",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": {
                                 **event["ReadDatabase"],
                                 **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
-                                },
+                            },
                         }
             Environment:
                 Variables:
@@ -618,25 +579,16 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "aggregatetwomin",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$[{}]".format(i)
-                                }
-                                for i in range(len(event['Scoring']['Output']['Filenames']))
-                            ],
-                            "Input": [
-                                {**event["ReadDatabase"],
-                                 **{"Filename": f,
-                                    "Sensors": event['TransformAndPlacement']['Output']['Sensors']
-                                   }
-                                }
-                                for f in event['Scoring']['Output']['Filenames']
-                            ]
+                            "Resource": {
+                                "BatchJob": "aggregatetwomin",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": event['Scoring']['Output']['FileCount'],
+                            "Input": {
+                                **event["ReadDatabase"],
+                                **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
+                            }
                         }
             Environment:
                 Variables:
@@ -664,17 +616,13 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "aggregatedateuser",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
-                            "Input": event["ReadDatabase"]
+                            "Resource": {
+                                "BatchJob": "aggregatedateuser",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
+                            "Input": event["ReadDatabase"],
                         }
             Environment:
                 Variables:
@@ -702,16 +650,12 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "aggregateteam",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "aggregateteam",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": event["ReadDatabase"],
                         }
             Environment:
@@ -741,16 +685,12 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "aggregatetraininggroup",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "aggregatetraininggroup",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": event["ReadDatabase"],
                         }
             Environment:
@@ -779,20 +719,16 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "aggregateprogcomp",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "aggregateprogcomp",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": {
                                 **event["ReadDatabase"],
                                 **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
-                                },
+                            },
                         }
             Environment:
                 Variables:
@@ -820,20 +756,16 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "aggregateprogcompdate",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "aggregateprogcompdate",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": {
                                 **event["ReadDatabase"],
                                 **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
-                                },
+                            },
                         }
             Environment:
                 Variables:
@@ -887,16 +819,12 @@ Resources:
                             "Meta": {
                                 "ExecutionName": event['Meta']['ExecutionName'],
                             },
-                            "Branches": [
-                                {
-                                    "Resource": {
-                                        "BatchJob": "cleanup",
-                                        "Memory": int(os.environ['BATCH_JOB_MEMORY']),
-                                        "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
-                                    },
-                                    "InputPath": "$"
-                                }
-                            ],
+                            "Resource": {
+                                "BatchJob": "cleanup",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
                             "Input": event["ReadDatabase"]
                         }
             Environment:
@@ -1067,7 +995,7 @@ Resources:
         Properties:
             Code:
                 ZipFile: !Sub |
-                    import boto3, copy, json, os, re, time
+                    import boto3, json, os, time
 
                     batch_client = boto3.client('batch')
 
@@ -1079,84 +1007,36 @@ Resources:
 
                         meta = task_event.get('Meta', None)
                         input_data = task_event.get('Input', None)
-                        branches = task_event.get('Branches', None)
+                        resource = task_event.get('Resource', None)
+                        array_size = task_event.get('ArraySize', None)
 
                         # Always include the task token to use in case of failure
                         meta['TaskTokenFailure'] = task_token
-                        meta['Profiling'] = {
-                            'ScheduleTime': time.time(),
-                        }
+                        meta['TaskToken'] = task_token
+                        meta['Profiling'] = {'ScheduleTime': time.time()}
 
-                        if len(branches) == 1:
-                            # Only one branch, can return immediately
-                            meta['TaskToken'] = task_token
-
-                        # Submit the jobs!
-                        job_ids = []
-                        for i, branch in enumerate(branches):
-                            input_datum = get_json_path(input_data, branch['InputPath'])
-
-                            branch_meta = copy.deepcopy(meta)
-                            branch_meta['Profiling']['BranchScheduleTime'] = time.time()
-
-                            job_id = submit_job(
-                                branch['Resource']['BatchJob'],
-                                branch_meta,
-                                input_datum,
-                                index = str(i) if len(branches) > 1 else None,
-                                memory=branch['Resource'].get('Memory', 256),
-                                vcpus=branch['Resource'].get('Vcpus', 2)
-                            )
-                            job_ids.append(job_id)
-
-                        if len(branches) > 1:
-                            # Submit a blank job that depends on all the others that signals SFN
-                            meta['TaskToken'] = task_token
-                            submit_job('noop', meta, {}, dependencies=job_ids)
-
-
-                    def submit_job(job_name, job_meta, job_input, index=None, dependencies=None, memory=64, vcpus=1):
                         # This nasty splatting is required because boto3 chokes on trying to set things like dependsOn to None if you
                         # have no dependencies, you have to not pass the parameter at all
                         response = batch_client.submit_job(**{k: v for k, v in {
-                            'jobName': '_'.join(filter(None, [job_meta['ExecutionName'], job_name, index])),
+                            'jobName': '{}_{}'.format(meta['ExecutionName'], resource['BatchJob']),
                             'jobQueue': os.environ['BATCH_JOB_QUEUE_ARN'],
                             'jobDefinition': os.environ['BATCH_JOB_DEFINITION_ARN'],
                             'parameters': {
-                                "Job": job_name,
-                                "Meta": json.dumps(job_meta, default=json_serial),
-                                "Input": json.dumps(job_input, default=json_serial)
+                                "Job": resource['BatchJob'],
+                                "Meta": json.dumps(meta, default=json_serial),
+                                "Input": json.dumps(input_data, default=json_serial)
                             },
-                            'dependsOn': [{'jobId': j} for j in dependencies] if dependencies else None,
+                            'arrayProperties': {'size': array_size} if array_size != 1 else None,
                             'containerOverrides': {
                                 "environment": [
                                     {"name": "ENVIRONMENT", "value": os.environ['ENVIRONMENT']},
                                     {"name": "AWS_DEFAULT_REGION", "value": os.environ['AWS_DEFAULT_REGION']},
                                 ],
-                                "memory": memory,
-                                "vcpus": vcpus,
+                                "memory": resource.get('Memory', 256),
+                                "vcpus": resource.get('Vcpus', 2),
                             }
                         }.items() if v is not None})
-                        print(response)
-                        return response['jobId']
-
-
-                    def get_json_path(source, path):
-                        if path == '$':
-                            return source
-                        parts = re.sub('\[([^\]]+)\]', '.\\1.', path).strip('.').split('.')
-                        if parts[0] != '$':
-                            raise Exception("Path must be based on '$'")
-                        if len(parts) > 2:
-                            raise Exception("Subpaths not currently supported")
-                        if isinstance(source, dict):
-                            if parts[1] not in source:
-                                raise Exception("Path '{}' not found in Input".format(path))
-                            return source[parts[1]]
-                        if isinstance(source, list):
-                            if len(source) < int(parts[1]):
-                                raise Exception("List index out of range")
-                            return source[int(parts[1])]
+                        print(json.dumps(response))
 
 
                     def json_serial(obj):
