@@ -208,10 +208,9 @@ def main():
                 from transform_and_placement import transform_and_placement
                 ret = transform_and_placement.script_handler(
                     working_directory,
-                    input_data.get('Filename', None)
+                    input_data['SessionId']
                 )
             from chunk import chunk
-            # mkdir(os.path.join(working_directory, 'downloadandchunk'))
             combined_file = os.path.join(working_directory, 'downloadandchunk', session_id)
             if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
                 file_names = chunk.chunk_by_line(
@@ -227,8 +226,6 @@ def main():
                 )
             ret["Filenames"] = file_names
             ret["FileCount"] = len(file_names)
-            # Faking data to test pipeline
-            # ret["Sensors"] = 1
             os.remove(combined_file)
             send_success(meta_data, ret)
 
