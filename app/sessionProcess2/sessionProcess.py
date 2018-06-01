@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import errno
+import json
 import logging
 import numpy as np
 import pandas as pd
@@ -401,10 +402,10 @@ def script_handler(working_directory, file_name, data):
         logger.info("LOADING DATA")
 
         # read sensor data
-        logger.info(data)
-        logger.info(data.get('SensorDataFileVersion'))
-        logger.info(file_name)
-        if data.get('SensorDataFileVersion', '2.3') == '1.0':
+        print(json.dumps(data))
+        print(file_name)
+        file_version = data.get('Version', '2.3')
+        if file_version == '1.0':
             sdata = pd.read_csv(os.path.join(working_directory, 'downloadandchunk', file_name))
         else:
             sdata = read_file(os.path.join(working_directory, 'downloadandchunk', file_name), data.get('Placement'))
@@ -425,7 +426,6 @@ def script_handler(working_directory, file_name, data):
         sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
         # Process the data and pass it as argument to run_session as
-        file_version = data.get('SensorDataFileVersion', '2.3')
         hip_n_transform = data.get('HipNTransform', None)
 
         # SAVE DEBUG DATA

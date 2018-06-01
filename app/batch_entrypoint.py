@@ -244,9 +244,10 @@ def main():
                 print('Running sessionprocess on single-sensor data')
                 from sessionProcess1 import sessionProcess
 
+            file_name = input_data.get('Filenames', [])[int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))]
             sessionProcess.script_handler(
                 working_directory,
-                input_data.get('Filename', None),
+                file_name,
                 input_data
             )
             print(meta_data)
