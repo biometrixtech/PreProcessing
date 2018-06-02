@@ -1107,8 +1107,7 @@ Resources:
 
                             try:
                                 log_stream = event['detail']['attempts'][-1]['container']['logStreamName']
-                                message[
-                                    'log_url'] = 'https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={group};stream={stream}'.format(
+                                message['log_url'] = 'https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={group};stream={stream}'.format(
                                     region=os.environ['AWS_DEFAULT_REGION'],
                                     group='/aws/batch/job',
                                     stream=log_stream,

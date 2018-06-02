@@ -337,7 +337,10 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Computing two minute aggregations on single-sensor data')
                 from twoMinuteAgg1 import agg_twomin
-            file_name = input_data.get('Filenames', [])[int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))]
+            file_name = '{session_id}_{index:02d}'.format(
+                session_id=session_id,
+                index=int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
+            )
             agg_twomin.script_handler(
                 working_directory,
                 file_name,
