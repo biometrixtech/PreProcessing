@@ -9,10 +9,19 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
+def shell(cmd):
+    if isinstance(cmd, str):
+        print(cmd)
+        os.system(cmd)
+    elif isinstance(cmd, list):
+        print(' '.join(cmd))
+        subprocess.call(cmd)
+
+
 def chunk_by_line(input_filename, output_dir, chunk_size):
     # Get the column headers (first line of first file)
     header_filename = os.path.join('/tmp', input_filename + '_header')
-    os.system(
+    shell(
         'head -n 1 {tmp_filename} > {header_filename}'.format(
             tmp_filename=input_filename,
             header_filename=header_filename
@@ -21,7 +30,7 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
 
     # Strip the header from the file
     body_filename = os.path.join('/tmp', input_filename + '_body')
-    os.system(
+    shell(
         'tail -n +2 {input_filename} > {body_filename}'.format(
             input_filename=input_filename,
             body_filename=body_filename
@@ -33,11 +42,11 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
     if isinstance(chunk_size, list):
         if len(chunk_size) == 0:
             # Special case the scenario where we have no boundaries, and hence only expect one output file
-            subprocess.call(['cp', body_filename, tmp_chunk_dir + '_00'])
+            shell(['cp', body_filename, tmp_chunk_dir + '_00'])
         else:
-            subprocess.call(['csplit', '-f', tmp_chunk_dir, '-b', '_%02d', body_filename] + [str(l) for l in chunk_size])
+            shell(['csplit', '-f', tmp_chunk_dir, '-b', '_%02d', body_filename] + [str(l) for l in chunk_size])
     else:
-        subprocess.call([
+        shell([
             'split',
             '-l', str(chunk_size),
             '-d',
@@ -79,7 +88,7 @@ def chunk_by_byte(input_filename, output_dir, boundaries):
     if isinstance(boundaries, list):
         raise Exception("Not supported")
     else:
-        subprocess.call([
+        shell([
             'split',
             '-b', str(boundaries),
             '-d',
