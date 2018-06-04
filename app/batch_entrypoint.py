@@ -39,7 +39,7 @@ def send_success(meta, output):
 
     
 def send_failure(meta, exception):
-    task_token = meta.get('TaskTokenFailure', meta.get('TaskToken', None))
+    task_token = meta['TaskToken']
     if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_failure(
@@ -50,7 +50,7 @@ def send_failure(meta, exception):
 
 
 def send_heartbeat(meta):
-    task_token = meta.get('TaskTokenFailure', meta.get('TaskToken', None))
+    task_token = meta['TaskToken']
     if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_heartbeat(
@@ -162,38 +162,18 @@ def main():
             mkdir(working_directory)
             from downloadAndChunk import downloadAndChunk
             mkdir(os.path.join(working_directory, 'downloadandchunk'))
-            combined_file = downloadAndChunk.script_handler(session_id,
-                os.path.join(working_directory, 'downloadandchunk'))
+            combined_file = downloadAndChunk.script_handler(session_id, os.path.join(working_directory, 'downloadandchunk'))
 
             # Upload combined file back to s3
             s3_client = boto3.client('s3')
             s3_bucket = 'biometrix-decode'
             s3_client.upload_file(combined_file, s3_bucket, session_id + '_combined')
 
-
-
-            # from chunk import chunk
-            # mkdir(os.path.join(working_directory, 'downloadandchunk'))
-            # if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
-            #     file_names = chunk.chunk_by_line(
-            #         tmp_combined_file,
-            #         os.path.join(working_directory, 'downloadandchunk'),
-            #         100000  # 100,000 records per chunk
-            #         )
-            # else:
-            #     file_names = chunk.chunk_by_byte(
-            #         tmp_combined_file,
-            #         os.path.join(working_directory, 'downloadandchunk'),
-            #         100000 * 40  # 100,000 records, 40 bytes per record
-            #     )
-
-            # os.remove(tmp_combined_file)
-
-            send_success(meta_data, {"Filenames": [session_id], "FileCount": 1})
+            # send_success(meta_data, {"Filenames": [session_id], "FileCount": 1})
 
         elif script == 'transformandplacement':
             print('Running transformandplacement()')
-            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+            if input_data['Version'] == '1.0':
                 ret = {
                     'Placement': [0, 1, 2],
                     'BodyFrameTransforms': {
@@ -212,7 +192,7 @@ def main():
                 )
             from chunk import chunk
             combined_file = os.path.join(working_directory, 'downloadandchunk', session_id)
-            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+            if input_data['Version'] == '1.0':
                 file_names = chunk.chunk_by_line(
                     combined_file,
                     os.path.join(working_directory, 'downloadandchunk'),

@@ -1010,8 +1010,6 @@ Resources:
                         resource = task_event.get('Resource', None)
                         array_size = task_event.get('ArraySize', None)
 
-                        # Always include the task token to use in case of failure
-                        meta['TaskTokenFailure'] = task_token
                         meta['TaskToken'] = task_token
                         meta['Profiling'] = {'ScheduleTime': time.time()}
 
@@ -1090,7 +1088,12 @@ Resources:
             Code:
                 ZipFile: !Sub |
                     import boto3, datetime, json, os
+                    from botocore.exceptions import ClientError
+
                     logs_client = boto3.client('logs')
+                    sfn_client = boto3.client('stepfunctions')
+
+
                     def handler(event, _):
                         print(json.dumps(event))
                         meta = json.loads(event['detail']['parameters']['Meta'])
@@ -1107,15 +1110,32 @@ Resources:
 
                             try:
                                 log_stream = event['detail']['attempts'][-1]['container']['logStreamName']
-                                message['log_url'] = 'https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={group};stream={stream}'.format(
+                                message[
+                                    'log_url'] = 'https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={group};stream={stream}'.format(
                                     region=os.environ['AWS_DEFAULT_REGION'],
                                     group='/aws/batch/job',
                                     stream=log_stream,
                                 )
-                            except:
+                            except IndexError:
+                                log_stream = None
                                 pass
 
                             log(execution_name, json.dumps(message), now)
+
+                            if 'TaskToken' in meta:
+                                try:
+                                    # Array jobs have a sixth colon, parent jobs only have five
+                                    is_array_job = event['resources'][0].count(':') == 6
+                                    if event['detail']['status'] == 'SUCCEEDED' and not is_array_job:
+                                        print('Sending success')
+                                        output = json.dumps({"Meta": meta, "Status": 'SUCCEEDED', "Output": {}})
+                                        sfn_client.send_task_success(taskToken=meta['TaskToken'], output=output)
+                                    # But for failures, send the signal straight away so we can link to the CloudWatch logs
+                                    elif event['detail']['status'] == 'FAILED':
+                                        print('sending failure')
+                                        sfn_client.send_task_failure(taskToken=meta['TaskToken'], error='Job Error', cause=log_stream)
+                                except ClientError as e:
+                                    print(str(e))
 
 
                     def log(log_stream, message, now):
