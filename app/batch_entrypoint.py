@@ -226,6 +226,8 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Running sessionprocess on single-sensor data')
                 from sessionProcess1 import sessionProcess
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
 
             file_name = input_data.get('Filenames', [])[int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))]
             sessionProcess.script_handler(
@@ -243,6 +245,8 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Running scoring on single-sensor data')
                 from scoring1 import scoringProcess
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
 
             boundaries = scoringProcess.script_handler(
                 working_directory,
@@ -277,6 +281,9 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Computing session aggregations on single sensor data')
                 from sessionAgg1 import agg_session
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
+
             agg_session.script_handler(
                 working_directory,
                 input_data
@@ -298,6 +305,8 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Computing block single-sensor data')
                 from activeBlockAgg1 import agg_blocks
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
 
             agg_blocks.script_handler(
                 working_directory,
@@ -320,6 +329,9 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Computing two minute aggregations on single-sensor data')
                 from twoMinuteAgg1 import agg_twomin
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
+
             agg_twomin.script_handler(
                 working_directory,
                 'chunk_{index:02d}'.format(index=int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))),
@@ -465,6 +477,7 @@ def json_serial(obj):
         serial = obj.isoformat()
         return serial
     raise TypeError("Type not serializable")
+
 
 if __name__ == '__main__':
     script = input_data = meta_data = None
