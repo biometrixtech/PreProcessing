@@ -166,7 +166,7 @@ Resources:
 
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-execute-${AWS::Region}" }
 
-    SfnToCweRole:
+    StreamLambdaRole:
         Type: "AWS::IAM::Role"
         Properties:
             AssumeRolePolicyDocument:
@@ -191,6 +191,8 @@ Resources:
                           - "batch:DescribeJobDefinitions"
                           - "batch:DescribeJobQueues"
                           - "batch:SubmitJob"
+                          - "states:SendTaskSuccess"
+                          - "states:SendTaskFailure"
                         Effect: "Allow"
                         Resource: "*" # Batch doesn't support resource-level permissions
 
@@ -202,7 +204,7 @@ Resources:
                           - "logs:DescribeLogStreams"
                         Effect: "Allow"
                         Resource: "*"
-            RoleName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" }
+            RoleName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-stream" }
 
     ##########################################################################################################
     ##  BATCH
@@ -964,7 +966,7 @@ Resources:
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "300"
-            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            Role: { "Fn::GetAtt" : [ "StreamLambdaRole", "Arn" ] }
             FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-sfntocwe" } }
@@ -1054,7 +1056,7 @@ Resources:
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "300"
-            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            Role: { "Fn::GetAtt" : [ "StreamLambdaRole", "Arn" ] }
             FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-cwetobatch" }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-cwetobatch" } }
@@ -1173,7 +1175,7 @@ Resources:
             Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "300"
-            Role: { "Fn::GetAtt" : [ "SfnToCweRole", "Arn" ] }
+            Role: { "Fn::GetAtt" : [ "StreamLambdaRole", "Arn" ] }
             FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-batch-stream" }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-batch-stream" } }

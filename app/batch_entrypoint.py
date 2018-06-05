@@ -29,6 +29,8 @@ def send_success(meta, output):
         )
         print(response)
 
+
+def send_profiling(meta):
     if 'Profiling' in meta:
         meta['Profiling']['EndTime'] = time.time()
         put_cloudwatch_metric(
@@ -145,8 +147,8 @@ def main():
         if script == 'noop':
             print('Noop job')
             # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
-            send_success(meta_data, {})
-            exit(0)
+            send_profiling(meta_data)
+            return
 
         session_id = input_data.get('SessionId')
         os.environ['SESSION_ID'] = session_id
@@ -169,7 +171,7 @@ def main():
             s3_bucket = 'biometrix-decode'
             s3_client.upload_file(combined_file, s3_bucket, session_id + '_combined')
 
-            # send_success(meta_data, {"Filenames": [session_id], "FileCount": 1})
+            send_profiling(meta_data)
 
         elif script == 'transformandplacement':
             print('Running transformandplacement()')
@@ -208,6 +210,7 @@ def main():
             ret["FileCount"] = len(file_names)
             os.remove(combined_file)
             send_success(meta_data, ret)
+            send_profiling(meta_data)
 
         elif script == 'sessionprocess2':
             load_parameters(['MS_MODEL',
@@ -231,7 +234,7 @@ def main():
                 input_data
             )
             print(meta_data)
-            send_success(meta_data, {"FileCount": 1})
+            send_profiling(meta_data)
 
         elif script == 'scoring':
             if input_data.get('Sensors') == 3:
@@ -278,7 +281,7 @@ def main():
                 working_directory,
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregateblocks':
             load_parameters([
@@ -300,7 +303,7 @@ def main():
                 working_directory,
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregatetwomin':
             load_parameters([
@@ -322,7 +325,7 @@ def main():
                 'chunk_{index:02d}'.format(index=int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))),
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregatedateuser':
             print('Computing date-user aggregations')
@@ -340,7 +343,7 @@ def main():
             agg_date_user.script_handler(
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregateprogcomp':
             if input_data.get('Sensors') == 3:
@@ -362,7 +365,7 @@ def main():
             else:
                 print('Program composition is not needed for single-sensor data')
 
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregateprogcompdate':
             if input_data.get('Sensors') == 3:
@@ -384,7 +387,7 @@ def main():
             else:
                 print('Program composition is not needed for single-sensor data')
 
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregateteam':
             print('Computing team aggregations')
@@ -410,7 +413,7 @@ def main():
             agg_team.script_handler(
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregatetraininggroup':
             print('Computing training group aggregations')
@@ -437,7 +440,7 @@ def main():
             agg_tg.script_handler(
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'cleanup':
             print('Cleaning up intermediate files')
@@ -445,7 +448,7 @@ def main():
             cleanup.script_handler(
                 working_directory
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         else:
             raise Exception("Unknown batchjob '{}'".format(script))
