@@ -21,13 +21,6 @@ def send_success(meta, output):
                 "Output": output
             })
         )
-    if 'LinearityGroup' in meta:
-        sqs_client = boto3.client('sqs')
-        response = sqs_client.delete_message(
-            QueueUrl=meta['LinearityGroup']['QueueUrl'],
-            ReceiptHandle=meta['LinearityGroup']['ReceiptHandle']
-        )
-        print(response)
 
 
 def send_profiling(meta):

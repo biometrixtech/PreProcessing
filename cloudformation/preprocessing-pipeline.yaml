@@ -108,11 +108,6 @@ Resources:
                     Version: "2012-10-17"
                     Statement:
                       - Action:
-                          - "sqs:DeleteMessage"
-                        Effect: "Allow"
-                        Resource: { "Fn::GetAtt": [ "LinearityEnforcingQueue", "Arn" ] }
-
-                      - Action:
                           - "s3:GetObject"
                           - "s3:ListBucket"
                         Effect: "Allow"
@@ -843,20 +838,6 @@ Resources:
               - { Key: "Management", Value: "managed" }
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
-
-    ##########################################################################################################
-    ##  SQS
-    ##########################################################################################################
-
-    LinearityEnforcingQueue:
-        Type: "AWS::SQS::Queue"
-        Properties:
-            ContentBasedDeduplication: false
-            FifoQueue: true
-            MessageRetentionPeriod: 86400
-            QueueName: { "Fn::Sub": "preprocessing-${Environment}-linearity.fifo" }
-            ReceiveMessageWaitTimeSeconds: 20
-            VisibilityTimeout: 3600
 
     ##########################################################################################################
     ##  SNS
@@ -1662,9 +1643,6 @@ Outputs:
     ActivityArn:
         Description: "The ARN of the Batch Activity"
         Value: { Ref: "StepFunctionsActivity" }
-    LinearitySqsQueueName:
-        Description: "The name of the linearity-enforcing SQS Queue"
-        Value: { Ref: "LinearityEnforcingQueue" }
     StateMachineArn:
         Description: "The ARN of the SFN state machine"
         Value: { Ref: "StateMachine" }

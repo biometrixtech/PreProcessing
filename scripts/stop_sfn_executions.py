@@ -16,13 +16,6 @@ def stop_execution(execution_arn):
     stepfunctions_client.stop_execution(executionArn=execution_arn, error='CANCELLED', cause=args.cause)
 
 
-def purge_linearity_queue():
-    print('Purging linearity enforcing queue')
-    queue = boto3.resource('sqs').Queue('https://sqs.{}.amazonaws.com/887689817172/preprocessing-{}-linearity.fifo'.format(args.region, args.environment))
-    queue.purge()
-    pass
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Stop all executions in a given SFN State Machine, to allow it to be deleted')
     parser.add_argument('--region', '-r',
@@ -45,5 +38,3 @@ if __name__ == '__main__':
     for i, execution in enumerate(running_executions):
         print("Stopping execution {}/{}".format(i + 1, len(running_executions)))
         stop_execution(execution)
-
-    purge_linearity_queue()
