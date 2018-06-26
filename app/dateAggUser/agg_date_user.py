@@ -1,62 +1,23 @@
 from __future__ import print_function
 
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict
 import os
 from datetime import datetime, timedelta
 
 import numpy
 import pandas
-from pymongo import MongoClient
 
 from alert import Alert
-
-Config = namedtuple('Config', [
-    'AWS',
-    'ENVIRONMENT',
-    'MONGO_HOST',
-    'MONGO_USER',
-    'MONGO_PASSWORD',
-    'MONGO_DATABASE',
-    'MONGO_COLLECTION_SESSION',
-    'MONGO_COLLECTION_DATE',
-    'MONGO_REPLICASET',
-])
-
-def connect_mongo(config):
-    """Connect to relevant mongo database and collections
-    """
-    # Connect to mongo
-    mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET, ssl=True)
-
-    mongo_database = mongo_client[config.MONGO_DATABASE]
-
-    # Authenticate
-    mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD,
-                                mechanism='SCRAM-SHA-1')
-
-    mongo_collection_session = mongo_database[config.MONGO_COLLECTION_SESSION]
-    mongo_collection_date = mongo_database[config.MONGO_COLLECTION_DATE]
-
-    return mongo_collection_session, mongo_collection_date
+from config import get_mongo_database
 
 
 def script_handler(input_data):
     print("Definitely running")
 
     try:
-        config = Config(
-            AWS=False,
-            ENVIRONMENT=os.environ['ENVIRONMENT'],
-            MONGO_HOST=os.environ['MONGO_HOST_SESSION'],
-            MONGO_USER=os.environ['MONGO_USER_SESSION'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_SESSION'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE_SESSION'],
-            MONGO_COLLECTION_SESSION=os.environ['MONGO_COLLECTION_SESSION'],
-            MONGO_COLLECTION_DATE=os.environ['MONGO_COLLECTION_DATE'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
-        )
-
-        mongo_collection_session, mongo_collection_date = connect_mongo(config)
+        mongo_database = get_mongo_database('SESSION')
+        mongo_collection_session = mongo_database[os.environ['MONGO_COLLECTION_SESSION']]
+        mongo_collection_date = mongo_database[os.environ['MONGO_COLLECTION_DATE']]
 
         team_id = input_data.get('TeamId', None)
         training_group_id = input_data.get('TrainingGroupIds', None)

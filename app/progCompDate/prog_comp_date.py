@@ -1,63 +1,24 @@
 from __future__ import print_function
-
-from collections import namedtuple
-from pymongo import MongoClient
 import logging
 import os
 import sys
 from collections import OrderedDict
 
 from vars_in_mongo import prog_comp_vars
+from config import get_mongo_database
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-Config = namedtuple('Config', [
-    'AWS',
-    'ENVIRONMENT',
-    'MONGO_HOST',
-    'MONGO_USER',
-    'MONGO_PASSWORD',
-    'MONGO_DATABASE',
-    'MONGO_COLLECTION_PROGCOMP',
-    'MONGO_COLLECTION_PROGCOMPDATE',
-    'MONGO_REPLICASET',
-])
 
 
 def script_handler(input_data):
     logger.info('Running program composition date aggregation')
 
     try:
-        config = Config(
-            AWS=False,
-            ENVIRONMENT=os.environ['ENVIRONMENT'],
-            MONGO_HOST=os.environ['MONGO_HOST_SESSION'],
-            MONGO_USER=os.environ['MONGO_USER_SESSION'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_SESSION'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE_SESSION'],
-            MONGO_COLLECTION_PROGCOMP=os.environ['MONGO_COLLECTION_PROGCOMP'],
-            MONGO_COLLECTION_PROGCOMPDATE=os.environ['MONGO_COLLECTION_PROGCOMPDATE'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
-        )
-
-        # Connect to session mongo
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET, ssl=True)
-        mongo_database = mongo_client[config.MONGO_DATABASE]
-        # Authenticate
-        mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD, mechanism='SCRAM-SHA-1')
-        
-# TODO: replace this testing part to read from correct collection
-        # read from prod for testing
-        # mongo_client = MongoClient('172.31.64.60,172.31.38.53,172.31.6.25', replicaset='sessionRS')
-        # mongo_database = mongo_client['movementStats']
-        # # Authenticate
-        # mongo_database.authenticate('statsUser', 'BioMx211', mechanism='SCRAM-SHA-1')
-        # mongo_collection_progcomp_test = mongo_database['progCompDateStats']
-
-        # connect to all relevant collections
-        mongo_collection_progcomp = mongo_database[config.MONGO_COLLECTION_PROGCOMP]
-        mongo_collection_progcompdate = mongo_database[config.MONGO_COLLECTION_PROGCOMPDATE]
+        mongo_database = get_mongo_database('SESSION')
+        mongo_collection_progcomp = mongo_database[os.environ['MONGO_COLLECTION_PROGCOMP']]
+        mongo_collection_progcompdate = mongo_database[os.environ['MONGO_COLLECTION_PROGCOMPDATE']]
         
 #        team_id = input_data.get('TeamId', None)
         user_id = input_data.get('UserId', None)
