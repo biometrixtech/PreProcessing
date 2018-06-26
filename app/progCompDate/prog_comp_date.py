@@ -42,7 +42,7 @@ def script_handler(input_data):
         )
 
         # Connect to session mongo
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
+        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET, ssl=True)
         mongo_database = mongo_client[config.MONGO_DATABASE]
         # Authenticate
         mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD, mechanism='SCRAM-SHA-1')

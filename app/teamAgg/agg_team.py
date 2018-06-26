@@ -37,16 +37,14 @@ def connect_mongo(config):
     """Get mongo client connection
     """
     # Connect to session mongo
-    mongo_client_session = MongoClient(config.MONGO_HOST_SESSION,
-                                       replicaset=config.MONGO_REPLICASET_SESSION)
+    mongo_client_session = MongoClient(config.MONGO_HOST_SESSION, replicaset=config.MONGO_REPLICASET_SESSION, ssl=True)
     mongo_database_session = mongo_client_session[config.MONGO_DATABASE_SESSION]
     # Authenticate
     mongo_database_session.authenticate(config.MONGO_USER_SESSION, config.MONGO_PASSWORD_SESSION,
                                         mechanism='SCRAM-SHA-1')
 
     # Connect to twomin mongo
-    mongo_client_twomin = MongoClient(config.MONGO_HOST_TWOMIN,
-                                      replicaset=config.MONGO_REPLICASET_TWOMIN)
+    mongo_client_twomin = MongoClient(config.MONGO_HOST_TWOMIN, replicaset=config.MONGO_REPLICASET_TWOMIN, ssl=True)
     mongo_database_twomin = mongo_client_twomin[config.MONGO_DATABASE_TWOMIN]
     # Authenticate
     mongo_database_twomin.authenticate(config.MONGO_USER_TWOMIN, config.MONGO_PASSWORD_TWOMIN,

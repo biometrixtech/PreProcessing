@@ -26,7 +26,7 @@ def connect_mongo(config):
     """Get mongo client connection
     """
     # first collection
-    mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
+    mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET, ssl=True)
 
     mongo_database = mongo_client[config.MONGO_DATABASE]
 

@@ -45,7 +45,7 @@ def script_handler(working_directory, input_data):
         )
 
         # first collection
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
+        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET, ssl=True)
 
         mongo_database = mongo_client[config.MONGO_DATABASE]
 
