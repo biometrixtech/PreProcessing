@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import numpy
 import pandas
 
-from alert import Alert
 from config import get_mongo_database
 
 
@@ -114,8 +113,6 @@ def script_handler(input_data):
         record_out['ACWRGRF' + str(i)] = acwr.totalGRF
         record_out['ACWRTotalAccel' + str(i)] = acwr.totalAccel
 
-        _publish_alerts(record_out, acwr)
-
         query = {'userId': user_id, 'eventDate': event_date}
         mongo_collection_date.replace_one(query, record_out, upsert=True)
         print("Finished writing date!")
@@ -124,87 +121,6 @@ def script_handler(input_data):
         print(e)
         print('Process did not complete successfully! See error below!')
         raise
-
-
-def _publish_alerts(record_out, acwr):
-    # Training Volume
-
-    if 1.2 < acwr.totalGRF <= 1.5 or acwr.totalGRF < 0.79 and acwr.totalGRF is not None:
-        _publish_alert(record_out, category=1, subcategory=1, granularity='total', value=1)
-    elif 1.5 < acwr.totalGRF and acwr.totalGRF is not None:
-        _publish_alert(record_out, category=1, subcategory=1, granularity='total', value=2)
-
-    if 1.2 < acwr.totalAccel <= 1.5 or acwr.totalAccel < 0.79 and acwr.totalAccel is not None:
-        _publish_alert(record_out, category=1, subcategory=2, granularity='total', value=1)
-    elif 1.5 < acwr.totalAccel and acwr.totalAccel is not None:
-        _publish_alert(record_out, category=1, subcategory=2, granularity='total', value=2)
-
-    # Movement Quality
-
-    # GRF Dist
-    if 5 < record_out['percLRGRFDiff'] <= 10:
-        _publish_alert(record_out, category=3, subcategory=1, granularity='total', value=1)
-    elif record_out['percLRGRFDiff'] > 10:
-        _publish_alert(record_out, category=3, subcategory=1, granularity='total', value=2)
-
-    # symmetry
-    symmetry_scores = [record_out['symmetry'],
-                       record_out['hipSymmetry'],
-                       record_out['ankleSymmetry']]
-    min_symm = numpy.min(symmetry_scores)
-    max_symm = numpy.max(symmetry_scores)
-    if min_symm is not None and max_symm is not None:
-        symm_comp_diff = numpy.abs(min_symm - max_symm)
-        if min_symm < 50 or symm_comp_diff > 30:
-            _publish_alert(record_out, category=3, subcategory=2, granularity='total', value=2)
-        elif 50 <= min_symm < 65 or 20 <= symm_comp_diff < 30:
-            _publish_alert(record_out, category=3, subcategory=2, granularity='total', value=1)
-
-    # Control
-    control_scores = [record_out['control'],
-                      record_out['hipControl'],
-                      record_out['ankleControl'],
-                      record_out['controlLF'],
-                      record_out['controlRF']]
-    min_cont = numpy.min(control_scores)
-    max_cont = numpy.max(control_scores)
-    print(min_cont, max_cont)
-    if min_cont is not None and max_cont is not None:
-        control_comp_diff = numpy.abs(min_cont - max_cont)
-        if min_cont < 50 or control_comp_diff > 30:
-            _publish_alert(record_out, category=3, subcategory=3, granularity='total', value=2)
-        elif 50 <= min_cont < 65 or 20 <= control_comp_diff < 30:
-            _publish_alert(record_out, category=3, subcategory=3, granularity='total', value=1)
-
-    # Consistency
-    # consistency_scores = [record_out['consistency'],
-    #                       record_out['hipConsistency'],
-    #                       record_out['ankleConsistency'],
-    #                       record_out['consistencyLF'],
-    #                       record_out['consistencyRF']]
-    # min_cons = numpy.min(consistency_scores)
-    # max_cons = numpy.max(consistency_scores)
-    # if min_cons is not None and max_cons is not None:
-    #     consistency_comp_diff = numpy.abs(min_cons - max_cons)
-    #     if min_cons < 50 or consistency_comp_diff > 30:
-    #         _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=2)
-    #     elif 50 <= min_cons < 65 or 20 <= consistency_comp_diff < 30:
-    #         _publish_alert(record_out, category=3, subcategory=4, granularity='total', value=1)
-
-
-def _publish_alert(record_out, category, subcategory, granularity, value):
-    alert = Alert(
-        user_id=record_out['userId'],
-        team_id=record_out['teamId'],
-        training_group_ids=record_out['trainingGroups'],
-        event_date=record_out['eventDate'],
-        session_type=record_out['sessionType'],
-        category=category,
-        subcategory=subcategory,
-        granularity=granularity,
-        value=value
-    )
-    alert.publish()
 
 
 def _get_session_data(collection, user_id, event_date):

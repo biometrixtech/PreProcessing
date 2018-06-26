@@ -146,13 +146,6 @@ Resources:
                         Resource: "*"
 
                       - Action:
-                          - "sns:Publish"
-                        Effect: "Allow"
-                        Resource:
-                          - { "Fn::Sub": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:alerts-${Environment}-trigger" }
-                          - { Ref: "SnsDataQualityTopic" }
-
-                      - Action:
                           - "dynamodb:PutItem"
                           - "dynamodb:Query"
                           - "dynamodb:UpdateItem"

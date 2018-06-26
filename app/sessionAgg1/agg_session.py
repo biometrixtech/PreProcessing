@@ -7,8 +7,6 @@ import numpy
 import pandas
 
 from config import get_mongo_collection
-from alert import Alert
-
 
 def script_handler(working_directory, input_data):
     print('Running session aggregation  on "{}"'.format(working_directory.split('/')[-1]))
@@ -129,8 +127,6 @@ def script_handler(working_directory, input_data):
             except TypeError:
                 pass
 
-        _publish_alerts(record_out)
-
         # Write the record to mongo
         query = {'sessionId': session_event_id, 'eventDate': str(event_date)}
         mongo_collection.replace_one(query, record_out, upsert=True)
@@ -174,26 +170,3 @@ def _fatigue_analysis(data, var):
     elif start < 0:
         start = 0
     return start, fatigue
-
-
-def _publish_alerts(record_out):
-    # Session fatigue
-    if -20 < record_out['sessionFatigue'] < -10:
-        _publish_alert(record_out, category=2, subcategory=2, granularity='total', value=1)
-    elif record_out['sessionFatigue'] <= -20:
-        _publish_alert(record_out, category=2, subcategory=2, granularity='total', value=2)
-
-
-def _publish_alert(record_out, category, subcategory, granularity, value):
-    alert = Alert(
-        user_id=record_out['userId'],
-        team_id=record_out['teamId'],
-        training_group_ids=record_out['trainingGroups'],
-        event_date=record_out['eventDate'],
-        session_type=record_out['sessionType'],
-        category=category,
-        subcategory=subcategory,
-        granularity=granularity,
-        value=value
-    )
-    alert.publish()
