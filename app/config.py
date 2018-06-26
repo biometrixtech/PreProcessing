@@ -3,7 +3,7 @@ import os
 
 
 def get_mongo_config(instance):
-    keys = ['host', 'replicaset', 'user', 'password']
+    keys = ['host', 'replicaset', 'user', 'password', 'database', 'collection']
     config = {k.lower(): os.environ['MONGO_{}_{}'.format(k.upper(), instance.upper())] for k in keys}
     return config
 
