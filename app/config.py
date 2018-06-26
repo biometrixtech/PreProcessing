@@ -14,13 +14,13 @@ def get_mongo_database(instance):
         config['host'],
         authSource='admin',
         authMechanism='SCRAM-SHA-1',
-        password=config['password'],
         replicaset=config['replicaset'] if config['replicaset'] != '---' else None,
         ssl=True,
-        username=config['user'],
     )
+    database = mongo_client[config['database']]
+    database.authenticate(config['user'], config['password'], mechanism='SCRAM-SHA-1')
 
-    return mongo_client[config['database']]
+    return database
 
 
 def get_mongo_collection(instance, collection_override=None):
