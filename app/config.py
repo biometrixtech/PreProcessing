@@ -13,7 +13,7 @@ def get_mongo_database(instance):
     mongo_client = MongoClient(
         config['host'],
         authSource='admin',
-        mechanism='SCRAM-SHA-1',
+        authMechanism='SCRAM-SHA-1',
         password=config['password'],
         replicaset=config['replicaset'] if config['replicaset'] != '---' else None,
         ssl=True,
