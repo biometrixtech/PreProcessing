@@ -3,7 +3,7 @@ import os
 
 
 def get_mongo_config(instance):
-    keys = ['host', 'replicaset', 'username', 'password']
+    keys = ['host', 'replicaset', 'user', 'password']
     config = {k.lower(): os.environ['MONGO_{}_{}'.format(k.upper(), instance.upper())] for k in keys}
     return config
 
@@ -17,7 +17,7 @@ def get_mongo_database(instance):
         password=config['password'],
         replicaset=config['replicaset'] if config['replicaset'] != '---' else None,
         ssl=True,
-        username=config['username'],
+        username=config['user'],
     )
 
     return mongo_client[config['database']]
