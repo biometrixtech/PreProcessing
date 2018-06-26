@@ -20,7 +20,7 @@ def connect_mongo():
     # connect to all relevant collections
     mongo_collection_date = mongo_database_session[os.environ['MONGO_COLLECTION_DATE']]
     mongo_collection_dateteam = mongo_database_session[os.environ['MONGO_COLLECTION_DATETEAM']]
-    mongo_collection_progcomp = mongo_database_session[os.environ['MONGO_COLLECTION_PROGCOMP']]
+    mongo_collection_progcomp = mongo_database_session[os.environ['MONGO_COLLECTION_PROGCOMPDATE']]
 
     mongo_collection_twomin = mongo_database_twomin[os.environ['MONGO_COLLECTION_TWOMIN']]
     mongo_collection_twominteam = mongo_database_twomin[os.environ['MONGO_COLLECTION_TWOMINTEAM']]
