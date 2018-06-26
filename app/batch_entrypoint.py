@@ -21,14 +21,9 @@ def send_success(meta, output):
                 "Output": output
             })
         )
-    if 'LinearityGroup' in meta:
-        sqs_client = boto3.client('sqs')
-        response = sqs_client.delete_message(
-            QueueUrl=meta['LinearityGroup']['QueueUrl'],
-            ReceiptHandle=meta['LinearityGroup']['ReceiptHandle']
-        )
-        print(response)
 
+
+def send_profiling(meta):
     if 'Profiling' in meta:
         meta['Profiling']['EndTime'] = time.time()
         put_cloudwatch_metric(
@@ -39,7 +34,7 @@ def send_success(meta, output):
 
     
 def send_failure(meta, exception):
-    task_token = meta.get('TaskTokenFailure', meta.get('TaskToken', None))
+    task_token = meta['TaskToken']
     if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_failure(
@@ -50,7 +45,7 @@ def send_failure(meta, exception):
 
 
 def send_heartbeat(meta):
-    task_token = meta.get('TaskTokenFailure', meta.get('TaskToken', None))
+    task_token = meta['TaskToken']
     if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_heartbeat(
@@ -145,8 +140,8 @@ def main():
         if script == 'noop':
             print('Noop job')
             # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
-            send_success(meta_data, {})
-            exit(0)
+            send_profiling(meta_data)
+            return
 
         session_id = input_data.get('SessionId')
         os.environ['SESSION_ID'] = session_id
@@ -162,38 +157,18 @@ def main():
             mkdir(working_directory)
             from downloadAndChunk import downloadAndChunk
             mkdir(os.path.join(working_directory, 'downloadandchunk'))
-            combined_file = downloadAndChunk.script_handler(session_id,
-                os.path.join(working_directory, 'downloadandchunk'))
+            combined_file = downloadAndChunk.script_handler(session_id, os.path.join(working_directory, 'downloadandchunk'))
 
             # Upload combined file back to s3
             s3_client = boto3.client('s3')
             s3_bucket = 'biometrix-decode'
             s3_client.upload_file(combined_file, s3_bucket, session_id + '_combined')
 
-
-
-            # from chunk import chunk
-            # mkdir(os.path.join(working_directory, 'downloadandchunk'))
-            # if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
-            #     file_names = chunk.chunk_by_line(
-            #         tmp_combined_file,
-            #         os.path.join(working_directory, 'downloadandchunk'),
-            #         100000  # 100,000 records per chunk
-            #         )
-            # else:
-            #     file_names = chunk.chunk_by_byte(
-            #         tmp_combined_file,
-            #         os.path.join(working_directory, 'downloadandchunk'),
-            #         100000 * 40  # 100,000 records, 40 bytes per record
-            #     )
-
-            # os.remove(tmp_combined_file)
-
-            send_success(meta_data, {"Filenames": [session_id]})
+            send_profiling(meta_data)
 
         elif script == 'transformandplacement':
             print('Running transformandplacement()')
-            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+            if input_data['Version'] == '1.0':
                 ret = {
                     'Placement': [0, 1, 2],
                     'BodyFrameTransforms': {
@@ -208,12 +183,11 @@ def main():
                 from transform_and_placement import transform_and_placement
                 ret = transform_and_placement.script_handler(
                     working_directory,
-                    input_data.get('Filename', None)
+                    input_data['SessionId']
                 )
             from chunk import chunk
-            # mkdir(os.path.join(working_directory, 'downloadandchunk'))
             combined_file = os.path.join(working_directory, 'downloadandchunk', session_id)
-            if input_data.get('SensorDataFileVersion', '2.3') == '1.0':
+            if input_data['Version'] == '1.0':
                 file_names = chunk.chunk_by_line(
                     combined_file,
                     os.path.join(working_directory, 'downloadandchunk'),
@@ -226,10 +200,10 @@ def main():
                     100000 * 40  # 100,000 records, 40 bytes per record
                 )
             ret["Filenames"] = file_names
-            # Faking data to test pipeline
-            # ret["Sensors"] = 1
+            ret["FileCount"] = len(file_names)
             os.remove(combined_file)
             send_success(meta_data, ret)
+            send_profiling(meta_data)
 
         elif script == 'sessionprocess2':
             load_parameters(['MS_MODEL',
@@ -245,14 +219,17 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Running sessionprocess on single-sensor data')
                 from sessionProcess1 import sessionProcess
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
 
+            file_name = input_data.get('Filenames', [])[int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))]
             sessionProcess.script_handler(
                 working_directory,
-                input_data.get('Filename', None),
+                file_name,
                 input_data
             )
             print(meta_data)
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'scoring':
             if input_data.get('Sensors') == 3:
@@ -261,6 +238,8 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Running scoring on single-sensor data')
                 from scoring1 import scoringProcess
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
 
             boundaries = scoringProcess.script_handler(
                 working_directory,
@@ -278,7 +257,7 @@ def main():
                 boundaries
             )
 
-            send_success(meta_data, {"Filenames": file_names})
+            send_success(meta_data, {"Filenames": file_names, "FileCount": len(file_names)})
 
         elif script == 'aggregatesession':
             load_parameters([
@@ -295,11 +274,14 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Computing session aggregations on single sensor data')
                 from sessionAgg1 import agg_session
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
+
             agg_session.script_handler(
                 working_directory,
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregateblocks':
             load_parameters([
@@ -316,12 +298,14 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Computing block single-sensor data')
                 from activeBlockAgg1 import agg_blocks
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
 
             agg_blocks.script_handler(
                 working_directory,
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregatetwomin':
             load_parameters([
@@ -338,12 +322,15 @@ def main():
             elif input_data.get('Sensors') == 1:
                 print('Computing two minute aggregations on single-sensor data')
                 from twoMinuteAgg1 import agg_twomin
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
+
             agg_twomin.script_handler(
                 working_directory,
-                input_data.get('Filename', None),
+                'chunk_{index:02d}'.format(index=int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))),
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregatedateuser':
             print('Computing date-user aggregations')
@@ -361,7 +348,7 @@ def main():
             agg_date_user.script_handler(
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregateprogcomp':
             if input_data.get('Sensors') == 3:
@@ -383,7 +370,7 @@ def main():
             else:
                 print('Program composition is not needed for single-sensor data')
 
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregateprogcompdate':
             if input_data.get('Sensors') == 3:
@@ -405,7 +392,7 @@ def main():
             else:
                 print('Program composition is not needed for single-sensor data')
 
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregateteam':
             print('Computing team aggregations')
@@ -431,7 +418,7 @@ def main():
             agg_team.script_handler(
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'aggregatetraininggroup':
             print('Computing training group aggregations')
@@ -458,7 +445,7 @@ def main():
             agg_tg.script_handler(
                 input_data
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         elif script == 'cleanup':
             print('Cleaning up intermediate files')
@@ -466,7 +453,7 @@ def main():
             cleanup.script_handler(
                 working_directory
             )
-            send_success(meta_data, {})
+            send_profiling(meta_data)
 
         else:
             raise Exception("Unknown batchjob '{}'".format(script))
@@ -483,6 +470,7 @@ def json_serial(obj):
         serial = obj.isoformat()
         return serial
     raise TypeError("Type not serializable")
+
 
 if __name__ == '__main__':
     script = input_data = meta_data = None

@@ -10,10 +10,10 @@ from sensor_use_detection import detect_single_sensor, detect_data_truncation
 from exceptions import PlacementDetectionException 
  
 
-def script_handler(working_directory, file_name):
+def script_handler(working_directory, session_id):
 
     try:
-        filepath = os.path.join(working_directory, 'downloadandchunk', file_name)
+        filepath = os.path.join(working_directory, 'downloadandchunk', session_id)
         count = 2000000
         data = read_file(filepath, count)
 
