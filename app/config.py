@@ -12,13 +12,11 @@ def get_mongo_database(instance):
     config = get_mongo_config(instance)
     mongo_client = MongoClient(
         config['host'],
-        authSource='admin',
-        authMechanism='SCRAM-SHA-1',
         replicaset=config['replicaset'] if config['replicaset'] != '---' else None,
         ssl=True,
     )
     database = mongo_client[config['database']]
-    database.authenticate(config['user'], config['password'], mechanism='SCRAM-SHA-1')
+    database.authenticate(config['user'], config['password'], mechanism='SCRAM-SHA-1', source='admin')
 
     return database
 
