@@ -1,7 +1,4 @@
 from __future__ import print_function
-
-from collections import namedtuple
-from pymongo import MongoClient
 from shutil import copyfile
 import logging
 import os
@@ -11,47 +8,18 @@ import sys
 from collections import OrderedDict
 
 from vars_in_mongo import prog_comp_vars
+from config import get_mongo_collection
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-Config = namedtuple('Config', [
-    'AWS',
-    'ENVIRONMENT',
-    'MONGO_HOST',
-    'MONGO_USER',
-    'MONGO_PASSWORD',
-    'MONGO_DATABASE',
-    'MONGO_COLLECTION',
-    'MONGO_REPLICASET',
-])
 
 
 def script_handler(working_directory, input_data):
     logger.info('Running program composition aggregation  on "{}"'.format(working_directory.split('/')[-1]))
 
     try:
-        config = Config(
-            AWS=False,
-            ENVIRONMENT=os.environ['ENVIRONMENT'],
-            MONGO_HOST=os.environ['MONGO_HOST_SESSION'],
-            MONGO_USER=os.environ['MONGO_USER_SESSION'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_SESSION'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE_SESSION'],
-            MONGO_COLLECTION=os.environ['MONGO_COLLECTION_PROGCOMP'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
-        )
-
-        # first collection
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
-
-        mongo_database = mongo_client[config.MONGO_DATABASE]
-
-        # Authenticate
-        mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD,
-                                    mechanism='SCRAM-SHA-1')
-
-        mongo_collection = mongo_database[config.MONGO_COLLECTION]
+        mongo_collection = get_mongo_collection('SESSION', os.environ['MONGO_COLLECTION_PROGCOMP'])
 
         tmp_filename = '/tmp/readfile'
         copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)

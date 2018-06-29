@@ -2,59 +2,24 @@ from __future__ import print_function
 
 import os
 from shutil import copyfile
-from collections import OrderedDict, namedtuple
-from pymongo import MongoClient
+from collections import OrderedDict
 import numpy
 import pandas
 
-#from session import SessionRecord
-from alert import Alert
-
-Config = namedtuple('Config', [
-    'AWS',
-    'ENVIRONMENT',
-    'MONGO_HOST',
-    'MONGO_USER',
-    'MONGO_PASSWORD',
-    'MONGO_DATABASE',
-    'MONGO_COLLECTION',
-    'MONGO_REPLICASET',
-])
-
+from config import get_mongo_collection
 
 def script_handler(working_directory, input_data):
     print('Running session aggregation  on "{}"'.format(working_directory.split('/')[-1]))
 
     try:
-        config = Config(
-            AWS=False,
-            ENVIRONMENT=os.environ['ENVIRONMENT'],
-            MONGO_HOST=os.environ['MONGO_HOST_SESSION'],
-            MONGO_USER=os.environ['MONGO_USER_SESSION'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_SESSION'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE_SESSION'],
-            MONGO_COLLECTION=os.environ['MONGO_COLLECTION_SESSION'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
-        )
-#
-#        # first collection
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
-#
-        mongo_database = mongo_client[config.MONGO_DATABASE]
-#
-#        # Authenticate
-        mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD,
-                                    mechanism='SCRAM-SHA-1')
-#
-        mongo_collection = mongo_database[config.MONGO_COLLECTION]
-#
+        mongo_collection = get_mongo_collection('SESSION')
+
         tmp_filename = '/tmp/readfile'
         copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)
         print("Copied data file to local FS")
         data = pandas.read_csv(tmp_filename)
         os.remove(tmp_filename)
         print("Removed temporary file")
-
 
         team_id = input_data.get('TeamId', None)
         training_group_id = input_data.get('TrainingGroupIds', None)
@@ -162,8 +127,6 @@ def script_handler(working_directory, input_data):
             except TypeError:
                 pass
 
-        _publish_alerts(record_out)
-
         # Write the record to mongo
         query = {'sessionId': session_event_id, 'eventDate': str(event_date)}
         mongo_collection.replace_one(query, record_out, upsert=True)
@@ -207,26 +170,3 @@ def _fatigue_analysis(data, var):
     elif start < 0:
         start = 0
     return start, fatigue
-
-
-def _publish_alerts(record_out):
-    # Session fatigue
-    if -20 < record_out['sessionFatigue'] < -10:
-        _publish_alert(record_out, category=2, subcategory=2, granularity='total', value=1)
-    elif record_out['sessionFatigue'] <= -20:
-        _publish_alert(record_out, category=2, subcategory=2, granularity='total', value=2)
-
-
-def _publish_alert(record_out, category, subcategory, granularity, value):
-    alert = Alert(
-        user_id=record_out['userId'],
-        team_id=record_out['teamId'],
-        training_group_ids=record_out['trainingGroups'],
-        event_date=record_out['eventDate'],
-        session_type=record_out['sessionType'],
-        category=category,
-        subcategory=subcategory,
-        granularity=granularity,
-        value=value
-    )
-    alert.publish()

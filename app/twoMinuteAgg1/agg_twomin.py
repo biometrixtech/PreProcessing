@@ -8,44 +8,8 @@ from collections import namedtuple, OrderedDict
 
 import numpy
 import pandas
-from pymongo import MongoClient
 
-
-Config = namedtuple('Config', [
-    'AWS',
-    'ENVIRONMENT',
-    'MONGO_HOST',
-    'MONGO_USER',
-    'MONGO_PASSWORD',
-    'MONGO_DATABASE',
-    'MONGO_COLLECTION',
-    'MONGO_REPLICASET',
-])
-
-def connect_mongo(config):
-    """Get mongo client connection
-    """
-    # first collection
-    mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
-
-    mongo_database = mongo_client[config.MONGO_DATABASE]
-
-    # Authenticate
-    mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD,
-                                mechanism='SCRAM-SHA-1')
-
-    return mongo_database[config.MONGO_COLLECTION]
-
-
-#def get_ids(input_data):
-#    team_id = input_data.get('TeamId', None)
-#    training_group_id = input_data.get('TrainingGroupIds', None)
-#    user_id = input_data.get('UserId', None)
-#    session_event_id = input_data.get('SessionId', None)
-#    user_mass = input_data.get('UserMassKg', None)
-#    event_date = input_data.get('EventDate')
-#
-#    return team_id, training_group_id, user_id, session_event_id, user_mass, event_date
+from config import get_mongo_collection
 
 
 def script_handler(working_directory, file_name, input_data):
@@ -53,18 +17,7 @@ def script_handler(working_directory, file_name, input_data):
     print("Definitely running")
 
     try:
-        config = Config(
-            AWS=False,
-            ENVIRONMENT=os.environ['ENVIRONMENT'],
-            MONGO_HOST=os.environ['MONGO_HOST_TWOMIN'],
-            MONGO_USER=os.environ['MONGO_USER_TWOMIN'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_TWOMIN'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE_TWOMIN'],
-            MONGO_COLLECTION=os.environ['MONGO_COLLECTION_TWOMIN'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_TWOMIN'] if os.environ['MONGO_REPLICASET_TWOMIN'] != '---' else None,
-        )
-        mongo_collection = connect_mongo(config)
-
+        mongo_collection = get_mongo_collection('TWOMIN')
 
         tmp_filename = '/tmp/readfile'
 #        copyfile(os.path.join(working_directory, 'scoring_chunked', file_name), tmp_filename)

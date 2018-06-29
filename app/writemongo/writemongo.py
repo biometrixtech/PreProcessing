@@ -56,7 +56,7 @@ def script_handler(working_directory, file_name, input_data):
         )
 
         # first collection
-        mongo1_client = MongoClient(config.MONGO1_HOST, replicaset=config.MONGO1_REPLICASET)
+        mongo1_client = MongoClient(config.MONGO1_HOST, replicaset=config.MONGO1_REPLICASET, ssl=True)
 
         mongo1_database = mongo1_client[config.MONGO1_DATABASE]
 
@@ -66,7 +66,7 @@ def script_handler(working_directory, file_name, input_data):
         mongo1_collection = mongo1_database[config.MONGO1_COLLECTION]
 
         # second collection
-        mongo2_client = MongoClient(config.MONGO2_HOST, replicaset=config.MONGO2_REPLICASET) 
+        mongo2_client = MongoClient(config.MONGO2_HOST, replicaset=config.MONGO2_REPLICASET, ssl=True)
         mongo2_database = mongo2_client[config.MONGO2_DATABASE]
 
         # Authenticate

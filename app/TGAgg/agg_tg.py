@@ -1,64 +1,30 @@
 from __future__ import print_function
 
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict
 import os
 from datetime import datetime, timedelta
 
 import numpy
 import pandas
-from pymongo import MongoClient
 
 from vars_in_mongo import athlete_vars, tg_vars, tg_twomin_vars, athlete_twomin_vars
+from config import get_mongo_database
 
 
-Config = namedtuple('Config', [
-    'AWS',
-    'ENVIRONMENT',
-    'FP_INPUT',
-    'MONGO_HOST_SESSION',
-    'MONGO_USER_SESSION',
-    'MONGO_PASSWORD_SESSION',
-    'MONGO_DATABASE_SESSION',
-    'MONGO_REPLICASET_SESSION',
-    'MONGO_COLLECTION_DATE',
-    'MONGO_COLLECTION_DATETG',
-    'MONGO_COLLECTION_PROGCOMP',
-    'MONGO_HOST_TWOMIN',
-    'MONGO_USER_TWOMIN',
-    'MONGO_PASSWORD_TWOMIN',
-    'MONGO_DATABASE_TWOMIN',
-    'MONGO_REPLICASET_TWOMIN',
-    'MONGO_COLLECTION_TWOMIN',
-    'MONGO_COLLECTION_TWOMINTG',
-])
-
-
-def connect_mongo(config):
-    """Get mongo client connection
+def connect_mongo():
     """
-    # Connect to session mongo
-    mongo_client_session = MongoClient(config.MONGO_HOST_SESSION,
-                                       replicaset=config.MONGO_REPLICASET_SESSION)
-    mongo_database_session = mongo_client_session[config.MONGO_DATABASE_SESSION]
-    # Authenticate
-    mongo_database_session.authenticate(config.MONGO_USER_SESSION, config.MONGO_PASSWORD_SESSION,
-                                        mechanism='SCRAM-SHA-1')
-
-    # Connect to twomin mongo
-    mongo_client_twomin = MongoClient(config.MONGO_HOST_TWOMIN,
-                                      replicaset=config.MONGO_REPLICASET_TWOMIN)
-    mongo_database_twomin = mongo_client_twomin[config.MONGO_DATABASE_TWOMIN]
-    # Authenticate
-    mongo_database_twomin.authenticate(config.MONGO_USER_TWOMIN, config.MONGO_PASSWORD_TWOMIN,
-                                       mechanism='SCRAM-SHA-1')
+    Get mongo client connection
+    """
+    mongo_database_session = get_mongo_database('SESSION')
+    mongo_database_twomin = get_mongo_database('TWOMIN')
 
     # connect to all relevant collections
-    mongo_collection_date = mongo_database_session[config.MONGO_COLLECTION_DATE]
-    mongo_collection_datetg = mongo_database_session[config.MONGO_COLLECTION_DATETG]
-    mongo_collection_progcomp = mongo_database_session[config.MONGO_COLLECTION_PROGCOMP]
+    mongo_collection_date = mongo_database_session[os.environ['MONGO_COLLECTION_DATE']]
+    mongo_collection_datetg = mongo_database_session[os.environ['MONGO_COLLECTION_DATETG']]
+    mongo_collection_progcomp = mongo_database_session[os.environ['MONGO_COLLECTION_PROGCOMP']]
 
-    mongo_collection_twomin = mongo_database_twomin[config.MONGO_COLLECTION_TWOMIN]
-    mongo_collection_twomintg = mongo_database_twomin[config.MONGO_COLLECTION_TWOMINTG]
+    mongo_collection_twomin = mongo_database_twomin[os.environ['MONGO_COLLECTION_TWOMIN']]
+    mongo_collection_twomintg = mongo_database_twomin[os.environ['MONGO_COLLECTION_TWOMINTG']]
 
     return (mongo_collection_date, mongo_collection_datetg, mongo_collection_progcomp,
             mongo_collection_twomin, mongo_collection_twomintg)
@@ -68,34 +34,13 @@ def script_handler(input_data):
     print("Running training groups aggregation")
 
     try:
-        config = Config(
-            AWS=False,
-            ENVIRONMENT=os.environ['ENVIRONMENT'],
-            FP_INPUT='/net/efs/writemongo/input',
-            MONGO_HOST_SESSION=os.environ['MONGO_HOST_SESSION'],
-            MONGO_USER_SESSION=os.environ['MONGO_USER_SESSION'],
-            MONGO_PASSWORD_SESSION=os.environ['MONGO_PASSWORD_SESSION'],
-            MONGO_DATABASE_SESSION=os.environ['MONGO_DATABASE_SESSION'],
-            MONGO_REPLICASET_SESSION=os.environ['MONGO_REPLICASET_SESSION'] if os.environ['MONGO_REPLICASET_SESSION'] != '---' else None,
-            MONGO_COLLECTION_DATE=os.environ['MONGO_COLLECTION_DATE'],
-            MONGO_COLLECTION_DATETG=os.environ['MONGO_COLLECTION_DATETG'],
-            MONGO_COLLECTION_PROGCOMP=os.environ['MONGO_COLLECTION_PROGCOMPDATE'],
-            MONGO_HOST_TWOMIN=os.environ['MONGO_HOST_TWOMIN'],
-            MONGO_USER_TWOMIN=os.environ['MONGO_USER_TWOMIN'],
-            MONGO_PASSWORD_TWOMIN=os.environ['MONGO_PASSWORD_TWOMIN'],
-            MONGO_DATABASE_TWOMIN=os.environ['MONGO_DATABASE_TWOMIN'],
-            MONGO_REPLICASET_TWOMIN=os.environ['MONGO_REPLICASET_TWOMIN'] if os.environ['MONGO_REPLICASET_TWOMIN'] != '---' else None,
-            MONGO_COLLECTION_TWOMIN=os.environ['MONGO_COLLECTION_TWOMIN'],
-            MONGO_COLLECTION_TWOMINTG=os.environ['MONGO_COLLECTION_TWOMINTG'],
-        )
-
         (
             mongo_collection_date,
             mongo_collection_datetg,
             mongo_collection_progcomp,
             mongo_collection_twomin,
             mongo_collection_twomintg
-        ) = connect_mongo(config)
+        ) = connect_mongo()
 
         training_group_ids = input_data.get('TrainingGroupIds', None) or {}
         event_date = input_data.get('EventDate')
