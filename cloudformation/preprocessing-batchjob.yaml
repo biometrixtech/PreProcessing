@@ -143,8 +143,105 @@ Resources:
         Type: "AWS::Lambda::Function"
         Properties:
             Code:
-                S3Bucket: { "Fn::Sub": "biometrix-infrastructure-${AWS::Region}" }
-                S3Key: "lambdas/trigger_batchjob_codebuild.zip"
+                ZipFile: |
+                    from botocore.vendored import requests
+                    import boto3, json, os, time, traceback
+
+                    codebuild_client = boto3.client('codebuild')
+                    ecr_client = boto3.client('ecr')
+
+
+                    class NoSuchImageException(Exception):
+                        pass
+
+
+                    class CloudFormationHandler:
+                        def __init__(self, event, context):
+                            self.event = event
+                            self.physical_resource_id = event.get('PhysicalResourceId', context.log_stream_name)
+
+                        def _send_cf_response(self, success, reason):
+                            json_response_body = json.dumps({
+                                'Status': 'SUCCESS' if success else 'FAILED',
+                                'Reason': reason,
+                                'PhysicalResourceId': self.physical_resource_id,
+                                'StackId': self.event['StackId'],
+                                'RequestId': self.event['RequestId'],
+                                'LogicalResourceId': self.event['LogicalResourceId'],
+                                'Data': {}
+                            })
+                            requests.put(
+                                self.event['ResponseURL'],
+                                data=json_response_body,
+                                headers={'content-type': '', 'content-length': str(len(json_response_body))}
+                            )
+
+                        def process(self, event):
+                            if event['RequestType'] == 'Delete':
+                                # Probably rolling back, allow that to happen
+                                self._send_cf_response(True, "Allowing rollback")
+                                return
+                            try:
+                                self.physical_resource_id = self.create(event['ResourceProperties'].get('EcrImageTag', 'latest'))
+                                print("physical_resource_id={}".format(self.physical_resource_id))
+                                self._send_cf_response(True, 'Success')
+
+                            except Exception as e:
+                                self._send_cf_response(False, str(e) + "\n\n" + traceback.format_exc())
+
+                        def create(self, ecr_image_tag):
+                            ecr_registry_name = os.environ['ECR_REGISTRY']
+                            ecr_repository_name = os.environ['ECR_REPOSITORY']
+
+                            try:
+                                ecr_image_digest = _assert_image_exists(ecr_registry_name, ecr_repository_name, ecr_image_tag)
+                                print('Found existing image in ECR with digest {}'.format(ecr_image_digest))
+                            except NoSuchImageException:
+                                # Need to create it
+                                print('Triggering CodeBuild for version "{}"'.format(ecr_image_tag))
+                                res = codebuild_client.start_build(projectName='preprocessing-batchjob', sourceVersion=ecr_image_tag)
+                                build_id = res['build']['id']
+                                print('Build {}'.format(build_id))
+
+                                # Wait for the image to be created
+                                for i in range(100):
+                                    if not _check_codebuild_completed(build_id):
+                                        time.sleep(5)
+
+                                ecr_image_digest = _assert_image_exists(ecr_registry_name, ecr_repository_name, ecr_image_tag)
+
+                            return "{}/{}@{}".format(ecr_registry_name, ecr_repository_name, ecr_image_digest)
+
+
+                    def _assert_image_exists(registry_name, repository_name, image_tag):
+                        images = _get_all_images(registry_name, repository_name)
+                        if image_tag in images:
+                            return images[image_tag]
+                        else:
+                            raise NoSuchImageException()
+
+
+                    def _check_codebuild_completed(build_id):
+                        build = codebuild_client.batch_get_builds(ids=[build_id])['builds'][0]
+                        if build['buildStatus'] in ['FAILED', 'TIMED_OUT', 'FAULT', 'STOPPED']:
+                            raise Exception("CodeBuild build failed!")
+                        return not build['buildStatus'] == 'IN_PROGRESS'
+
+
+                    def _get_all_images(registry_name, repository_name, next_token=None):
+                        if next_token is None:
+                            res = ecr_client.list_images(repositoryName=repository_name)
+                        else:
+                            res = ecr_client.list_images(repositoryName=repository_name, nextToken=next_token)
+                        images = {i['imageTag'] if 'imageTag' in i else 'none': i['imageDigest'] for i in res['imageIds']}
+                        if 'nextToken' in res:
+                            images.update(_get_all_images(registry_name, repository_name, res['nextToken']))
+                        return images
+
+
+                    def handler(event, context):
+                        print(json.dumps(event))
+                        CloudFormationHandler(event, context).process(event)
 
             Environment:
                 Variables:
