@@ -247,7 +247,7 @@ Resources:
                 Variables:
                     ECR_REGISTRY: { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com" }
                     ECR_REPOSITORY: { Ref: "EcrRepository" }
-            Handler: "trigger_batchjob_codebuild.handler"
+            Handler: "index.handler"
             Runtime: "python3.6"
             Timeout: "300"
             Role: { "Fn::GetAtt" : [ "TriggerRole", "Arn" ] }
