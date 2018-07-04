@@ -23,10 +23,11 @@ Parameters:
         Type: "String"
         AllowedValues: [ "true", "false" ]
         Description: "Whether to create instances in multiple AZs.  This has an additional cost."
-    MongoDbPeeringVpc:
+    MongoDbPeeringId:
         Type: "String"
         Default: ""
-        Description: "MongoDB VPC ID"
+        AllowedPattern: "^(vpc|pcx)-[a-z0-9]+|$"
+        Description: "VPC ID to create a new peering connection to, or Peering Connection ID to add routes to an existing connection"
     MongoDbPeeringCidr:
         Type: "String"
         Description: "MongoDB VPC CIDR range"
@@ -99,7 +100,7 @@ Parameters:
 Mappings:
     TemplateVersion:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
-        Infrastructure: { Commit: "e4b98cc0c7bce2861b136a8d3a8118cdb2695cec" }
+        Infrastructure: { Commit: "3184e8dd463340a7f8cce953eea24dd2d7453e9b" }
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -136,7 +137,7 @@ Metadata:
             CreatePipeline: { default: "Create pipieline stack?" }
             CreateIngest: { default: "Create ingest stack?" }
             BatchJobVersion: { default: "batchjob" }
-            MongoDbPeeringVpc: { default: "MongoDB VPN ID" }
+            MongoDbPeeringId: { default: "MongoDB VPN ID" }
             MongoDbPeeringCidr: { default: "MongoDB VPN CIDR" }
 
 Conditions:
@@ -182,7 +183,7 @@ Resources:
                 Environment: { Ref: "Environment" }
                 MultiAz: { Ref: "MultiAz" }
                 PeeringCidr: { Ref: "MongoDbPeeringCidr" }
-                PeeringVpc: { Ref: "MongoDbPeeringVpc" }
+                PeeringId: { Ref: "MongoDbPeeringId" }
                 Project: "preprocessing"
                 Service: "compute"
                 VpnCidr: { Ref: "VpnCidr" }
