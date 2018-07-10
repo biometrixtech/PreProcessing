@@ -23,10 +23,11 @@ Parameters:
         Type: "String"
         AllowedValues: [ "true", "false" ]
         Description: "Whether to create instances in multiple AZs.  This has an additional cost."
-    MongoDbPeeringVpc:
+    MongoDbPeeringId:
         Type: "String"
         Default: ""
-        Description: "MongoDB VPC ID"
+        AllowedPattern: "^(vpc|pcx)-[a-z0-9]+|$"
+        Description: "VPC ID to create a new peering connection to, or Peering Connection ID to add routes to an existing connection"
     MongoDbPeeringCidr:
         Type: "String"
         Description: "MongoDB VPC CIDR range"
@@ -136,7 +137,7 @@ Metadata:
             CreatePipeline: { default: "Create pipieline stack?" }
             CreateIngest: { default: "Create ingest stack?" }
             BatchJobVersion: { default: "batchjob" }
-            MongoDbPeeringVpc: { default: "MongoDB VPN ID" }
+            MongoDbPeeringId: { default: "MongoDB VPN ID" }
             MongoDbPeeringCidr: { default: "MongoDB VPN CIDR" }
 
 Conditions:
