@@ -42,7 +42,7 @@ def upload_lambda_bundle(local_filepath, s3_filename, pip_install=True):
     else:
         # Install pip requirements first
         if pip_install:
-            subprocess.check_call('pip install -t {f} -r {f}/pip_requirements'.format(f=local_filepath), shell=True)
+            subprocess.check_call('python3 -m pip install -t {f} -r {f}/pip_requirements'.format(f=local_filepath), shell=True)
 
         # Write the version into the bundle
         with open(os.path.join(local_filepath, 'version'), "w") as file:
@@ -66,11 +66,6 @@ def main():
     os.environ['PROJECT'] = os.environ['LAMBCI_REPO'].split('/')[-1].lower()
     config = read_config()
 
-    print("Deploying CloudFormation templates")
-    for template in config['templates']:
-        local_filename = os.path.realpath(template['src'])
-        upload_cf_template(local_filename, template['s3_filename'])
-
     print("Deploying Lambda functions")
     for lambda_bundle in config['lambdas']:
         upload_lambda_bundle(
@@ -78,6 +73,11 @@ def main():
             lambda_bundle['s3_filename'],
             lambda_bundle['pip']
         )
+
+    print("Deploying CloudFormation templates")
+    for template in config['templates']:
+        local_filename = os.path.realpath(template['src'])
+        upload_cf_template(local_filename, template['s3_filename'])
 
 
 if __name__ == '__main__':

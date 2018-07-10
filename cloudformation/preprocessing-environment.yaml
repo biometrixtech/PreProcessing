@@ -99,7 +99,7 @@ Parameters:
 Mappings:
     TemplateVersion:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
-        Infrastructure: { Commit: "e4b98cc0c7bce2861b136a8d3a8118cdb2695cec" }
+        Infrastructure: { Commit: "e83a70171b72e8ae1732e30ca51c7d8b0a5882ad" }
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -180,9 +180,9 @@ Resources:
         Properties:
             Parameters:
                 Environment: { Ref: "Environment" }
-                MultiAz: { Ref: "MultiAz" }
+                SubnetConfiguration: "Public A/B, Private A/B"
                 PeeringCidr: { Ref: "MongoDbPeeringCidr" }
-                PeeringVpc: { Ref: "MongoDbPeeringVpc" }
+                PeeringId: { Ref: "MongoDbPeeringId" }
                 Project: "preprocessing"
                 Service: "compute"
                 VpnCidr: { Ref: "VpnCidr" }
