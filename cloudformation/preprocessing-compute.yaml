@@ -305,7 +305,7 @@ Resources:
                     Environment: { Ref: "Environment" }
                     Service: "batch"
                 Type: "EC2"
-            ServiceRole: { "Fn::ImportValue": "BatchServiceRole" }
+            ServiceRole: { "Fn::ImportValue": "ServiceRoleBatch" }
             State: "ENABLED"
             Type: "MANAGED"
 

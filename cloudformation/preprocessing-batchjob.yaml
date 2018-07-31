@@ -91,7 +91,7 @@ Resources:
         Properties:
             Name: { "Fn::Sub": 'preprocessing-batchjob' }
             Description: { "Fn::Sub": 'Builds a new Docker image for the Batch services and registers it to ECR' }
-            ServiceRole: { "Fn::ImportValue": "CodeBuildServiceRole" }
+            ServiceRole: { "Fn::ImportValue": "ServiceRoleCodeBuild" }
             Artifacts:
                 Type: "no_artifacts"
             Environment:
