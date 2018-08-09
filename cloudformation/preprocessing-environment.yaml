@@ -329,6 +329,7 @@ Resources:
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/infrastructure-${Environment}-querypostgres" }
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/preprocessing-${Environment}-ingest-sessions-read" }
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/preprocessing-${Environment}-ingest-sessions-write" }
+              - { "Fn::ImportValue": { "Fn::Sub": "UsersValidateAuthPolicyArn-${Environment}" } }
             Policies:
               - PolicyName: "default"
                 PolicyDocument:
