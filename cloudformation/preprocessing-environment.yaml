@@ -145,6 +145,7 @@ Conditions:
     CreateCompute: { "Fn::And": [ { Condition: "CreateVpc" }, { "Fn::Equals": [ { Ref: "CreateCompute" }, "true" ] } ] }
     CreatePipeline: { "Fn::And": [ { Condition: "CreateCompute" }, { "Fn::Equals": [ { Ref: "CreatePipeline" }, "true" ] } ] }
     CreateIngest: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] } ] }
+    CreateApigateway: { Condition: "CreateIngest" }
     CreateMonitoring: { "Fn::And": [ { "Condition": "CreateCompute" }, { "Condition": "CreatePipeline" } ] }
 
 Resources:
@@ -342,6 +343,7 @@ Resources:
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-apigateway-${AWS::Region}" }
         DependsOn:
           - "IngestStack"
+        Condition: "CreateApigateway"
 
     ApiGatewayLambda:
         Type: "AWS::Lambda::Function"
@@ -369,6 +371,7 @@ Resources:
               - { Key: "Service", Value: "apigateway" }
             TracingConfig:
                 Mode: "Active"
+        Condition: "CreateApigateway"
 
     ApigatewayStack:
         Type: "AWS::CloudFormation::Stack"
@@ -390,3 +393,4 @@ Resources:
                 TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
             } ] }
             TimeoutInMinutes: 30
+        Condition: "CreateApigateway"
