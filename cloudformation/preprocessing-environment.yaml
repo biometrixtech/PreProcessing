@@ -357,6 +357,7 @@ Resources:
                     DYNAMODB_TABLENAME_SESSIONS: { "Fn::GetAtt": [ "IngestStack", "Outputs.SessionEventsTableName" ] }
                     ENVIRONMENT: { Ref: 'Environment' }
                     S3_INGEST_BUCKET_NAME: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}" }
+                    SERVICE: 'preprocessing'
             Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -380,7 +381,6 @@ Resources:
                 Environment: { Ref: "Environment" }
                 Service: "apigateway"
                 LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
-                CreateCustomDomain: "false"
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-apigateway" } }
               - { Key: "Management", Value: "managed" }
