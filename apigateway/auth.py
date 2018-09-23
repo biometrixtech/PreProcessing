@@ -68,7 +68,7 @@ def get_accessory_from_id(accessory_id):
 
 def get_user_from_id(user_id):
     user_res = requests.get(
-        'https://apis.{ENVIRONMENT}.fathomai.com/users/1_1/user/{USER_ID}'.format(USER_ID=user_id, **os.environ),
+        'https://apis.{ENVIRONMENT}.fathomai.com/users/1_0/user/{USER_ID}'.format(USER_ID=user_id, **os.environ),
         headers={
             'Authorization': get_api_service_token(),
             'Accept': 'application/json',
@@ -86,7 +86,7 @@ def get_user_from_id(user_id):
 
 def get_api_service_token():
     lambda_client = boto3.client('lambda', region_name=os.environ['AWS_REGION'])
-    res = lambda_client.invoke(FunctionName='users-{ENVIRONMENT}-apigateway-serviceauth:1_1'.format(**os.environ))
+    res = lambda_client.invoke(FunctionName='users-{ENVIRONMENT}-apigateway-serviceauth:1_0'.format(**os.environ))
     response = json.loads(res['Payload'].read().decode('utf-8'))
     return response['token']
 
