@@ -373,23 +373,23 @@ Resources:
                 Mode: "Active"
         Condition: "CreateApigateway"
 
-#    ApigatewayStack:
-#        Type: "AWS::CloudFormation::Stack"
-#        Properties:
-#            Parameters:
-#                Project: "preprocessing"
-#                Environment: { Ref: "Environment" }
-#                Service: "apigateway"
-#                LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
-#            Tags:
-#              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-apigateway" } }
-#              - { Key: "Management", Value: "managed" }
-#              - { Key: "Project", Value: "preprocessing" }
-#              - { Key: "Environment", Value: { Ref: "Environment" } }
-#              - { Key: "Service", Value: "apigateway" }
-#            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure/${TemplateVersion}/apigateway.yaml", {
-#                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
-#                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
-#            } ] }
-#            TimeoutInMinutes: 30
-#        Condition: "CreateApigateway"
+    ApigatewayStack:
+        Type: "AWS::CloudFormation::Stack"
+        Properties:
+            Parameters:
+                Project: "preprocessing"
+                Environment: { Ref: "Environment" }
+                Service: "apigateway"
+                LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-apigateway" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "apigateway" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure/${TemplateVersion}/apigateway.yaml", {
+                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
+            } ] }
+            TimeoutInMinutes: 30
+        Condition: "CreateApigateway"
