@@ -34,9 +34,9 @@ def get_authorisation_from_auth():
         raise UnauthorizedException()
 
     return {
-        'user_ids': [user['user_id']],
-        'team_ids': [user['team_id']] if user['role'] > 1 else [],
-        'training_group_ids': user['training_group_ids'] if user['role'] > 1 else [],
+        'user_ids': [user['id']],
+        'team_ids': [],  # [user['team_id']] if user['role'] > 1 else [],
+        'training_group_ids': [],  # user['training_group_ids'] if user['role'] > 1 else [],
     }
 
 
@@ -84,18 +84,11 @@ def get_user_from_id(user_id):
         return None
 
 
-service_token = None
-
-
 def get_api_service_token():
-    global service_token
-    if service_token is None:
-        lambda_client = boto3.client('lambda', region_name=os.environ['AWS_REGION'])
-        res = lambda_client.invoke(FunctionName='users-{ENVIRONMENT}-apigateway-serviceauth:1_1'.format(**os.environ))
-        response = json.loads(res['Payload'].read().decode('utf-8'))
-        print(response)
-        service_token = response['token']
-    return service_token
+    lambda_client = boto3.client('lambda', region_name=os.environ['AWS_REGION'])
+    res = lambda_client.invoke(FunctionName='users-{ENVIRONMENT}-apigateway-serviceauth:1_1'.format(**os.environ))
+    response = json.loads(res['Payload'].read().decode('utf-8'))
+    return response['token']
 
 
 def get_xray_trace_header():
