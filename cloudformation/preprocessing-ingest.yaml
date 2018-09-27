@@ -89,12 +89,18 @@ Resources:
               - { AttributeName: "teamId", AttributeType: "S" }
               - { AttributeName: "trainingGroupId", AttributeType: "S" }
               - { AttributeName: "eventDate", AttributeType: "S" }
+              - { AttributeName: "user_id", AttributeType: "S" }
+              - { AttributeName: "event_date", AttributeType: "S" }
             KeySchema:
               - { AttributeName: "id", KeyType: "HASH" }
             ProvisionedThroughput:
                 ReadCapacityUnits: 10
                 WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
             GlobalSecondaryIndexes:
+              - IndexName: "user_id-event_date"
+                KeySchema:
+                  - { AttributeName: "user_id", KeyType: "HASH" }
+                  - { AttributeName: "event_date", KeyType: "RANGE" }
               - IndexName: "userId-eventDate"
                 KeySchema:
                   - { AttributeName: "userId", KeyType: "HASH" }
