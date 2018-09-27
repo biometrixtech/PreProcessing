@@ -101,6 +101,11 @@ Resources:
                 KeySchema:
                   - { AttributeName: "user_id", KeyType: "HASH" }
                   - { AttributeName: "event_date", KeyType: "RANGE" }
+                Projection:
+                    ProjectionType: "ALL"
+                ProvisionedThroughput:
+                    ReadCapacityUnits: 5
+                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
               - IndexName: "userId-eventDate"
                 KeySchema:
                   - { AttributeName: "userId", KeyType: "HASH" }
