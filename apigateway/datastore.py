@@ -109,8 +109,8 @@ class SessionDatastore(DynamodbDatastore):
                 kcx = Key('eventDate').eq(event_date)
 
             if user_id is not None:
-                kcx = kcx & Key('userId').eq(user_id)
-                index_name = 'userId-eventDate'
+                kcx = kcx & Key('user_id').eq(user_id)
+                index_name = 'user_id-event_date'
             elif team_id is not None:
                 kcx = kcx & Key('teamId').eq(team_id)
                 index_name = 'teamId-eventDate'

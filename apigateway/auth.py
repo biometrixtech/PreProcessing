@@ -1,6 +1,7 @@
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core.models.trace_header import TraceHeader
 from flask import request
+import boto3
 import json
 import jwt
 import os
@@ -33,9 +34,9 @@ def get_authorisation_from_auth():
         raise UnauthorizedException()
 
     return {
-        'user_ids': [user['user_id']],
-        'team_ids': [user['team_id']] if user['role'] > 1 else [],
-        'training_group_ids': user['training_group_ids'] if user['role'] > 1 else [],
+        'user_ids': [user['id']],
+        'team_ids': [],  # [user['team_id']] if user['role'] > 1 else [],
+        'training_group_ids': [],  # user['training_group_ids'] if user['role'] > 1 else [],
     }
 
 
@@ -50,7 +51,7 @@ def get_accessory_id_from_auth():
 
 def get_accessory_from_id(accessory_id):
     accessory_res = requests.get(
-        'https://hardware.{ENVIRONMENT}.fathomai.com/v1/accessory/{ACCESSORY_ID}'.format(ACCESSORY_ID=accessory_id, **os.environ),
+        'https://apis.{ENVIRONMENT}.fathomai.com/hardware/2_0/accessory/{ACCESSORY_ID}'.format(ACCESSORY_ID=accessory_id, **os.environ),
         headers={
             'Authorization': get_api_service_token(),
             'Accept': 'application/json',
@@ -67,13 +68,14 @@ def get_accessory_from_id(accessory_id):
 
 def get_user_from_id(user_id):
     user_res = requests.get(
-        'https://users.{ENVIRONMENT}.fathomai.com/v1/user/{USER_ID}'.format(USER_ID=user_id, **os.environ),
+        'https://apis.{ENVIRONMENT}.fathomai.com/users/1_0/user/{USER_ID}'.format(USER_ID=user_id, **os.environ),
         headers={
             'Authorization': get_api_service_token(),
             'Accept': 'application/json',
             'X-Amzn-Trace-Id-Safe': get_xray_trace_header(),
         }
     )
+    print(user_res)
     if user_res.status_code == 200:
         ret = user_res.json()['user']
         print(json.dumps({'user': ret}))
@@ -83,8 +85,10 @@ def get_user_from_id(user_id):
 
 
 def get_api_service_token():
-    # TODO
-    return jwt.encode({'sub': '00000000-0000-4000-8000-000000000000'}, 'secret', algorithm='HS256')
+    lambda_client = boto3.client('lambda', region_name=os.environ['AWS_REGION'])
+    res = lambda_client.invoke(FunctionName='users-{ENVIRONMENT}-apigateway-serviceauth:1_0'.format(**os.environ))
+    response = json.loads(res['Payload'].read().decode('utf-8'))
+    return response['token']
 
 
 def get_xray_trace_header():
