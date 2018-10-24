@@ -1,0 +1,63 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "id": "http://schema.fathomai.com/schemas/session.json",
+    "description": "Session",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string",
+            "readonly": true
+        },
+        "accessory_id": {
+            "type": "string",
+            "readonly": true
+        },
+        "created_date": {
+            "type": "string"
+        },
+        "end_date": {
+            "type": "string"
+        },
+        "event_date": {
+            "type": "string"
+        },
+        "s3_files": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "sensor_ids": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "readonly": true
+        },
+        "session_status": {
+            "type": "string"
+        },
+        "team_id": {
+            "type": "string"
+        },
+        "updated_date": {
+            "type": "string"
+        },
+        "user_id": {
+            "type": "string"
+        },
+        "user_mass": {
+            "type": "string"
+        },
+        "version": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "accessory_id",
+        "event_date",
+        "id",
+        "session_status"
+    ],
+    "additionalProperties": false
+}

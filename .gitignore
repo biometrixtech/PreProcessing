@@ -11,3 +11,5 @@ apigateway/flask_lambda.py
 !apigateway/models
 !apigateway/pip_requirements
 !apigateway/schemas
+apigateway/semver.py
+apigateway/six.py
