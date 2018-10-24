@@ -1,78 +1,68 @@
-from aws_xray_sdk.core import xray_recorder
 from boto3.s3.transfer import TransferConfig, S3Transfer
 from flask import request, Blueprint
 import base64
 import boto3
 import datetime
 import json
-import re
 import os
-import uuid
+import re
 
-from auth import get_accessory_id_from_auth
-from datastore import SessionDatastore
-from decorators import authentication_required
-from exceptions import InvalidSchemaException, ApplicationException, NoSuchEntityException, DuplicateEntityException
+from fathomapi.api.config import Config
+from fathomapi.utils.exceptions import ApplicationException, DuplicateEntityException
+from fathomapi.utils.decorators import require
+from fathomapi.utils.xray import xray_recorder
+
 from models.session import Session
+
 
 app = Blueprint('session', __name__)
 
 
 @app.route('/', methods=['POST'])
-@authentication_required
+@require.authenticated.any
+@require.body({'event_date': str, 'sensors': list})
 @xray_recorder.capture('routes.session.create')
-def handle_session_create():
-    if not isinstance(request.json, dict):
-        raise InvalidSchemaException('Request body must be a dictionary')
-    if 'event_date' not in request.json:
-        raise InvalidSchemaException('Missing required parameter event_date')
-    if 'sensors' not in request.json:
-        raise InvalidSchemaException('Missing required parameter sensors')
+def handle_session_create(principal_id=None):
+    xray_recorder.current_segment().put_annotation('accessory_id', principal_id)
 
-    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-    session = Session(
-        event_date=request.json['event_date'],
-        end_date=request.json.get('end_date', None),
-        session_status='CREATE_COMPLETE',
-        created_date=now,
-        updated_date=now,
-    )
+    body = request.json
+    body['accessory_id'] = principal_id
+    body['session_status'] = 'CREATE_COMPLETE'
 
-    session.accessory_id = get_accessory_id_from_auth()
-    xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
+    body['sensor_ids'] = []
     for sensor in request.json['sensors']:
         if isinstance(sensor, dict):
-            session.sensor_ids.add(sensor['mac_address'])
+            body['sensor_ids'].append(sensor['mac_address'])
         else:
-            session.sensor_ids.add(str(sensor))
+            body['sensor_ids'].append(str(sensor))
 
-    store = SessionDatastore()
+    session_id = Session.generate_uuid(body)
     try:
-        store.put(session)
+        session = Session(session_id).create(body)
         return {'session': session}, 201
     except DuplicateEntityException:
-        print(json.dumps({'message': 'Session already created with id {}'.format(session.get_id())}))
-        return {'session': get_session_by_id(session.get_id(), store)}, 201
+        print(json.dumps({'message': 'Session already created with id {}'.format(session_id)}))
+        return {'session': Session(session_id).get()}, 201
 
 
-@app.route('/<session_id>', methods=['GET'])
-@authentication_required
+@app.route('/<uuid:session_id>', methods=['GET'])
+@require.authenticated.any
 @xray_recorder.capture('routes.session.get')
 def handle_session_get(session_id):
-    session = get_session_by_id(session_id)
-    xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
-    xray_recorder.current_segment().put_annotation('user_id', session.user_id)
+    session = Session(session_id).get()
+    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
+    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
     return {'session': session}
 
 
-@app.route('/<session_id>/upload', methods=['POST'])
-@authentication_required
+@app.route('/<uuid:session_id>/upload', methods=['POST'])
+@require.authenticated.any
 @xray_recorder.capture('routes.session.upload')
 def handle_session_upload(session_id):
-    session = get_session_by_id(session_id)
-    xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
-    xray_recorder.current_segment().put_annotation('sensor_id', ','.join(session.sensor_ids))
-    xray_recorder.current_segment().put_annotation('user_id', session.user_id)
+    session = Session(session_id).get()
+    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
+    xray_recorder.current_segment().put_annotation('sensor_id', ','.join(session['sensor_ids']))
+    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
 
     # Need to use single threading to prevent X Ray tracing errors
     config = TransferConfig(use_threads=False)
@@ -98,23 +88,22 @@ def handle_session_upload(session_id):
         )
 
     # For now, we integrate with the ingest subservice by saving the file to the S3 ingest bucket.
-    s3_bucket = os.environ['S3_INGEST_BUCKET_NAME']
+    s3_bucket = Config.get('S3_INGEST_BUCKET_NAME')
     part_number = str(int(datetime.datetime.now().timestamp() * 1000))
-    s3_key = '{}_{}'.format(session.session_id, part_number)
+    s3_key = '{}_{}'.format(session_id, part_number)
     print(json.dumps({'message': 'Uploading to s3://{}/{}'.format(s3_bucket, s3_key)}))
     s3_transfer.upload_file('/tmp/binary', s3_bucket, s3_key)
 
     return {'session': session}
 
 
-@app.route('/<session_id>', methods=['PATCH'])
-@authentication_required
+@app.route('/<uuid:session_id>', methods=['PATCH'])
+@require.authenticated.any
 @xray_recorder.capture('routes.session.patch')
 def handle_session_patch(session_id):
-    store = SessionDatastore()
-    session = get_session_by_id(session_id, store)
-    xray_recorder.current_segment().put_annotation('accessory_id', session.accessory_id)
-    xray_recorder.current_segment().put_annotation('user_id', session.user_id)
+    session = Session(session_id).get()
+    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
+    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
 
     if 'session_status' in request.json:
         allowed_transitions = [
@@ -122,38 +111,12 @@ def handle_session_patch(session_id):
             ('PROCESSING_COMPLETE', 'UPLOAD_IN_PROGRESS'),
             ('PROCESSING_FAILED', 'UPLOAD_IN_PROGRESS'),
         ]
-        if (session.session_status, request.json['session_status']) in allowed_transitions:
-            session.session_status = request.json['session_status']
+        if (session['session_status'], request.json['session_status']) in allowed_transitions:
+            session['session_status'] = request.json['session_status']
         else:
             # https://app.asana.com/0/654140198477919/673983533272813
-            return {'message': 'Currently at status {}, cannot change to {}'.format(session.session_status, request.json['session_status'])}, 200
+            return {'message': 'Currently at status {}, cannot change to {}'.format(session['session_status'], request.json['session_status'])}, 200
             # raise InvalidSchemaException('Transition from {} to {} is not allowed'.format(session.session_status, request.json['session_status']))
 
-    store.put(session, True)
+    session = Session(session_id).patch(request.json)
     return {'session': session}
-
-
-@xray_recorder.capture('routes.session.get_session_by_id')
-def get_session_by_id(session_id, store=None):
-    session_id = session_id.lower()
-
-    if not validate_uuid(session_id, 5) and not validate_uuid(session_id, 4):
-        raise InvalidSchemaException('session_id must be a uuid, not "{}"'.format(session_id))
-
-    store = store or SessionDatastore()
-    session = store.get(session_id=session_id)
-    if len(session) == 1:
-        return session[0]
-    else:
-        raise NoSuchEntityException()
-
-
-def validate_uuid(uuid_string, version):
-    try:
-        val = uuid.UUID(uuid_string, version=version)
-        # If the uuid_string is a valid hex code, but an invalid uuid4, the UUID.__init__
-        # will convert it to a valid uuid4. This is bad for validation purposes.
-        return val.hex == uuid_string.replace('-', '')
-    except ValueError:
-        # If it's a value error, then the string is not a valid hex code for a UUID.
-        return False
