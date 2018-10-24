@@ -1,4 +1,4 @@
-# PreProcessing API v1.0.0
+# PreProcessing API v1.0.1
 
 ## Common provisions
 
@@ -85,8 +85,8 @@ The client __must__ submit a request body containing a JSON object with the foll
 * `end_date` __should__ reflect the time that the practice session ended.
 
 ```
-POST /hardware/1_0/session HTTP/1.1
-Host: preprocessing.env.fathomai.com
+POST /preprocessing/1_0/session HTTP/1.1
+Host: api.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 
@@ -124,8 +124,8 @@ The client __must__ submit a request to the endpoint `/session/<session_id>/uplo
 Exceptionally, this endpoint accepts data in binary format instead of JSON. The client __must__ submit a `Content-Type` header of `application/octet-stream`, and binary data in the body of the request.
 
 ```
-POST /hardware/1_0/session/92d694eb-3d53-46fa-8b14-746c9b5380ef/upload HTTP/1.1
-Host: preprocessing.env.fathomai.com
+POST /preprocessing/1_0/session/92d694eb-3d53-46fa-8b14-746c9b5380ef/upload HTTP/1.1
+Host: apis.env.fathomai.com
 Content-Type: application/octet-stream
 Authorization: eyJraWQ...ajBc4VQ
 
@@ -174,7 +174,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 
 ```
 PATCH /preprocessing/1_0/session/92d694eb-3d53-46fa-8b14-746c9b5380ef HTTP/1.1
-Host: preprocessing.env.fathomai.com
+Host: apis.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 
