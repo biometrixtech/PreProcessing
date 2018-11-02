@@ -3,6 +3,7 @@
 cache/pip/*
 !cache/pip/empty
 .DS_Store
+.idea/*
 
 apigateway/*
 !apigateway/routes
