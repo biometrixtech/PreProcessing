@@ -6,8 +6,10 @@ import pandas
 import numpy
 import sys
 from collections import OrderedDict
+import copy
 
 from config import get_mongo_collection
+from detect_peaks import detect_peaks
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -27,30 +29,18 @@ def script_handler(working_directory, input_data):
                                                         'time_stamp',
                                                         'epoch_time',
                                                         'ms_elapsed',
-                                                        'session_duration',
                                                         'active',
-                                                        'loading_lf',
-                                                        'loading_rf',
                                                         'phase_lf',
                                                         'phase_rf',
-                                                        'impact_phase_lf',
-                                                        'impact_phase_rf',
                                                         'grf',
                                                         'grf_lf',
                                                         'grf_rf',
                                                         'const_grf',
                                                         'dest_grf',
                                                         'destr_multiplier',
-                                                        'destr_multiplier',
                                                         'symmetry',
-                                                        'symmetry_l',
-                                                        'symmetry_r',
                                                         'hip_symmetry',
-                                                        'hip_symmetry_l',
-                                                        'hip_symmetry_r',
                                                         'ankle_symmetry',
-                                                        'ankle_symmetry_l',
-                                                        'ankle_symmetry_r',
                                                         'consistency',
                                                         'hip_consistency',
                                                         'ankle_consistency',
@@ -61,45 +51,19 @@ def script_handler(working_directory, input_data):
                                                         'ankle_control',
                                                         'control_lf',
                                                         'control_rf',
-                                                        'contra_hip_drop_lf',
-                                                        'contra_hip_drop_lf',
-                                                        'ankle_rot_lf',
-                                                        'ankle_rot_rf',
-                                                        'foot_position_lf',
-                                                        'foot_position_rf',
-                                                        'land_pattern_lf',
-                                                        'land_pattern_rf',
-                                                        'land_time',
-                                                        'rate_force_absorption_lf',
-                                                        'rate_force_absorption_rf',
-                                                        'rate_force_production_lf',
-                                                        'rate_force_production_rf',
-                                                        'total_accel',
-                                                        'stance',
-                                                        'plane',
-                                                        'rot',
-                                                        'lat',
-                                                        'vert',
-                                                        'horz'])
+                                                        'total_accel'])
         os.remove(tmp_filename)
         logger.info("Removed temporary file")
 
         # rename columns to match mongo
-        data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed', 'sessionDuration',
+        data.columns = ['obsIndex', 'timeStamp', 'epochTime', 'msElapsed',
                         'active',
-                        'loadingLF', 'loadingRF',
-                        'phaseLF', 'phaseRF', 'lfImpactPhase', 'rfImpactPhase',
-                        'total', 'LF', 'RF', 'constructive', 'destructive', 'destrMultiplier', 'sessionGRFElapsed',
-                        'symmetry', 'symmetryL', 'symmetryR', 'hipSymmetry', 'hipSymmetryL', 'hipSymmetryR',
-                        'ankleSymmetry', 'ankleSymmetryL', 'ankleSymmetryR',
+                        'phaseLF', 'phaseRF',
+                        'total', 'LF', 'RF', 'constructive', 'destructive', 'destrMultiplier',
+                        'symmetry','hipSymmetry', 'ankleSymmetry',
                         'consistency', 'hipConsistency', 'ankleConsistency', 'consistencyLF', 'consistencyRF',
                         'control', 'hipControl', 'ankleControl', 'controlLF', 'controlRF',
-                        'contraHipDropLF', 'contraHipDropRF', 'ankleRotLF', 'ankleRotRF', 'footPositionLF',
-                        'footPositionRF',
-                        'landPatternLF', 'landPatternRF', 'landTime',
-                        'rateForceAbsorptionLF', 'rateForceAbsorptionRF', 'rateForceProductionLF',
-                        'rateForceProductionRF', 'totalAccel',
-                        'stance', 'plane', 'rot', 'lat', 'vert', 'horz']
+                        'totalAccel']
 
         team_id = input_data.get('TeamId', None)
         training_group_id = input_data.get('TrainingGroupIds', None)
@@ -195,6 +159,29 @@ def script_handler(working_directory, input_data):
         start_movement_quality, session_fatigue = _fatigue_analysis(data, var='perc_optimal')
         # print(session_fatigue)
 
+        # contact duration analysis
+        length_lf, range_lf = _contact_duration(data.phaseLF.values,
+                                                 data.active.values,
+                                                 data.epochTime.values,
+                                                 ground_phases=[1, 4, 6])
+        length_rf, range_rf = _contact_duration(data.phaseRF.values,
+                                                 data.active.values,
+                                                 data.epochTime.values,
+                                                 ground_phases=[2, 5, 7])
+        # peak grf
+        # normalize grf by user's mass and remove scaling
+        grf =  data.total_grf.values * 1000000. / user_mass / 9.807
+        peak_grf_lf, peak_grf_rf = _peak_grf(grf,
+                                             data.phaseLF.values,
+                                             data.phaseRF.values)
+
+        # normalize grf by user's mass and remove scaling
+        peak_grf_contact_lf = _contact_duration_peak_grf(grf,
+                                                         range_lf,
+                                                         data.epochTime.values)
+        peak_grf_contact_rf = _contact_duration_peak_grf(grf,
+                                                         range_rf,
+                                                         data.epochTime.values)
 
         # create ordered dictionary object
         # current variables
@@ -281,6 +268,10 @@ def script_handler(working_directory, input_data):
             except TypeError:
                 pass
 
+        record_out = _get_contact_duration_stats(length_lf, length_rf, record_out)
+        record_out = _get_peak_grf_stats(peak_grf_lf, peak_grf_rf, record_out)
+        record_out = _get_peak_grf_contact_stats(peak_grf_contact_lf, peak_grf_contact_rf, record_out)
+
         # Write the record to mongo
         query = {'sessionId': session_event_id, 'eventDate': str(event_date)}
         mongo_collection.replace_one(query, record_out, upsert=True)
@@ -326,3 +317,255 @@ def _fatigue_analysis(data, var):
     elif start < 0:
         start = 0
     return start, fatigue
+
+
+def _contact_duration_peak_grf(grf, ranges, epoch_time):
+    """get linear combination of peak_grf and ground contact time
+    """
+    mph = 1.686
+    min_gc = 80.
+    max_gc = 1500.
+
+    peak_grf_contact = []
+    for range_gc in ranges:
+        length_step = epoch_time[range_gc[1]] - epoch_time[range_gc[0]]
+        if min_gc <= length_step <= max_gc:
+            grf_sub = grf[range_gc[0]:range_gc[1]]
+            peaks = grf_sub[detect_peaks(grf_sub, mph=mph, mpd=1)]
+            if len(peaks) != 0:
+                peak_grf = numpy.max(peaks)
+                ratio = peak_grf / length_step * 1000.
+                peak_grf_contact.append(ratio)
+
+    return peak_grf_contact
+
+
+def _contact_duration(phase, active, epoch_time, ground_phases):
+    """compute contact duration in ms given phase data
+    
+    """
+    min_gc = 80.
+    max_gc = 1500.
+
+    # enumerate phase such that all ground contacts are 0
+    _phase = copy.copy(phase)
+    _phase[numpy.array([i in ground_phases for i in _phase])] = 0
+    _phase[numpy.array([i == 0 for i in active])] = 1
+
+    # get index ranges for ground contacts
+    ranges = _get_ranges(_phase, 0)
+    length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
+
+    # subset to only get the points where ground contacts are within a reasonable window
+    length = length[(length >= min_gc) & (length <= max_gc)]
+    return length, ranges
+
+
+def _get_ranges(col_data, value):
+    """
+    For a given categorical data, determine start and end index for the given value
+    start: index where it first occurs
+    end: index after the last occurence
+
+    Args:
+        col_data
+        value: int, value to get ranges for
+    Returns:
+        ranges: 2d array, start and end index for each occurance of value
+    """
+
+    # determine where column data is the relevant value
+    is_value = numpy.array(numpy.array(col_data == value).astype(int)).reshape(-1, 1)
+
+    # if data starts with given value, range starts with index 0
+    if is_value[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from the given value
+    absdiff = numpy.abs(numpy.ediff1d(is_value, to_begin=t_b))
+
+    # handle the closing edge
+    # if the data ends with the given value, if it was the only point, ignore the range,
+    # else assign the last index as end of range
+    if is_value[-1] == 1:
+        if absdiff[-1] == 0:
+            absdiff[-1] = 1
+        else:
+            absdiff[-1] = 0
+    # determine the number of consecutive NaNs
+    ranges = numpy.where(absdiff == 1)[0].reshape((-1, 2))
+
+    return ranges
+
+
+def _peak_grf(grf, phase_lf, phase_rf):
+    """Identifies instances of peak grf within block and aggregates them
+    """
+    mph = 1.686
+#    grf = grf * 1000000. / mass / 9.807
+    grf_lf = copy.copy(grf)
+    grf_rf = copy.copy(grf)
+
+    lf_ind = numpy.array([k in [0, 1, 4, 6] for k in phase_lf])
+    rf_ind = numpy.array([k in [0, 2, 5, 7] for k in phase_rf])
+    lf_ground = lf_ind * ~rf_ind  # only lf in ground
+    rf_ground = ~lf_ind * rf_ind  # only rf in ground
+
+    grf_lf[~lf_ground] = 0
+    grf_rf[~rf_ground] = 0
+
+    peaks_lf = detect_peaks(grf_lf, mph=mph, mpd=1)
+    peaks_rf = detect_peaks(grf_rf, mph=mph, mpd=1)
+    peaks_lf = grf_lf[peaks_lf]
+    peaks_rf = grf_rf[peaks_rf]
+
+    return peaks_lf, peaks_rf
+
+
+def _get_peak_grf_stats(peak_grf_lf, peak_grf_rf, record):
+    if len(peak_grf_lf) == 0 or len(peak_grf_rf) == 0:
+        record['peakGrfLF'] = None
+        record['peakGrfLFStd'] = None
+        record['peakGrfLF5'] = None
+        record['peakGrfLF50'] = None
+        record['peakGrfLF75'] = None
+        record['peakGrfLF95'] = None
+        record['peakGrfLF99'] = None
+        record['peakGrfLFMax'] = None
+
+        record['peakGrfRF'] = None
+        record['peakGrfRFStd'] = None
+        record['peakGrfRF5'] = None
+        record['peakGrfRF50'] = None
+        record['peakGrfRF75'] = None
+        record['peakGrfRF95'] = None
+        record['peakGrfRF99'] = None
+        record['peakGrfRFMax'] = None
+
+    else:
+        if len(peak_grf_lf) >= 5:
+            record['peakGrfLF'] = numpy.mean(peak_grf_lf)
+            record['peakGrfLFStd'] = numpy.std(peak_grf_lf)
+            record['peakGrfLF5'] = numpy.percentile(peak_grf_lf, 5)
+            record['peakGrfLF50'] = numpy.percentile(peak_grf_lf, 50)
+            record['peakGrfLF75'] = numpy.percentile(peak_grf_lf, 75)
+            record['peakGrfLF95'] = numpy.percentile(peak_grf_lf, 95)
+            record['peakGrfLF99'] = numpy.percentile(peak_grf_lf, 99)
+            record['peakGrfLFMax'] = numpy.max(peak_grf_lf)
+        else:
+            record['peakGrfLF'] = numpy.mean(peak_grf_lf)
+            record['peakGrfLFStd'] = None
+            record['peakGrfLF5'] = numpy.min(peak_grf_lf)
+            record['peakGrfLF50'] = numpy.percentile(peak_grf_lf, 50)
+            record['peakGrfLF75'] = numpy.max(peak_grf_lf)
+            record['peakGrfLF95'] = numpy.max(peak_grf_lf)
+            record['peakGrfLF99'] = numpy.max(peak_grf_lf)
+            record['peakGrfLFMax'] = numpy.max(peak_grf_lf)
+
+        if len(peak_grf_rf) >= 5:
+            record['peakGrfRF'] = numpy.mean(peak_grf_rf)
+            record['peakGrfRFStd'] = numpy.std(peak_grf_rf)
+            record['peakGrfRF5'] = numpy.percentile(peak_grf_rf, 5)
+            record['peakGrfRF50'] = numpy.percentile(peak_grf_rf, 50)
+            record['peakGrfRF75'] = numpy.percentile(peak_grf_rf, 75)
+            record['peakGrfRF95'] = numpy.percentile(peak_grf_rf, 95)
+            record['peakGrfRF99'] = numpy.percentile(peak_grf_rf, 99)
+            record['peakGrfRFMax'] = numpy.max(peak_grf_rf)
+        else:
+            record['peakGrfRF'] = numpy.mean(peak_grf_rf)
+            record['peakGrfRFStd'] = None
+            record['peakGrfRF5'] = numpy.min(peak_grf_rf)
+            record['peakGrfRF50'] = numpy.percentile(peak_grf_rf, 50)
+            record['peakGrfRF75'] = numpy.max(peak_grf_rf)
+            record['peakGrfRF95'] = numpy.max(peak_grf_rf)
+            record['peakGrfRF99'] = numpy.max(peak_grf_rf)
+            record['peakGrfRFMax'] = numpy.max(peak_grf_rf)
+    return record
+
+
+def _get_contact_duration_stats(length_lf, length_rf, record):
+    if len(length_lf) == 0 or len(length_rf) == 0:
+        record['contactDurationLF'] = None
+        record['contactDurationLFStd'] = None
+        record['contactDurationLF5'] = None
+        record['contactDurationLF50'] = None
+        record['contactDurationLF95'] = None
+
+        record['contactDurationRF'] = None
+        record['contactDurationRFStd'] = None
+        record['contactDurationRF5'] = None
+        record['contactDurationRF50'] = None
+        record['contactDurationRF95'] = None
+    else:
+        if len(length_lf) >= 5:
+            record['contactDurationLF'] = numpy.mean(length_lf)
+            record['contactDurationLFStd'] = numpy.std(length_lf)
+            record['contactDurationLF5'] = numpy.percentile(length_lf, 5)
+            record['contactDurationLF50'] = numpy.percentile(length_lf, 50)
+            record['contactDurationLF95'] = numpy.percentile(length_lf, 95)
+        else:
+            record['contactDurationLF'] = numpy.mean(length_lf)
+            record['contactDurationLFStd'] = None
+            record['contactDurationLF5'] = numpy.min(length_lf)
+            record['contactDurationLF50'] = numpy.percentile(length_lf, 50)
+            record['contactDurationLF95'] = numpy.max(length_lf)
+    
+        if len(length_rf) >= 5:
+            record['contactDurationRF'] = numpy.mean(length_rf)
+            record['contactDurationRFStd'] = numpy.std(length_rf)
+            record['contactDurationRF5'] = numpy.percentile(length_rf, 5)
+            record['contactDurationRF50'] = numpy.percentile(length_rf, 50)
+            record['contactDurationRF95'] = numpy.percentile(length_rf, 95)
+        else:
+            record['contactDurationRF'] = numpy.mean(length_rf)
+            record['contactDurationRFStd'] = None
+            record['contactDurationRF5'] = numpy.min(length_rf)
+            record['contactDurationRF50'] = numpy.percentile(length_rf, 50)
+            record['contactDurationRF95'] = numpy.min(length_rf)
+
+    return record
+
+def _get_peak_grf_contact_stats(peak_grf_contact_lf, peak_grf_contact_rf, record):
+    if len(peak_grf_contact_lf) == 0 or len(peak_grf_contact_rf) == 0:
+        record['peakGrfContactDurationLF'] = None
+        record['peakGrfContactDurationLFStd'] = None
+        record['peakGrfContactDurationLF5'] = None
+        record['peakGrfContactDurationLF50'] = None
+        record['peakGrfContactDurationLF95'] = None
+
+        record['peakGrfContactDurationRF'] = None
+        record['peakGrfContactDurationRFStd'] = None
+        record['peakGrfContactDurationRF5'] = None
+        record['peakGrfContactDurationRF50'] = None
+        record['peakGrfContactDurationRF95'] = None
+    else:
+        if len(peak_grf_contact_lf) >= 5:
+            record['peakGrfContactDurationLF'] = numpy.mean(peak_grf_contact_lf)
+            record['peakGrfContactDurationLFStd'] = numpy.std(peak_grf_contact_lf)
+            record['peakGrfContactDurationLF5'] = numpy.percentile(peak_grf_contact_lf, 5)
+            record['peakGrfContactDurationLF50'] = numpy.percentile(peak_grf_contact_lf, 50)
+            record['peakGrfContactDurationLF95'] = numpy.percentile(peak_grf_contact_lf, 95)
+        else:
+            record['peakGrfContactDurationLF'] = numpy.mean(peak_grf_contact_lf)
+            record['peakGrfContactDurationLFStd'] = None
+            record['peakGrfContactDurationLF5'] = numpy.min(peak_grf_contact_lf)
+            record['peakGrfContactDurationLF50'] = numpy.percentile(peak_grf_contact_lf, 50)
+            record['peakGrfContactDurationLF95'] = numpy.max(peak_grf_contact_lf)
+
+        if len(peak_grf_contact_rf) >= 5:
+            record['peakGrfContactDurationRF'] = numpy.mean(peak_grf_contact_rf)
+            record['peakGrfContactDurationRFStd'] = numpy.std(peak_grf_contact_rf)
+            record['peakGrfContactDurationRF5'] = numpy.percentile(peak_grf_contact_rf, 5)
+            record['peakGrfContactDurationRF50'] = numpy.percentile(peak_grf_contact_rf, 50)
+            record['peakGrfContactDurationRF95'] = numpy.percentile(peak_grf_contact_rf, 95)
+        else:
+            record['peakGrfContactDurationRF'] = numpy.mean(peak_grf_contact_rf)
+            record['peakGrfContactDurationRFStd'] = None
+            record['peakGrfContactDurationRF5'] = numpy.min(peak_grf_contact_rf)
+            record['peakGrfContactDurationRF50'] = numpy.percentile(peak_grf_contact_rf, 50)
+            record['peakGrfContactDurationRF95'] = numpy.min(peak_grf_contact_rf)
+
+    return record
+

@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-from collections import namedtuple
-from pymongo import MongoClient
 from shutil import copyfile
 import logging
 import os
@@ -11,54 +9,20 @@ import sys
 from collections import OrderedDict
 import copy
 
+
 from active_blocks import define_blocks
+from config import get_mongo_collection
 from detect_peaks import detect_peaks
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-Config = namedtuple('Config', [
-    'AWS',
-    'ENVIRONMENT',
-    'MONGO_HOST',
-    'MONGO_USER',
-    'MONGO_PASSWORD',
-    'MONGO_DATABASE',
-    'MONGO_COLLECTION',
-    'MONGO_REPLICASET',
-])
-
 
 def script_handler(working_directory, input_data):
 
     try:
-        config = Config(
-            AWS=False,
-            ENVIRONMENT=os.environ['ENVIRONMENT'],
-            MONGO_HOST=os.environ['MONGO_HOST_ACTIVEBLOCKS'],
-            MONGO_USER=os.environ['MONGO_USER_ACTIVEBLOCKS'],
-            MONGO_PASSWORD=os.environ['MONGO_PASSWORD_ACTIVEBLOCKS'],
-            MONGO_DATABASE=os.environ['MONGO_DATABASE_ACTIVEBLOCKS'],
-            MONGO_COLLECTION=os.environ['MONGO_COLLECTION_ACTIVEBLOCKS'],
-            MONGO_REPLICASET=os.environ['MONGO_REPLICASET_ACTIVEBLOCKS'] if os.environ['MONGO_REPLICASET_ACTIVEBLOCKS'] != '---' else None,
-        )
-        global left_steps
-        global right_steps
-        global left_filtered
-        global right_filtered
-
-        # first collection
-        mongo_client = MongoClient(config.MONGO_HOST, replicaset=config.MONGO_REPLICASET)
-
-        mongo_database = mongo_client[config.MONGO_DATABASE]
-
-        # Authenticate
-        mongo_database.authenticate(config.MONGO_USER, config.MONGO_PASSWORD,
-                                    mechanism='SCRAM-SHA-1')
-
-        mongo_collection = mongo_database[config.MONGO_COLLECTION]
-        # tmp_filename = working_directory
+        mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
 
         tmp_filename = '/tmp/readfile'
         copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)
