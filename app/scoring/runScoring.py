@@ -61,7 +61,7 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
 
     # Read historical data
     # user_hist = pd.read_csv(historical_data, usecols=cols.column_user_hist)
-    if sdata.shape[0] < 30000:
+    if sdata.shape[0] < 2000:
         _logger("Current data isn't long enough for scoring!")
         raise NoHistoricalDataException("Insufficient data, need 30000 rows, only got {}".format(sdata.shape[0]))
 
