@@ -315,65 +315,22 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
     feet_eliminated = np.zeros((len(lf_ph), 1))
 
     # set single leg dynamic values according to their pure phase definitions
-    left_dyn_balance[lf_ph == 1] = 1
-    left_dyn_balance[rf_ph == 1] = 1
-    right_dyn_balance[lf_ph == 2] = 1
-    right_dyn_balance[rf_ph == 2] = 1
+    left_dyn_balance[(lf_ph == 0) & ((rf_ph == 1) | (rf_ph == 2) | (rf_ph == 3) )] = 1
+#    left_dyn_balance[rf_ph == 0] = 1
+#    right_dyn_balance[rf_ph == 0] = 1
+    right_dyn_balance[(rf_ph == 0) & ((lf_ph == 1) | (lf_ph == 2) | (lf_ph == 3) )] = 1
 
-    left_impact[lf_ph == 4] = 1
-    right_impact[rf_ph == 5] = 1
+    left_impact[lf_ph == 2] = 1
+    right_impact[rf_ph == 2] = 1
 
-    left_takeoff[lf_ph == 6] = 1
-    right_takeoff[rf_ph == 7] = 1
-
-
-    # smooth dynamic balance where gaps of less than 3 ind show phase changes
-#    zero_indices = _num_runs(left_dyn_balance, 0)
-#    diff_0s = zero_indices[:, 1] - zero_indices[:, 0]
-#
-#    sig_diff_0s = zero_indices[np.where(diff_0s<3), :]
-#    del zero_indices, diff_0s  # not used in further computations
-#    sig_diff_0s = sig_diff_0s.reshape(len(sig_diff_0s[0]), 2)
-#
-#    for i in range(len(sig_diff_0s)):
-#        left_dyn_balance[sig_diff_0s[i][0]:sig_diff_0s[i][1]] = 1
-#    del sig_diff_0s # not used in further computations
-#    
-#    zero_indices = _num_runs(right_dyn_balance, 0)
-#    diff_0s = zero_indices[:, 1] - zero_indices[:, 0]
-#
-#    sig_diff_0s = zero_indices[np.where(diff_0s<3), :]
-#    del zero_indices, diff_0s  # not used in further computations
-#    sig_diff_0s = sig_diff_0s.reshape(len(sig_diff_0s[0]), 2)
-#
-#    for i in range(len(sig_diff_0s)):
-#        right_dyn_balance[sig_diff_0s[i][0]:sig_diff_0s[i][1]] = 1
-#    del sig_diff_0s # not used in further computations
-#    
-#    one_indices = _num_runs(left_dyn_balance, 1)
-#    diff_1s = one_indices[:, 1] - one_indices[:, 0]
-#
-#    sig_diff_1s = one_indices[np.where(diff_1s<3), :]
-#    del one_indices, diff_1s  # not used in further computations
-#    sig_diff_1s = sig_diff_1s.reshape(len(sig_diff_1s[0]), 2)
-#
-#    for i in range(len(sig_diff_1s)):
-#        left_dyn_balance[sig_diff_1s[i][0]:sig_diff_1s[i][1]] = 1
-#    del sig_diff_1s # not used in further computations
-# 
-#    one_indices = _num_runs(right_dyn_balance, 1)
-#    diff_1s = one_indices[:, 1] - one_indices[:, 0]
-#
-#    sig_diff_1s = one_indices[np.where(diff_1s<3), :]
-#    del one_indices, diff_1s  # not used in further computations
-#    sig_diff_1s = sig_diff_1s.reshape(len(sig_diff_1s[0]), 2)
-#
-#    for i in range(len(sig_diff_1s)):        
-#        right_dyn_balance[sig_diff_1s[i][0]:sig_diff_1s[i][1]] = 1
-#    del sig_diff_1s # not used in further computations
+    left_takeoff[lf_ph == 3] = 1
+    right_takeoff[rf_ph == 3] = 1
 
 
-    # differentiate between static and dynamic balance phases
+#    left_impact[(lf_ph == 2) | (lf_ph == 3)] = 1
+#    right_impact[(rf_ph == 2) | (rf_ph == 3)] = 1
+
+#     differentiate between static and dynamic balance phases
     _acc_thresh = 2.5
     _dyn_win = int(0.5 * hz) # half a second window
 
@@ -403,6 +360,16 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
     left_stat_balance[hacc > _acc_thresh] = 0
     right_stat_balance[hacc > _acc_thresh] = 0
 
+
+    ranges, length = _zero_runs(left_stat_balance, 0)
+    for r, l in zip(ranges, length):
+        if l < _dyn_win:
+            left_stat_balance[r[0]:r[1]] = 1
+    ranges, length = _zero_runs(right_stat_balance, 0)
+    for r, l in zip(ranges, length):
+        if l < _dyn_win:
+            right_stat_balance[r[0]:r[1]] = 1
+
     # clear dynamic balance where stationary balance is true
     left_dyn_balance[left_stat_balance == 1] = 0
     right_dyn_balance[right_stat_balance == 1] = 0
@@ -410,8 +377,9 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
     # determine where double leg stance applicable
 
     # where single leg things overlap, assign double leg
-    double_dyn_balance[(lf_ph == 1) & (rf_ph == 2)] = 1
-    double_dyn_balance[(lf_ph == 0) | (rf_ph == 0)] = 1
+#    double_dyn_balance[(lf_ph == 1) & (rf_ph == 2)] = 1
+    double_dyn_balance[(lf_ph == 0) & (rf_ph == 0)] = 1
+#    double_dyn_balance[(left_dyn_balance == 1) & (right_dyn_balance == 1)] = 1
     double_stat_balance[(left_stat_balance == 1)
                         & (right_stat_balance == 1)] = 1
 
@@ -428,57 +396,52 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
 
     double_stat_balance[hacc > _acc_thresh] = 0
 
+    ranges, length = _zero_runs(double_stat_balance, 0)
+    for r, l in zip(ranges, length):
+        if l < _dyn_win:
+            double_stat_balance[r[0]:r[1]] = 1
+
+
+
+
+
+#    r_impact_indices = _num_runs(right_impact, 1)
+#
+#    l_impact_indices = _num_runs(left_impact, 1)
+#
+#    r_takeoff_indices = _num_runs(right_takeoff, 1)
+#
+#    l_takeoff_indices = _num_runs(left_takeoff, 1)
+#
+#    # if right impact starts while left is taking off mark as gallop
+#
+#    for k in l_takeoff_indices:
+#        print k
+
+        
+
+    # if left impact starts while right is taking off mark as gallop
+
+
     # where single leg things start very close to each other, assign double leg
     doub_range = 3 # radius for features to begin in for left + right to = doub
-
-#    r_one_indices = _num_runs(right_dyn_balance, 1)
-#    l_one_indices = _num_runs(left_dyn_balance, 1)
-#    all_l_one_indices = np.array([])
-#
-#    for k in range(int(l_one_indices.shape[0])):
-#
-#        all_l_one_indices = np.hstack((all_l_one_indices,
-#                                       np.asarray(range(l_one_indices[k, 0] 
-#                                       - doub_range, l_one_indices[k, 0]
-#                                       + doub_range))))
-#
-#    set_all_l_one_indices = set(all_l_one_indices)
-#
-#    for k in range(int(r_one_indices.shape[0])):
-#        r_run = range(r_one_indices[k, 0] - doub_range, r_one_indices[k, 0]
-#                      + doub_range)
-#        r_win = set(r_run)
-#        intersect = set_all_l_one_indices.intersection(r_win)
-#        if len(intersect) != 0: # there are close impacts
-#            # assign full value of windows containing that index to be doub leg
-#            double_dyn_balance[range(r_one_indices[k, 0],
-#                                     r_one_indices[k, 1])] = 1
-#            for r in range(int(l_one_indices.shape[0])):
-#                l_run = range(l_one_indices[r, 0], l_one_indices[r, 1])
-#                l_win = set(l_run)
-#                intersect2 = r_win.intersection(l_win)
-#                if len(intersect2) != 0:
-#                    double_dyn_balance[l_run] = 1
-#                del l_run, l_win
-#        del r_run, r_win
-#    del r_one_indices, l_one_indices, all_l_one_indices, set_all_l_one_indices
-
     r_one_indices = _num_runs(right_impact, 1)
 
     l_one_indices = _num_runs(left_impact, 1)
+
     all_l_one_indices = np.array([])
 
     for k in range(int(l_one_indices.shape[0])):
 
         all_l_one_indices = np.hstack((all_l_one_indices,
                                        np.asarray(range(l_one_indices[k, 0]
-                                       - doub_range, l_one_indices[k, 0]
+                                       - doub_range, l_one_indices[k, 1]
                                        + doub_range))))
 
     set_all_l_one_indices = set(all_l_one_indices)
 
     for k in range(int(r_one_indices.shape[0])):
-        r_run = range(r_one_indices[k, 0] - doub_range, r_one_indices[k, 0]
+        r_run = range(r_one_indices[k, 0] - doub_range, r_one_indices[k, 1]
                       + doub_range)
         r_win = set(r_run)
         intersect = set_all_l_one_indices.intersection(r_win)
@@ -504,12 +467,12 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
 
         all_l_one_indices = np.hstack((all_l_one_indices,
                                        np.asarray(range(l_one_indices[k, 0]
-                                       - doub_range, l_one_indices[k, 0]
+                                       - doub_range, l_one_indices[k, 1]
                                        + doub_range))))
 
     set_all_l_one_indices = set(all_l_one_indices)
     for k in range(int(r_one_indices.shape[0])):
-        r_run = range(r_one_indices[k, 0] - doub_range, r_one_indices[k, 0]
+        r_run = range(r_one_indices[k, 0] - doub_range, r_one_indices[k, 1]
                       + doub_range)
         r_win = set(r_run)
         intersect = set_all_l_one_indices.intersection(r_win)
@@ -541,20 +504,20 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
     double_takeoff[not_standing == 1] = 0
 
     # remove data where neither foot is on ground
-    left_dyn_balance[lf_ph == 3] = 0
-    right_dyn_balance[lf_ph == 3] = 0
-    double_dyn_balance[lf_ph == 3] = 0
-    left_stat_balance[lf_ph == 3] = 0
-    right_stat_balance[lf_ph == 3] = 0
-    double_stat_balance[lf_ph == 3] = 0
-    left_impact[lf_ph == 3] = 0
-    right_impact[lf_ph == 3] = 0
-    double_impact[lf_ph == 3] = 0
-    left_takeoff[lf_ph == 3] = 0
-    right_takeoff[lf_ph == 3] = 0
-    double_takeoff[lf_ph == 3] = 0
+    left_dyn_balance[(lf_ph == 1) & (rf_ph == 1)] = 0
+    right_dyn_balance[(lf_ph == 1) & (rf_ph == 1)] = 0
+    double_dyn_balance[(lf_ph == 1) & (rf_ph == 1)] = 0
+    left_stat_balance[(lf_ph == 1) & (rf_ph == 1)] = 0
+    right_stat_balance[(lf_ph == 1) & (rf_ph == 1)] = 0
+    double_stat_balance[(lf_ph == 1) & (rf_ph == 1)] = 0
+    left_impact[(lf_ph == 1) & (rf_ph == 1)] = 0
+    right_impact[(lf_ph == 1) & (rf_ph == 1)] = 0
+    double_impact[(lf_ph == 1) & (rf_ph == 1)] = 0
+    left_takeoff[(lf_ph == 1) & (rf_ph == 1)] = 0
+    right_takeoff[(lf_ph == 1) & (rf_ph == 1)] = 0
+    double_takeoff[(lf_ph == 1) & (rf_ph == 1)] = 0
     
-    feet_eliminated[lf_ph == 3] = 1
+    feet_eliminated[(lf_ph == 1) & (rf_ph == 1)] = 1
 
     return left_dyn_balance, right_dyn_balance, double_dyn_balance, \
            left_stat_balance, right_stat_balance, double_stat_balance, \
@@ -602,6 +565,39 @@ def _num_runs(arr, num):
     ranges = np.where(absdiff == 1)[0].reshape(-1, 2)
 
     return ranges
+
+
+def _zero_runs(col_dat, static):
+    """
+    Determine the start and end of each impact.
+
+    Args:
+        col_dat: array, algorithm indicator
+        static: int, indicator for static algorithm
+    Returns:
+        ranges: 2d array, start and end of each static algorithm use
+        length: length of
+    """
+
+    # determine where column data is the relevant impact phase value
+    isnan = np.array(np.array(col_dat == static).astype(int)).reshape(-1, 1)
+
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        absdiff = np.concatenate([absdiff, [1]], 0)
+    del isnan  # not used in further computations
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+    length = ranges[:, 1] - ranges[:, 0]
+
+    return ranges, length
 
 
 def total_accel(hip_acc_aif):
@@ -678,19 +674,33 @@ def enumerate_stance(left_dyn_balance, right_dyn_balance, double_dyn_balance, \
 
     # use order of enumeration assignment to favor later values
     # 0 is not_standing data
-    stance[left_stat_balance == 1] = 3
-    stance[right_stat_balance == 1] = 3
+    stance[left_stat_balance == 1] = 4
+    stance[right_stat_balance == 1] = 4
     stance[left_dyn_balance == 1] = 2
     stance[right_dyn_balance == 1] = 2
-    stance[double_dyn_balance == 1] = 4
+    stance[double_dyn_balance == 1] = 3
     stance[double_stat_balance == 1] = 5
-    stance[left_impact == 1] = 6
-    stance[right_impact == 1] = 6
-    stance[double_impact == 1] = 7
-    stance[left_takeoff == 1] = 8
-    stance[right_takeoff == 1] = 8
-    stance[double_takeoff == 1] = 9
+    stance[left_impact == 1] = 2
+    stance[right_impact == 1] = 2
+    stance[double_impact == 1] = 3
+    stance[left_takeoff == 1] = 2
+    stance[right_takeoff == 1] = 2
+    stance[double_takeoff == 1] = 3
     stance[feet_eliminated == 1] = 1
+
+#    stance[left_dyn_balance == 1] = 2
+#    stance[right_dyn_balance == 1] = 2
+#    stance[left_impact == 1] = 2
+#    stance[right_impact == 1] = 2
+#    stance[left_takeoff == 1] = 2
+#    stance[right_takeoff == 1] = 2
+#    stance[double_impact == 1] = 3
+#    stance[double_takeoff == 1] = 3
+#    stance[double_dyn_balance == 1] = 3
+#    stance[left_stat_balance == 1] = 4
+#    stance[right_stat_balance == 1] = 4
+#    stance[double_stat_balance == 1] = 5
+#    stance[feet_eliminated == 1] = 1
 
     return stance
 

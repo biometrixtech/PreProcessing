@@ -9,7 +9,8 @@ import numpy as np
 
 def bal_phase_force(data):
     accel_mag = np.sqrt(data.HaX**2 + data.HaY**2 + data.HaZ**2)
-    balance = np.array([i in [2, 3, 4, 5] for i in data.stance])
+    balance = np.array((data.phase_lf == 0) | (data.phase_rf) == 0).reshape(-1,)
+#    balance = np.array([i in [2, 3, 4, 5] for i in data.stance])
     stance = np.array(data.stance)
     stance[balance] = 1
     stance[~balance] = 0

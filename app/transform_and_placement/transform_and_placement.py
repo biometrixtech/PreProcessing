@@ -71,7 +71,8 @@ def script_handler(working_directory, session_id):
             # to single sensor processing
             sensors = 1
             # detect the single sensor being used
-            placement = detect_single_sensor(data)
+            # placement = detect_single_sensor(data)
+            placement = [0, 1, 2]
             truncated, single_sensor, index = detect_data_truncation(data, placement, sensors)
             if truncated:
                 if index <= 2000:

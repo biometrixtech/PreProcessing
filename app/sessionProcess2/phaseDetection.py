@@ -465,9 +465,10 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
     phase_lf[grf_ind == 0] = 1
     phase_rf[grf_ind == 0] = 1
 
+
     # detect peaks
-    mph = 1.7 * mass * 9.807
-    peaks = detect_peaks(grf, mph=mph, mpd=12, show=False)
+    mph = 1.2 * mass * 9.807
+    peaks = detect_peaks(grf, mph=mph, mpd=6, show=False)
     contact_lengths = []
     for _range in ranges:
         # check if there's any peaks over certain height during the ground contact phase
@@ -484,20 +485,13 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
             # TODO: Need another case with better handling of double impacts where one follows another
             length_contact = _range[1] - _range[0]
             contact_lengths.append(length_contact)
-#            if _range[0] <= 7300 <= _range[1]:
-#                print(length_contact)
             if length_contact <= 50:
-                # check if any impact was deetected in the current range or immediately(min_air) before the start of range
+                # check if any impact was detected in the current range or immediately(min_air) before the start of range
                 left_impact = 2 in phase_lf[_range[0]:_range[1]]
                 left_impact_grf = 1 in grf_lf[_range[0]:_range[1]]
 
                 right_impact = 2 in phase_rf[_range[0]:_range[1]]
                 right_impact_grf = 1 in grf_rf[_range[0]:_range[1]]
-
-#                min_air = 8
-#                left_impact_prev = 2 in phase_lf[_range[0] - min_air:_range[0]]
-#                right_impact_prev = 2 in phase_rf[_range[0] - min_air:_range[0]]
-
 
                 # case 1: both right and left impact detected by phase detection in the given range
                 if right_impact and left_impact:
@@ -513,6 +507,7 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                         phase_rf[_range[0]:_range[1]] = 2
                         phase_lf[_range[0]:_range[1]] = 1
 
+
                     # case 1c only left impact detected by single leg grf
                     # assign the whole range to left as impact and air for right (treat as false positive)
                     elif left_impact_grf:
@@ -521,7 +516,6 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                     # case 1d: No impact detected by single leg grf
                     else:
                         pass
-
                 # case 2: only right foot impact detected by phase detection
                 elif right_impact:
                     # case 2a: both impact detected by single leg grf
@@ -531,6 +525,8 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                         ground_lf = ground_lf[ground_lf <= _range[1]]
                         if len(ground_lf) > 0.5 * length_contact:
                             _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range)
+                        else:
+                            phase_rf[_range[0]:_range[1]] = 2
                     # case 2b: right impact detected, adjust boundaries
                     elif right_impact_grf:
                         phase_rf[_range[0]:_range[1]] = 2
@@ -541,7 +537,6 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                     # case 2d: right impact not detected by single leg grf, treat as false positive
                     else:
                         phase_rf[_range[0]:_range[1]] = 1
-
                 # case 3: only left foot impact detected by phase detection
                 elif left_impact:
                     # case 3a: both impact detected by single leg grf
@@ -551,6 +546,8 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                         ground_rf = ground_rf[ground_rf <= _range[1]]
                         if len(ground_rf) > 0.5 * length_contact:
                             _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range)
+                        else:
+                            phase_lf[_range[0]:_range[1]] = 2
                     # case 3b: left impact detected, adjust boundaries
                     elif left_impact_grf:
                         phase_lf[_range[0]:_range[1]] = 2
@@ -561,6 +558,8 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                     # case 3d: left impact not detected by single leg grf, treat as false positive
                     else:
                         phase_lf[_range[0]:_range[1]] = 1
+
+
                 # case 4: No impacts detected by phase detection
                 else:
                     # case 4a: both impact detected by grf
@@ -585,54 +584,66 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
     ranges, length = _zero_runs(phase_lf, 1)
     for r, l in zip(ranges, length):
         if l <= 4:
-            phase_lf[r[0]:r[1]] = 2
+#            phase_lf[r[0]:r[1]] = 2
+            phase_lf[r[0]:r[1]] = phase_lf[r[0] - 1]
 
     ranges, length = _zero_runs(phase_lf, 2)
     for r, l in zip(ranges, length):
         if l <= 4:
             phase_lf[r[0]:r[1]] = 1
 
+    ranges, length = _zero_runs(phase_lf, 0)
+    for r, l in zip(ranges, length):
+        if l <= 2:
+            phase_lf[r[0]:r[1]] = phase_lf[r[0] - 1]
+
     ranges, length = _zero_runs(phase_rf, 1)
     for r, l in zip(ranges, length):
         if l <= 4:
-            phase_rf[r[0]:r[1]] = 2
+#            phase_rf[r[0]:r[1]] = 2
+            phase_rf[r[0]:r[1]] = phase_rf[r[0] - 1]
 
     ranges, length = _zero_runs(phase_rf, 2)
     for r, l in zip(ranges, length):
         if l <= 4:
             phase_rf[r[0]:r[1]] = 1
 
+    ranges, length = _zero_runs(phase_rf, 0)
+    for r, l in zip(ranges, length):
+        if l <= 2:
+            phase_rf[r[0]:r[1]] = phase_rf[r[0] - 1]
 
-    for i in range(len(phase_lf)):
-        if phase_lf[i] == 1 and phase_rf[i] == 1:
-            phase_lf[i] = 3
-            phase_rf[i] = 3
-        elif phase_lf[i] == 2 and phase_rf[i] == 0:
-            phase_lf[i] = 4
-            phase_rf[i] = 2
-        elif phase_lf[i] == 2 and phase_rf[i] == 1:
-            phase_lf[i] = 4
-            phase_rf[i] = 1
-        elif phase_lf[i] == 0 and phase_rf[i] == 2:
-            phase_lf[i] = 1
-            phase_rf[i] = 5
-        elif phase_lf[i] == 1 and phase_rf[i] == 2:
-            phase_lf[i] = 2
-            phase_rf[i] = 5
-        elif phase_lf[i] == 2 and phase_rf[i] == 2:
-            phase_lf[i] = 4
-            phase_rf[i] = 5
-        elif phase_lf[i] == 0 and phase_rf[i] == 1:
-            phase_lf[i] = 1
-            phase_rf[i] = 1
-        elif phase_lf[i] == 1 and phase_rf[i] == 0:
-            phase_lf[i] = 2
-            phase_rf[i] = 2
-        elif phase_lf[i] == 0 and phase_rf[i] == 0:
-            phase_lf[i] = 0
-            phase_rf[i] = 0
+    phase_lf = _detect_takeoff(phase_lf)
+    phase_rf = _detect_takeoff(phase_rf)
 
     return grf, phase_lf, phase_rf
+
+
+def _detect_takeoff(phase):
+    imp_range, imp_len = _zero_runs(col_dat=phase, static=2)
+    phase_copy = copy.copy(phase).reshape(-1,)
+    takeoff = []
+
+    # takeoffs from impact
+    air_lf = np.array([i == 1 for i in phase_copy]).astype(int)
+    air_lf[np.where(phase == 2)[0]] = 3
+    impact_to_air = np.where(np.ediff1d(air_lf, to_begin=0) == -2)[0]
+
+    for i in impact_to_air:
+        # find when this impact started
+        try:
+            impact_start = imp_range[np.where(imp_range[:, 1] == i)[0], 0]
+            takeoff_len = int((i - impact_start[0])/2)
+            takeoff.append(np.arange(i - takeoff_len, i))
+        except IndexError:
+            print(i)
+            print(impact_start)
+    if len(takeoff) > 0:
+        takeoff_all = np.concatenate(takeoff).ravel()
+        phase[takeoff_all] = 3
+
+    return phase
+
 
 def _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range):
     # for left foot
@@ -640,9 +651,9 @@ def _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range):
     ground_lf = ground_lf[ground_lf >= _range[0]]
     ground_lf = ground_lf[ground_lf <= _range[1]]
     ground_lf_diff = np.ediff1d(ground_lf)
+
     if len(ground_lf_diff) >= 1: # check to see if it was a small false positive
         lf_ranges, length_lf = _zero_runs(ground_lf_diff, 1)
-            
         if np.any(length_lf >= 5): # look to see if any contacts >= 50ms present
             lf_ranges = lf_ranges[np.where(length_lf >= 5)[0], :]
             if len(lf_ranges) == 2:
@@ -675,6 +686,8 @@ def _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range):
     ground_rf = ground_rf[ground_rf >= _range[0]]
     ground_rf = ground_rf[ground_rf <= _range[1]]
     ground_rf_diff = np.ediff1d(ground_rf)
+
+
     if len(ground_rf_diff) >= 1: # check to see if it was a small false positive
         rf_ranges, length_rf = _zero_runs(ground_rf_diff, 1)
             

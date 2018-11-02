@@ -131,7 +131,22 @@ column_scoring_out = [
     'rot',
     'lat',
     'vert',
-    'horz']
+    'horz',
+    'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
+    'adduc_range_of_motion_lf',
+    'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
+    'flex_range_of_motion_lf',
+    'contact_duration_lf',
+    'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
+    'adduc_range_of_motion_h',
+    'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
+    'flex_range_of_motion_h',
+    'contact_duration_h',
+    'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
+    'adduc_range_of_motion_rf',
+    'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
+    'flex_range_of_motion_rf',
+    'contact_duration_rf']
 
 column_user_hist = [
     'grf',

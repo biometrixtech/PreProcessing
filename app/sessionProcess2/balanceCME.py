@@ -63,8 +63,10 @@ def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, phase_lf, phase_rf):
 
     # contralateral hip drop
         # hip roll
-    hip_rot_lf = _filt_rot_CME(hip_roll, phase_lf, [0, 1, 4])
-    hip_rot_rf = _filt_rot_CME(hip_roll, phase_rf, [0, 2, 5])
+#    hip_rot_lf = _filt_rot_CME(hip_roll, phase_lf, [0, 1, 4, 6])
+#    hip_rot_rf = _filt_rot_CME(hip_roll, phase_rf, [0, 2, 5, 7])
+    hip_rot_lf = _filt_rot_CME(hip_roll, phase_lf, [0, 2, 3])
+    hip_rot_rf = _filt_rot_CME(hip_roll, phase_rf, [0, 2, 3])
     contra_hip_drop_lf = hip_rot_lf.reshape(-1, 3)[:, 0]
     contra_hip_drop_lf = contra_hip_drop_lf* - 1 # fix so superior > 0
     contra_hip_drop_rf = hip_rot_rf.reshape(-1, 3)[:, 0]
@@ -72,8 +74,10 @@ def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, phase_lf, phase_rf):
 
     # ankle roll
         # foot roll
-    roll_lf = _filt_rot_CME(lf_roll, phase_lf, [0, 1, 4])
-    roll_rf = _filt_rot_CME(rf_roll, phase_rf, [0, 2, 5])
+#    roll_lf = _filt_rot_CME(lf_roll, phase_lf, [0, 1, 4, 6])
+#    roll_rf = _filt_rot_CME(rf_roll, phase_rf, [0, 2, 5, 7])
+    roll_lf = _filt_rot_CME(lf_roll, phase_lf, [0, 2, 3])
+    roll_rf = _filt_rot_CME(rf_roll, phase_rf, [0, 2, 3])
     ankle_rot_lf = roll_lf.reshape(-1, 3)[:, 0]
     ankle_rot_lf = ankle_rot_lf*-1 # fix so medial > 0
     ankle_rot_rf = roll_rf.reshape(-1, 3)[:, 0]
@@ -81,8 +85,10 @@ def calculate_rot_CMEs(lf_quat, hip_quat, rf_quat, phase_lf, phase_rf):
   
     # foot position
         # foot yaw
-    yaw_lf = _cont_rot_CME(lf_yaw, phase_lf, [0, 1, 4], hip_yaw)
-    yaw_rf = _cont_rot_CME(rf_yaw, phase_rf, [0, 2, 5], hip_yaw)
+#    yaw_lf = _cont_rot_CME(lf_yaw, phase_lf, [0, 1, 4, 6], hip_yaw)
+#    yaw_rf = _cont_rot_CME(rf_yaw, phase_rf, [0, 2, 5, 7], hip_yaw)
+    yaw_lf = _cont_rot_CME(lf_yaw, phase_lf, [0, 2, 3], hip_yaw)
+    yaw_rf = _cont_rot_CME(rf_yaw, phase_rf, [0, 2, 3], hip_yaw)
     foot_position_lf = yaw_lf.reshape(-1, 3)[:, 2]
     foot_position_lf = foot_position_lf*-1 # fix so medial > 0
     foot_position_rf = yaw_rf.reshape(-1, 3)[:, 2]

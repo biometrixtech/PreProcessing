@@ -62,7 +62,7 @@ def score(data, grf_scale):
     data['consistency'] = np.zeros(data.shape[0]) * np.nan
 
     for stance in np.unique(data.stance):
-        if stance == 6 or stance == 7:
+        if stance == 2 or stance == 3:
             cme_to_use = ['adduc_motion_covered',
                           'adduc_range_of_motion',
                           'flex_motion_covered',
@@ -78,49 +78,6 @@ def score(data, grf_scale):
             for rofa_cat in np.unique(rofa_cats):
                 data_sub = data.loc[((data.stance == stance)) & ((data.rofa_lf_cat == rofa_cat) \
                                      | (data.rofa_rf_cat == rofa_cat)), :]
-#                print(data_sub.shape[0])
-#                print('stance: {}, cat: {}, len: {}'.format(stance, rofa_cat, data_sub.shape[0]))
-                if data_sub.shape[0] >= 30:
-                    _score_subset(data, data_sub, cme_to_use)
-
-        elif stance == 8 or stance == 9:
-            cme_to_use = ['adduc_motion_covered',
-                          'adduc_range_of_motion',
-                          'flex_motion_covered',
-                          'flex_range_of_motion',
-                          'contact_duration',
-                          # 'hip_drop', #old cmes
-                          # 'ankle_rotation',
-                          # 'land_pattern',
-                          # 'land_time'
-                         ]
-            rofp_cats = np.append(data.rofp_lf_cat.values, data.rofp_rf_cat.values)
-            rofp_cats = rofp_cats[np.isfinite(rofp_cats)]
-            for rofp_cat in np.unique(rofp_cats):
-                data_sub = data.loc[((data.stance == stance)) & ((data.rofp_lf_cat == rofp_cat) \
-                                     | (data.rofp_rf_cat == rofp_cat)), :]
-#                print(data_sub.shape[0])
-#                print('stance: {}, cat: {}, len: {}'.format(stance, rofp_cat, data_sub.shape[0]))
-                if data_sub.shape[0] >= 30:
-                    _score_subset(data, data_sub, cme_to_use)
-
-        elif stance in [2, 3, 4, 5]:
-            cme_to_use = ['adduc_motion_covered',
-                          'adduc_range_of_motion',
-                          'flex_motion_covered',
-                          'flex_range_of_motion',
-                          # 'hip_drop', #old cmes
-                          # 'ankle_rotation',
-                          # 'land_pattern',
-                          # 'land_time'
-                         ]
-            bal_cats = np.unique(data.balance_grf_cat.values)
-            bal_cats = bal_cats[np.isfinite(bal_cats)]
-            for bal_cat in bal_cats:
-                data_sub = data.loc[((data.stance == stance)) & \
-                                    (data.balance_grf_cat == bal_cat), :]
-#                print(data_sub.shape[0])
-#                print('stance: {}, cat: {}, len: {}'.format(stance, bal_cat, data_sub.shape[0]))
                 if data_sub.shape[0] >= 30:
                     _score_subset(data, data_sub, cme_to_use)
 
@@ -287,8 +244,8 @@ def _ankle(data, cme):
 
     ## Scoring for adduction motion covered
     if 'adduc_motion_covered' in cme:
-        left = copy.copy(data.adduc_motion_covered_lf.values)
-        right = copy.copy(data.adduc_motion_covered_rf.values)
+        left = copy.copy(data.adduc_motion_covered_abs_lf.values)
+        right = copy.copy(data.adduc_motion_covered_abs_rf.values)
         symmetry_scores = _run_symmetry(left, right, symmetry_scores)
 
         # consistency
@@ -307,8 +264,8 @@ def _ankle(data, cme):
 
     ## Scoring for flexion motion covered
     if 'flex_motion_covered' in cme:
-        left = copy.copy(data.flex_motion_covered_lf.values)
-        right = copy.copy(data.flex_motion_covered_rf.values)
+        left = copy.copy(data.flex_motion_covered_abs_lf.values)
+        right = copy.copy(data.flex_motion_covered_abs_rf.values)
         symmetry_scores = _run_symmetry(left, right, symmetry_scores)
 
         # consistency
@@ -365,8 +322,10 @@ def _hip(data, cme):
     #If all the rows for either left or right features are blank or we have at
     #most 2 non-empty rows, we cannot score so, nan's are returned as score for
     #all rows
-    ground_lf = [0, 1, 4, 6]
-    ground_rf = [0, 2, 5, 7]
+#    ground_lf = [0, 1, 4, 6]
+#    ground_rf = [0, 2, 5, 7]
+    ground_lf = [0, 2, 3]
+    ground_rf = [0, 2, 3]
     if 'hip_drop' in cme:
         # symmetry
         left = copy.copy(data.contra_hip_drop_lf.values)
@@ -379,7 +338,7 @@ def _hip(data, cme):
 
     if 'adduc_motion_covered' in cme:
         # symmetry
-        adduc_motion = copy.copy(data.adduc_motion_covered_h.values)
+        adduc_motion = copy.copy(data.adduc_motion_covered_abs_h.values)
         left = copy.copy(adduc_motion)
         right = copy.copy(adduc_motion)
         left[np.array([i not in ground_lf for i in data.phase_lf])] = np.nan
@@ -403,7 +362,7 @@ def _hip(data, cme):
 
     if 'flex_motion_covered' in cme:
         # symmetry
-        flex_motion = copy.copy(data.flex_motion_covered_h.values)
+        flex_motion = copy.copy(data.flex_motion_covered_abs_h.values)
         left = copy.copy(flex_motion)
         right = copy.copy(flex_motion)
         left[np.array([i not in ground_lf for i in data.phase_lf])] = np.nan
@@ -556,8 +515,7 @@ def _con_fun(dist, double=False):
     dist = dist[np.isfinite(dist)]
 
     #Limit historical data to 1.5M for memory issue (Will get rid later)
-    sample_size = min([len(dist), 1500000])
-#    error = 0
+    sample_size = min([len(dist), 50000])
     try:
         if len(dist) < 5:
             logger.info('Not enough data to create mapping function')
@@ -576,6 +534,8 @@ def _con_fun(dist, double=False):
             min_ratio = np.percentile(ratio, 5)
             consistency_score = (1-(ratio-min_ratio)/(max_ratio-min_ratio))*100
             #extrapolation is done for values outside the range
+            dist_sorted = dist_sorted.reshape(-1, 1)
+            consistency_score = consistency_score.reshape(-1, 1)
             function = UnivariateSpline(dist_sorted, consistency_score)
         elif double is True:
             dist = np.random.choice(dist, size=sample_size, replace=False)
@@ -622,7 +582,7 @@ def _con_fun(dist, double=False):
         dist_sorted = np.array([-1, -.5, 0, .5, 1])
         consistency_score = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
         function = UnivariateSpline(dist_sorted, consistency_score)
-#        error = 1
+
     return function
 
 
