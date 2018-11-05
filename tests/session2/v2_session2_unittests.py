@@ -766,7 +766,6 @@ class TestMovementAttributes(unittest.TestCase):
         self.assertEqual(stance.shape, lf_ph.shape)
 
         # output is expected given known input
-        print((stance).reshape(-1,))
         self.assertTrue(np.allclose(stance, stance_exp))
 
 
@@ -984,7 +983,6 @@ class TestRunRelativeCMEs(unittest.TestCase):
 
         # output matches expectation given known input
             # values align and filled only where relevant
-        print(calc_cme)
         self.assertTrue(np.allclose(calc_cme, exp_cme, equal_nan=True))
 
     def test__driftless_CMS(self):
@@ -1095,7 +1093,6 @@ class TestRunRelativeCMEs(unittest.TestCase):
         # output is formatted appropriately
         self.assertEqual(stance.shape, test.shape)
         # output matches expectation given known input
-        print(test.reshape(-1,))
         self.assertTrue(np.allclose(test, targ, equal_nan=True))
 
     def test__num_runs(self):
