@@ -424,7 +424,7 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
 
 
     # where single leg things start very close to each other, assign double leg
-    doub_range = 3 # radius for features to begin in for left + right to = doub
+    doub_range = int(.03 * hz) # radius for features to begin in for left + right to = doub
     r_one_indices = _num_runs(right_impact, 1)
 
     l_one_indices = _num_runs(left_impact, 1)
@@ -674,33 +674,20 @@ def enumerate_stance(left_dyn_balance, right_dyn_balance, double_dyn_balance, \
 
     # use order of enumeration assignment to favor later values
     # 0 is not_standing data
-    stance[left_stat_balance == 1] = 4
-    stance[right_stat_balance == 1] = 4
+
     stance[left_dyn_balance == 1] = 2
     stance[right_dyn_balance == 1] = 2
+    stance[left_stat_balance == 1] = 4
+    stance[right_stat_balance == 1] = 4
     stance[double_dyn_balance == 1] = 3
-    stance[double_stat_balance == 1] = 5
+    stance[double_stat_balance ==1 ] = 5
     stance[left_impact == 1] = 2
     stance[right_impact == 1] = 2
-    stance[double_impact == 1] = 3
     stance[left_takeoff == 1] = 2
     stance[right_takeoff == 1] = 2
+    stance[double_impact == 1] = 3
     stance[double_takeoff == 1] = 3
     stance[feet_eliminated == 1] = 1
-
-#    stance[left_dyn_balance == 1] = 2
-#    stance[right_dyn_balance == 1] = 2
-#    stance[left_impact == 1] = 2
-#    stance[right_impact == 1] = 2
-#    stance[left_takeoff == 1] = 2
-#    stance[right_takeoff == 1] = 2
-#    stance[double_impact == 1] = 3
-#    stance[double_takeoff == 1] = 3
-#    stance[double_dyn_balance == 1] = 3
-#    stance[left_stat_balance == 1] = 4
-#    stance[right_stat_balance == 1] = 4
-#    stance[double_stat_balance == 1] = 5
-#    stance[feet_eliminated == 1] = 1
 
     return stance
 

@@ -449,9 +449,12 @@ def _rough_contact_duration(stance):
 
     # where there is contact, report the duration of the contact
     for i in range(int(cont_ind.shape[0])):
-        dur = cont_ind[i, 1] - cont_ind[i, 0]
-        contact[cont_ind[i, 0]:cont_ind[i, 1]] = dur
-
+        if cont_ind[i, 1] + 1 == len(stance):
+            dur = cont_ind[i, 1] - cont_ind[i, 0] + 1
+            contact[cont_ind[i, 0]:cont_ind[i, 1] + 1] = dur
+        else:
+            dur = cont_ind[i, 1] - cont_ind[i, 0]
+            contact[cont_ind[i, 0]:cont_ind[i, 1]] = dur
     return contact / 1000. # 1000 divisor puts in units of seconds
 
 

@@ -393,7 +393,7 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
     logger.info("Table Created")
 
-    scoring_data = update_stance(scoring_data)
+    # scoring_data = update_stance(scoring_data)
     
     return scoring_data
 
