@@ -293,7 +293,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
 
     # After filtering trasnformed quaternions, reverse transformation to get filtered raw quats
     q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_90))
-    q_bf_right = quat_prod(q_bf_left, quat_conj(yaw_90))
+    q_bf_right = quat_prod(q_bf_right, quat_conj(yaw_90))
     q_sensor_left = quat_prod(q_bf_left, quat_conj(q_bftransform_left))
     q_sensor_right = quat_prod(q_bf_right, quat_conj(q_bftransform_right))
     q_sensor_hip = quat_multi_prod(quat_conj(q_neutraltransform_hip),
