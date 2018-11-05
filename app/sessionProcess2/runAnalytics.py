@@ -116,6 +116,7 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
 
     # prepare data for grf prediction
+    mass = 60
     data.mass = mass*9.807/1000 # convert mass from kg to kN
     grf_data, nan_row = prepare_data(data, sc)
 
