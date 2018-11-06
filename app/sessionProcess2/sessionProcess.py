@@ -432,9 +432,9 @@ def script_handler(working_directory, file_name, data):
         file_version = data.get('SensorDataFileVersion', '2.3')
         hip_n_transform = data.get('HipNTransform', None)
 
-        # # SAVE DEBUG DATA
-        # import save_file
-        # save_file.save_file(sdata, file_name)
+        # SAVE DEBUG DATA
+        import save_file
+        save_file.save_file(sdata, file_name)
  
         output_data_batch = runAnalytics.run_session(sdata, file_version, mass, grf_fit, grf_fit_lf, grf_fit_rf, sc, sc_single_leg, hip_n_transform)
 
