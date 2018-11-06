@@ -221,10 +221,10 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
 
     # Rotate right and left foot by 90º
     yaw_180 = make_quaternion_array([0, 0, 0, 1], row_count)
-    yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, -sqrt(2)/2], row_count)
-    q_bf_left = quat_prod(q_bf_left, yaw_90)
-    q_bf_right = quat_prod(q_bf_right, yaw_90)
-    # q_bf_left = quat_prod(q_bf_left, yaw_180)
+    # yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, -sqrt(2)/2], row_count)
+    # q_bf_left = quat_prod(q_bf_left, yaw_90)
+    # q_bf_right = quat_prod(q_bf_right, yaw_90)
+    q_bf_left = quat_prod(q_bf_left, yaw_180)
 
     # insert transformed values for ankle sensors into dataframe
     sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
@@ -292,8 +292,9 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bf_yaw_right = quat_force_euler_angle(q_bf_right, phi=0, theta=0)
 
     # After filtering trasnformed quaternions, reverse transformation to get filtered raw quats
-    q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_90))
-    q_bf_right = quat_prod(q_bf_right, quat_conj(yaw_90))
+    # q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_90))
+    # q_bf_right = quat_prod(q_bf_right, quat_conj(yaw_90))
+    q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_180))
     q_sensor_left = quat_prod(q_bf_left, quat_conj(q_bftransform_left))
     q_sensor_right = quat_prod(q_bf_right, quat_conj(q_bftransform_right))
     q_sensor_hip = quat_multi_prod(quat_conj(q_neutraltransform_hip),
