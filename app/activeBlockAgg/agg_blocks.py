@@ -95,8 +95,8 @@ def script_handler(working_directory, input_data):
 
         data.active[data.stance == 0] = 0
         active_ind = numpy.array([k == 1 for k in data['active']])
-        total_ind = numpy.array([k != 1 for k in data['stance']]) * active_ind
-        total_ind = numpy.array([k != 0 for k in data['stance']]) * active_ind
+        total_ind = numpy.array([k not in [0, 1] for k in data['stance']]) * active_ind
+        # total_ind = numpy.array([k != 0 for k in data['stance']]) * active_ind
         data['total_ind'] = total_ind
         lf_ind = numpy.array([k in [0, 2, 3] for k in data['phase_lf']]) * active_ind
         rf_ind = numpy.array([k in [0, 2, 3] for k in data['phase_rf']]) * active_ind
@@ -120,16 +120,22 @@ def script_handler(working_directory, input_data):
         data['irregular_accel'] = data['total_accel'] * data['destr_multiplier']
 
         # scores
-        data['symmetry'] = data['symmetry'] * active_ind
-        data['hip_symmetry'] = data['hip_symmetry'] * active_ind
-        data['ankle_symmetry'] = data['ankle_symmetry'] * active_ind
-        data['consistency'] = data['consistency'] * active_ind
-        data['hip_consistency'] = data['hip_consistency'] * active_ind
-        data['ankle_consistency'] = data['ankle_consistency'] * active_ind
-        data['consistency_lf'] = data['consistency_lf'] * active_ind
-        data['consistency_rf'] = data['consistency_rf'] * active_ind
-        data.control_lf[~active_ind] = numpy.nan
-        data.control_rf[~active_ind] = numpy.nan
+        data['symmetry'] = data['symmetry'] * total_ind
+        data['hip_symmetry'] = data['hip_symmetry'] * total_ind
+        data['ankle_symmetry'] = data['ankle_symmetry'] * total_ind
+        data['consistency'] = data['consistency'] * total_ind
+        data['hip_consistency'] = data['hip_consistency'] * total_ind
+        data['ankle_consistency'] = data['ankle_consistency'] * total_ind
+        data['consistency_lf'] = data['consistency_lf'] * lf_ind
+        data['consistency_rf'] = data['consistency_rf'] * rf_ind
+        data['control'] = data['control'] * total_ind
+        data['hip_control'] = data['hip_control'] * total_ind
+        data['ankle_control'] = data['ankle_control'] * total_ind
+        data['control_lf'] = data['control_lf'] * lf_ind
+        data['control_rf'] = data['control_rf'] * rf_ind
+        # data.control[~active_ind] = numpy.nan
+        # data.control_lf[~active_ind] = numpy.nan
+        # data.control_rf[~active_ind] = numpy.nan
 
         # segment data into blocks
         active_blocks = define_blocks(data['active'].values)
