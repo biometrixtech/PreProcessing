@@ -57,6 +57,7 @@ Resources:
               - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
               - { Ref: "SessionEventsReadPolicy" }
               - { Ref: "SessionEventsWritePolicy" }
+              - { "Fn::ImportValue": { "Fn::Sub": "UsersServiceAuthPolicyArn-${Environment}" } }
             Policies:
               - PolicyName: "default"
                 PolicyDocument:
