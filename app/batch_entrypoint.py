@@ -8,6 +8,7 @@ import json
 import sys
 import time
 import traceback
+from config import load_parameters
 
 
 def send_success(meta, output):
@@ -210,7 +211,8 @@ def main():
                              'LF_MS_MODEL',
                              'RF_MS_MODEL',
                              'MS_SCALER',
-                             'SL_MS_SCALER'])
+                             'SL_MS_SCALER'],
+                             'models')
             # Use theano backend for keras
             os.environ['KERAS_BACKEND'] = 'theano'
             if input_data.get('Sensors') == 3:
@@ -261,13 +263,13 @@ def main():
 
         elif script == 'aggregatesession':
             load_parameters([
-                'MONGO_HOST_SESSION',
-                'MONGO_USER_SESSION',
-                'MONGO_PASSWORD_SESSION',
-                'MONGO_DATABASE_SESSION',
+                'MONGO_HOST',
+                'MONGO_USER',
+                'MONGO_PASSWORD',
+                'MONGO_DATABASE',
+                'MONGO_REPLICASET',
                 'MONGO_COLLECTION_SESSION',
-                'MONGO_REPLICASET_SESSION',
-            ])
+            ], 'mongo')
             if input_data.get('Sensors') == 3:
                 print('Computing session aggregations on multi-sensor data')
                 from sessionAgg import agg_session
@@ -285,13 +287,13 @@ def main():
 
         elif script == 'aggregateblocks':
             load_parameters([
-                'MONGO_HOST_ACTIVEBLOCKS',
-                'MONGO_USER_ACTIVEBLOCKS',
-                'MONGO_PASSWORD_ACTIVEBLOCKS',
-                'MONGO_DATABASE_ACTIVEBLOCKS',
+                'MONGO_HOST',
+                'MONGO_USER',
+                'MONGO_PASSWORD',
+                'MONGO_DATABASE',
+                'MONGO_REPLICASET',
                 'MONGO_COLLECTION_ACTIVEBLOCKS',
-                'MONGO_REPLICASET_ACTIVEBLOCKS',
-            ])
+            ], 'mongo')
             if input_data.get('Sensors') == 3:
                 print('Computing block multi-sensor data')
                 from activeBlockAgg import agg_blocks
@@ -309,13 +311,13 @@ def main():
 
         elif script == 'aggregatetwomin':
             load_parameters([
-                'MONGO_HOST_TWOMIN',
-                'MONGO_USER_TWOMIN',
-                'MONGO_PASSWORD_TWOMIN',
-                'MONGO_DATABASE_TWOMIN',
+                'MONGO_HOST',
+                'MONGO_USER',
+                'MONGO_PASSWORD',
+                'MONGO_DATABASE',
+                'MONGO_REPLICASET',
                 'MONGO_COLLECTION_TWOMIN',
-                'MONGO_REPLICASET_TWOMIN',
-            ])
+            ], 'mongo')
             if input_data.get('Sensors') == 3:
                 print('Computing two minute aggregations on multi-sensor data')
                 from twoMinuteAgg import agg_twomin
@@ -335,14 +337,14 @@ def main():
         elif script == 'aggregatedateuser':
             print('Computing date-user aggregations')
             load_parameters([
-                'MONGO_HOST_SESSION',
-                'MONGO_USER_SESSION',
-                'MONGO_PASSWORD_SESSION',
-                'MONGO_DATABASE_SESSION',
-                'MONGO_REPLICASET_SESSION',
+                'MONGO_HOST',
+                'MONGO_USER',
+                'MONGO_PASSWORD',
+                'MONGO_DATABASE',
+                'MONGO_REPLICASET',
                 'MONGO_COLLECTION_SESSION',
                 'MONGO_COLLECTION_DATE',
-            ])
+            ], 'mongo')
             from dateAggUser import agg_date_user
 
             agg_date_user.script_handler(
@@ -354,13 +356,13 @@ def main():
             if input_data.get('Sensors') == 3:
                 print('Computing program composition aggregations')
                 load_parameters([
-                    'MONGO_HOST_SESSION',
-                    'MONGO_USER_SESSION',
-                    'MONGO_PASSWORD_SESSION',
-                    'MONGO_DATABASE_SESSION',
-                    'MONGO_REPLICASET_SESSION',
+                    'MONGO_HOST',
+                    'MONGO_USER',
+                    'MONGO_PASSWORD',
+                    'MONGO_DATABASE',
+                    'MONGO_REPLICASET',
                     'MONGO_COLLECTION_PROGCOMP',
-                ])
+                ], 'mongo')
                 from progComp import prog_comp
 
                 prog_comp.script_handler(
@@ -376,14 +378,14 @@ def main():
             if input_data.get('Sensors') == 3:
                 print('Computing program composition date aggregations')
                 load_parameters([
-                    'MONGO_HOST_SESSION',
-                    'MONGO_USER_SESSION',
-                    'MONGO_PASSWORD_SESSION',
-                    'MONGO_DATABASE_SESSION',
-                    'MONGO_REPLICASET_SESSION',
+                    'MONGO_HOST',
+                    'MONGO_USER',
+                    'MONGO_PASSWORD',
+                    'MONGO_DATABASE',
+                    'MONGO_REPLICASET',
                     'MONGO_COLLECTION_PROGCOMP',
                     'MONGO_COLLECTION_PROGCOMPDATE',
-                ])
+                ], 'mongo')
                 from progCompDate import prog_comp_date
 
                 prog_comp_date.script_handler(
@@ -397,22 +399,17 @@ def main():
         elif script == 'aggregateteam':
             print('Computing team aggregations')
             load_parameters([
-                'MONGO_HOST_SESSION',
-                'MONGO_USER_SESSION',
-                'MONGO_PASSWORD_SESSION',
-                'MONGO_DATABASE_SESSION',
-                'MONGO_REPLICASET_SESSION',
+                'MONGO_HOST',
+                'MONGO_USER',
+                'MONGO_PASSWORD',
+                'MONGO_DATABASE',
+                'MONGO_REPLICASET',
                 'MONGO_COLLECTION_DATE',
                 'MONGO_COLLECTION_DATETEAM',
                 'MONGO_COLLECTION_PROGCOMPDATE',
-                'MONGO_HOST_TWOMIN',
-                'MONGO_USER_TWOMIN',
-                'MONGO_PASSWORD_TWOMIN',
-                'MONGO_DATABASE_TWOMIN',
-                'MONGO_REPLICASET_TWOMIN',
                 'MONGO_COLLECTION_TWOMIN',
                 'MONGO_COLLECTION_TWOMINTEAM',
-            ])
+            ], 'mongo')
             from teamAgg import agg_team
 
             agg_team.script_handler(
@@ -423,23 +420,18 @@ def main():
         elif script == 'aggregatetraininggroup':
             print('Computing training group aggregations')
             load_parameters([
-                'MONGO_HOST_SESSION',
-                'MONGO_USER_SESSION',
-                'MONGO_PASSWORD_SESSION',
-                'MONGO_DATABASE_SESSION',
-                'MONGO_REPLICASET_SESSION',
+                'MONGO_HOST',
+                'MONGO_USER',
+                'MONGO_PASSWORD',
+                'MONGO_DATABASE',
+                'MONGO_REPLICASET',
                 'MONGO_COLLECTION_DATE',
                 'MONGO_COLLECTION_DATETG',
                 'MONGO_COLLECTION_PROGCOMP',
                 'MONGO_COLLECTION_PROGCOMPDATE',
-                'MONGO_HOST_TWOMIN',
-                'MONGO_USER_TWOMIN',
-                'MONGO_PASSWORD_TWOMIN',
-                'MONGO_DATABASE_TWOMIN',
-                'MONGO_REPLICASET_TWOMIN',
                 'MONGO_COLLECTION_TWOMIN',
                 'MONGO_COLLECTION_TWOMINTG',
-            ])
+            ], 'mongo')
             from TGAgg import agg_tg
 
             agg_tg.script_handler(
