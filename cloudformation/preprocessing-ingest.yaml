@@ -287,6 +287,7 @@ Resources:
                 Variables:
                     DYNAMODB_TABLE_NAME: { Ref: "SessionEventsTable" }
                     ENVIRONMENT: { Ref: "Environment" }
+                    SERVICE: 'preprocessing'
                     STATE_MACHINE_ARN: { Ref: "StateMachineArn" }
                     LOG_GROUP_NAME: { "Fn::Sub": "/biometrix/preprocessing/${Environment}" }
             Handler: "index.handler"
