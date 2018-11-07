@@ -73,6 +73,13 @@ Resources:
                           - "states:StartExecution"
                         Effect: "Allow"
                         Resource: { Ref: "StateMachineArn" }
+
+                      - Action:
+                          - "lambda:InvokeFunction"
+                        Effect: "Allow"
+                        Resource:
+                          - { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:users-${Environment}-apigateway-execute" }
+                          - { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:hardware-${Environment}-apigateway-execute" }
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-ingest-lambda-${AWS::Region}" }
 
     ##########################################################################################################
