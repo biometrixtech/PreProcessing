@@ -2,6 +2,9 @@
 *.pyc
 cache/pip/*
 !cache/pip/empty
+.DS_Store
+.idea/*
+.cache
 
 apigateway/*
 !apigateway/routes

@@ -8,7 +8,7 @@ Created on Wed Sep 28 17:42:39 2016
 # import relevant packages
 import numpy as np
 
-from .quatConvs import quat_to_euler, euler_to_quat
+from quatConvs import quat_to_euler, euler_to_quat
 
 """
 ############################################################################

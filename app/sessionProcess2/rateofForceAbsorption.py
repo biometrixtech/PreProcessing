@@ -36,7 +36,7 @@ def det_rofa(lf_imp, rf_imp, grf, phase_lf, phase_rf, stance, hz):
     '''
     #change stance into single or doulbe leg
 #    single_leg = np.array([i in [2, 3, 6, 8] for i in stance])
-    double_leg = np.array([i in [4, 5, 7] for i in stance])
+    double_leg = np.array([i in [3, 5] for i in stance])
     
     # determine rate of force absorption for left & right feet
     if len(lf_imp) != 0:

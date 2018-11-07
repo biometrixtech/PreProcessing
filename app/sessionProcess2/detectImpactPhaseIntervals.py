@@ -28,8 +28,10 @@ def detect_start_end_imp_phase(lph, rph):
     '''
     
     # start and end indices of impact phase for left and right foot
-    rf_range_imp = _zero_runs(col_dat=rph, imp_value=phase_id.rf_imp.value)
-    lf_range_imp = _zero_runs(col_dat=lph, imp_value=phase_id.lf_imp.value)
+#    rf_range_imp = _zero_runs(col_dat=rph, imp_value=phase_id.rf_imp.value)
+#    lf_range_imp = _zero_runs(col_dat=lph, imp_value=phase_id.lf_imp.value)
+    rf_range_imp = _zero_runs(col_dat=rph, imp_value=2)
+    lf_range_imp = _zero_runs(col_dat=lph, imp_value=2)
     
     # declaring variable to store the start and end of impact phase
     lf_imp_start_stop = np.zeros(len(lph))*np.nan
