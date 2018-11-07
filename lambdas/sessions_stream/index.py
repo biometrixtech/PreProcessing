@@ -36,7 +36,7 @@ def handler(event, _):
 
         if 'accessory_id' in changes:
             print('Loading data from hardware service')
-            accessory = Service('hardware', '2_0').call_apigateway_sync(f"accessory/{new_object['accessory_id']}").get('accessory', None)
+            accessory = Service('hardware', '2_0').call_apigateway_sync('GET', f"accessory/{new_object['accessory_id']}").get('accessory', None)
             if accessory is not None:
                 update_dynamodb(new_object['id'], {'user_id': accessory['owner_id'] or '---'})
 
