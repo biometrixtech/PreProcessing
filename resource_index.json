@@ -12,6 +12,12 @@
             "s3_filename": "apigateway.zip",
             "src": "apigateway",
             "pip": true
+        },
+        {
+            "name": "preprocessing-{ENVIRONMENT}-ingest-sessions-stream",
+            "s3_filename": "sessions_stream.zip",
+            "src": "lambdas/sessions_stream",
+            "pip": true
         }
     ],
     "datastores": [
