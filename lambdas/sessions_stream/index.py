@@ -27,12 +27,12 @@ def handler(event, _):
             print('Loading data from users service')
             user = Service('users', '2_0').call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
             if user is not None:
-                update_dynamodb(new_object['id'], {
-                    'team_id': user['teams'][0]['id'] if len(user['teams']) else None,
-                    'training_group_ids': set([tg['id'] for tg in user['training_groups']]) if len(
-                        user['training_groups']) else None,
-                    'user_mass': decimal.Decimal(str(user['biometric_data']['mass']['kg'])),
-                })
+                data = {'user_mass': decimal.Decimal(str(user['biometric_data']['mass']['kg']))}
+                if 'teams' in user and len(user['teams']):
+                    data['team_id'] = user['teams'][0]['id']
+                if 'training_groups' in user and len(user['training_groups']):
+                    data['training_group_ids'] = set([tg['id'] for tg in user['training_groups']])
+                update_dynamodb(new_object['id'], data)
 
         if 'accessory_id' in changes:
             print('Loading data from hardware service')
