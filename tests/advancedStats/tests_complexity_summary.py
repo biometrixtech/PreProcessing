@@ -4,13 +4,13 @@ from app.advancedStats.models.complexity_matrix import ComplexityMatrix
 
 def test_get_decay_dataframe():
 
-    athlete = ""
-    date = ""
+    athlete = "Maggie"
+    date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
     decay_data_frame = calc.get_decay_data_frame(mc_sl_list, mc_dl_list)
 
-    decay_data_frame.to_csv('C:\\UNC\\v6\\outliers_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
+    decay_data_frame.to_csv('~/decay/outliers_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
                        columns=[
                            'active_block', 'complexity_level', 'attribute_name', 'label', 'orientation',
                            'cumulative_end_time', 'z_score', 'raw_value'])
@@ -45,13 +45,13 @@ def test_get_decay_dataframe():
 
 def test_get_kruskal_dataframe():
 
-    athlete = ""
-    date = ""
+    athlete = "Maggie"
+    date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
     kruskal_calcs_frame = calc.get_kruskal_data_frame(mc_sl_list, mc_dl_list)
 
-    kruskal_calcs_frame.to_csv('C:\\UNC\\v6\\kruskal_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
+    kruskal_calcs_frame.to_csv('~/decay/kruskal_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
                                columns=[
                                    'complexity_level', 'row_name', 'column_name', 'adduc_ROM', 'adduc_motion_covered',
                                    'flex_ROM', 'flex_motion_covered', 'adduc_ROM_hip',
@@ -59,13 +59,14 @@ def test_get_kruskal_dataframe():
 
 
 def test_get_asymmetry_dataframe():
-    athlete = ""
-    date = ""
+
+    athlete = "Maggie"
+    date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
     asymmetry_data_frame = calc.get_asymmetry_data_frame(mc_sl_list, mc_dl_list, "total_grf")
 
-    asymmetry_data_frame.to_csv('C:\\UNC\\v6\\complexity_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
+    asymmetry_data_frame.to_csv('~/decay/complexity_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
                         columns=[
                             'complexity_level',
                             'left_steps',
@@ -121,13 +122,16 @@ def test_get_asymmetry_dataframe():
                         ])
 
 def test_get_fatigue_dataframe():
-    athlete = ""
-    date = ""
+
+    # THIS IS NOT NEEDED!!!!
+
+    athlete = "Maggie"
+    date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
     fatigue_data_frame = calc.get_fatigue_data_frame(mc_sl_list, mc_dl_list, "total_grf")
 
-    fatigue_data_frame.to_csv('C:\\UNC\\v6\\faitgue_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
+    fatigue_data_frame.to_csv('~decay/fatigue_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
                          columns=[
                              'complexity_level',
                              'fatigue_level',
@@ -185,15 +189,16 @@ def test_get_fatigue_dataframe():
 
 
 def test_get_matrix_dataframe():
-    athlete = ""
-    date = ""
+
+    athlete = "Maggie"
+    date = "2018-04-24"
 
     dl_comp_matrix = ComplexityMatrix("Double Leg")
     sl_comp_matrix = ComplexityMatrix("Single Leg")
 
     matrix_frame = calc.get_matrix_data_frame(sl_comp_matrix, dl_comp_matrix, "total_grf")
 
-    matrix_frame.to_csv('C:\\UNC\\v6\\asym_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance', columns=[
+    matrix_frame.to_csv('~/decay/asym_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance', columns=[
         'complexity_level',
         'row',
         'column',

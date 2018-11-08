@@ -218,13 +218,13 @@ def get_fatigue_data_frame(mc_sl_list, mc_dl_list, variable_name):
     fatigue_frame = pandas.DataFrame()
 
     sl_fatigue_list = []
-    for mc_sl in mc_sl_list:
+    for mc_sl in mc_sl_list.items():
         mc_sl.calc_fatigue()
         for fat_key, fat_val in mc_sl.fatigue_cells.items():
             sl_fatigue_list.append(fat_val)
 
     dl_fatigue_list = []
-    for mc_dl in mc_dl_list:
+    for mc_dl in mc_dl_list.items():
         mc_dl.calc_fatigue()
         for fat_key, fat_val in mc_dl.fatigue_cells.items():
             dl_fatigue_list.append(fat_val)
@@ -362,7 +362,7 @@ def get_asymmetry_data_frame(mc_sl_list, mc_dl_list, variable_name):
 
     complexity_frame = pandas.DataFrame()
 
-    for msl in mc_sl_list:
+    for keys, msl  in mc_sl_list.items():
         asym = msl.get_asymmetry(variable_name)
         summary = msl.get_summary()
         desc_stats = msl.get_descriptive_stats()
@@ -425,7 +425,7 @@ def get_asymmetry_data_frame(mc_sl_list, mc_dl_list, variable_name):
             }, index=["Single Leg"])
         complexity_frame = complexity_frame.append(ab)
 
-    for mdl in mc_dl_list:
+    for keys, mdl  in mc_dl_list.items():
         asym = mdl.get_asymmetry(variable_name)
         summary = mdl.get_summary()
         desc_stats = mdl.get_descriptive_stats()
@@ -487,6 +487,8 @@ def get_asymmetry_data_frame(mc_sl_list, mc_dl_list, variable_name):
                 'right_adduc_motion_covered_time_corr': [desc_stats.right_adduc_motion_covered_time_corr]
             }, index=["Double Leg"])
         complexity_frame = complexity_frame.append(ab)
+
+    return complexity_frame
 
 
 def get_kruskal_data_frame(mc_sl_list, mc_dl_list):
@@ -584,49 +586,49 @@ def get_decay_data_frame(mc_sl_list, mc_dl_list):
     #    'active_block','complexity_level','attribute_name','label','orientation','cumulative_end_time','z_score','raw_value'])
 
     for keys, mcdl in mc_dl_list.items():
-        difs = mcdl.get_decay_parameters()
+        differs = mcdl.get_decay_parameters()
+        for difs in differs:
+            # ab = pandas.DataFrame(
+            #    {
+            #        'complexity_level':[mcdl.complexity_level],
+            #        'row_name':[mcdl.row_name],
+            #        'column_name':[mcdl.column_name],
+            #        'adduc_ROM_LF':[difs.adduc_ROM_LF],
+            #        'adduc_ROM_RF':[difs.adduc_ROM_RF],
+            #        'adduc_pronation_LF':[difs.adduc_pronation_LF],
+            #        'adduc_pronation_RF':[difs.adduc_pronation_RF],
+            #        'adduc_supination_LF':[difs.adduc_supination_LF],
+            #        'adduc_supination_RF':[difs.adduc_supination_RF],
+            #        'flex_ROM_LF':[difs.flex_ROM_LF],
+            #        'flex_ROM_RF':[difs.flex_ROM_RF],
+            #        'dorsiflexion_LF':[difs.dorsiflexion_LF],
+            #        'plantarflexion_LF':[difs.plantarflexion_LF],
+            #        'dorsiflexion_RF':[difs.dorsiflexion_RF],
+            #        'plantarflexion_RF':[difs.plantarflexion_RF],
+            #        'adduc_ROM_hip_LF':[difs.adduc_ROM_hip_LF],
+            #        'adduc_ROM_hip_RF':[difs.adduc_ROM_hip_RF],
+            #        'adduc_positive_hip_LF':[difs.adduc_positive_hip_LF],
+            #        'adduc_positive_hip_RF':[difs.adduc_positive_hip_RF],
+            #        'adduc_negative_hip_LF':[difs.adduc_negative_hip_LF],
+            #        'adduc_negative_hip_RF':[difs.adduc_negative_hip_RF],
+            #        'flex_ROM_hip_LF':[difs.flex_ROM_hip_LF],
+            #        'flex_ROM_hip_RF':[difs.flex_ROM_hip_RF],
+            #        'flex_positive_hip_LF':[difs.flex_positive_hip_LF],
+            #        'flex_positive_hip_RF':[difs.flex_positive_hip_RF],
+            #        'flex_negative_hip_LF':[difs.flex_negative_hip_LF],
+            #        'flex_negative_hip_RF':[difs.flex_negative_hip_RF],
+            #    },index=["Double Leg"])
 
-        # ab = pandas.DataFrame(
-        #    {
-        #        'complexity_level':[mcdl.complexity_level],
-        #        'row_name':[mcdl.row_name],
-        #        'column_name':[mcdl.column_name],
-        #        'adduc_ROM_LF':[difs.adduc_ROM_LF],
-        #        'adduc_ROM_RF':[difs.adduc_ROM_RF],
-        #        'adduc_pronation_LF':[difs.adduc_pronation_LF],
-        #        'adduc_pronation_RF':[difs.adduc_pronation_RF],
-        #        'adduc_supination_LF':[difs.adduc_supination_LF],
-        #        'adduc_supination_RF':[difs.adduc_supination_RF],
-        #        'flex_ROM_LF':[difs.flex_ROM_LF],
-        #        'flex_ROM_RF':[difs.flex_ROM_RF],
-        #        'dorsiflexion_LF':[difs.dorsiflexion_LF],
-        #        'plantarflexion_LF':[difs.plantarflexion_LF],
-        #        'dorsiflexion_RF':[difs.dorsiflexion_RF],
-        #        'plantarflexion_RF':[difs.plantarflexion_RF],
-        #        'adduc_ROM_hip_LF':[difs.adduc_ROM_hip_LF],
-        #        'adduc_ROM_hip_RF':[difs.adduc_ROM_hip_RF],
-        #        'adduc_positive_hip_LF':[difs.adduc_positive_hip_LF],
-        #        'adduc_positive_hip_RF':[difs.adduc_positive_hip_RF],
-        #        'adduc_negative_hip_LF':[difs.adduc_negative_hip_LF],
-        #        'adduc_negative_hip_RF':[difs.adduc_negative_hip_RF],
-        #        'flex_ROM_hip_LF':[difs.flex_ROM_hip_LF],
-        #        'flex_ROM_hip_RF':[difs.flex_ROM_hip_RF],
-        #        'flex_positive_hip_LF':[difs.flex_positive_hip_LF],
-        #        'flex_positive_hip_RF':[difs.flex_positive_hip_RF],
-        #        'flex_negative_hip_LF':[difs.flex_negative_hip_LF],
-        #        'flex_negative_hip_RF':[difs.flex_negative_hip_RF],
-        #    },index=["Double Leg"])
-
-        ab = pandas.DataFrame({
-            'active_block': [difs.active_block_id],
-            'complexity_level': [difs.complexity_level],
-            'attribute_name': [difs.attribute_name],
-            'label': [difs.label],
-            'orientation': [difs.orientation],
-            'cumulative_end_time': [difs.end_time],
-            'z_score': [difs.z_score],
-            'raw_value': [difs.raw_value]
-        }, index=["Double Leg"])
-        decay_frame = decay_frame.append(ab)
+            ab = pandas.DataFrame({
+                'active_block': [difs.active_block_id],
+                'complexity_level': [difs.complexity_level],
+                'attribute_name': [difs.attribute_name],
+                'label': [difs.label],
+                'orientation': [difs.orientation],
+                'cumulative_end_time': [difs.end_time],
+                'z_score': [difs.z_score],
+                'raw_value': [difs.raw_value]
+            }, index=["Double Leg"])
+            decay_frame = decay_frame.append(ab)
 
     return decay_frame

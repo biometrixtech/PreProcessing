@@ -1,4 +1,4 @@
-class categorization_variable(object):
+class CategorizationVariable(object):
     
     def __init__(self, name,  green_low, green_high,yellow_low, yellow_high,red_low, red_high,low_to_high_scale ):
         self.name = name

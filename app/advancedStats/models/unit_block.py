@@ -1,6 +1,7 @@
 from datetime import datetime
 
-class unit_block(object):
+
+class UnitBlock(object):
     
     def __init__(self,mongo_unit_block, accumulated_grf=0):
         time_start = mongo_unit_block.get('timeStart')
