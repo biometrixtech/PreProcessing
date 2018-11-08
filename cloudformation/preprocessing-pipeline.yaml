@@ -26,6 +26,7 @@ Mappings:
         scoring:                { Memory: 7650, Vcpus: 2 }
         aggregatesession:       { Memory: 7650, Vcpus: 2 }
         aggregateblocks:        { Memory: 7650, Vcpus: 2 }
+        advancedstats:          { Memory: 7650, Vcpus: 2 }
         aggregatetwomin:        { Memory: 2048, Vcpus: 2 }
         aggregatedateuser:      { Memory: 512,  Vcpus: 1 }
         aggregateteam:          { Memory: 512,  Vcpus: 1 }
@@ -151,6 +152,11 @@ Resources:
                           - "dynamodb:UpdateItem"
                         Effect: "Allow"
                         Resource: { "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/preprocessing-${Environment}-ingest-*" }
+
+                      - Action:
+                          - "secretsmanager:GetSecretValue"
+                        Effect: "Allow"
+                        Resource: { "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:preprocessing/${Environment}/*" }
 
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-execute-${AWS::Region}" }
 
@@ -554,6 +560,43 @@ Resources:
             FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-prepare-aggregateblocks" }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-prepare-aggregateblocks" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    LambdaPrepareAdvancedStats:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: !Sub |
+                    import os
+                    def handler(event, context):
+                        return {
+                            "Meta": {
+                                "ExecutionName": event['Meta']['ExecutionName'],
+                            },
+                            "Resource": {
+                                "BatchJob": "advancedstats",
+                                "Memory": int(os.environ['BATCH_JOB_MEMORY']),
+                                "Vcpus": int(os.environ['BATCH_JOB_VCPUS']),
+                            },
+                            "ArraySize": 1,
+                            "Input": {
+                                **event["ReadDatabase"],
+                                **{"Sensors": event['TransformAndPlacement']['Output']['Sensors']}
+                            },
+                        }
+            Environment:
+                Variables:
+                    BATCH_JOB_MEMORY: { "Fn::FindInMap": [ "BatchJobResources", "advancedstats", "Memory" ] }
+                    BATCH_JOB_VCPUS: { "Fn::FindInMap": [ "BatchJobResources", "advancedstats", "Vcpus" ] }
+            Handler: "index.handler"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-prepare-advancedstats" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-prepare-advancedstats" } }
               - { Key: "Management", Value: "managed" }
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
@@ -1331,96 +1374,6 @@ Resources:
                             "Type": "Parallel",
                             "Branches": [
                                 {
-                                    "StartAt": "BuildAggregateProgComp",
-                                    "States": {
-                                        "BuildAggregateProgComp": {
-                                            "Type": "Task",
-                                            "Resource": "${LambdaPrepareAggregateProgComp.Arn}",
-                                            "ResultPath": "$.AggregateProgComp",
-                                            "Next": "AggregateProgComp"
-                                        },
-                                        "AggregateProgComp": {
-                                            "Type": "Task",
-                                            "InputPath": "$.AggregateProgComp",
-                                            "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
-                                            "ResultPath": "$.AggregateProgComp",
-                                            "Next": "BuildAggregateProgCompDate"
-                                        },
-                                        "BuildAggregateProgCompDate": {
-                                            "Type": "Task",
-                                            "Resource": "${LambdaPrepareAggregateProgCompDate.Arn}",
-                                            "ResultPath": "$.AggregateProgCompDate",
-                                            "Next": "AggregateProgCompDate"
-                                        },
-                                        "AggregateProgCompDate": {
-                                            "Type": "Task",
-                                            "InputPath": "$.AggregateProgCompDate",
-                                            "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
-                                            "ResultPath": "$.AggregateProgCompDate",
-                                            "End": true
-                                        }
-                                    }
-                                },
-                                {
-                                    "StartAt": "BuildAggregateSessionContext",
-                                    "States": {
-                                        "BuildAggregateSessionContext": {
-                                            "Type": "Task",
-                                            "Resource": "${LambdaPrepareAggregateSession.Arn}",
-                                            "ResultPath": "$.AggregateSession",
-                                            "Next": "AggregateSession"
-                                        },
-                                        "AggregateSession": {
-                                            "Type": "Task",
-                                            "InputPath": "$.AggregateSession",
-                                            "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
-                                            "ResultPath": "$.AggregateSession",
-                                            "Next": "BuildAggregateDateUserContext"
-                                        },
-                                        "BuildAggregateDateUserContext": {
-                                            "Type": "Task",
-                                            "Resource": "${LambdaPrepareAggregateDateUser.Arn}",
-                                            "ResultPath": "$.AggregateDateUser",
-                                            "Next": "AggregateDateUser"
-                                        },
-                                        "AggregateDateUser": {
-                                            "Type": "Task",
-                                            "InputPath": "$.AggregateDateUser",
-                                            "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
-                                            "ResultPath": "$.AggregateDateUser",
-                                            "End": true
-                                        }
-                                    }
-                                },
-                                {
-                                    "StartAt": "BuildAggregateTwominContext",
-                                    "States": {
-                                        "BuildAggregateTwominContext": {
-                                            "Type": "Task",
-                                            "Resource": "${LambdaPrepareAggregateTwomin.Arn}",
-                                            "ResultPath": "$.AggregateTwomin",
-                                            "Next": "AggregateTwomin"
-                                        },
-                                        "AggregateTwomin": {
-                                            "Type": "Task",
-                                            "InputPath": "$.AggregateTwomin",
-                                            "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
-                                            "ResultPath": "$.AggregateTwomin",
-                                            "End": true
-                                        }
-                                    }
-                                },
-                                {
                                     "StartAt": "BuildAggregateBlocksContext",
                                     "States": {
                                         "BuildAggregateBlocksContext": {
@@ -1436,60 +1389,21 @@ Resources:
                                             "TimeoutSeconds": 600,
                                             "HeartbeatSeconds": 600,
                                             "ResultPath": "$.AggregateBlocks",
-                                            "End": true
-                                        }
-                                    }
-                                }
-                            ],
-                            "Catch": [
-                                {
-                                    "ErrorEquals": [ "States.ALL" ],
-                                    "Next": "ExceptionFailProcessing",
-                                    "ResultPath": "$._ExceptionOutput"
-                                }
-                            ],
-                            "ResultPath": null,
-                            "Next": "Aggregate2"
-                        },
-                        "Aggregate2": {
-                            "Type": "Parallel",
-                            "Branches": [
-                                {
-                                    "StartAt": "BuildAggregateTeamContext",
-                                    "States": {
-                                        "BuildAggregateTeamContext": {
-                                            "Type": "Task",
-                                            "Resource": "${LambdaPrepareAggregateTeam.Arn}",
-                                            "ResultPath": "$.AggregateTeam",
-                                            "Next": "AggregateTeam"
+                                            "Next": "BuildAdvancedStatsContext"
                                         },
-                                        "AggregateTeam": {
+                                        "BuildAdvancedStatsContext": {
                                             "Type": "Task",
-                                            "InputPath": "$.AggregateTeam",
+                                            "Resource": "${LambdaPrepareAdvancedStats.Arn}",
+                                            "ResultPath": "$.AdvancedStats",
+                                            "Next": "AdvancedStats"
+                                        },
+                                        "AdvancedStats": {
+                                            "Type": "Task",
+                                            "InputPath": "$.AdvancedStats",
                                             "Resource": "${StepFunctionsActivity}",
                                             "TimeoutSeconds": 600,
                                             "HeartbeatSeconds": 600,
-                                            "ResultPath": "$.AggregateTeam",
-                                            "End": true
-                                        }
-                                    }
-                                },
-                                {
-                                    "StartAt": "BuildAggregateTrainingGroupContext",
-                                    "States": {
-                                        "BuildAggregateTrainingGroupContext": {
-                                            "Type": "Task",
-                                            "Resource": "${LambdaPrepareAggregateTrainingGroup.Arn}",
-                                            "ResultPath": "$.AggregateTrainingGroup",
-                                            "Next": "AggregateTrainingGroup"
-                                        },
-                                        "AggregateTrainingGroup": {
-                                            "Type": "Task",
-                                            "InputPath": "$.AggregateTrainingGroup",
-                                            "Resource": "${StepFunctionsActivity}",
-                                            "TimeoutSeconds": 600,
-                                            "HeartbeatSeconds": 600,
-                                            "ResultPath": "$.AggregateTrainingGroup",
+                                            "ResultPath": "$.AdvancedStats",
                                             "End": true
                                         }
                                     }

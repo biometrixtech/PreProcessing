@@ -54,28 +54,28 @@ def send_heartbeat(meta):
         )
 
 
-def chunk_list(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
+# def chunk_list(l, n):
+#     """Yield successive n-sized chunks from l."""
+#     for i in range(0, len(l), n):
+#         yield l[i:i + n]
 
 
-def load_parameters(keys):
-    keys_to_load = [key for key in keys if key.upper() not in os.environ]
-    if len(keys_to_load) > 0:
-        print('Retrieving configuration for [{}] from SSM'.format(", ".join(keys_to_load)))
-        ssm_client = boto3.client('ssm')
+# def load_parameters(keys):
+#     keys_to_load = [key for key in keys if key.upper() not in os.environ]
+#     if len(keys_to_load) > 0:
+#         print('Retrieving configuration for [{}] from SSM'.format(", ".join(keys_to_load)))
+#         ssm_client = boto3.client('ssm')
 
-        for key_batch in chunk_list(keys_to_load, 10):
-            response = ssm_client.get_parameters(
-                Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in key_batch],
-                WithDecryption=True
-            )
-            params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
-            # Export to environment
-            for k, v in params.items():
-                print("Got value for {} from SSM".format(k))
-                os.environ[k] = v
+#         for key_batch in chunk_list(keys_to_load, 10):
+#             response = ssm_client.get_parameters(
+#                 Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in key_batch],
+#                 WithDecryption=True
+#             )
+#             params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
+#             # Export to environment
+#             for k, v in params.items():
+#                 print("Got value for {} from SSM".format(k))
+#                 os.environ[k] = v
 
 
 def put_cloudwatch_metric(metric_name, value, unit):
@@ -307,6 +307,31 @@ def main():
                 working_directory,
                 input_data
             )
+            send_profiling(meta_data)
+
+        elif script == 'advancedstats':
+            load_parameters([
+                'MONGO_HOST',
+                'MONGO_USER',
+                'MONGO_PASSWORD',
+                'MONGO_DATABASE',
+                'MONGO_REPLICASET',
+                'MONGO_COLLECTION_ACTIVEBLOCKS',
+            ], 'mongo')
+            pass
+            # if input_data.get('Sensors') == 3:
+            #     print('Computing block multi-sensor data')
+            #     from activeBlockAgg import agg_blocks
+            # elif input_data.get('Sensors') == 1:
+            #     print('Computing block single-sensor data')
+            #     from activeBlockAgg1 import agg_blocks
+            # else:
+            #     raise Exception('Must have either 1 or 3 sensors')
+
+            # agg_blocks.script_handler(
+            #     working_directory,
+            #     input_data
+            # )
             send_profiling(meta_data)
 
         elif script == 'aggregatetwomin':
