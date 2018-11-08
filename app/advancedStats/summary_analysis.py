@@ -4,7 +4,29 @@ import pandas
 from datetime import datetime
 from models.variable import CategorizationVariable
 from models.unit_block import UnitBlock
-import mongodb
+from pymongo import ASCENDING
+from config import load_parameters, get_mongo_collection
+
+
+def get_unit_blocks(user, date):
+
+    load_parameters([
+        'MONGO_HOST',
+        'MONGO_USER',
+        'MONGO_PASSWORD',
+        'MONGO_DATABASE',
+        'MONGO_REPLICASET',
+        'MONGO_COLLECTION_ACTIVEBLOCKS',
+    ], 'mongo')
+
+    col = get_mongo_collection('ACTIVEBLOCKS')
+
+    # unit_blocks = list(col.find({'userId': {'$eq': user},'eventDate':date},{'unitBlocks':1,'_id':0}))
+    unit_blocks = list(col.find({'userId': {'$eq': user}, 'eventDate': date},
+                                {'unitBlocks': 1, '_id': 1, 'timeStart': 1, 'timeEnd': 1}).sort('unitBlocks.timeStart',
+                                                                                                direction=ASCENDING))
+    return unit_blocks
+
 
 def query_mongo_ab(collection, user, date, output_path):
     client = MongoClient('34.210.169.8',username='statsAdmin',password='ButThisGoes211',authSource='admin', authMechanism='SCRAM-SHA-1')
@@ -282,7 +304,144 @@ def create_precentage_data_frame(variable_matrix, variable_list):
     return percentage_matrix
     
 
+def create_intensity_matrix(user, date):
+    mongo_unit_blocks = get_unit_blocks(user, date)
+    intensity_frame = pandas.DataFrame()
 
+    if (len(mongo_unit_blocks) > 0):
+
+        low_intensity_time = 0
+        med_intensity_time = 0
+        high_intensity_time = 0
+        total_duration = 0
+
+
+        if_seconds = get_initialized_intensity_frame("Seconds")
+        if_percent = get_initialized_intensity_frame("Seconds %")
+        intensity_frame = intensity_frame.append(if_seconds)
+        intensity_frame = intensity_frame.append(if_percent)
+
+        for ub in mongo_unit_blocks:
+            if len(ub) > 0:
+
+                unit_bock_count = len(ub.get('unitBlocks'))
+
+                for n in range(0, unit_bock_count):
+                    ubData = ub.get('unitBlocks')[n]
+                    ub_rec = UnitBlock(ubData)
+                    timeStart = ub.get('unitBlocks')[n].get('timeStart')
+                    timeEnd = ub.get('unitBlocks')[n].get('timeEnd')
+                    try:
+                        timeStart_object = datetime.strptime(timeStart, '%Y-%m-%d %H:%M:%S.%f')
+                    except ValueError:
+                        timeStart_object = datetime.strptime(timeStart, '%Y-%m-%d %H:%M:%S')
+                    try:
+                        timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S.%f')
+                    except ValueError:
+                        timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S')
+
+                    total_duration += ub_rec.duration
+                    if (ub_rec.total_accel_avg < 45):
+                        low_intensity_time += (timeEnd_object - timeStart_object).seconds
+                    elif (ub_rec.total_accel_avg >= 45 and ub_rec.total_accel_avg < 105):
+                        med_intensity_time += (timeEnd_object - timeStart_object).seconds
+                    else:
+                        high_intensity_time += (timeEnd_object - timeStart_object).seconds
+
+        intensity_frame.at["Seconds", "Low"] += low_intensity_time
+        intensity_frame.at["Seconds", "Med"] += med_intensity_time
+        intensity_frame.at["Seconds", "High"] += high_intensity_time
+        intensity_frame.at["Seconds", "Total"] += total_duration
+        intensity_frame.at["Seconds %", "Low"] += (low_intensity_time / total_duration) * 100
+        intensity_frame.at["Seconds %", "Med"] += (med_intensity_time / total_duration) * 100
+        intensity_frame.at["Seconds %", "High"] += (high_intensity_time / total_duration) * 100
+        intensity_frame.at["Seconds %", "Total"] += (total_duration / total_duration) * 100
+
+    return intensity_frame
+
+
+def create_variable_matrix(user, date, variable_list):
+    mongo_unit_blocks = get_unit_blocks(user, date)
+    variable_matrix = pandas.DataFrame()
+
+    if (len(mongo_unit_blocks) > 0):
+
+        for variable in variable_list:
+            variable_frame = get_initialized_data_frame(variable)
+
+            variable_matrix = variable_matrix.append(variable_frame)
+
+        sessionTimeStart = mongo_unit_blocks[0].get('unitBlocks')[0].get('timeStart')
+        try:
+            sessionTimeStart_object = datetime.strptime(sessionTimeStart, '%Y-%m-%d %H:%M:%S.%f')
+        except ValueError:
+            sessionTimeStart_object = datetime.strptime(sessionTimeStart, '%Y-%m-%d %H:%M:%S')
+
+        for ub in mongo_unit_blocks:
+            if len(ub) > 0:
+
+                unit_bock_count = len(ub.get('unitBlocks'))
+
+                for n in range(0, unit_bock_count):
+                    ubData = ub.get('unitBlocks')[n]
+                    ub_rec = UnitBlock(ubData)
+
+                    timeEnd = ub.get('unitBlocks')[n].get('timeEnd')
+
+                    try:
+                        timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S.%f')
+                    except ValueError:
+                        timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S')
+
+                    cumulative_end_time = (timeEnd_object - sessionTimeStart_object).seconds
+
+                    for cat_variable in variable_list:
+                        variable_matrix = tally_cross_tab(variable_matrix, cat_variable, ub_rec, cumulative_end_time)
+
+    return variable_matrix
+
+
+def create_percentage_matrix(user, date, variable_list):
+    mongo_unit_blocks = get_unit_blocks(user, date)
+    percentage_matrix = pandas.DataFrame()
+    if (len(mongo_unit_blocks) > 0):
+        variable_matrix = pandas.DataFrame()
+
+        for variable in variable_list:
+            variable_frame = get_initialized_data_frame(variable)
+
+            variable_matrix = variable_matrix.append(variable_frame)
+
+        sessionTimeStart = mongo_unit_blocks[0].get('unitBlocks')[0].get('timeStart')
+        try:
+            sessionTimeStart_object = datetime.strptime(sessionTimeStart, '%Y-%m-%d %H:%M:%S.%f')
+        except ValueError:
+            sessionTimeStart_object = datetime.strptime(sessionTimeStart, '%Y-%m-%d %H:%M:%S')
+
+        for ub in mongo_unit_blocks:
+            if len(ub) > 0:
+
+                unit_bock_count = len(ub.get('unitBlocks'))
+
+                for n in range(0, unit_bock_count):
+                    ubData = ub.get('unitBlocks')[n]
+                    ub_rec = UnitBlock(ubData)
+
+                    timeEnd = ub.get('unitBlocks')[n].get('timeEnd')
+
+                    try:
+                        timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S.%f')
+                    except ValueError:
+                        timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S')
+
+                    cumulative_end_time = (timeEnd_object - sessionTimeStart_object).seconds
+
+                    for cat_variable in variable_list:
+                        variable_matrix = tally_cross_tab(variable_matrix, cat_variable, ub_rec, cumulative_end_time)
+
+        percentage_matrix = create_precentage_data_frame(variable_matrix, variable_list)
+
+    return percentage_matrix
 
 
 def categorize_unit_blocks(collection, user, date, variable_list):
