@@ -373,6 +373,8 @@ def get_asymmetry_data_frame(mc_sl_list, mc_dl_list, variable_name):
         ab = pandas.DataFrame(
             {
                 'complexity_level': [msl.complexity_level],
+                'row_name': [msl.row_name],
+                'column_name': [msl.column_name],
                 'total_duration': [summary.total_duration],
                 'left_duration': [summary.left_duration],
                 'right_duration': [summary.right_duration],
@@ -436,6 +438,8 @@ def get_asymmetry_data_frame(mc_sl_list, mc_dl_list, variable_name):
         ab = pandas.DataFrame(
             {
                 'complexity_level': [mdl.complexity_level],
+                'row_name': [mdl.row_name],
+                'column_name': [mdl.column_name],
                 'total_duration': [summary.total_duration],
                 'left_duration': [summary.left_duration],
                 'right_duration': [summary.right_duration],

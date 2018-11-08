@@ -336,8 +336,8 @@ class ComplexityMatrixCell(object):
         outlier_list.extend(self.get_decay_outliers("adduc_motion_covered", "Pronation","Right", active_block_list, pronating_steps_RF))
         outlier_list.extend(self.get_decay_outliers("adduc_motion_covered","Supination","Right", active_block_list,  supinating_steps_RF))
 
-        outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Dorisflexion","Left", active_block_list, dorsi_steps_LF))
-        outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Dorisflexion","Right",  active_block_list, dorsi_steps_RF))
+        outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Dorsiflexion","Left", active_block_list, dorsi_steps_LF))
+        outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Dorsiflexion","Right",  active_block_list, dorsi_steps_RF))
         outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Plantarflexion","Left", active_block_list, plantar_steps_LF))
         outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Plantarflexion","Right",active_block_list,  plantar_steps_RF))
         

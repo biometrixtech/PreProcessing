@@ -69,6 +69,8 @@ def test_get_asymmetry_dataframe():
     asymmetry_data_frame.to_csv('~/decay/complexity_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
                         columns=[
                             'complexity_level',
+                            'row_name',
+                            'column_name',
                             'left_steps',
                             'right_steps',
                             'total_steps',
