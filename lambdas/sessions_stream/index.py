@@ -14,6 +14,9 @@ logs_client = boto3.client('logs')
 def handler(event, _):
     print(json.dumps(event))
     for record in event['Records']:
+        if record['eventName'] == 'REMOVE':
+            continue
+
         new_object = load_obj(record['dynamodb'].get('NewImage', {}))
         old_object = load_obj(record['dynamodb'].get('OldImage', {}))
         changes = {k: (old_object.get(k, None), new_object.get(k, None)) for k, _ in
