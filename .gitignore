@@ -16,3 +16,8 @@ apigateway/flask_lambda.py
 !apigateway/schemas
 apigateway/semver.py
 apigateway/six.py
+
+# Don't commit libraries for lambdas, people should rebuild them from the pip_requirements
+/lambdas/*/*/
+/lambdas/*/semver.py
+/lambdas/*/six.py
