@@ -79,7 +79,7 @@ def script_handler(working_directory, input_data):
                                                       'land_pattern_rf',
                                                       'land_time'
                                                       ],
-#                                                    nrows=100000
+                                                   # nrows=100000
                                                     )
 
         os.remove(tmp_filename)
