@@ -234,7 +234,7 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
             count = count + 1
         else:
             final_landtime.append(np.nan)
-            
+
     # delete variables that are not equired for computation after this point
     del land_time, landtime_index
     
@@ -250,41 +250,3 @@ def continuous_values(land_pattern, land_time, data_length, landtime_index):
         logger.warning('Length of land pattern and land time are not equal.')
             
     return np.array(final_landtime), np.array(final_landpattern)
-    
-
-if __name__ == '__main__':
-    
-    import matplotlib.pyplot as plt
-    from phaseDetection import combine_phase
-    import time
-    
-    file_name = '250to125_Ivonna_Combined_Sensor_Transformed_Data.csv'
-    data = np.genfromtxt(file_name, names=True, delimiter=',', dtype=float)
-    
-    hz = 125
-    
-    lf_ph, rf_ph = combine_phase(data['LaZ'], data['RaZ'], hz)
-    
-    start_time = time.time()
-    n_landtime, ltime_index, lf_rf_imp_indicator = sync_time(rf_ph, lf_ph, hz)
-    
-    n_landpattern = landing_pattern(data['RaZ'], data['LaZ'],
-                                    land_time_index=ltime_index,
-                                    l_r_imp_ind=lf_rf_imp_indicator,
-                                    sampl_rate=hz, land_time=n_landtime)
-    land_time, land_pattern = continuous_values(n_landpattern, n_landtime,
-                                                len(data), ltime_index)
-
-    print time.time() - start_time
-    
-#    plt.figure(1)
-#    plt.title('left foot')
-#    plt.plot(data['LaZ'])
-#    plt.plot(lf_ph)
-#    plt.show()
-#    
-#    plt.figure(2)
-#    plt.title('right foot')
-#    plt.plot(data['RaZ'])
-#    plt.plot(rf_ph)
-#    plt.show()

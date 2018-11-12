@@ -28,8 +28,8 @@ def detect_start_end_takeoff_phase(lph, rph):
     '''
     
     # start and end indices of impact phase for left and right foot
-    rf_range_takeoff = _zero_runs(col_dat=rph, takeoff_value=7)
-    lf_range_takeoff = _zero_runs(col_dat=lph, takeoff_value=6)
+    rf_range_takeoff = _zero_runs(col_dat=rph, takeoff_value=3)
+    lf_range_takeoff = _zero_runs(col_dat=lph, takeoff_value=3)
     
     # declaring variable to store the start and end of impact phase
     lf_takeoff_start_stop = np.zeros(len(lph))*np.nan

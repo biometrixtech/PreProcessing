@@ -73,4 +73,3 @@ def _filter_data(x, cutoff=12, fs=100, order=4):
     normal_cutoff = cutoff/nyq
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
     return filtfilt(b, a, x, axis=0)
-

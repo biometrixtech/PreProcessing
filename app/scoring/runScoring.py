@@ -52,7 +52,7 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
         sdata['ankle_control'],
         sdata['control_lf'],
         sdata['control_rf']
-    ) = control_score(sdata.LeX, sdata.ReX, sdata.HeX, sdata.phase_lf, sdata.phase_rf)
+    ) = control_score(sdata.LeX, sdata.HeX, sdata.ReX, sdata.phase_lf, sdata.phase_rf)
 
     _logger('DONE WITH CONTROL SCORES!')
 #     SCORING
@@ -61,7 +61,7 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
 
     # Read historical data
     # user_hist = pd.read_csv(historical_data, usecols=cols.column_user_hist)
-    if sdata.shape[0] < 30000:
+    if sdata.shape[0] < 2000:
         _logger("Current data isn't long enough for scoring!")
         raise NoHistoricalDataException("Insufficient data, need 30000 rows, only got {}".format(sdata.shape[0]))
 
@@ -87,17 +87,17 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
 
     ######################
     # Write debug data to s3
-    import cStringIO
-    import boto3
-    columns = ['epoch_time', 'active', 'grf', 'total_accel',
-               'symmetry', 'hip_symmetry', 'ankle_symmetry',
-               'control', 'hip_control', 'ankle_control', 'control_lf', 'control_rf']
-    fileobj = cStringIO.StringIO()
-    sdata.to_csv(fileobj, index=False, na_rep='', columns=columns)
-
-    fileobj.seek(0)
-    s3 = boto3.resource('s3')
-    s3.Bucket('biometrix-decode').put_object(Key=output_filename + '_scores', Body=fileobj)
+#    import cStringIO
+#    import boto3
+#    columns = ['epoch_time', 'active', 'grf', 'total_accel',
+#               'symmetry', 'hip_symmetry', 'ankle_symmetry',
+#               'control', 'hip_control', 'ankle_control', 'control_lf', 'control_rf']
+#    fileobj = cStringIO.StringIO()
+#    sdata.to_csv(fileobj, index=False, na_rep='', columns=columns)
+#
+#    fileobj.seek(0)
+#    s3 = boto3.resource('s3')
+#    s3.Bucket('biometrix-decode').put_object(Key=output_filename + '_scores', Body=fileobj)
     #######################
 
     # Output data
@@ -107,14 +107,14 @@ def run_scoring(sensor_data, historical_data, data, output_filename):
 
     #TODO replace computing boundaries for twoMin by active blocks
     # Calculate 15 minute cutoff points
-    sdata.set_index(pd.to_datetime(sdata.epoch_time, unit='ms'), drop=False, inplace=True)
-    groups = sdata.resample('16T')
-    data_end = groups.time_stamp.max()
+    # sdata.set_index(pd.to_datetime(sdata.epoch_time, unit='ms'), drop=False, inplace=True)
+    # groups = sdata.resample('16T')
+    # data_end = groups.time_stamp.max()
     # Off-by-two error occurs (probably one for the column headers, and one for splitting before/after a line?).  We also
     # have to ignore the last split, which will end up out-of-range
-    boundaries = [x + 2 for x in np.where(sdata.time_stamp.isin(data_end))[0].tolist()][0:-1]
+    # boundaries = [x + 2 for x in np.where(sdata.time_stamp.isin(data_end))[0].tolist()][0:-1]
 
-    # boundaries = define_bounds(sdata.active.values)
+    boundaries = define_bounds(sdata.active.values)
 
     return boundaries
 

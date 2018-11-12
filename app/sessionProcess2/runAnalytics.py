@@ -116,6 +116,7 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
 
     # prepare data for grf prediction
+    mass = 60
     data.mass = mass*9.807/1000 # convert mass from kg to kN
     grf_data, nan_row = prepare_data(data, sc)
 
@@ -199,62 +200,6 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
     ) = detect_start_end_imp_phase(lph=data.phase_lf, rph=data.phase_rf)
     logger.info('DONE WITH DETECTING IMPACT PHASE INTERVALS')
 
-    # ADD TAKEOFF PHASE DETECTION TO PHASE
-    # TODO: Integrate takeoff detection as well as impact and takeoff phase interval
-    # detection to phase detection
-    # TAKEOFF DETECTION
-    phase_lf = copy.copy(data.phase_lf).reshape(-1,)
-    phase_rf = copy.copy(data.phase_rf).reshape(-1,)
-
-    # Add takeoff phase for left foot
-    # takeoffs from balance phase
-    ground_lf = np.array([i in [0, 1] for i in phase_lf]).astype(int)
-    ground_to_air = np.where(np.ediff1d(ground_lf, to_begin=0) == -1)[0]
-    takeoff = []
-    for i in ground_to_air:
-        takeoff.append(np.arange(i - 10, i))
-
-    # takeoffs from impact
-    air_lf = np.array([i in [2, 3] for i in phase_lf]).astype(int)
-    air_lf[np.where(phase_lf == 4)[0]] = 3
-    impact_to_air = np.where(np.ediff1d(air_lf, to_begin=0) == -2)[0]
-    for i in impact_to_air:
-        # find when this impact started
-        try:
-            impact_start = lf_imp_range[np.where(lf_imp_range[:, 1] == i)[0], 0]
-            takeoff_len = int((i - impact_start[0])/2)
-            takeoff.append(np.arange(i - takeoff_len, i))
-        except IndexError:
-            print(i)
-            print(impact_start)
-    if len(takeoff) > 0:
-        takeoff_lf = np.concatenate(takeoff).ravel()
-        data.phase_lf[takeoff_lf] = 6
-
-    # Add takeoff phase fo right foot
-    # takeoffs from balance phase
-    ground_rf = np.array([i in [0, 2] for i in phase_rf]).astype(int)
-    ground_to_air = np.where(np.ediff1d(ground_rf, to_begin=0) == -1)[0]
-    takeoff = []
-    for i in ground_to_air:
-        takeoff.append(np.arange(i - 10, i))
-
-    # takeoffs from impact
-    air_rf = np.array([i in [1, 3] for i in phase_rf]).astype(int)
-    air_rf[np.where(phase_rf == 5)[0]] = 3
-    impact_to_air = np.where(np.ediff1d(air_rf, to_begin=0) == -2)[0]
-    for i in impact_to_air:
-        # find when this impact started
-        try:
-            impact_start = rf_imp_range[np.where(rf_imp_range[:, 1] == i)[0], 0]
-            takeoff_len = int((i - impact_start[0])/2)
-            takeoff.append(np.arange(i - takeoff_len, i))
-        except IndexError:
-            print(i)
-            print(impact_start)
-    if len(takeoff) > 0:
-        takeoff_rf = np.concatenate(takeoff).ravel()
-        data.phase_rf[takeoff_rf] = 7
 
     # ms_elapsed and datetime
     data.time_stamp, data.ms_elapsed = ppp.convert_epochtime_datetime_mselapsed(data.epoch_time)
@@ -426,7 +371,9 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
     data.grf_bal_phase = bpf.bal_phase_force(data) / (data.mass * 1000)
 
     # DEFINE UNIT ACTIVE BLOCKS
+    data.total_accel[data.stance==0] = 0
     data.active = define_unit_blocks(data.total_accel)
+
 
     # combine into data table
     length = len(data.LaX)
@@ -447,8 +394,158 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
     logger.info("Table Created")
 
+    # scoring_data = update_stance(scoring_data)
     
     return scoring_data
+
+
+
+def update_stance(data):
+    length_lf, range_lf = _contact_duration(data.phase_lf.values,
+                                            data.active.values,
+                                            data.epoch_time.values,
+                                            ground_phases=[2, 3])
+    length_rf, range_rf = _contact_duration(data.phase_rf.values,
+                                            data.active.values,
+                                            data.epoch_time.values,
+                                            ground_phases=[2, 3])
+
+    for left_step in range_lf:
+        left_phase = np.unique(data.phase_lf[left_step[0]:left_step[1]].values)
+        if np.all(left_phase == np.array([2., 3.])):
+            left_takeoff = _get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
+            if len(left_takeoff) > 0: # has takeoff as part of ground contact
+                left_takeoff = left_takeoff[0]
+                if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
+                    left_takeoff_start = left_step[0] + left_takeoff[0]
+                    left_end = left_step[1]
+                    right_start = range_rf[:, 0]
+                    right_step = range_rf[(left_takeoff_start <= right_start) & (right_start <= left_end)]
+                    if len(right_step) > 0: # any right step that starts impact withing left_takeoff
+                        # make sure start of right step is impact
+                        right_step = right_step[0]
+                        if data.phase_rf[right_step[0]] == 2 and 3 in np.unique(data.phase_rf[right_step[0]:right_step[1]].values):
+                            data.loc[left_step[0]:right_step[1], 'stance'] = [6] * (right_step[1] - left_step[0] + 1)
+                    else:
+                        data.loc[left_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - left_step[0] + 1)
+        step_data = data.loc[left_step[0]:left_step[1]]
+        stance = np.unique(step_data.stance.values)
+        if len(stance) > 1:
+            if np.all(stance == np.array([2., 3.])):
+                rf_air = np.where(step_data.phase_rf.values == 1)[0]
+                if len(rf_air) <= 2:
+                    data.loc[left_step[0]:left_step[1], 'stance'] = [3.] * len(step_data)
+                else:
+                    data.loc[left_step[0]:left_step[1], 'stance'] = [7.] * len(step_data)
+            elif np.all(stance == np.array([2., 6.])):
+                continue
+            elif np.all(stance == np.array([3., 6.])):
+                continue
+            elif np.all(stance == np.array([2., 4.])):
+                data.loc[left_step[0]:left_step[1], 'stance'] = [2.] * len(step_data)
+            elif np.all(stance == np.array([3., 5.])):
+                data.loc[left_step[0]:left_step[1], 'stance'] = [3.] * len(step_data)
+
+    for right_step in range_rf:
+        right_phase = np.unique(data.phase_rf[right_step[0]:right_step[1]].values)
+        if np.all(right_phase == np.array([2., 3.])):
+            right_takeoff = _get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
+            if len(right_takeoff) > 0: # has takeoff as part of ground contact
+                right_takeoff = right_takeoff[0]
+                if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
+                    right_takeoff_start = right_step[0] + right_takeoff[0]
+                    right_end = right_step[1]
+                    left_start = range_lf[:, 0]
+                    left_step = range_lf[(right_takeoff_start <= left_start) & (left_start <= right_end)]
+                    if len(left_step) > 0: # any left step that starts impact withing right_takeoff
+                        # make sure start of left step is impact
+                        left_step = left_step[0]
+                        if data.phase_lf[left_step[0]] == 2 and 3 in data.phase_lf[left_step[0]:left_step[1]].values:
+                            data.loc[right_step[0]:left_step[1], 'stance'] = [6] * (left_step[1] - right_step[0] + 1)
+                    else:
+                        data.loc[right_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - right_step[0] + 1)
+        step_data = data.loc[right_step[0]:right_step[1]]
+        stance = np.unique(step_data.stance.values)
+        if len(stance) > 1:
+            if np.all(stance == np.array([2., 3.])):
+                lf_air = np.where(step_data.phase_lf.values == 1)[0]
+                if len(lf_air) <= 2:
+                    data.loc[right_step[0]:right_step[1], 'stance'] = [3.] * len(step_data)
+                else:
+                    data.loc[right_step[0]:right_step[1], 'stance'] = [7.] * len(step_data)
+            elif np.all(stance == np.array([2., 6.])):
+                continue
+            elif np.all(stance == np.array([3., 6.])):
+                continue
+            elif np.all(stance == np.array([2., 4.])):
+                data.loc[right_step[0]:right_step[1], 'stance'] = [2.] * len(step_data)
+            elif np.all(stance == np.array([3., 5.])):
+                data.loc[right_step[0]:right_step[1], 'stance'] = [3.] * len(step_data)
+
+    return data
+
+def _contact_duration(phase, active, epoch_time, ground_phases):
+    """compute contact duration in ms given phase data
+    """
+    min_gc = 80.
+    max_gc = 1500.
+
+    # enumerate phase such that all ground contacts are 0
+    _phase = copy.copy(phase)
+    _phase[np.array([i in ground_phases for i in _phase])] = 0
+    _phase[np.array([i == 0 for i in active])] = 1
+
+    # get index ranges for ground contacts
+    ranges = _get_ranges(_phase, 0)
+    length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
+
+    length_index = np.where((length >= min_gc) & (length <= max_gc))
+    ranges = ranges[length_index]
+
+    # subset to only get the points where ground contacts are within a reasonable window
+    length = length[(length >= min_gc) & (length <= max_gc)]
+
+    return length, ranges
+
+
+def _get_ranges(col_data, value):
+    """
+    For a given categorical data, determine start and end index for the given value
+    start: index where it first occurs
+    end: index after the last occurence
+
+    Args:
+        col_data
+        value: int, value to get ranges for
+    Returns:
+        ranges: 2d array, start and end index for each occurance of value
+    """
+
+    # determine where column data is the relevant value
+    is_value = np.array(np.array(col_data == value).astype(int)).reshape(-1, 1)
+
+    # if data starts with given value, range starts with index 0
+    if is_value[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from the given value
+    absdiff = np.abs(np.ediff1d(is_value, to_begin=t_b))
+
+    # handle the closing edge
+    # if the data ends with the given value, if it was the only point, ignore the range,
+    # else assign the last index as end of range
+    if is_value[-1] == 1:
+        if absdiff[-1] == 0:
+            absdiff[-1] = 1
+        else:
+            absdiff[-1] = 0
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+
+    return ranges
+
 
 
 def _filter_data(x, cutoff=12, fs=100, order=4):
@@ -494,3 +591,36 @@ def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
     rf_neutral = hip_aif # in perfectly neutral stance, rf bf := hip AIF
 
     return lf_neutral, hip_neutral, rf_neutral
+
+def _zero_runs(col_dat, static):
+    """
+    Determine the start and end of each impact.
+
+    Args:
+        col_dat: array, algorithm indicator
+        static: int, indicator for static algorithm
+    Returns:
+        ranges: 2d array, start and end of each static algorithm use
+        length: length of
+    """
+
+    # determine where column data is the relevant impact phase value
+    isnan = np.array(np.array(col_dat == static).astype(int)).reshape(-1, 1)
+
+    if isnan[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from NaN
+    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
+    if isnan[-1] == 1:
+        absdiff = np.concatenate([absdiff, [1]], 0)
+    del isnan  # not used in further computations
+
+    # determine the number of consecutive NaNs
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+    length = ranges[:, 1] - ranges[:, 0]
+
+    return ranges, length
+
