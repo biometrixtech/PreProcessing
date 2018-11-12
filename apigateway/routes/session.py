@@ -94,6 +94,9 @@ def handle_session_upload(session_id):
     print(json.dumps({'message': 'Uploading to s3://{}/{}'.format(s3_bucket, s3_key)}))
     s3_transfer.upload_file('/tmp/binary', s3_bucket, s3_key)
 
+    # Per request from 221e
+    del session['s3_files']
+
     return {'session': session}
 
 
