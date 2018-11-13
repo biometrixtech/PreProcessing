@@ -1,3 +1,4 @@
+import pandas
 import app.advancedStats.complexity_symmetry as calc
 from app.advancedStats.models.complexity_matrix import ComplexityMatrix
 
@@ -8,12 +9,29 @@ def test_get_decay_dataframe():
     date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
-    decay_data_frame = calc.get_decay_data_frame(mc_sl_list, mc_dl_list)
+    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
 
-    decay_data_frame.to_csv('~/decay/outliers_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
+    decay_frame = pandas.DataFrame()
+
+    for f in fatigue_events:
+        ab = pandas.DataFrame({
+            'active_block': [f.active_block_id],
+            'grf_level': [f.grf_level],
+            'cma_level': [f.cma_level],
+            'complexity_level': [f.complexity_level],
+            'attribute_name': [f.attribute_name],
+            'label': [f.attribute_label],
+            'orientation': [f.orientation],
+            'cumulative_end_time': [f.cumulative_end_time],
+            'z_score': [f.z_score],
+            'raw_value': [f.raw_value]
+        }, index=[f.stance])
+        decay_frame = decay_frame.append(ab)
+
+    decay_frame.to_csv('~/decay/outliers_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
                        columns=[
-                           'active_block', 'complexity_level', 'attribute_name', 'label', 'orientation',
-                           'cumulative_end_time', 'z_score', 'raw_value'])
+                           'active_block', 'complexity_level', 'grf_level', 'cma_level','attribute_name', 'label',
+                           'orientation', 'cumulative_end_time', 'z_score', 'raw_value'])
 
     # decay_frame.to_csv('C:\\UNC\\v6\\decay_'+athlete+'_'+date+'v6.csv',sep=',',index_label='Stance',columns=[
     #    'complexity_level','row_name','column_name',

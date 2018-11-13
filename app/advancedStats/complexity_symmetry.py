@@ -1,6 +1,7 @@
 import pandas
 from datetime import datetime
 from models.step import Step
+from models.fatigue_event import FatigueEvent
 from models.complexity_matrix import ComplexityMatrix
 from pymongo import ASCENDING
 from config import load_parameters, get_mongo_collection
@@ -538,9 +539,10 @@ def get_kruskal_data_frame(mc_sl_list, mc_dl_list):
     return kruskal_calcs_frame
 
 
-def get_decay_data_frame(mc_sl_list, mc_dl_list):
+def get_fatigue_events(mc_sl_list, mc_dl_list):
 
-    decay_frame = pandas.DataFrame()
+
+    fatigue_events = []
 
     for keys, mcsl in mc_sl_list.items():
         differs = mcsl.get_decay_parameters()
@@ -575,17 +577,31 @@ def get_decay_data_frame(mc_sl_list, mc_dl_list):
             #      'flex_negative_hip_LF':[difs.flex_negative_hip_LF],
             #      'flex_negative_hip_RF':[difs.flex_negative_hip_RF],
             #  },index=["Single Leg"])
-            ab = pandas.DataFrame({
-                'active_block': [difs.active_block_id],
-                'complexity_level': [difs.complexity_level],
-                'attribute_name': [difs.attribute_name],
-                'label': [difs.label],
-                'orientation': [difs.orientation],
-                'cumulative_end_time': [difs.end_time],
-                'z_score': [difs.z_score],
-                'raw_value': [difs.raw_value]
-            }, index=["Single Leg"])
-            decay_frame = decay_frame.append(ab)
+            ab = FatigueEvent(mcsl.row_name, mcsl.column_name)
+            ab.active_block_id = difs.active_block_id
+            ab.complexity_level = difs.complexity_level
+            ab.attribute_name = difs.attribute_name
+            ab.attribute_label = difs.label
+            ab.orientation = difs.orientation
+            ab.cumulative_end_time = difs.end_time
+            ab.z_score = difs.z_score
+            ab.raw_value = difs.raw_value
+            ab.stance = "Single Leg"
+
+            #ab = pandas.DataFrame({
+            #    'active_block': [difs.active_block_id],
+            #    'row_name': [mcsl.row_name],
+            #    'column_name': [mcsl.column_name],
+            #    'complexity_level': [difs.complexity_level],
+            #    'attribute_name': [difs.attribute_name],
+            #    'label': [difs.label],
+            #    'orientation': [difs.orientation],
+            #    'cumulative_end_time': [difs.end_time],
+            #    'z_score': [difs.z_score],
+            #    'raw_value': [difs.raw_value]
+            #}, index=["Single Leg"])
+            #decay_frame = decay_frame.append(ab)
+            fatigue_events.append(ab)
     # decay_frame.to_csv('C:\\UNC\\v6\\outliers_'+athlete+'_'+date+'v6.csv',sep=',',index_label='Stance',columns=[
     #    'active_block','complexity_level','attribute_name','label','orientation','cumulative_end_time','z_score','raw_value'])
 
@@ -623,16 +639,30 @@ def get_decay_data_frame(mc_sl_list, mc_dl_list):
             #        'flex_negative_hip_RF':[difs.flex_negative_hip_RF],
             #    },index=["Double Leg"])
 
-            ab = pandas.DataFrame({
-                'active_block': [difs.active_block_id],
-                'complexity_level': [difs.complexity_level],
-                'attribute_name': [difs.attribute_name],
-                'label': [difs.label],
-                'orientation': [difs.orientation],
-                'cumulative_end_time': [difs.end_time],
-                'z_score': [difs.z_score],
-                'raw_value': [difs.raw_value]
-            }, index=["Double Leg"])
-            decay_frame = decay_frame.append(ab)
+            #ab = pandas.DataFrame({
+            #    'active_block': [difs.active_block_id],
+            #    'row_name': [mcdl.row_name],
+            #    'column_name': [mcdl.column_name],
+            #    'complexity_level': [difs.complexity_level],
+            #    'attribute_name': [difs.attribute_name],
+            #    'label': [difs.label],
+            #    'orientation': [difs.orientation],
+            #    'cumulative_end_time': [difs.end_time],
+            #    'z_score': [difs.z_score],
+            #    'raw_value': [difs.raw_value]
+            #}, index=["Double Leg"])
+            #decay_frame = decay_frame.append(ab)
 
-    return decay_frame
+            ab = FatigueEvent(mcdl.row_name, mcdl.column_name)
+            ab.active_block_id = difs.active_block_id
+            ab.complexity_level = difs.complexity_level
+            ab.attribute_name = difs.attribute_name
+            ab.attribute_label = difs.label
+            ab.orientation = difs.orientation
+            ab.cumulative_end_time = difs.end_time
+            ab.z_score = difs.z_score
+            ab.raw_value = difs.raw_value
+            ab.stance = "Double Leg"
+            fatigue_events.append(ab)
+
+    return fatigue_events
