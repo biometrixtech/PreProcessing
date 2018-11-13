@@ -9,6 +9,8 @@ class Step(object):
         self.active_block_id = active_block_id
         self.unit_block_number = unit_block_number
         self.session_position_number = session_position_number
+        self.active_block_number = 0
+        self.time_block = 0
         if(mongo_step==None):
             self.orientation = orientation
             self.duration = 0

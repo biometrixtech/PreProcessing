@@ -37,14 +37,23 @@ def get_complexity_matrices(athlete, date):
     cnt = 1
     session_position = 0
     sessionTimeStart = mongo_unit_blocks[0].get('timeStart')
+
     try:
         sessionTimeStart_object = datetime.strptime(sessionTimeStart, '%Y-%m-%d %H:%M:%S.%f')
     except ValueError:
         sessionTimeStart_object = datetime.strptime(sessionTimeStart, '%Y-%m-%d %H:%M:%S')
 
+    active_block_count = 0
+    previous_active_block = ""
+
     for ub in mongo_unit_blocks:
+
         if len(ub) > 0:
             active_block = str(ub.get('_id'))
+            if previous_active_block != active_block:
+                active_block_count += 1
+            else:
+                previous_active_block = active_block
             unit_bock_count = len(ub.get('unitBlocks'))
             for n in range(0, unit_bock_count):
                 ubData = ub.get('unitBlocks')[n]
@@ -53,6 +62,7 @@ def get_complexity_matrices(athlete, date):
                 for lf_step in lf_steps:
                     left_step = Step(lf_step, accumulated_grf_LF, 'Left', active_block, n, session_position,
                                      sessionTimeStart_object)
+                    left_step.active_block_number = active_block_count
                     accumulated_grf_LF += left_step.total_grf
                     if (left_step.stance_calc == 4):
                         dl_comp_matrix.add_step(left_step)
@@ -63,6 +73,7 @@ def get_complexity_matrices(athlete, date):
                 for rf_step in rf_steps:
                     right_step = Step(rf_step, accumulated_grf_RF, 'Right', active_block, n, session_position,
                                       sessionTimeStart_object)
+                    right_step.active_block_number = active_block_count
                     accumulated_grf_RF += right_step.total_grf
                     if (right_step.stance_calc == 4):
                         dl_comp_matrix.add_step(right_step)
@@ -587,6 +598,7 @@ def get_fatigue_events(mc_sl_list, mc_dl_list):
             ab.z_score = difs.z_score
             ab.raw_value = difs.raw_value
             ab.stance = "Single Leg"
+            ab.time_block = str(difs.time_block)
 
             #ab = pandas.DataFrame({
             #    'active_block': [difs.active_block_id],
@@ -663,6 +675,7 @@ def get_fatigue_events(mc_sl_list, mc_dl_list):
             ab.z_score = difs.z_score
             ab.raw_value = difs.raw_value
             ab.stance = "Double Leg"
+            ab.time_block = str(difs.time_block)
             fatigue_events.append(ab)
 
     return fatigue_events

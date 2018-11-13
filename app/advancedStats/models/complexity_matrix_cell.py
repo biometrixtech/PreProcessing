@@ -140,9 +140,11 @@ class ComplexityMatrixCell(object):
         abs_list = {}
         abs_value_list = []
         abs_outlier_list = []
+        active_block_count = -1
 
         for key in active_block_list:
         
+            active_block_count += 1
             steps = list(x for x in step_list if x.active_block_id == key)
             decay = []
             y0 = None
@@ -176,10 +178,11 @@ class ComplexityMatrixCell(object):
                 abs = ActiveBlockSummary(key)
                 setattr(abs, attribute, decay_mean)
                 setattr(abs, "end_time", t)
+                setattr(abs, "time_block", self.get_time_block(steps[0].active_block_number, len(active_block_list), 3))
                 abs_list[key] = abs
                 abs_value_list.append(decay_mean)
                 
-        
+
 
         #what is the mean of the mean?
         
@@ -198,11 +201,21 @@ class ComplexityMatrixCell(object):
                 outlier.label = label
                 outlier.orientation = orientation
                 outlier.end_time = getattr(value,"end_time")
+                outlier.time_block = getattr(value,"time_block")
                 
                 abs_outlier_list.append(outlier)
 
         return abs_outlier_list
             
+
+    def get_time_block(self, active_block_number, active_block_length, category_count):
+
+        category_width = active_block_length / float(category_count)
+
+        block = math.ceil(float(active_block_number)/category_width)
+
+        return block
+
     def get_steps_sum(self, attribute, step_list):
         value_list = []
         for item in step_list:
@@ -260,7 +273,7 @@ class ComplexityMatrixCell(object):
         active_block_list_LF = {x.active_block_id for x in self.left_steps}
         active_block_list_RF = {x.active_block_id for x in self.right_steps}
         active_block_list = list(set(active_block_list_LF).union(active_block_list_RF))
-
+        active_block_list.sort()
 
         #for key in active_block_list:
         #abs = ActiveBlockSummary.ActiveBlockSummary(key)

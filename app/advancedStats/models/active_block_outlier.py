@@ -11,5 +11,6 @@ class ActiveBlockOutlier(object):
         #self.column_name = ""
         self.z_score = 0
         self.raw_value = 0
+        self.time_block = 0
 
 

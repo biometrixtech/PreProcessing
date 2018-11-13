@@ -10,6 +10,7 @@ class ComplexityMatrix(object):
     def __init__(self, stance = "Double Leg"):
         self.cells = {}
         self.stance = stance
+
         if(stance=="Double Leg"):
             self.cells["LowGrf_LowCMA"] = ComplexityMatrixCell("LowGrf", "LowCMA", "Low")
             self.cells["ModGrf_LowCMA"] = ComplexityMatrixCell("ModGrf", "LowCMA", "Low")

@@ -1,7 +1,73 @@
 import pandas
 import app.advancedStats.complexity_symmetry as calc
 from app.advancedStats.models.complexity_matrix import ComplexityMatrix
+from app.advancedStats.models.fatigue_event import FatigueEventSummary
 
+def test_get_cma_time_summaries():
+
+    athlete = "Maggie"
+    date = "2018-04-24"
+
+    mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
+    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    sum = FatigueEventSummary(fatigue_events)
+    cma_time_list = sum.summarize_by_cma_timeblock()
+    assert(len(cma_time_list) >0)
+
+def test_get_grf_time_summaries():
+
+    athlete = "Maggie"
+    date = "2018-04-24"
+
+    mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
+    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    sum = FatigueEventSummary(fatigue_events)
+    grf_time_list = sum.summarize_by_grf_timeblock()
+    assert(len(grf_time_list) >0)
+
+def test_get_cma_grf_summaries():
+    athlete = "Maggie"
+    date = "2018-04-24"
+
+    mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
+    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    sum = FatigueEventSummary(fatigue_events)
+    cma_grf_list = sum.summarize_by_cma_grf()
+    assert (len(cma_grf_list) > 0)
+
+
+def test_get_cma_summaries():
+    athlete = "Maggie"
+    date = "2018-04-24"
+
+    mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
+    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    sum = FatigueEventSummary(fatigue_events)
+    cma_list = sum.summarize_by_cma()
+    assert (len(cma_list) > 0)
+
+
+def test_get_time_summaries():
+    athlete = "Maggie"
+    date = "2018-04-24"
+
+    mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
+    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    sum = FatigueEventSummary(fatigue_events)
+    time_list = sum.summarize_by_grf()
+    assert (len(time_list) > 0)
+
+
+def test_get_session_summaries():
+    athlete = "Maggie"
+    date = "2018-04-24"
+
+    mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
+    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    sum = FatigueEventSummary(fatigue_events)
+
+    session_list = sum.summarize_by_session()
+    assert (len(session_list) > 0)
 
 def test_get_decay_dataframe():
 
