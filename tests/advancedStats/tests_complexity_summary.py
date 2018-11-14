@@ -1,4 +1,6 @@
 import pandas
+
+import advancedStats.logic.fatigue_logic
 import app.advancedStats.complexity_symmetry as calc
 from app.advancedStats.models.complexity_matrix import ComplexityMatrix
 from app.advancedStats.models.fatigue import SessionFatigue
@@ -10,7 +12,7 @@ def test_get_cma_time_summaries():
     date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
-    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    fatigue_events = advancedStats.logic.fatigue_logic.get_fatigue_events(mc_sl_list, mc_dl_list)
     session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
     cma_time_list = session_fatigue.cma_time_block_summary()
     assert(len(cma_time_list) >0)
@@ -22,18 +24,18 @@ def test_get_grf_time_summaries():
     date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
-    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    fatigue_events = advancedStats.logic.fatigue_logic.get_fatigue_events(mc_sl_list, mc_dl_list)
     session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
     grf_time_list = session_fatigue.grf_time_block_summary()
     assert(len(grf_time_list) >0)
-    
+
 
 def test_get_cma_grf_summaries():
     athlete = "Maggie"
     date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
-    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    fatigue_events = advancedStats.logic.fatigue_logic.get_fatigue_events(mc_sl_list, mc_dl_list)
     session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
     cma_grf_list = session_fatigue.cma_grf_summary()
     assert (len(cma_grf_list) > 0)
@@ -44,7 +46,7 @@ def test_get_cma_summaries():
     date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
-    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    fatigue_events = advancedStats.logic.fatigue_logic.get_fatigue_events(mc_sl_list, mc_dl_list)
     session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
     cma_list = session_fatigue.cma_summary()
     assert (len(cma_list) > 0)
@@ -55,7 +57,7 @@ def test_get_time_summaries():
     date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
-    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    fatigue_events = advancedStats.logic.fatigue_logic.get_fatigue_events(mc_sl_list, mc_dl_list)
     session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
     time_list = session_fatigue.grf_summary()
     assert (len(time_list) > 0)
@@ -66,7 +68,7 @@ def test_get_session_summaries():
     date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
-    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    fatigue_events = advancedStats.logic.fatigue_logic.get_fatigue_events(mc_sl_list, mc_dl_list)
     session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
 
     session_list = session_fatigue.session_summary()
@@ -79,7 +81,7 @@ def test_get_decay_dataframe():
     date = "2018-04-24"
 
     mc_sl_list, mc_dl_list = calc.get_complexity_matrices(athlete, date)
-    fatigue_events = calc.get_fatigue_events(mc_sl_list, mc_dl_list)
+    fatigue_events = advancedStats.logic.fatigue_logic.get_fatigue_events(mc_sl_list, mc_dl_list)
 
     decay_frame = pandas.DataFrame()
 
