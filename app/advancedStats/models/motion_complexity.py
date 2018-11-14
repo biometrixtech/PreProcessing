@@ -1,7 +1,7 @@
 import step
 import numpy as np
 from scipy import stats 
-from asymmetry import Asymmetry
+from asymmetry import LoadingAsymmetry
 from complexity_matrix_summary import ComplexityMatrixSummary
 from descriptive_stats_cell import DescriptiveStatsCell
 from fatigue_cell import FatigueCell
@@ -31,7 +31,7 @@ class MotionComplexity(object):
         return summary
     
     def get_asymmetry(self, attribute):
-        asym = Asymmetry()
+        asym = LoadingAsymmetry()
         left_sum = self.get_steps_sum(attribute, self.left_steps)
         right_sum = self.get_steps_sum(attribute, self.right_steps)
         asym.total_sum = left_sum + right_sum

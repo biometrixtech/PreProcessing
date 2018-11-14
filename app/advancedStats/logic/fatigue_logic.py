@@ -11,8 +11,8 @@ def get_fatigue_events(mc_sl_list, mc_dl_list):
             # ab = pandas.DataFrame(
             #   {
             #      'complexity_level':[mcsl.complexity_level],
-            #     'row_name':[mcsl.row_name],
-            #      'column_name':[mcsl.column_name],
+            #     'grf_level':[mcsl.grf_level],
+            #      'cma_level':[mcsl.cma_level],
             #      'adduc_ROM_LF':[difs.adduc_ROM_LF],
             #      'adduc_ROM_RF':[difs.adduc_ROM_RF],
             #      'adduc_pronation_LF':[difs.adduc_pronation_LF],
@@ -52,8 +52,8 @@ def get_fatigue_events(mc_sl_list, mc_dl_list):
 
             #ab = pandas.DataFrame({
             #    'active_block': [difs.active_block_id],
-            #    'row_name': [mcsl.row_name],
-            #    'column_name': [mcsl.column_name],
+            #    'grf_level': [mcsl.grf_level],
+            #    'cma_level': [mcsl.cma_level],
             #    'complexity_level': [difs.complexity_level],
             #    'attribute_name': [difs.attribute_name],
             #    'label': [difs.label],
@@ -73,8 +73,8 @@ def get_fatigue_events(mc_sl_list, mc_dl_list):
             # ab = pandas.DataFrame(
             #    {
             #        'complexity_level':[mcdl.complexity_level],
-            #        'row_name':[mcdl.row_name],
-            #        'column_name':[mcdl.column_name],
+            #        'grf_level':[mcdl.grf_level],
+            #        'cma_level':[mcdl.cma_level],
             #        'adduc_ROM_LF':[difs.adduc_ROM_LF],
             #        'adduc_ROM_RF':[difs.adduc_ROM_RF],
             #        'adduc_pronation_LF':[difs.adduc_pronation_LF],
@@ -103,8 +103,8 @@ def get_fatigue_events(mc_sl_list, mc_dl_list):
 
             #ab = pandas.DataFrame({
             #    'active_block': [difs.active_block_id],
-            #    'row_name': [mcdl.row_name],
-            #    'column_name': [mcdl.column_name],
+            #    'grf_level': [mcdl.grf_level],
+            #    'cma_level': [mcdl.cma_level],
             #    'complexity_level': [difs.complexity_level],
             #    'attribute_name': [difs.attribute_name],
             #    'label': [difs.label],
