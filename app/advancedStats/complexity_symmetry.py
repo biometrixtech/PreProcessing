@@ -1,7 +1,7 @@
 import pandas
 from datetime import datetime
 from models.step import Step
-from models.fatigue_event import FatigueEvent
+from models.fatigue import FatigueEvent
 from models.complexity_matrix import ComplexityMatrix
 from pymongo import ASCENDING
 from config import load_parameters, get_mongo_collection

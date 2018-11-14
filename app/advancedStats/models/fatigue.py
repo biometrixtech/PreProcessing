@@ -1,6 +1,6 @@
 from itertools import groupby
 from operator import itemgetter
-#from scipy.stats import chisquare
+
 
 class FatigueEvent(object):
     def __init__(self, grf_level, cma_level):
@@ -22,64 +22,27 @@ class FatigueEvent(object):
         return getattr(self, item)
 
 
-class FatigueEventSummary(object):
-    def __init__(self, fatigue_event_list):
-        self.fatigue_event_list = fatigue_event_list
+class SessionFatigue(object):
+    def __init__(self, user_id, event_date, session_id, fatigue_events):
+        self.user_id = user_id
+        self.event_date = event_date
+        self.session_id = session_id
+        self.fatigue_events = fatigue_events
 
-    def summarize_by_cma_timeblock(self):
-
-        #cma_list = self.summarize_by_cma()
-        #time_list = self.summarize_by_time()
+    def session_summary(self):
 
         fatigue_list = []
 
-        grouper = itemgetter("stance", "cma_level", "time_block", "attribute_label", "orientation")
+        grouper = itemgetter("stance", "attribute_label", "orientation")
         result = []
 
-        for key, grp in groupby(sorted(self.fatigue_event_list, key=grouper), grouper):
-            temp_dict = dict(zip(["stance", "cma_level", "time_block", "attribute_label", "orientation"], key))
+        for key, grp in groupby(sorted(self.fatigue_events, key=grouper), grouper):
+            temp_dict = dict(zip(["stance", "attribute_label", "orientation"], key))
             temp_dict["cnt"] = sum(item["count"] for item in grp)
             result.append(temp_dict)
 
         for r in result:
-            f = FatigueByCMATimeBlock(r["cma_level"], r["time_block"])
-            f.stance = r["stance"]
-            f.attribute_label = r["attribute_label"]
-            f.orientation = r["orientation"]
-            f.count = r["cnt"]
-            #row_count = list(x for x in cma_list if x.stance == f.stance and
-            #             x.attribute_label==f.attribute_label and x.orientation==f.orientation)
-            #col_count = list(x for x in time_list if x.stance == f.stance and
-            #             x.attribute_label == f.attribute_label and x.orientation == f.orientation)
-            #tot_count = list(x for x in self.fatigue_event_list if x.stance == f.stance and
-            #             x.attribute_label == f.attribute_label and x.orientation == f.orientation)
-
-            #chi_square_list = []
-
-            #for r in row_count:
-            #    for c in col_count:
-            #        chi_square_list.append((r.count * c.count) / float(len(tot_count)))
-            #ddof = (len(row_count) - 1) * (len(col_count) - 1)
-            #ch = chisquare(chi_square_list, f_exp=[f.count], ddof=ddof)
-            fatigue_list.append(f)
-
-        return fatigue_list
-
-
-    def summarize_by_grf_timeblock(self):
-
-        fatigue_list = []
-
-        grouper = itemgetter("stance", "grf_level", "time_block", "attribute_label", "orientation")
-        result = []
-
-        for key, grp in groupby(sorted(self.fatigue_event_list, key=grouper), grouper):
-            temp_dict = dict(zip(["stance", "grf_level", "time_block", "attribute_label", "orientation"], key))
-            temp_dict["cnt"] = sum(item["count"] for item in grp)
-            result.append(temp_dict)
-
-        for r in result:
-            f = FatigueByGRFTimeBlock(r["grf_level"], r["time_block"])
+            f = FatigueBySession()
             f.stance = r["stance"]
             f.attribute_label = r["attribute_label"]
             f.orientation = r["orientation"]
@@ -88,14 +51,14 @@ class FatigueEventSummary(object):
 
         return fatigue_list
 
-    def summarize_by_cma_grf(self):
+    def cma_grf_summary(self):
 
         fatigue_list = []
 
         grouper = itemgetter("stance", "cma_level", "grf_level", "attribute_label", "orientation")
         result = []
 
-        for key, grp in groupby(sorted(self.fatigue_event_list, key=grouper), grouper):
+        for key, grp in groupby(sorted(self.fatigue_events, key=grouper), grouper):
             temp_dict = dict(zip(["stance", "cma_level", "grf_level", "attribute_label", "orientation"], key))
             temp_dict["cnt"] = sum(item["count"] for item in grp)
             result.append(temp_dict)
@@ -110,14 +73,58 @@ class FatigueEventSummary(object):
 
         return fatigue_list
 
-    def summarize_by_cma(self):
+    def cma_time_block_summary(self):
+
+        fatigue_list = []
+
+        grouper = itemgetter("stance", "cma_level", "time_block", "attribute_label", "orientation")
+        result = []
+
+        for key, grp in groupby(sorted(self.fatigue_events, key=grouper), grouper):
+            temp_dict = dict(zip(["stance", "cma_level", "time_block", "attribute_label", "orientation"], key))
+            temp_dict["cnt"] = sum(item["count"] for item in grp)
+            result.append(temp_dict)
+
+        for r in result:
+            f = FatigueByCMATimeBlock(r["cma_level"], r["time_block"])
+            f.stance = r["stance"]
+            f.attribute_label = r["attribute_label"]
+            f.orientation = r["orientation"]
+            f.count = r["cnt"]
+            fatigue_list.append(f)
+
+        return fatigue_list
+
+    def grf_time_block_summary(self):
+
+        fatigue_list = []
+
+        grouper = itemgetter("stance", "grf_level", "time_block", "attribute_label", "orientation")
+        result = []
+
+        for key, grp in groupby(sorted(self.fatigue_events, key=grouper), grouper):
+            temp_dict = dict(zip(["stance", "grf_level", "time_block", "attribute_label", "orientation"], key))
+            temp_dict["cnt"] = sum(item["count"] for item in grp)
+            result.append(temp_dict)
+
+        for r in result:
+            f = FatigueByGRFTimeBlock(r["grf_level"], r["time_block"])
+            f.stance = r["stance"]
+            f.attribute_label = r["attribute_label"]
+            f.orientation = r["orientation"]
+            f.count = r["cnt"]
+            fatigue_list.append(f)
+
+        return fatigue_list
+
+    def cma_summary(self):
 
         fatigue_list = []
 
         grouper = itemgetter("stance", "cma_level", "attribute_label", "orientation")
         result = []
 
-        for key, grp in groupby(sorted(self.fatigue_event_list, key=grouper), grouper):
+        for key, grp in groupby(sorted(self.fatigue_events, key=grouper), grouper):
             temp_dict = dict(zip(["stance", "cma_level", "attribute_label", "orientation"], key))
             temp_dict["cnt"] = sum(item["count"] for item in grp)
             result.append(temp_dict)
@@ -132,15 +139,14 @@ class FatigueEventSummary(object):
 
         return fatigue_list
 
-
-    def summarize_by_grf(self):
+    def grf_summary(self):
 
         fatigue_list = []
 
         grouper = itemgetter("stance", "grf_level", "attribute_label", "orientation")
         result = []
 
-        for key, grp in groupby(sorted(self.fatigue_event_list, key=grouper), grouper):
+        for key, grp in groupby(sorted(self.fatigue_events, key=grouper), grouper):
             temp_dict = dict(zip(["stance", "grf_level", "attribute_label", "orientation"], key))
             temp_dict["cnt"] = sum(item["count"] for item in grp)
             result.append(temp_dict)
@@ -155,14 +161,14 @@ class FatigueEventSummary(object):
 
         return fatigue_list
 
-    def summarize_by_time(self):
+    def time_block_summary(self):
 
         fatigue_list = []
 
         grouper = itemgetter("stance", "time_block", "attribute_label", "orientation")
         result = []
 
-        for key, grp in groupby(sorted(self.fatigue_event_list, key=grouper), grouper):
+        for key, grp in groupby(sorted(self.fatigue_events, key=grouper), grouper):
             temp_dict = dict(zip(["stance", "time_block", "attribute_label", "orientation"], key))
             temp_dict["cnt"] = sum(item["count"] for item in grp)
             result.append(temp_dict)
@@ -177,27 +183,6 @@ class FatigueEventSummary(object):
 
         return fatigue_list
 
-    def summarize_by_session(self):
-
-        fatigue_list = []
-
-        grouper = itemgetter("stance", "attribute_label", "orientation")
-        result = []
-
-        for key, grp in groupby(sorted(self.fatigue_event_list, key=grouper), grouper):
-            temp_dict = dict(zip(["stance", "attribute_label", "orientation"], key))
-            temp_dict["cnt"] = sum(item["count"] for item in grp)
-            result.append(temp_dict)
-
-        for r in result:
-            f = FatigueBySession()
-            f.stance = r["stance"]
-            f.attribute_label = r["attribute_label"]
-            f.orientation = r["orientation"]
-            f.count = r["cnt"]
-            fatigue_list.append(f)
-
-        return fatigue_list
 
 class FatigueByCMATimeBlock(object):
     def __init__(self, cma_level, time_block):
