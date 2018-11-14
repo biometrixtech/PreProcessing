@@ -302,62 +302,6 @@ def create_precentage_data_frame(variable_matrix, variable_list):
         percentage_matrix.at[variable.name,"Total:SessionTime"] = variable_matrix.at[variable.name,"Total:SessionTime"]
 
     return percentage_matrix
-    
-
-def create_intensity_matrix(user, date):
-    mongo_unit_blocks = get_unit_blocks(user, date)
-    intensity_frame = pandas.DataFrame()
-
-    if (len(mongo_unit_blocks) > 0):
-
-        low_intensity_time = 0
-        med_intensity_time = 0
-        high_intensity_time = 0
-        total_duration = 0
-
-
-        if_seconds = get_initialized_intensity_frame("Seconds")
-        if_percent = get_initialized_intensity_frame("Seconds %")
-        intensity_frame = intensity_frame.append(if_seconds)
-        intensity_frame = intensity_frame.append(if_percent)
-
-        for ub in mongo_unit_blocks:
-            if len(ub) > 0:
-
-                unit_bock_count = len(ub.get('unitBlocks'))
-
-                for n in range(0, unit_bock_count):
-                    ubData = ub.get('unitBlocks')[n]
-                    ub_rec = UnitBlock(ubData)
-                    timeStart = ub.get('unitBlocks')[n].get('timeStart')
-                    timeEnd = ub.get('unitBlocks')[n].get('timeEnd')
-                    try:
-                        timeStart_object = datetime.strptime(timeStart, '%Y-%m-%d %H:%M:%S.%f')
-                    except ValueError:
-                        timeStart_object = datetime.strptime(timeStart, '%Y-%m-%d %H:%M:%S')
-                    try:
-                        timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S.%f')
-                    except ValueError:
-                        timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S')
-
-                    total_duration += ub_rec.duration
-                    if (ub_rec.total_accel_avg < 45):
-                        low_intensity_time += (timeEnd_object - timeStart_object).seconds
-                    elif (ub_rec.total_accel_avg >= 45 and ub_rec.total_accel_avg < 105):
-                        med_intensity_time += (timeEnd_object - timeStart_object).seconds
-                    else:
-                        high_intensity_time += (timeEnd_object - timeStart_object).seconds
-
-        intensity_frame.at["Seconds", "Low"] += low_intensity_time
-        intensity_frame.at["Seconds", "Med"] += med_intensity_time
-        intensity_frame.at["Seconds", "High"] += high_intensity_time
-        intensity_frame.at["Seconds", "Total"] += total_duration
-        intensity_frame.at["Seconds %", "Low"] += (low_intensity_time / total_duration) * 100
-        intensity_frame.at["Seconds %", "Med"] += (med_intensity_time / total_duration) * 100
-        intensity_frame.at["Seconds %", "High"] += (high_intensity_time / total_duration) * 100
-        intensity_frame.at["Seconds %", "Total"] += (total_duration / total_duration) * 100
-
-    return intensity_frame
 
 
 def create_variable_matrix(user, date, variable_list):

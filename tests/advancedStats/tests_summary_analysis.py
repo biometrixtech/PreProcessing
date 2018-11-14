@@ -1,3 +1,4 @@
+import advancedStats.logic.training_volume_logic
 import app.advancedStats.summary_analysis as calc
 from app.advancedStats.models.variable import CategorizationVariable
 
@@ -26,8 +27,9 @@ def test_get_intensity_matrix():
     athlete = "Maggie"
     date = "2018-04-24"
 
-    intensity_matrix = calc.create_intensity_matrix(athlete, date)
+    intensity_matrix = advancedStats.logic.training_volume_logic.create_intensity_matrix(athlete, date)
 
+    #this no longer works since no longer dataframe
     intensity_matrix.to_csv('~/decay/intensity_matrix_' + athlete + '_' + date + 'v6.csv', sep=',',
                            index_label='variable')
 
@@ -45,12 +47,12 @@ def test_get_variable_matrix():
     var_list.append(CategorizationVariable("peak_grf_gct_left_under", 0, 2.5, 2.5, 5, 5, 10, False))
     var_list.append(CategorizationVariable("peak_grf_gct_right_over", 0, 2.5, 2.5, 5, 5, 100, False))
     var_list.append(CategorizationVariable("peak_grf_gct_right_under", 0, 2.5, 2.5, 5, 5, 10, False))
-    var_list.append(CategorizationVariable("hip_control", 85, 100, 70, 85, 0, 70, True))
-    var_list.append(CategorizationVariable("control_lf", 85, 100, 70, 85, 0, 70, True))
-    var_list.append(CategorizationVariable("control_rf", 85, 100, 70, 85, 0, 70, True))
-    var_list.append(CategorizationVariable("symmetry", 85, 100, 70, 85, 0, 70, True))
-    var_list.append(CategorizationVariable("hip_symmetry", 85, 100, 70, 85, 0, 70, True))
-    var_list.append(CategorizationVariable("ankle_symmetry", 85, 100, 70, 85, 0, 70, True))
+    #var_list.append(CategorizationVariable("hip_control", 85, 100, 70, 85, 0, 70, True))
+    #var_list.append(CategorizationVariable("control_lf", 85, 100, 70, 85, 0, 70, True))
+    #var_list.append(CategorizationVariable("control_rf", 85, 100, 70, 85, 0, 70, True))
+    #var_list.append(CategorizationVariable("symmetry", 85, 100, 70, 85, 0, 70, True))
+    #var_list.append(CategorizationVariable("hip_symmetry", 85, 100, 70, 85, 0, 70, True))
+    #var_list.append(CategorizationVariable("ankle_symmetry", 85, 100, 70, 85, 0, 70, True))
 
     variable_matrix = calc.create_variable_matrix(athlete, date, var_list)
 
