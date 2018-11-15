@@ -15,15 +15,42 @@ class LoadingAsymmetry(object):
         self.total_steps = 0
         self.step_asymmetry = 0.0
         self.step_count_percent_asymmetry = None
-        self.left_duration = 0
-        self.right_duration = 0
-        self.total_duration = 0
-        self.duration_asymmetry = 0.0
-        self.duration_percent_asymmetry = None
+        self.ground_contact_time_left = 0
+        self.ground_contact_time_right = 0
+        self.total_ground_contact_time = 0
+        self.ground_contact_time_asymmetry = 0.0
+        self.ground_contact_time_percent_asymmetry = None
         self.left_avg_accumulated_grf_sec = 0
         self.right_avg_accumulated_grf_sec = 0
         self.accumulated_grf_sec_asymmetry = 0.0
         self.accumulated_grf_sec_percent_asymmetry = None
+
+
+class LoadingAsymmetrySummary(object):
+    def __init__(self):
+        self.variable_name = ""
+        self.red_grf = 0.0
+        self.red_grf_percent = 0.0
+        self.red_cma = 0.0
+        self.red_cma_percent = 0.0
+        self.red_time = 0.0
+        self.red_time_percent = 0.0
+        self.yellow_grf = 0.0
+        self.yellow_grf_percent = 0.0
+        self.yellow_cma = 0.0
+        self.yellow_cma_percent = 0.0
+        self.yellow_time = 0.0
+        self.yellow_time_percent = 0.0
+        self.green_grf = 0.0
+        self.green_grf_percent = 0.0
+        self.green_cma = 0.0
+        self.green_cma_percent = 0.0
+        self.green_time = 0.0
+        self.green_time_percent = 0.0
+        self.total_grf = 0.0
+        self.total_cma = 0.0
+        self.total_time = 0.0
+        self.total_session_time = 0.0
 
 
 class MovementAsymmetry(object):
@@ -49,5 +76,8 @@ class SessionAsymmetry(object):
         self.session_id = session_id
         self.movement_asymmetries = None
         self.loading_asymmetries = None
+
+        # Relative Magnitude
+        self.loading_asymmetry_summaries = None
 
 

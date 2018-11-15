@@ -1,3 +1,4 @@
+import advancedStats.logic.asymmetry_logic
 import advancedStats.logic.training_volume_logic
 import app.advancedStats.summary_analysis as calc
 from app.advancedStats.models.variable import CategorizationVariable
@@ -34,6 +35,7 @@ def test_get_intensity_matrix():
                            index_label='variable')
 
 
+'''Legacy
 def test_get_variable_matrix():
 
     athlete = "Maggie"
@@ -54,7 +56,7 @@ def test_get_variable_matrix():
     #var_list.append(CategorizationVariable("hip_symmetry", 85, 100, 70, 85, 0, 70, True))
     #var_list.append(CategorizationVariable("ankle_symmetry", 85, 100, 70, 85, 0, 70, True))
 
-    variable_matrix = calc.create_variable_matrix(athlete, date, var_list)
+    variable_matrix = advancedStats.logic.asymmetry_logic.create_variable_matrix(athlete, date, var_list)
 
     variable_matrix.to_csv('~/decay/var_matrix_' + athlete + '_' + date + 'v6.csv', sep=',',
                            index_label='variable')
@@ -82,5 +84,4 @@ def test_get_percentage_matrix():
 
     percentage_matrix = calc.create_percentage_matrix(athlete, date, var_list)
 
-    percentage_matrix.to_csv('~/decay/perc_matrix_' + athlete + '_' + date + 'v6.csv', sep=',',
-                             index_label='variable')
+    percentage_matrix.to_csv('~/decay/perc_matrix_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='variable') '''

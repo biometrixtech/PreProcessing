@@ -1,5 +1,11 @@
+from datetime import datetime
+
+import pandas
 from scipy import stats
-from app.advancedStats.models.asymmetry import MovementAsymmetry, LoadingAsymmetry, SessionAsymmetry
+from app.advancedStats.models.variable import CategorizationVariable
+from advancedStats.models.unit_block import UnitBlock
+from advancedStats.summary_analysis import get_unit_blocks
+from app.advancedStats.models.asymmetry import MovementAsymmetry, LoadingAsymmetry, LoadingAsymmetrySummary, SessionAsymmetry
 
 
 class AsymmetryProcessor(object):
@@ -15,6 +21,20 @@ class AsymmetryProcessor(object):
         asym = SessionAsymmetry(user_id, event_date, session_id)
         asym.loading_asymmetries = self.get_loading_asymmetries()
         asym.movement_asymmetries = self.get_movement_asymmetries()
+
+        # relative magnitude
+        var_list = []
+        var_list.append(CategorizationVariable("peak_grf_perc_diff_lf", 0, 5, 5, 10, 10, 100, False))
+        var_list.append(CategorizationVariable("peak_grf_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
+        var_list.append(CategorizationVariable("gct_perc_diff_lf", 0, 5, 5, 10, 10, 100, False))
+        var_list.append(CategorizationVariable("gct_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
+        var_list.append(CategorizationVariable("peak_grf_gct_left_over", 0, 2.5, 2.5, 5, 5, 100, False))
+        var_list.append(CategorizationVariable("peak_grf_gct_left_under", 0, 2.5, 2.5, 5, 5, 10, False))
+        var_list.append(CategorizationVariable("peak_grf_gct_right_over", 0, 2.5, 2.5, 5, 5, 100, False))
+        var_list.append(CategorizationVariable("peak_grf_gct_right_under", 0, 2.5, 2.5, 5, 5, 10, False))
+
+        asym.loading_asymmetry_summaries = self.get_variable_asymmetry_summaries(user_id, event_date, var_list)
+
         return asym
 
     def get_loading_asymmetries(self):
@@ -59,12 +79,12 @@ class AsymmetryProcessor(object):
         if asym.total_steps > 0:
             asym.step_count_percent_asymmetry = (asym.step_asymmetry / asym.total_steps) * 100
 
-        asym.left_duration = complexity_matrix_summary.left_duration
-        asym.right_duration = complexity_matrix_summary.right_duration
-        asym.total_duration = complexity_matrix_summary.total_duration
-        asym.duration_asymmetry = asym.left_duration = asym.right_duration
-        if asym.total_duration > 0:
-            asym.duration_percent_asymmetry = (asym.duration_asymmetry / asym.total_duration) * 100
+        asym.ground_contact_time_left = complexity_matrix_summary.left_duration
+        asym.ground_contact_time_right = complexity_matrix_summary.right_duration
+        asym.total_ground_contact_time = complexity_matrix_summary.total_duration
+        asym.ground_contact_time_asymmetry = asym.ground_contact_time_left = asym.ground_contact_time_right
+        if asym.total_ground_contact_time > 0:
+            asym.ground_contact_time_percent_asymmetry = (asym.ground_contact_time_asymmetry / asym.total_ground_contact_time) * 100
 
         asym.left_avg_accumulated_grf_sec = complexity_matrix_summary.left_avg_accumulated_grf_sec
         asym.right_avg_accumulated_grf_sec = complexity_matrix_summary.right_avg_accumulated_grf_sec
@@ -133,3 +153,95 @@ class AsymmetryProcessor(object):
                     return None
             except ValueError:
                 return None
+
+    def get_variable_asymmetry_summaries(self, user, date, variable_list):
+
+        mongo_unit_blocks = get_unit_blocks(user, date)
+
+        variable_matrix = []
+
+        if len(mongo_unit_blocks) > 0:
+
+            sessionTimeStart = mongo_unit_blocks[0].get('unitBlocks')[0].get('timeStart')
+            try:
+                sessionTimeStart_object = datetime.strptime(sessionTimeStart, '%Y-%m-%d %H:%M:%S.%f')
+            except ValueError:
+                sessionTimeStart_object = datetime.strptime(sessionTimeStart, '%Y-%m-%d %H:%M:%S')
+
+            for ub in mongo_unit_blocks:
+                if len(ub) > 0:
+
+                    unit_bock_count = len(ub.get('unitBlocks'))
+
+                    for n in range(0, unit_bock_count):
+                        ubData = ub.get('unitBlocks')[n]
+                        ub_rec = UnitBlock(ubData)
+
+                        timeEnd = ub.get('unitBlocks')[n].get('timeEnd')
+
+                        try:
+                            timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S.%f')
+                        except ValueError:
+                            timeEnd_object = datetime.strptime(timeEnd, '%Y-%m-%d %H:%M:%S')
+
+                        cumulative_end_time = (timeEnd_object - sessionTimeStart_object).seconds
+
+                        for cat_variable in variable_list:
+                            summary = self.calc_loading_asymmetry_summary(cat_variable, ub_rec, cumulative_end_time)
+                            variable_matrix.append(summary)
+
+        return variable_matrix
+
+    def calc_loading_asymmetry_summary(self, cat_variable, unit_block_data, total_session_time):
+
+        summary = LoadingAsymmetrySummary()
+
+        variable_value = getattr(unit_block_data,cat_variable.name)
+
+        summary.variable_name = cat_variable.name
+
+        if variable_value is not None:
+            if cat_variable.invereted == False:
+                if variable_value > cat_variable.yellow_high:
+                    summary.red_time += unit_block_data.duration
+                    summary.red_grf += unit_block_data.total_grf
+                    summary.red_cma += unit_block_data.total_accel
+                if variable_value > cat_variable.green_high and variable_value <=cat_variable.yellow_high:
+                    summary.yellow_time += unit_block_data.duration
+                    summary.yellow_grf += unit_block_data.total_grf
+                    summary.yellow_cma += unit_block_data.total_accel
+                if variable_value >= cat_variable.green_low and variable_value <= cat_variable.green_high:
+                    summary.green_time += unit_block_data.duration
+                    summary.green_grf += unit_block_data.total_grf
+                    summary.green_cma += unit_block_data.total_accel
+            else:
+                if variable_value > cat_variable.yellow_high:
+                    summary.green_time += unit_block_data.duration
+                    summary.green_grf += unit_block_data.total_grf
+                    summary.green_cma += unit_block_data.total_accel
+                if variable_value > cat_variable.red_high and variable_value <=cat_variable.yellow_high:
+                    summary.yellow_time += unit_block_data.duration
+                    summary.yellow_grf += unit_block_data.total_grf
+                    summary.yellow_cma += unit_block_data.total_accel
+                if variable_value >= cat_variable.red_low and variable_value <= cat_variable.red_high:
+                    summary.red_time += unit_block_data.duration
+                    summary.red_grf += unit_block_data.total_grf
+                    summary.red_cma += unit_block_data.total_accel
+
+        summary.total_time += unit_block_data.duration
+        summary.total_grf += unit_block_data.total_grf
+        summary.total_cma += unit_block_data.total_accel
+
+        summary.red_grf_percent = (summary.red_grf / summary.total_grf) * 100
+        summary.red_cma_percent = (summary.red_cma / summary.total_cma) * 100
+        summary.red_time_percent = (summary.red_time / summary.total_time) * 100
+        summary.yellow_grf_percent = (summary.yellow_grf / summary.total_grf) * 100
+        summary.yellow_cma_percent = (summary.yellow_cma / summary.total_cma) * 100
+        summary.yellow_time_percent = (summary.yellow_time / summary.total_time) * 100
+        summary.green_grf_percent = (summary.green_grf / summary.total_grf) * 100
+        summary.green_cma_percent = (summary.green_cma / summary.total_cma) * 100
+        summary.green_time_percent = (summary.green_time / summary.total_time) * 100
+
+        summary.total_session_time = total_session_time #not additive
+
+        return summary

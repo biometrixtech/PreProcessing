@@ -182,9 +182,9 @@ def test_get_loading_asymmetries():
                             'grf_total_asymmetry',
                             'grf_total_sum',
                             'grf_asym_percent',
-                            'left_duration',
-                            'right_duration',
-                            'total_duration',
+                            'ground_contact_time_left',
+                            'ground_contact_time_right',
+                            'total_ground_contact_time',
                         ])
 
 
