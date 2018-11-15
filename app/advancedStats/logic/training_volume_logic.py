@@ -18,6 +18,24 @@ def create_intensity_matrix(user, date):
 
     session_position = 0
 
+    right_peak_grf_present = 0
+    left_peak_grf_present = 0
+
+    left_step_peak_grf_present = 0
+    right_step_peak_grf_present = 0
+
+    right_step_peak_grf_low_present = 0
+    right_step_peak_grf_mod_present = 0
+    right_step_peak_grf_high_present = 0
+    left_step_peak_grf_low_present = 0
+    left_step_peak_grf_mod_present = 0
+    left_step_peak_grf_high_present = 0
+
+    left_stance_single_present = 0
+    left_stance_double_present = 0
+    right_stance_single_present = 0
+    right_stance_double_present = 0
+
     if len(mongo_unit_blocks) > 0:
 
         for ub in mongo_unit_blocks:
@@ -46,73 +64,109 @@ def create_intensity_matrix(user, date):
                     except ValueError:
                         time_end_object = datetime.strptime(time_end, '%Y-%m-%d %H:%M:%S')
 
+                    if ub_rec.peak_grf_lf is not None:
+                        left_peak_grf_present += 1
+                    if ub_rec.peak_grf_rf is not None:
+                        right_peak_grf_present += 1
                     # intensity bands
 
                     session_volume.accumulated_grf += ub_rec.accumulated_grf
                     session_volume.active_time += ub_rec.duration
                     session_volume.cma += ub_rec.total_accel
                     if ub_rec.peak_grf_lf is not None:
-                        session_volume.accumulated_peak_vertical_grf += ub_rec.peak_grf_lf
+                        session_volume.average_peak_vertical_grf_lf += ub_rec.peak_grf_lf
                     if ub_rec.peak_grf_rf is not None:
-                        session_volume.accumulated_peak_vertical_grf += ub_rec.peak_grf_rf
+                        session_volume.average_peak_vertical_grf_rf += ub_rec.peak_grf_rf
+
                     intensity_bands.total_seconds += ub_rec.duration
                     intensity_bands.total_accumulated_grf += ub_rec.accumulated_grf
                     intensity_bands.total_cma += ub_rec.total_accel
-                    if ub_rec.peak_grf_rf is not None and ub_rec.peak_grf_lf is not None:
-                        intensity_bands.total_accumulated_peak_vGRF += ub_rec.peak_grf_lf + ub_rec.peak_grf_rf
-                    if ub_rec.contact_duration_lf is not None and ub_rec.contact_duration_rf is not None:
-                        intensity_bands.total_gct += ub_rec.contact_duration_lf + ub_rec.contact_duration_rf
+                    if ub_rec.peak_grf_lf is not None:
+                        intensity_bands.total_average_peak_vGRF_lf += ub_rec.peak_grf_lf
+                    if ub_rec.peak_grf_rf is not None:
+                        intensity_bands.total_average_peak_vGRF_rf += ub_rec.peak_grf_rf
+
+                    if ub_rec.contact_duration_lf is not None:
+                        intensity_bands.gct_total_left += ub_rec.contact_duration_lf
+
+                    if ub_rec.contact_duration_rf is not None:
+                        intensity_bands.gct_total_right += ub_rec.contact_duration_rf
 
                     if ub_rec.total_accel_avg < 45:
                         intensity_bands.low_seconds += (time_end_object - time_start_object).seconds
                         intensity_bands.low_accumulated_grf += ub_rec.accumulated_grf
                         intensity_bands.low_cma += ub_rec.total_accel
-                        if ub_rec.peak_grf_rf is not None and ub_rec.peak_grf_lf is not None:
-                            intensity_bands.low_accumulated_peak_vGRF += ub_rec.peak_grf_lf + ub_rec.peak_grf_rf
-                        if ub_rec.contact_duration_lf is not None and ub_rec.contact_duration_rf is not None:
-                            intensity_bands.low_gct += ub_rec.contact_duration_lf + ub_rec.contact_duration_rf
+                        if ub_rec.peak_grf_lf is not None:
+                            intensity_bands.low_average_peak_vGRF_lf += ub_rec.peak_grf_lf
+                        if ub_rec.peak_grf_rf is not None:
+                            intensity_bands.low_average_peak_vGRF_rf += ub_rec.peak_grf_rf
+
+                        if ub_rec.contact_duration_lf is not None:
+                            intensity_bands.low_gct_left += ub_rec.contact_duration_lf
+                        if ub_rec.contact_duration_rf is not None:
+                            intensity_bands.low_gct_right += ub_rec.contact_duration_rf
                     elif ub_rec.total_accel_avg >= 45 and ub_rec.total_accel_avg < 105:
                         intensity_bands.moderate_seconds += (time_end_object - time_start_object).seconds
                         intensity_bands.moderate_accumulated_grf += ub_rec.accumulated_grf
                         intensity_bands.moderate_cma += ub_rec.total_accel
-                        if ub_rec.peak_grf_rf is not None and ub_rec.peak_grf_lf is not None:
-                            intensity_bands.moderate_accumulated_peak_vGRF += ub_rec.peak_grf_lf + ub_rec.peak_grf_rf
-                        if ub_rec.contact_duration_lf is not None and ub_rec.contact_duration_rf is not None:
-                            intensity_bands.moderate_gct += ub_rec.contact_duration_lf + ub_rec.contact_duration_rf
+                        if ub_rec.peak_grf_lf is not None:
+                            intensity_bands.moderate_average_peak_vGRF_lf += ub_rec.peak_grf_lf
+                        if ub_rec.peak_grf_rf is not None:
+                            intensity_bands.moderate_average_peak_vGRF_rf += ub_rec.peak_grf_rf
+
+                        if ub_rec.contact_duration_lf is not None:
+                            intensity_bands.moderate_gct_left += ub_rec.contact_duration_lf
+                        if ub_rec.contact_duration_rf is not None:
+                            intensity_bands.moderate_gct_right += ub_rec.contact_duration_rf
                     else:
                         intensity_bands.high_seconds += (time_end_object - time_start_object).seconds
                         intensity_bands.high_accumulated_grf += ub_rec.accumulated_grf
                         intensity_bands.high_cma += ub_rec.total_accel
-                        if ub_rec.peak_grf_rf is not None and ub_rec.peak_grf_lf is not None:
-                            intensity_bands.high_accumulated_peak_vGRF += ub_rec.peak_grf_lf + ub_rec.peak_grf_rf
-                        if ub_rec.contact_duration_lf is not None and ub_rec.contact_duration_rf is not None:
-                            intensity_bands.high_gct += ub_rec.contact_duration_lf + ub_rec.contact_duration_rf
+                        if ub_rec.peak_grf_lf is not None:
+                            intensity_bands.high_average_peak_vGRF_lf += ub_rec.peak_grf_lf
+                        if ub_rec.peak_grf_rf is not None:
+                            intensity_bands.high_average_peak_vGRF_rf += ub_rec.peak_grf_rf
+
+                        if ub_rec.contact_duration_lf is not None:
+                            intensity_bands.high_gct_left += ub_rec.contact_duration_lf
+                        if ub_rec.contact_duration_rf is not None:
+                            intensity_bands.high_gct_right += ub_rec.contact_duration_rf
 
                     # grf bands
 
                     grf_bands.total_seconds += ub_rec.duration
                     grf_bands.total_accumulated_grf += ub_rec.accumulated_grf
                     grf_bands.total_cma += ub_rec.total_accel
-                    if ub_rec.peak_grf_rf is not None and ub_rec.peak_grf_lf is not None:
-                        grf_bands.total_accumulated_peak_vGRF += ub_rec.peak_grf_lf + ub_rec.peak_grf_rf
-                    if ub_rec.contact_duration_lf is not None and ub_rec.contact_duration_rf is not None:
-                        grf_bands.total_gct += ub_rec.contact_duration_lf + ub_rec.contact_duration_rf
+                    if ub_rec.peak_grf_lf is not None:
+                        grf_bands.total_average_peak_vGRF_lf += ub_rec.peak_grf_lf
+                    if ub_rec.peak_grf_rf is not None:
+                        grf_bands.total_average_peak_vGRF_rf += ub_rec.peak_grf_rf
+                    if ub_rec.contact_duration_lf is not None:
+                        grf_bands.gct_total_left += ub_rec.contact_duration_lf
+                    if ub_rec.contact_duration_rf is not None:
+                        grf_bands.gct_total_right += ub_rec.contact_duration_rf
 
                     stance_bands.total_seconds += ub_rec.duration
                     stance_bands.total_accumulated_grf += ub_rec.accumulated_grf
                     stance_bands.total_cma += ub_rec.total_accel
-                    if ub_rec.peak_grf_rf is not None and ub_rec.peak_grf_lf is not None:
-                        stance_bands.total_accumulated_peak_vGRF += ub_rec.peak_grf_lf + ub_rec.peak_grf_rf
-                    if ub_rec.contact_duration_lf is not None and ub_rec.contact_duration_rf is not None:
-                        stance_bands.total_gct += ub_rec.contact_duration_lf + ub_rec.contact_duration_rf
+
+                    if ub_rec.contact_duration_lf is not None:
+                        stance_bands.gct_total_left += ub_rec.contact_duration_lf
+                    if ub_rec.contact_duration_rf is not None:
+                        stance_bands.gct_total_right += ub_rec.contact_duration_rf
 
                     left_right_bands.total_seconds += ub_rec.duration
                     left_right_bands.total_accumulated_grf += ub_rec.accumulated_grf
                     left_right_bands.total_cma += ub_rec.total_accel
-                    if ub_rec.peak_grf_rf is not None and ub_rec.peak_grf_lf is not None:
-                        left_right_bands.total_accumulated_peak_vGRF += ub_rec.peak_grf_lf + ub_rec.peak_grf_rf
-                    if ub_rec.contact_duration_lf is not None and ub_rec.contact_duration_rf is not None:
-                        left_right_bands.total_gct += ub_rec.contact_duration_lf + ub_rec.contact_duration_rf
+                    if ub_rec.peak_grf_lf is not None:
+                        left_right_bands.left_average_peak_vGRF += ub_rec.peak_grf_lf
+                    if ub_rec.peak_grf_rf is not None:
+                        left_right_bands.right_average_peak_vGRF += ub_rec.peak_grf_rf
+
+                    if ub_rec.contact_duration_lf is not None:
+                        left_right_bands.left_gct += ub_rec.contact_duration_lf
+                    if ub_rec.contact_duration_rf is not None:
+                        left_right_bands.right_gct += ub_rec.contact_duration_rf
 
                     lf_steps = ub_data.get('stepsLF')
                     for lf_step in lf_steps:
@@ -126,44 +180,52 @@ def create_intensity_matrix(user, date):
                             grf_bands.low_accumulated_grf += accumulated_grf_LF
                             grf_bands.low_cma += left_step.total_accel
                             if left_step.peak_grf is not None:
-                                grf_bands.low_accumulated_peak_vGRF += left_step.peak_grf
-                            grf_bands.low_gct += left_step.contact_duration
+                                grf_bands.low_average_peak_vGRF_lf += left_step.peak_grf
+                                left_step_peak_grf_low_present += 1
+                            grf_bands.low_gct_left += left_step.contact_duration
                         elif 2 > left_step.peak_grf <= 3:
                             grf_bands.moderate_seconds += 0
                             grf_bands.moderate_accumulated_grf += accumulated_grf_LF
                             grf_bands.moderate_cma += left_step.total_accel
                             if left_step.peak_grf is not None:
-                                grf_bands.moderate_accumulated_peak_vGRF += left_step.peak_grf
-                            grf_bands.moderate_gct += left_step.contact_duration
+                                grf_bands.moderate_average_peak_vGRF_lf += left_step.peak_grf
+                                left_step_peak_grf_mod_present += 1
+                            grf_bands.moderate_gct_left += left_step.contact_duration
                         else:
                             grf_bands.high_seconds += 0
                             grf_bands.high_accumulated_grf += accumulated_grf_LF
                             grf_bands.high_cma += left_step.total_accel
                             if left_step.peak_grf is not None:
-                                grf_bands.high_accumulated_peak_vGRF += left_step.peak_grf
-                            grf_bands.high_gct += left_step.contact_duration
+                                grf_bands.high_average_peak_vGRF_lf += left_step.peak_grf
+                                left_step_peak_grf_high_present += 1
+                            grf_bands.high_gct_left += left_step.contact_duration
 
                         if left_step.stance_calc == 4: # double
                             stance_bands.double_seconds += 0
                             stance_bands.double_accumulated_grf += accumulated_grf_LF
                             stance_bands.double_cma += left_step.total_accel
                             if left_step.peak_grf is not None:
-                                stance_bands.double_accumulated_peak_vGRF += left_step.peak_grf
-                            stance_bands.double_gct += left_step.contact_duration
+                                stance_bands.double_average_peak_vGRF_lf += left_step.peak_grf
+                                left_stance_double_present += 1
+                            stance_bands.double_gct_left += left_step.contact_duration
                         elif left_step.stance_calc == 2: # single
                             stance_bands.single_seconds += 0
                             stance_bands.single_accumulated_grf += accumulated_grf_LF
                             stance_bands.single_cma += left_step.total_accel
                             if left_step.peak_grf is not None:
-                                stance_bands.single_accumulated_peak_vGRF += left_step.peak_grf
-                            stance_bands.single_gct += left_step.contact_duration
+                                stance_bands.single_average_peak_vGRF_lf += left_step.peak_grf
+                                left_stance_single_present += 1
+                            stance_bands.single_gct_left += left_step.contact_duration
 
                         left_right_bands.left_seconds += 0
                         left_right_bands.left_accumulated_grf += accumulated_grf_LF
                         left_right_bands.left_cma += left_step.total_accel
                         if left_step.peak_grf is not None:
-                            left_right_bands.left_accumulated_peak_vGRF += left_step.peak_grf
+                            left_right_bands.left_average_peak_vGRF += left_step.peak_grf
+                            left_peak_grf_present += 1
                         left_right_bands.left_gct += left_step.contact_duration
+
+                        session_volume.ground_contact_time_left += left_step.contact_duration
 
                     rf_steps = ub_data.get('stepsRF')
                     for rf_step in rf_steps:
@@ -177,116 +239,220 @@ def create_intensity_matrix(user, date):
                             grf_bands.low_accumulated_grf += accumulated_grf_RF
                             grf_bands.low_cma += right_step.total_accel
                             if right_step.peak_grf is not None:
-                                grf_bands.low_accumulated_peak_vGRF += right_step.peak_grf
-                            grf_bands.low_gct += right_step.contact_duration
+                                grf_bands.low_average_peak_vGRF_rf += right_step.peak_grf
+                                right_step_peak_grf_low_present += 1
+                            grf_bands.low_gct_right += right_step.contact_duration
                         elif 2 > right_step.peak_grf <= 3:
                             grf_bands.moderate_seconds += 0
                             grf_bands.moderate_accumulated_grf += accumulated_grf_RF
                             grf_bands.moderate_cma += right_step.total_accel
                             if right_step.peak_grf is not None:
-                                grf_bands.moderate_accumulated_peak_vGRF += right_step.peak_grf
-                            grf_bands.moderate_gct += right_step.contact_duration
+                                grf_bands.moderate_average_peak_vGRF_rf += right_step.peak_grf
+                                right_step_peak_grf_mod_present += 1
+                            grf_bands.moderate_gct_right += right_step.contact_duration
                         else:
                             grf_bands.high_seconds += 0
                             grf_bands.high_accumulated_grf += accumulated_grf_RF
                             grf_bands.high_cma += right_step.total_accel
                             if right_step.peak_grf is not None:
-                                grf_bands.high_accumulated_peak_vGRF += right_step.peak_grf
-                            grf_bands.high_gct += right_step.contact_duration
+                                grf_bands.high_average_peak_vGRF_rf += right_step.peak_grf
+                                right_step_peak_grf_high_present += 1
+                            grf_bands.high_gct_right += right_step.contact_duration
 
                         if right_step.stance_calc == 4: # double
                             stance_bands.double_seconds += 0
                             stance_bands.double_accumulated_grf += accumulated_grf_RF
                             stance_bands.double_cma += right_step.total_accel
                             if right_step.peak_grf is not None:
-                                stance_bands.double_accumulated_peak_vGRF += right_step.peak_grf
-                            stance_bands.double_gct += right_step.contact_duration
+                                stance_bands.double_average_peak_vGRF_rf += right_step.peak_grf
+                                right_stance_double_present += 1
+                            stance_bands.double_gct_right += right_step.contact_duration
                         elif right_step.stance_calc == 2: # single
                             stance_bands.single_seconds += 0
                             stance_bands.single_accumulated_grf += accumulated_grf_RF
                             stance_bands.single_cma += right_step.total_accel
                             if right_step.peak_grf is not None:
-                                stance_bands.single_accumulated_peak_vGRF += right_step.peak_grf
-                            stance_bands.single_gct += right_step.contact_duration
+                                stance_bands.single_average_peak_vGRF_rf += right_step.peak_grf
+                                right_stance_single_present += 1
+                            stance_bands.single_gct_right += right_step.contact_duration
 
                         left_right_bands.right_seconds += 0
                         left_right_bands.right_accumulated_grf += accumulated_grf_RF
                         left_right_bands.right_cma += right_step.total_accel
                         if right_step.peak_grf is not None:
-                            left_right_bands.right_accumulated_peak_vGRF += right_step.peak_grf
+                            left_right_bands.right_average_peak_vGRF += right_step.peak_grf
+                            right_peak_grf_present += 1
                         left_right_bands.right_gct += right_step.contact_duration
+
+                        session_volume.ground_contact_time_right += right_step.contact_duration
+
                     session_position = session_position + 1
 
+        session_volume.ground_contact_time_right = session_volume.ground_contact_time_right / 1000
+        session_volume.ground_contact_time_left = session_volume.ground_contact_time_left / 1000
 
-        intensity_bands.low_seconds_percentage += (intensity_bands.low_seconds / intensity_bands.total_seconds) * 100
-        intensity_bands.moderate_seconds_percentage += (intensity_bands.moderate_seconds / intensity_bands.total_seconds) * 100
-        intensity_bands.high_seconds_percentage += (intensity_bands.high_seconds / intensity_bands.total_seconds) * 100
+        if session_position > 0:
 
-        intensity_bands.low_accumulated_grf_percentage += (intensity_bands.low_accumulated_grf / intensity_bands.total_accumulated_grf) * 100
-        intensity_bands.moderate_accumulated_grf_percentage += (intensity_bands.moderate_accumulated_grf / intensity_bands.total_accumulated_grf) * 100
-        intensity_bands.high_accumulated_grf_percentage += (intensity_bands.high_accumulated_grf / intensity_bands.total_accumulated_grf) * 100
+            session_volume.average_peak_vertical_grf_lf = (session_volume.average_peak_vertical_grf_lf /
+                                                           float(session_position + 1))
+            session_volume.average_peak_vertical_grf_rf = (session_volume.average_peak_vertical_grf_rf /
+                                                           float(session_position + 1))
 
-        intensity_bands.low_cma_percentage += (intensity_bands.low_cma / intensity_bands.total_cma) * 100
-        intensity_bands.moderate_cma_percentage += (intensity_bands.moderate_cma / intensity_bands.total_cma) * 100
-        intensity_bands.high_cma_percentage += (intensity_bands.high_cma / intensity_bands.total_cma) * 100
+        if left_peak_grf_present > 0:
 
-        intensity_bands.low_accumulated_peak_vGRF_percentage += (intensity_bands.low_accumulated_peak_vGRF / intensity_bands.total_accumulated_peak_vGRF) * 100
-        intensity_bands.moderate_accumulated_peak_vGRF_percentage += (intensity_bands.moderate_accumulated_peak_vGRF / intensity_bands.total_accumulated_peak_vGRF) * 100
-        intensity_bands.high_accumulated_peak_vGRF_percentage += (intensity_bands.high_accumulated_peak_vGRF / intensity_bands.total_accumulated_peak_vGRF) * 100
+            intensity_bands.high_average_peak_vGRF_lf = (intensity_bands.high_average_peak_vGRF_lf /
+                                                         float(left_peak_grf_present))
 
-        intensity_bands.low_gct_percentage += (intensity_bands.low_gct / intensity_bands.total_gct) * 100
-        intensity_bands.moderate_gct_percentage += (intensity_bands.moderate_gct / intensity_bands.total_gct) * 100
-        intensity_bands.high_gct_percentage += (intensity_bands.high_gct / intensity_bands.total_gct) * 100
+            intensity_bands.moderate_average_peak_vGRF_lf = (intensity_bands.moderate_average_peak_vGRF_lf /
+                                                             float(left_peak_grf_present))
 
-        grf_bands.low_seconds_percentage += (grf_bands.low_seconds / grf_bands.total_seconds) * 100
-        grf_bands.moderate_seconds_percentage += ( grf_bands.moderate_seconds / grf_bands.total_seconds) * 100
-        grf_bands.high_seconds_percentage += (grf_bands.high_seconds / grf_bands.total_seconds) * 100
+            intensity_bands.low_average_peak_vGRF_lf = (intensity_bands.low_average_peak_vGRF_lf /
+                                                         float(left_peak_grf_present))
 
-        grf_bands.low_accumulated_grf_percentage += (grf_bands.low_accumulated_grf / grf_bands.total_accumulated_grf) * 100
-        grf_bands.moderate_accumulated_grf_percentage += (grf_bands.moderate_accumulated_grf / grf_bands.total_accumulated_grf) * 100
-        grf_bands.high_accumulated_grf_percentage += (grf_bands.high_accumulated_grf / grf_bands.total_accumulated_grf) * 100
+        if right_peak_grf_present > 0:
 
-        grf_bands.low_cma_percentage += (grf_bands.low_cma / grf_bands.total_cma) * 100
-        grf_bands.moderate_cma_percentage += (grf_bands.moderate_cma / grf_bands.total_cma) * 100
-        grf_bands.high_cma_percentage += (grf_bands.high_cma / grf_bands.total_cma) * 100
+            intensity_bands.high_average_peak_vGRF_rf = (intensity_bands.high_average_peak_vGRF_rf /
+                                                         float(right_peak_grf_present))
 
-        grf_bands.low_accumulated_peak_vGRF_percentage += (grf_bands.low_accumulated_peak_vGRF / grf_bands.total_accumulated_peak_vGRF) * 100
-        grf_bands.moderate_accumulated_peak_vGRF_percentage += (grf_bands.moderate_accumulated_peak_vGRF / grf_bands.total_accumulated_peak_vGRF) * 100
-        grf_bands.high_accumulated_peak_vGRF_percentage += (grf_bands.high_accumulated_peak_vGRF / grf_bands.total_accumulated_peak_vGRF) * 100
+            intensity_bands.moderate_average_peak_vGRF_rf = (intensity_bands.moderate_average_peak_vGRF_rf /
+                                                         float(right_peak_grf_present))
 
-        grf_bands.low_gct_percentage += (grf_bands.low_gct / grf_bands.total_gct) * 100
-        grf_bands.moderate_gct_percentage += (grf_bands.moderate_gct / grf_bands.total_gct) * 100
-        grf_bands.high_gct_percentage += (grf_bands.high_gct / grf_bands.total_gct) * 100
+            intensity_bands.low_average_peak_vGRF_rf = (intensity_bands.low_average_peak_vGRF_rf /
+                                                         float(right_peak_grf_present))
 
-        stance_bands.single_seconds_percentage += (stance_bands.single_seconds / stance_bands.total_seconds) * 100
-        stance_bands.double_seconds_percentage += (stance_bands.double_seconds / stance_bands.total_seconds) * 100
+        if left_step_peak_grf_high_present > 0:
 
-        stance_bands.single_accumulated_grf_percentage += (stance_bands.single_accumulated_grf / stance_bands.total_accumulated_grf) * 100
-        stance_bands.double_accumulated_grf_percentage += (stance_bands.double_accumulated_grf / stance_bands.total_accumulated_grf) * 100
+            grf_bands.high_average_peak_vGRF_lf = (grf_bands.high_average_peak_vGRF_lf /
+                                                         float(left_step_peak_grf_high_present))
 
-        stance_bands.single_cma_percentage += (stance_bands.single_cma / stance_bands.total_cma) * 100
-        stance_bands.double_cma_percentage += (stance_bands.double_cma / stance_bands.total_cma) * 100
+        if right_step_peak_grf_high_present > 0:
 
-        stance_bands.single_accumulated_peak_vGRF_percentage += (stance_bands.single_accumulated_peak_vGRF / stance_bands.total_accumulated_peak_vGRF) * 100
-        stance_bands.double_accumulated_peak_vGRF_percentage += (stance_bands.double_accumulated_peak_vGRF / stance_bands.total_accumulated_peak_vGRF) * 100
+            grf_bands.high_average_peak_vGRF_rf = (grf_bands.high_average_peak_vGRF_rf /
+                                                         float(right_step_peak_grf_high_present))
 
-        stance_bands.single_gct_percentage += (stance_bands.single_gct / stance_bands.total_gct) * 100
-        stance_bands.double_gct_percentage += (stance_bands.double_gct / stance_bands.total_gct) * 100
+        if left_step_peak_grf_mod_present > 0:
 
-        left_right_bands.left_seconds_percentage += (left_right_bands.left_seconds / left_right_bands.total_seconds) * 100
-        left_right_bands.right_seconds_percentage += (left_right_bands.right_seconds / left_right_bands.total_seconds) * 100
+            grf_bands.moderate_average_peak_vGRF_lf = (grf_bands.moderate_average_peak_vGRF_lf /
+                                                             float(left_step_peak_grf_mod_present))
 
-        left_right_bands.left_accumulated_grf_percentage += (left_right_bands.left_accumulated_grf / left_right_bands.total_accumulated_grf) * 100
-        left_right_bands.right_accumulated_grf_percentage += (left_right_bands.right_accumulated_grf / left_right_bands.total_accumulated_grf) * 100
+        if right_step_peak_grf_mod_present > 0:
 
-        left_right_bands.left_cma_percentage += (left_right_bands.left_cma / left_right_bands.total_cma) * 100
-        left_right_bands.right_cma_percentage += (left_right_bands.right_cma / left_right_bands.total_cma) * 100
+            grf_bands.moderate_average_peak_vGRF_rf = (grf_bands.moderate_average_peak_vGRF_rf /
+                                                             float(right_step_peak_grf_mod_present))
 
-        left_right_bands.left_accumulated_peak_vGRF_percentage += (left_right_bands.left_accumulated_peak_vGRF / left_right_bands.total_accumulated_peak_vGRF) * 100
-        left_right_bands.right_accumulated_peak_vGRF_percentage += (left_right_bands.right_accumulated_peak_vGRF / left_right_bands.total_accumulated_peak_vGRF) * 100
+        if left_step_peak_grf_low_present > 0:
+            grf_bands.low_average_peak_vGRF_lf = (grf_bands.low_average_peak_vGRF_lf /
+                                                        float(left_step_peak_grf_low_present))
 
-        left_right_bands.left_gct_percentage += (left_right_bands.left_gct / left_right_bands.total_gct) * 100
-        left_right_bands.right_gct_percentage += (left_right_bands.right_gct / left_right_bands.total_gct) * 100
+        if right_step_peak_grf_low_present > 0:
+            grf_bands.low_average_peak_vGRF_rf = (grf_bands.low_average_peak_vGRF_rf /
+                                                        float(right_step_peak_grf_low_present))
+
+        if left_stance_single_present > 0:
+            stance_bands.single_average_peak_vGRF_lf = (stance_bands.single_average_peak_vGRF_lf /
+                                                        float(left_stance_single_present))
+
+        if left_stance_double_present > 0:
+            stance_bands.double_average_peak_vGRF_lf = (stance_bands.double_average_peak_vGRF_lf /
+                                                        float(left_stance_double_present))
+
+        if right_stance_single_present > 0:
+            stance_bands.single_average_peak_vGRF_rf = (stance_bands.single_average_peak_vGRF_rf /
+                                                        float(right_stance_single_present))
+
+        if right_stance_double_present > 0:
+            stance_bands.double_average_peak_vGRF_rf = (stance_bands.double_average_peak_vGRF_rf /
+                                                        float(right_stance_double_present))
+
+        if left_peak_grf_present > 0:
+            left_right_bands.left_average_peak_vGRF = (left_right_bands.left_average_peak_vGRF /
+                                                        float(left_peak_grf_present))
+
+        if right_peak_grf_present > 0:
+            left_right_bands.right_average_peak_vGRF = (left_right_bands.right_average_peak_vGRF /
+                                                        float(right_peak_grf_present))
+
+        if intensity_bands.total_seconds > 0:
+            intensity_bands.low_seconds_percentage += (intensity_bands.low_seconds / intensity_bands.total_seconds) * 100
+            intensity_bands.moderate_seconds_percentage += (intensity_bands.moderate_seconds / intensity_bands.total_seconds) * 100
+            intensity_bands.high_seconds_percentage += (intensity_bands.high_seconds / intensity_bands.total_seconds) * 100
+
+        if intensity_bands.total_accumulated_grf > 0:
+            intensity_bands.low_accumulated_grf_percentage += (intensity_bands.low_accumulated_grf / intensity_bands.total_accumulated_grf) * 100
+            intensity_bands.moderate_accumulated_grf_percentage += (intensity_bands.moderate_accumulated_grf / intensity_bands.total_accumulated_grf) * 100
+            intensity_bands.high_accumulated_grf_percentage += (intensity_bands.high_accumulated_grf / intensity_bands.total_accumulated_grf) * 100
+
+        if intensity_bands.total_cma > 0:
+            intensity_bands.low_cma_percentage += (intensity_bands.low_cma / intensity_bands.total_cma) * 100
+            intensity_bands.moderate_cma_percentage += (intensity_bands.moderate_cma / intensity_bands.total_cma) * 100
+            intensity_bands.high_cma_percentage += (intensity_bands.high_cma / intensity_bands.total_cma) * 100
+
+        if intensity_bands.gct_total_left > 0:
+            intensity_bands.low_gct_left_percentage += (intensity_bands.low_gct_left / intensity_bands.gct_total_left) * 100
+            intensity_bands.moderate_gct_left_percentage += (intensity_bands.moderate_gct_left / intensity_bands.gct_total_left) * 100
+            intensity_bands.high_gct_left_percentage += (intensity_bands.high_gct_left / intensity_bands.gct_total_left) * 100
+
+        if intensity_bands.gct_total_right > 0:
+            intensity_bands.low_gct_right_percentage += (intensity_bands.low_gct_right / intensity_bands.gct_total_right) * 100
+            intensity_bands.moderate_gct_right_percentage += (intensity_bands.moderate_gct_right / intensity_bands.gct_total_right) * 100
+            intensity_bands.high_gct_right_percentage += (intensity_bands.high_gct_right / intensity_bands.gct_total_right) * 100
+
+        if grf_bands.total_seconds > 0:
+            grf_bands.low_seconds_percentage += (grf_bands.low_seconds / grf_bands.total_seconds) * 100
+            grf_bands.moderate_seconds_percentage += ( grf_bands.moderate_seconds / grf_bands.total_seconds) * 100
+            grf_bands.high_seconds_percentage += (grf_bands.high_seconds / grf_bands.total_seconds) * 100
+
+        if grf_bands.total_accumulated_grf > 0:
+            grf_bands.low_accumulated_grf_percentage += (grf_bands.low_accumulated_grf / grf_bands.total_accumulated_grf) * 100
+            grf_bands.moderate_accumulated_grf_percentage += (grf_bands.moderate_accumulated_grf / grf_bands.total_accumulated_grf) * 100
+            grf_bands.high_accumulated_grf_percentage += (grf_bands.high_accumulated_grf / grf_bands.total_accumulated_grf) * 100
+
+        if grf_bands.total_cma > 0:
+            grf_bands.low_cma_percentage += (grf_bands.low_cma / grf_bands.total_cma) * 100
+            grf_bands.moderate_cma_percentage += (grf_bands.moderate_cma / grf_bands.total_cma) * 100
+            grf_bands.high_cma_percentage += (grf_bands.high_cma / grf_bands.total_cma) * 100
+
+        if grf_bands.gct_total_left > 0:
+            grf_bands.low_gct_left_percentage += (grf_bands.low_gct_left / grf_bands.gct_total_left) * 100
+            grf_bands.moderate_gct_left_percentage += (grf_bands.moderate_gct_left / grf_bands.gct_total_left) * 100
+            grf_bands.high_gct_left_percentage += (grf_bands.high_gct_left / grf_bands.gct_total_left) * 100
+
+        if grf_bands.gct_total_right > 0:
+            grf_bands.low_gct_right_percentage += (grf_bands.low_gct_right / grf_bands.gct_total_right) * 100
+            grf_bands.moderate_gct_right_percentage += (grf_bands.moderate_gct_right / grf_bands.gct_total_right) * 100
+            grf_bands.high_gct_right_percentage += (grf_bands.high_gct_right / grf_bands.gct_total_right) * 100
+
+        if stance_bands.total_seconds > 0:
+            stance_bands.single_seconds_percentage += (stance_bands.single_seconds / stance_bands.total_seconds) * 100
+            stance_bands.double_seconds_percentage += (stance_bands.double_seconds / stance_bands.total_seconds) * 100
+
+        if stance_bands.total_accumulated_grf > 0:
+            stance_bands.single_accumulated_grf_percentage += (stance_bands.single_accumulated_grf / stance_bands.total_accumulated_grf) * 100
+            stance_bands.double_accumulated_grf_percentage += (stance_bands.double_accumulated_grf / stance_bands.total_accumulated_grf) * 100
+
+        if stance_bands.total_cma > 0:
+            stance_bands.single_cma_percentage += (stance_bands.single_cma / stance_bands.total_cma) * 100
+            stance_bands.double_cma_percentage += (stance_bands.double_cma / stance_bands.total_cma) * 100
+
+        if stance_bands.gct_total_left > 0:
+            stance_bands.single_gct_left_percentage += (stance_bands.single_gct_left / stance_bands.gct_total_left) * 100
+            stance_bands.double_gct_left_percentage += (stance_bands.double_gct_left / stance_bands.gct_total_left) * 100
+
+        if stance_bands.gct_total_right > 0:
+            stance_bands.single_gct_right_percentage += (stance_bands.single_gct_right / stance_bands.gct_total_right) * 100
+            stance_bands.double_gct_right_percentage += (stance_bands.double_gct_right / stance_bands.gct_total_right) * 100
+
+        if left_right_bands.total_seconds > 0:
+            left_right_bands.left_seconds_percentage += (left_right_bands.left_seconds / left_right_bands.total_seconds) * 100
+            left_right_bands.right_seconds_percentage += (left_right_bands.right_seconds / left_right_bands.total_seconds) * 100
+
+        if left_right_bands.total_accumulated_grf > 0:
+            left_right_bands.left_accumulated_grf_percentage += (left_right_bands.left_accumulated_grf / left_right_bands.total_accumulated_grf) * 100
+            left_right_bands.right_accumulated_grf_percentage += (left_right_bands.right_accumulated_grf / left_right_bands.total_accumulated_grf) * 100
+
+        if left_right_bands.total_cma > 0:
+            left_right_bands.left_cma_percentage += (left_right_bands.left_cma / left_right_bands.total_cma) * 100
+            left_right_bands.right_cma_percentage += (left_right_bands.right_cma / left_right_bands.total_cma) * 100
 
         session_volume.intensity_bands = intensity_bands
         session_volume.grf_bands = grf_bands
