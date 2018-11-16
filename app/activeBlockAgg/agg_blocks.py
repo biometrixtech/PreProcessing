@@ -240,7 +240,7 @@ def _aggregate(data, record, mass):
 
     # accel aggregation
     record['totalAccel'] = numpy.nansum(data['total_accel'])
-    record['peakAccel'] = _peak_accel(data['total_accel'].values)
+    record['totalAccelAvg'] = _peak_accel(data['total_accel'].values)
     record['irregularAccel'] = numpy.nansum(data['irregular_accel'])
 
     if record['totalGRF'] == 0:
