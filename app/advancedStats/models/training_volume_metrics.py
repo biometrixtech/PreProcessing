@@ -4,6 +4,8 @@ class SessionTrainingVolume(object):
         self.cma = 0.0
         self.average_peak_vertical_grf_lf = 0.0
         self.average_peak_vertical_grf_rf = 0.0
+        self.average_peak_acceleration = 0.0
+        self.average_total_GRF = 0.0
         self.active_time = 0.0
         self.ground_contact_time_left = 0.0
         self.ground_contact_time_right = 0.0

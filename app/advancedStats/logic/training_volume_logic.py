@@ -84,6 +84,9 @@ def get_session_training_volume_data(user, date):
                     session_volume.accumulated_grf += ub_rec.total_grf
                     session_volume.active_time += ub_rec.duration
                     session_volume.cma += ub_rec.total_accel
+                    session_volume.average_peak_acceleration += ub_rec.total_accel_avg
+                    session_volume.average_total_GRF += ub_rec.total_grf_avg
+
                     if ub_rec.peak_grf_lf is not None:
                         session_volume.average_peak_vertical_grf_lf += ub_rec.peak_grf_lf
                     if ub_rec.peak_grf_rf is not None:
@@ -311,6 +314,11 @@ def get_session_training_volume_data(user, date):
             session_volume.average_peak_vertical_grf_lf = (session_volume.average_peak_vertical_grf_lf /
                                                            float(session_position + 1))
             session_volume.average_peak_vertical_grf_rf = (session_volume.average_peak_vertical_grf_rf /
+                                                           float(session_position + 1))
+
+            session_volume.average_total_GRF = (session_volume.average_total_GRF /
+                                                           float(session_position + 1))
+            session_volume.average_peak_acceleration = (session_volume.average_peak_acceleration /
                                                            float(session_position + 1))
 
             grf_bands.total_average_peak_vGRF_lf = (grf_bands.total_average_peak_vGRF_lf /
