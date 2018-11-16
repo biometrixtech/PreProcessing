@@ -45,22 +45,30 @@ class AsymmetryProcessor(object):
         events = []
 
         for keys, mcsl in self.single_complexity_matrix.items():
-            event = self.get_loading_asymmetry("total_grf", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
+            total_grf_event = self.get_loading_asymmetry("total_grf", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
                                                "Single")
 
-            events.append(event)
+            total_accel_event = self.get_loading_asymmetry("total_accel", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
+                                               "Single")
+
+            events.append(total_grf_event)
+            events.append(total_accel_event)
 
         for keys, mcdl in self.double_complexity_matrix.items():
-            event = self.get_loading_asymmetry("total_grf", mcdl, mcdl.complexity_level, mcdl.cma_level, mcdl.grf_level,
+            total_grf_event = self.get_loading_asymmetry("total_grf", mcdl, mcdl.complexity_level, mcdl.cma_level, mcdl.grf_level,
                                                "Double")
+            total_accel_event = self.get_loading_asymmetry("total_accel", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
+                                               "Single")
 
-            events.append(event)
+            events.append(total_grf_event)
+            events.append(total_accel_event)
 
         return events
 
     def get_loading_asymmetry(self, attribute, complexity_matrix_cell, complexity_level, cma_level, grf_level, stance):
 
         asym = LoadingAsymmetry(complexity_level, cma_level, grf_level, stance)
+        asym.variable = attribute
         left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
         right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
         asym.total_left_right_sum = left_sum + right_sum
