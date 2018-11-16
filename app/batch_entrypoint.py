@@ -122,8 +122,9 @@ def mkdir(path):
             raise
 
 
-@xray_recorder.capture('preprocessing.app.main')
 def main():
+    xray_recorder.begin_segment('preprocessing.app')
+
     global script, input_data, meta_data
     meta_data = {}  # In case an exception is thrown when decoding input_data
 
@@ -481,6 +482,8 @@ def main():
         print(e)
         send_failure(meta_data, e)
         raise
+    finally:
+        xray_recorder.end_segment()
 
 
 def json_serial(obj):
