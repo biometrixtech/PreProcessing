@@ -17,6 +17,7 @@ from aws_xray_sdk.core import xray_recorder, patch_all
 patch_all()
 
 
+@xray_recorder.capture('batch_entrypoint.send_success')
 def send_success(meta, output):
     if 'TaskToken' in meta:
         sfn_client = boto3.client('stepfunctions')
@@ -30,6 +31,7 @@ def send_success(meta, output):
         )
 
 
+@xray_recorder.capture('batch_entrypoint.send_profiling')
 def send_profiling(meta):
     if 'Profiling' in meta:
         meta['Profiling']['EndTime'] = time.time()
@@ -39,7 +41,8 @@ def send_profiling(meta):
             'Seconds'
         )
 
-    
+
+@xray_recorder.capture('batch_entrypoint.send_failure')
 def send_failure(meta, exception):
     task_token = meta['TaskToken']
     if task_token is not None:
@@ -51,6 +54,7 @@ def send_failure(meta, exception):
         )
 
 
+@xray_recorder.capture('batch_entrypoint.send_heartbeat')
 def send_heartbeat(meta):
     task_token = meta['TaskToken']
     if task_token is not None:
@@ -84,6 +88,7 @@ def send_heartbeat(meta):
 #                 os.environ[k] = v
 
 
+@xray_recorder.capture('batch_entrypoint.put_cloudwatch_metric')
 def put_cloudwatch_metric(metric_name, value, unit):
     try:
         cloudwatch_client = boto3.client('cloudwatch')
@@ -115,6 +120,7 @@ def put_cloudwatch_metric(metric_name, value, unit):
         # Continue
 
 
+@xray_recorder.capture('batch_entrypoint.mkdir')
 def mkdir(path):
     """
     Create a directory, but don't fail if it already exists
@@ -488,7 +494,6 @@ def main():
         send_failure(meta_data, e)
         raise
     finally:
-        print('Ending X-Ray segment')
         xray_recorder.end_segment()
 
 
