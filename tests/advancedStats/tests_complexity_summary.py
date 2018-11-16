@@ -3,8 +3,8 @@ import pandas
 import advancedStats.logic.complexity_matrix_logic
 import advancedStats.logic.fatigue_logic
 from advancedStats.logic.asymmetry_logic import AsymmetryProcessor
-import app.advancedStats.complexity_symmetry as calc
-from app.advancedStats.models.complexity_matrix import ComplexityMatrix
+# import app.advancedStats.complexity_symmetry as calc
+# from app.advancedStats.models.complexity_matrix import ComplexityMatrix
 from app.advancedStats.models.fatigue import SessionFatigue
 
 
@@ -188,5 +188,16 @@ def test_get_loading_asymmetries():
                         ])
 
 
+def test_session_asymmetries():
 
+    athlete = "Maggie"
+    date = "2018-04-24"
+
+    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+
+    proc = AsymmetryProcessor(athlete, date, "", mc_sl_list, mc_dl_list)
+
+    session_asymmmetry = proc.get_session_asymmetry()
+
+    df = pandas.DataFrame()
 

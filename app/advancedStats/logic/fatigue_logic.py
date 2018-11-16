@@ -38,7 +38,7 @@ def get_fatigue_events(mc_sl_list, mc_dl_list):
             #      'flex_negative_hip_LF':[difs.flex_negative_hip_LF],
             #      'flex_negative_hip_RF':[difs.flex_negative_hip_RF],
             #  },index=["Single Leg"])
-            ab = FatigueEvent(mcsl.row_name, mcsl.column_name)
+            ab = FatigueEvent(mcsl.cma_level, mcsl.grf_level)
             ab.active_block_id = difs.active_block_id
             ab.complexity_level = difs.complexity_level
             ab.attribute_name = difs.attribute_name
@@ -115,7 +115,7 @@ def get_fatigue_events(mc_sl_list, mc_dl_list):
             #}, index=["Double Leg"])
             #decay_frame = decay_frame.append(ab)
 
-            ab = FatigueEvent(mcdl.row_name, mcdl.column_name)
+            ab = FatigueEvent(mcdl.cma_level, mcdl.grf_level)
             ab.active_block_id = difs.active_block_id
             ab.complexity_level = difs.complexity_level
             ab.attribute_name = difs.attribute_name

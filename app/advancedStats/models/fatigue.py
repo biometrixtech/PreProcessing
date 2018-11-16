@@ -3,7 +3,7 @@ from operator import itemgetter
 
 
 class FatigueEvent(object):
-    def __init__(self, grf_level, cma_level):
+    def __init__(self, cma_level, grf_level):
         self.stance = ""
         self.active_block_id = ""
         self.complexity_level = ""

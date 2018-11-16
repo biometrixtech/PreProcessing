@@ -5,7 +5,7 @@ from advancedStats.summary_analysis import get_unit_blocks
 from advancedStats.models.training_volume_metrics import LeftRightBands, LowModHighBands, SessionTrainingVolume, StanceBands
 
 
-def create_intensity_matrix(user, date):
+def get_session_training_volume_data(user, date):
     mongo_unit_blocks = get_unit_blocks(user, date)
     session_volume = SessionTrainingVolume()
     intensity_bands = LowModHighBands()

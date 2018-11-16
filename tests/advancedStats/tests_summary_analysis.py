@@ -28,10 +28,10 @@ def test_get_intensity_matrix():
     athlete = "Maggie"
     date = "2018-04-24"
 
-    intensity_matrix = advancedStats.logic.training_volume_logic.create_intensity_matrix(athlete, date)
+    training_data = advancedStats.logic.training_volume_logic.get_session_training_volume_data(athlete, date)
 
     #this no longer works since no longer dataframe
-    intensity_matrix.to_csv('~/decay/intensity_matrix_' + athlete + '_' + date + 'v6.csv', sep=',',
+    training_data.to_csv('~/decay/intensity_matrix_' + athlete + '_' + date + 'v6.csv', sep=',',
                            index_label='variable')
 
 
