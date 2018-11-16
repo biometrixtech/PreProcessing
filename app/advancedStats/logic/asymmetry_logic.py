@@ -28,7 +28,7 @@ class AsymmetryProcessor(object):
         var_list.append(CategorizationVariable("peak_grf_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
         var_list.append(CategorizationVariable("gct_perc_diff_lf", 0, 5, 5, 10, 10, 100, False))
         var_list.append(CategorizationVariable("gct_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
-        
+
         # var_list.append(CategorizationVariable("peak_grf_gct_left", 0, 5, 5, 10, 10, 100, False))
         # var_list.append(CategorizationVariable("peak_grf_gct_right", 0, 5, 5, 10, 10, 100, False))
         var_list.append(CategorizationVariable("peak_grf_gct_left_over", 0, 2.5, 2.5, 5, 5, 100, False))
