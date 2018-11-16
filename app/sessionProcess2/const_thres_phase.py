@@ -17,8 +17,8 @@ highcut_pitch = 40
 
 #ground vs movement
 thresh = 2.0 # threshold to detect balance phase
-bal_win = int(0.15*hz)  # sampling window to determine balance phase
-min_thresh_mov = int(.2*hz)
+bal_win = int(0.12*hz)  # sampling window to determine balance phase
+min_thresh_mov = int(.1*hz)
 
 
 
@@ -34,11 +34,11 @@ jump_thres_takeoff = 1.5 * g
 min_air_time = int(0.16 * hz)
 
 #impact
-neg_thresh = -2.*g  # negative threshold
+neg_thresh = -.75*g  # negative threshold
 pos_thresh = .45*g  # positive threshold
-jump_thresh = 2.5*g
-win = int(0.03*hz)  # sampling window for impact detect
-imp_len = int(0.12*hz) #impact length
+jump_thresh = 1.5*g
+win = int(0.04*hz)  # sampling window for impact detect
+imp_len = int(0.06*hz) #impact length
 end_imp_thresh = int(0.35*hz)
 max_imp_length = int(0.35*hz)
 drop_thresh = 0. * g

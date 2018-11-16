@@ -46,15 +46,6 @@ def prepare_data(data_in, sc, sl=False):
     data['HeZ'] = np.array(data_in.HeZ)
     data['mass'] = np.array(data_in.mass)
 
-    # Change phases to 0,1,2 encoding
-    data.loc[data.phase_lf==1, 'phase_lf'] = 0
-    data.loc[(data.phase_lf==2) | (data.phase_lf==3), 'phase_lf' ] = 1
-    data.loc[data.phase_lf==4, 'phase_lf'] = 2
-    
-    data.loc[data.phase_rf==2, 'phase_rf'] = 0
-    data.loc[(data.phase_rf==1) | (data.phase_rf==3), 'phase_rf'] = 1
-    data.loc[data.phase_rf==5, 'phase_rf'] = 2
-
     # create dummy variables for phase
     data.phase_lf = data.phase_lf.astype(long)
     data.phase_rf = data.phase_rf.astype(long)
