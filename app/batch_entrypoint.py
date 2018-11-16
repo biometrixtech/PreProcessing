@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Entrypoint when called as a batch job
-from aws_xray_sdk.core import xray_recorder
 import os
 from datetime import datetime
 import boto3
@@ -10,6 +9,12 @@ import sys
 import time
 import traceback
 from config import load_parameters
+
+import logging
+logging.basicConfig()
+
+from aws_xray_sdk.core import xray_recorder, patch_all
+patch_all()
 
 
 def send_success(meta, output):
@@ -483,6 +488,7 @@ def main():
         send_failure(meta_data, e)
         raise
     finally:
+        print('Ending X-Ray segment')
         xray_recorder.end_segment()
 
 
