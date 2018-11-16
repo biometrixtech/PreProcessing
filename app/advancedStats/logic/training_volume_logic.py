@@ -89,6 +89,9 @@ def get_session_training_volume_data(user, date):
                     if ub_rec.peak_grf_rf is not None:
                         session_volume.average_peak_vertical_grf_rf += ub_rec.peak_grf_rf
 
+                    lf_steps = ub_data.get('stepsLF')
+                    rf_steps = ub_data.get('stepsRF')
+
                     intensity_bands.total_seconds += ub_rec.duration
                     intensity_bands.total_accumulated_grf += ub_rec.total_grf
                     intensity_bands.total_cma += ub_rec.total_accel
@@ -96,12 +99,6 @@ def get_session_training_volume_data(user, date):
                         intensity_bands.total_average_peak_vGRF_lf += ub_rec.peak_grf_lf
                     if ub_rec.peak_grf_rf is not None:
                         intensity_bands.total_average_peak_vGRF_rf += ub_rec.peak_grf_rf
-
-                    if ub_rec.contact_duration_lf is not None:
-                        intensity_bands.gct_total_left += ub_rec.contact_duration_lf
-
-                    if ub_rec.contact_duration_rf is not None:
-                        intensity_bands.gct_total_right += ub_rec.contact_duration_rf
 
                     if ub_rec.total_accel_avg < 45:
                         intensity_bands.low_seconds += (time_end_object - time_start_object).seconds
@@ -113,11 +110,13 @@ def get_session_training_volume_data(user, date):
                         if ub_rec.peak_grf_rf is not None:
                             intensity_bands.low_average_peak_vGRF_rf += ub_rec.peak_grf_rf
                             right_step_peak_int_low_present += 1
+                        intensity_bands.low_gct_left += get_gct_from_steps(lf_steps, accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.low_gct_right += get_gct_from_steps(rf_steps, accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
 
-                        if ub_rec.contact_duration_lf is not None:
-                            intensity_bands.low_gct_left += ub_rec.contact_duration_lf
-                        if ub_rec.contact_duration_rf is not None:
-                            intensity_bands.low_gct_right += ub_rec.contact_duration_rf
                     elif ub_rec.total_accel_avg >= 45 and ub_rec.total_accel_avg < 105:
                         intensity_bands.moderate_seconds += (time_end_object - time_start_object).seconds
                         intensity_bands.moderate_accumulated_grf += ub_rec.total_grf
@@ -128,11 +127,13 @@ def get_session_training_volume_data(user, date):
                         if ub_rec.peak_grf_rf is not None:
                             intensity_bands.moderate_average_peak_vGRF_rf += ub_rec.peak_grf_rf
                             right_step_peak_int_mod_present += 1
+                        intensity_bands.moderate_gct_left += get_gct_from_steps(lf_steps, accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.moderate_gct_right += get_gct_from_steps(rf_steps, accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
 
-                        if ub_rec.contact_duration_lf is not None:
-                            intensity_bands.moderate_gct_left += ub_rec.contact_duration_lf
-                        if ub_rec.contact_duration_rf is not None:
-                            intensity_bands.moderate_gct_right += ub_rec.contact_duration_rf
                     else:
                         intensity_bands.high_seconds += (time_end_object - time_start_object).seconds
                         intensity_bands.high_accumulated_grf += ub_rec.total_grf
@@ -143,11 +144,12 @@ def get_session_training_volume_data(user, date):
                         if ub_rec.peak_grf_rf is not None:
                             intensity_bands.high_average_peak_vGRF_rf += ub_rec.peak_grf_rf
                             right_step_peak_int_high_present += 1
-
-                        if ub_rec.contact_duration_lf is not None:
-                            intensity_bands.high_gct_left += ub_rec.contact_duration_lf
-                        if ub_rec.contact_duration_rf is not None:
-                            intensity_bands.high_gct_right += ub_rec.contact_duration_rf
+                        intensity_bands.high_gct_left += get_gct_from_steps(lf_steps, accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.high_gct_right += get_gct_from_steps(rf_steps, accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
 
                     # grf bands
 
@@ -158,19 +160,10 @@ def get_session_training_volume_data(user, date):
                         grf_bands.total_average_peak_vGRF_lf += ub_rec.peak_grf_lf
                     if ub_rec.peak_grf_rf is not None:
                         grf_bands.total_average_peak_vGRF_rf += ub_rec.peak_grf_rf
-                    if ub_rec.contact_duration_lf is not None:
-                        grf_bands.gct_total_left += ub_rec.contact_duration_lf
-                    if ub_rec.contact_duration_rf is not None:
-                        grf_bands.gct_total_right += ub_rec.contact_duration_rf
 
                     stance_bands.total_seconds += ub_rec.duration
                     stance_bands.total_accumulated_grf += ub_rec.total_grf
                     stance_bands.total_cma += ub_rec.total_accel
-
-                    if ub_rec.contact_duration_lf is not None:
-                        stance_bands.gct_total_left += ub_rec.contact_duration_lf
-                    if ub_rec.contact_duration_rf is not None:
-                        stance_bands.gct_total_right += ub_rec.contact_duration_rf
 
                     left_right_bands.total_seconds += ub_rec.duration
                     left_right_bands.total_accumulated_grf += ub_rec.total_grf
@@ -179,15 +172,6 @@ def get_session_training_volume_data(user, date):
                         left_right_bands.left_average_peak_vGRF += ub_rec.peak_grf_lf
                     if ub_rec.peak_grf_rf is not None:
                         left_right_bands.right_average_peak_vGRF += ub_rec.peak_grf_rf
-
-                    if ub_rec.contact_duration_lf is not None:
-                        left_right_bands.left_gct += ub_rec.contact_duration_lf
-                    if ub_rec.contact_duration_rf is not None:
-                        left_right_bands.right_gct += ub_rec.contact_duration_rf
-
-                    lf_steps = ub_data.get('stepsLF')
-
-
 
                     for lf_step in lf_steps:
                         left_step = Step(lf_step, accumulated_grf_LF, 'Left', active_block, n, session_position,
@@ -246,10 +230,9 @@ def get_session_training_volume_data(user, date):
                         left_right_bands.left_gct += left_step.contact_duration
 
                         session_volume.ground_contact_time_left += left_step.contact_duration
-
-                    rf_steps = ub_data.get('stepsRF')
-
-
+                        intensity_bands.gct_total_left += left_step.contact_duration
+                        grf_bands.gct_total_left += left_step.contact_duration
+                        stance_bands.gct_total_left += left_step.contact_duration
 
                     for rf_step in rf_steps:
                         right_step = Step(rf_step, accumulated_grf_RF, 'Right', active_block, n, session_position,
@@ -308,11 +291,20 @@ def get_session_training_volume_data(user, date):
                         left_right_bands.right_gct += right_step.contact_duration
 
                         session_volume.ground_contact_time_right += right_step.contact_duration
+                        intensity_bands.gct_total_right += right_step.contact_duration
+                        grf_bands.gct_total_right += right_step.contact_duration
+                        stance_bands.gct_total_right += right_step.contact_duration
 
                     session_position = session_position + 1
 
         session_volume.ground_contact_time_right = session_volume.ground_contact_time_right / 1000
         session_volume.ground_contact_time_left = session_volume.ground_contact_time_left / 1000
+        # intensity_bands.gct_total_right = intensity_bands.gct_total_right / 1000
+        # intensity_bands.gct_total_left = intensity_bands.gct_total_left / 1000
+        # grf_bands.gct_total_right = grf_bands.gct_total_right / 1000
+        # grf_bands.gct_total_left = grf_bands.gct_total_left / 1000
+        # stance_bands.gct_total_right = stance_bands.gct_total_right / 1000
+        # stance_bands.gct_total_left = stance_bands.gct_total_left / 1000
 
         if session_position > 0:
 
@@ -493,3 +485,14 @@ def get_session_training_volume_data(user, date):
         session_volume.left_right_bands = left_right_bands
 
     return session_volume
+
+
+def get_gct_from_steps(step_list, accumulated_grf_LF, orientation, active_block, n, session_position, session_time_start_object):
+
+    gct = 0
+
+    for step in step_list:
+        new_step = Step(step, accumulated_grf_LF, orientation, active_block, n, session_position, session_time_start_object)
+        gct += new_step.contact_duration
+
+    return gct
