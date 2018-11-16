@@ -8,7 +8,7 @@ class LoadingAsymmetry(object):
         self.training_asymmetry = 0
         self.kinematic_asymmetry = 0
         self.total_asymmetry = self.training_asymmetry+self.kinematic_asymmetry
-        self.total_sum = 0
+        self.total_left_right_sum = 0
         self.total_percent_asymmetry = None
         self.left_step_count = 0
         self.right_step_count = 0
