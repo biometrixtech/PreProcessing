@@ -119,6 +119,18 @@ def get_session_training_volume_data(user, date):
                         intensity_bands.low_gct_right += get_gct_from_steps(rf_steps, accumulated_grf_LF, "Right",
                                                                             active_block, n, session_position,
                                                                             session_time_start_object)
+                        intensity_bands.low_average_accel_lf += get_avg_from_steps(lf_steps, "total_accel_avg", accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.low_average_accel_rf += get_avg_from_steps(rf_steps, "total_accel_avg", accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
+                        intensity_bands.low_average_GRF_lf += get_avg_from_steps(lf_steps, "total_grf_avg", accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.low_average_GRF_rf += get_avg_from_steps(rf_steps, "total_grf_avg", accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
 
                     elif ub_rec.total_accel_avg >= 45 and ub_rec.total_accel_avg < 105:
                         intensity_bands.moderate_seconds += (time_end_object - time_start_object).seconds
@@ -136,6 +148,18 @@ def get_session_training_volume_data(user, date):
                         intensity_bands.moderate_gct_right += get_gct_from_steps(rf_steps, accumulated_grf_LF, "Right",
                                                                             active_block, n, session_position,
                                                                             session_time_start_object)
+                        intensity_bands.moderate_average_accel_lf += get_avg_from_steps(lf_steps, "total_accel_avg", accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.moderate_average_accel_rf += get_avg_from_steps(rf_steps, "total_accel_avg", accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
+                        intensity_bands.moderate_average_GRF_lf += get_avg_from_steps(lf_steps, "total_grf_avg", accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.moderate_average_GRF_rf += get_avg_from_steps(rf_steps, "total_grf_avg", accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
 
                     else:
                         intensity_bands.high_seconds += (time_end_object - time_start_object).seconds
@@ -151,6 +175,18 @@ def get_session_training_volume_data(user, date):
                                                                            active_block, n, session_position,
                                                                            session_time_start_object)
                         intensity_bands.high_gct_right += get_gct_from_steps(rf_steps, accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
+                        intensity_bands.high_average_accel_lf += get_avg_from_steps(lf_steps, "total_accel_avg", accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.high_average_accel_rf += get_avg_from_steps(rf_steps, "total_accel_avg", accumulated_grf_LF, "Right",
+                                                                            active_block, n, session_position,
+                                                                            session_time_start_object)
+                        intensity_bands.high_average_GRF_lf += get_avg_from_steps(lf_steps, "total_grf_avg", accumulated_grf_LF, "Left",
+                                                                           active_block, n, session_position,
+                                                                           session_time_start_object)
+                        intensity_bands.high_average_GRF_rf += get_avg_from_steps(rf_steps, "total_grf_avg", accumulated_grf_LF, "Right",
                                                                             active_block, n, session_position,
                                                                             session_time_start_object)
 
@@ -190,6 +226,8 @@ def get_session_training_volume_data(user, date):
                                 grf_bands.low_average_peak_vGRF_lf += left_step.peak_grf
                                 left_step_peak_grf_low_present += 1
                             grf_bands.low_gct_left += left_step.contact_duration
+                            grf_bands.low_average_accel_lf += left_step.total_accel_avg
+                            grf_bands.low_average_GRF_lf += left_step.total_grf_avg
                         elif 2 < left_step.peak_grf <= 3:
                             grf_bands.moderate_seconds += 0
                             grf_bands.moderate_accumulated_grf += left_step.total_grf
@@ -198,6 +236,8 @@ def get_session_training_volume_data(user, date):
                                 grf_bands.moderate_average_peak_vGRF_lf += left_step.peak_grf
                                 left_step_peak_grf_mod_present += 1
                             grf_bands.moderate_gct_left += left_step.contact_duration
+                            grf_bands.moderate_average_accel_lf += left_step.total_accel_avg
+                            grf_bands.moderate_average_GRF_lf += left_step.total_grf_avg
                         else:
                             grf_bands.high_seconds += 0
                             grf_bands.high_accumulated_grf += left_step.total_grf
@@ -206,6 +246,8 @@ def get_session_training_volume_data(user, date):
                                 grf_bands.high_average_peak_vGRF_lf += left_step.peak_grf
                                 left_step_peak_grf_high_present += 1
                             grf_bands.high_gct_left += left_step.contact_duration
+                            grf_bands.high_average_accel_lf += left_step.total_accel_avg
+                            grf_bands.high_average_GRF_lf += left_step.total_grf_avg
 
                         if left_step.stance_calc == 4: # double
                             stance_bands.double_seconds += 0
@@ -251,6 +293,8 @@ def get_session_training_volume_data(user, date):
                                 grf_bands.low_average_peak_vGRF_rf += right_step.peak_grf
                                 right_step_peak_grf_low_present += 1
                             grf_bands.low_gct_right += right_step.contact_duration
+                            grf_bands.low_average_accel_rf += right_step.total_accel_avg
+                            grf_bands.low_average_GRF_rf += right_step.total_grf_avg
                         elif 2 < right_step.peak_grf <= 3:
                             grf_bands.moderate_seconds += 0
                             grf_bands.moderate_accumulated_grf += right_step.total_grf
@@ -259,6 +303,8 @@ def get_session_training_volume_data(user, date):
                                 grf_bands.moderate_average_peak_vGRF_rf += right_step.peak_grf
                                 right_step_peak_grf_mod_present += 1
                             grf_bands.moderate_gct_right += right_step.contact_duration
+                            grf_bands.moderate_average_accel_rf += right_step.total_accel_avg
+                            grf_bands.moderate_average_GRF_rf += right_step.total_grf_avg
                         else:
                             grf_bands.high_seconds += 0
                             grf_bands.high_accumulated_grf += right_step.total_grf
@@ -267,6 +313,8 @@ def get_session_training_volume_data(user, date):
                                 grf_bands.high_average_peak_vGRF_rf += right_step.peak_grf
                                 right_step_peak_grf_high_present += 1
                             grf_bands.high_gct_right += right_step.contact_duration
+                            grf_bands.high_average_accel_rf += right_step.total_accel_avg
+                            grf_bands.high_average_GRF_rf += right_step.total_grf_avg
 
                         if right_step.stance_calc == 4: # double
                             stance_bands.double_seconds += 0
@@ -331,6 +379,33 @@ def get_session_training_volume_data(user, date):
             intensity_bands.total_average_peak_vGRF_rf = (intensity_bands.total_average_peak_vGRF_rf /
                                                            float(session_position + 1))
 
+            intensity_bands.low_average_GRF_lf = (intensity_bands.low_average_GRF_lf /
+                                                          float(session_position + 1))
+            intensity_bands.low_average_GRF_rf = (intensity_bands.low_average_GRF_rf /
+                                                          float(session_position + 1))
+            intensity_bands.moderate_average_GRF_lf = (intensity_bands.moderate_average_GRF_lf /
+                                                          float(session_position + 1))
+            intensity_bands.moderate_average_GRF_rf = (intensity_bands.moderate_average_GRF_rf /
+                                                          float(session_position + 1))
+            intensity_bands.high_average_GRF_lf = (intensity_bands.high_average_GRF_lf /
+                                                          float(session_position + 1))
+            intensity_bands.high_average_GRF_rf = (intensity_bands.high_average_GRF_rf /
+                                                          float(session_position + 1))
+
+            intensity_bands.low_average_accel_lf = (intensity_bands.low_average_accel_lf /
+                                                          float(session_position + 1))
+            intensity_bands.low_average_accel_rf = (intensity_bands.low_average_accel_rf /
+                                                          float(session_position + 1))
+            intensity_bands.moderate_average_accel_lf = (intensity_bands.moderate_average_accel_lf /
+                                                          float(session_position + 1))
+            intensity_bands.moderate_average_accel_rf = (intensity_bands.moderate_average_accel_rf /
+                                                          float(session_position + 1))
+            intensity_bands.high_average_accel_lf = (intensity_bands.high_average_accel_lf /
+                                                          float(session_position + 1))
+            intensity_bands.high_average_accel_rf = (intensity_bands.high_average_accel_rf /
+                                                          float(session_position + 1))
+
+
         if left_step_peak_int_high_present > 0:
 
             intensity_bands.high_average_peak_vGRF_lf = (intensity_bands.high_average_peak_vGRF_lf /
@@ -357,29 +432,55 @@ def get_session_training_volume_data(user, date):
 
             grf_bands.high_average_peak_vGRF_lf = (grf_bands.high_average_peak_vGRF_lf /
                                                          float(left_step_peak_grf_high_present))
+            grf_bands.high_average_GRF_lf = (grf_bands.high_average_GRF_lf /
+                                                   float(left_step_peak_grf_high_present))
+            grf_bands.high_average_accel_lf = (grf_bands.high_average_accel_lf /
+                                                   float(left_step_peak_grf_high_present))
 
         if right_step_peak_grf_high_present > 0:
 
             grf_bands.high_average_peak_vGRF_rf = (grf_bands.high_average_peak_vGRF_rf /
                                                          float(right_step_peak_grf_high_present))
 
+            grf_bands.high_average_GRF_rf = (grf_bands.high_average_GRF_rf /
+                                                   float(right_step_peak_grf_high_present))
+            grf_bands.high_average_accel_rf = (grf_bands.high_average_accel_rf /
+                                                   float(right_step_peak_grf_high_present))
+
         if left_step_peak_grf_mod_present > 0:
 
             grf_bands.moderate_average_peak_vGRF_lf = (grf_bands.moderate_average_peak_vGRF_lf /
                                                              float(left_step_peak_grf_mod_present))
+            grf_bands.moderate_average_GRF_lf = (grf_bands.moderate_average_GRF_lf /
+                                                   float(left_step_peak_grf_high_present))
+            grf_bands.moderate_average_accel_lf = (grf_bands.moderate_average_accel_lf /
+                                                   float(left_step_peak_grf_high_present))
 
         if right_step_peak_grf_mod_present > 0:
 
             grf_bands.moderate_average_peak_vGRF_rf = (grf_bands.moderate_average_peak_vGRF_rf /
                                                              float(right_step_peak_grf_mod_present))
+            grf_bands.moderate_average_GRF_rf = (grf_bands.moderate_average_GRF_rf /
+                                                 float(right_step_peak_grf_high_present))
+            grf_bands.moderate_average_accel_rf = (grf_bands.moderate_average_accel_rf /
+                                                   float(right_step_peak_grf_high_present))
 
         if left_step_peak_grf_low_present > 0:
             grf_bands.low_average_peak_vGRF_lf = (grf_bands.low_average_peak_vGRF_lf /
                                                         float(left_step_peak_grf_low_present))
+            grf_bands.low_average_GRF_lf = (grf_bands.low_average_GRF_lf /
+                                                   float(left_step_peak_grf_high_present))
+            grf_bands.low_average_accel_lf = (grf_bands.low_average_accel_lf /
+                                                   float(left_step_peak_grf_high_present))
 
         if right_step_peak_grf_low_present > 0:
             grf_bands.low_average_peak_vGRF_rf = (grf_bands.low_average_peak_vGRF_rf /
                                                         float(right_step_peak_grf_low_present))
+
+            grf_bands.low_average_GRF_rf = (grf_bands.low_average_GRF_rf /
+                                                   float(right_step_peak_grf_high_present))
+            grf_bands.low_average_accel_rf = (grf_bands.low_average_accel_rf /
+                                                   float(right_step_peak_grf_high_present))
 
         if left_stance_single_present > 0:
             stance_bands.single_average_peak_vGRF_lf = (stance_bands.single_average_peak_vGRF_lf /
@@ -504,3 +605,20 @@ def get_gct_from_steps(step_list, accumulated_grf_LF, orientation, active_block,
         gct += new_step.contact_duration
 
     return gct
+
+def get_avg_from_steps(step_list, attribute_name,  accumulated_grf_LF, orientation, active_block, n, session_position, session_time_start_object):
+
+    val = 0
+    cnt = 0
+
+    for step in step_list:
+        new_step = Step(step, accumulated_grf_LF, orientation, active_block, n, session_position, session_time_start_object)
+        val += getattr(new_step, attribute_name)
+        cnt += 1
+
+    if cnt > 0:
+        avg = val/float(cnt)
+    else:
+        avg = 0
+
+    return avg

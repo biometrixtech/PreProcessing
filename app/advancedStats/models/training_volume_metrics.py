@@ -44,7 +44,7 @@ class LowModHighBands(object):
         self.high_cma_percentage = 0.0
         self.total_cma = 0.0
 
-        # accumulated_peak_vertical_grf by low, mod, high bands
+        # avg_peak_vertical_grf by low, mod, high bands
         self.low_average_peak_vGRF_lf = 0.0
         self.moderate_average_peak_vGRF_lf = 0.0
         self.high_average_peak_vGRF_lf = 0.0
@@ -54,6 +54,28 @@ class LowModHighBands(object):
         self.moderate_average_peak_vGRF_rf = 0.0
         self.high_average_peak_vGRF_rf = 0.0
         self.total_average_peak_vGRF_rf = 0.0
+
+        # avg_grf by low, mod, high bands
+        self.low_average_GRF_lf = 0.0
+        self.moderate_average_GRF_lf = 0.0
+        self.high_average_GRF_lf = 0.0
+        self.total_average_GRF_lf = 0.0
+
+        self.low_average_GRF_rf = 0.0
+        self.moderate_average_GRF_rf = 0.0
+        self.high_average_GRF_rf = 0.0
+        self.total_average_GRF_rf = 0.0
+
+        # avg_accel by low, mod, high bands
+        self.low_average_accel_lf = 0.0
+        self.moderate_average_accel_lf = 0.0
+        self.high_average_accel_lf = 0.0
+        self.total_average_accel_lf = 0.0
+
+        self.low_average_accel_rf = 0.0
+        self.moderate_average_accel_rf = 0.0
+        self.high_average_accel_rf = 0.0
+        self.total_average_accel_rf = 0.0
 
         # cma by low, mod, high bands
         self.low_gct_left = 0.0
