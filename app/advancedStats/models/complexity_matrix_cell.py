@@ -1,12 +1,11 @@
-import step
 import numpy as np
-from scipy import stats 
-from scipy.integrate import odeint
-from asymmetry import Asymmetry
+from scipy import stats
+
+#from advancedStats.logic.asymmetry_logic import get_steps_f_test
+from asymmetry import LoadingAsymmetry
 from complexity_matrix_summary import ComplexityMatrixSummary
 from descriptive_stats_cell import DescriptiveStatsCell
 from matrix_kruskal import MatrixKruskal
-import pandas
 import math
 #import matrix_decay_parameters
 from active_block_summary import ActiveBlockSummary
@@ -16,8 +15,8 @@ from active_block_outlier import ActiveBlockOutlier
 class ComplexityMatrixCell(object):
     """description of class"""
     def __init__(self,row_name="Row",column_name="Column", complexity_level="Low"):
-        self.row_name = row_name
-        self.column_name = column_name
+        self.grf_level = row_name
+        self.cma_level = column_name
         self.complexity_level = complexity_level
         self.left_steps = []
         self.right_steps = []
@@ -35,7 +34,7 @@ class ComplexityMatrixCell(object):
         return summary
     
     def get_asymmetry(self, attribute):
-        asym = Asymmetry()
+        asym = LoadingAsymmetry()
         left_sum = self.get_steps_sum(attribute, self.left_steps)
         right_sum = self.get_steps_sum(attribute, self.right_steps)
         asym.total_sum = left_sum + right_sum
@@ -47,51 +46,6 @@ class ComplexityMatrixCell(object):
         asym.total_asymmetry = asym.training_asymmetry + asym.kinematic_asymmetry
         return asym
 
-    def get_descriptive_stats(self):
-        stats = DescriptiveStatsCell()
-        stats.left_adduc_ROM_mean = self.get_steps_mean("adduc_ROM", self.left_steps)
-        stats.left_adduc_ROM_stddev = self.get_steps_stddev("adduc_ROM", self.left_steps)
-        stats.left_adduc_motion_covered_mean = self.get_steps_mean("adduc_motion_covered", self.left_steps)
-        stats.left_adduc_motion_covered_stddev = self.get_steps_stddev("adduc_motion_covered", self.left_steps)       
-        stats.left_flex_ROM_mean = self.get_steps_mean("flex_ROM", self.left_steps)
-        stats.left_flex_ROM_stddev = self.get_steps_stddev("flex_ROM", self.left_steps)
-        stats.left_flex_motion_covered_mean = self.get_steps_mean("flex_motion_covered", self.left_steps)
-        stats.left_flex_motion_covered_stddev = self.get_steps_stddev("flex_motion_covered", self.left_steps)          
- 
-        stats.left_adduc_ROM_hip_mean = self.get_steps_mean("adduc_ROM_hip", self.left_steps)
-        stats.left_adduc_ROM_hip_stddev = self.get_steps_stddev("adduc_ROM_hip", self.left_steps)
-        stats.left_adduc_motion_covered_hip_mean = self.get_steps_mean("adduc_motion_covered_hip", self.left_steps)
-        stats.left_adduc_motion_covered_hip_stddev = self.get_steps_stddev("adduc_motion_covered_hip", self.left_steps)       
-        stats.left_flex_ROM_hip_mean = self.get_steps_mean("flex_ROM_hip", self.left_steps)
-        stats.left_flex_ROM_hip_stddev = self.get_steps_stddev("flex_ROM_hip", self.left_steps)
-        stats.left_flex_motion_covered_hip_mean = self.get_steps_mean("flex_motion_covered_hip", self.left_steps)
-        stats.left_flex_motion_covered_hip_stddev = self.get_steps_stddev("flex_motion_covered_hip", self.left_steps)  
-
-        stats.right_adduc_ROM_mean = self.get_steps_mean("adduc_ROM", self.right_steps)
-        stats.right_adduc_ROM_stddev = self.get_steps_stddev("adduc_ROM", self.right_steps)
-        stats.right_adduc_motion_covered_mean = self.get_steps_mean("adduc_motion_covered", self.right_steps)
-        stats.right_adduc_motion_covered_stddev = self.get_steps_stddev("adduc_motion_covered", self.right_steps)       
-        stats.right_flex_ROM_mean = self.get_steps_mean("flex_ROM", self.right_steps)
-        stats.right_flex_ROM_stddev = self.get_steps_stddev("flex_ROM", self.right_steps)
-        stats.right_flex_motion_covered_mean = self.get_steps_mean("flex_motion_covered", self.right_steps)
-        stats.right_flex_motion_covered_stddev = self.get_steps_stddev("flex_motion_covered", self.right_steps) 
-
-        stats.right_adduc_ROM_hip_mean = self.get_steps_mean("adduc_ROM_hip", self.right_steps)
-        stats.right_adduc_ROM_hip_stddev = self.get_steps_stddev("adduc_ROM_hip", self.right_steps)
-        stats.right_adduc_motion_covered_hip_mean = self.get_steps_mean("adduc_motion_covered_hip", self.right_steps)
-        stats.right_adduc_motion_covered_hip_stddev = self.get_steps_stddev("adduc_motion_covered_hip", self.right_steps)       
-        stats.right_flex_ROM_hip_mean = self.get_steps_mean("flex_ROM_hip", self.right_steps)
-        stats.right_flex_ROM_hip_stddev = self.get_steps_stddev("flex_ROM_hip", self.right_steps)
-        stats.right_flex_motion_covered_hip_mean = self.get_steps_mean("flex_motion_covered_hip", self.right_steps)
-        stats.right_flex_motion_covered_hip_stddev = self.get_steps_stddev("flex_motion_covered_hip", self.right_steps) 
-
-        stats.left_adduc_ROM_time_corr = self.get_steps_correlation("adduc_ROM","accumulated_grf_per_sec", self.left_steps)
-        stats.right_adduc_ROM_time_corr = self.get_steps_correlation("adduc_ROM","accumulated_grf_per_sec", self.right_steps)
-        stats.left_adduc_motion_covered_time_corr = self.get_steps_correlation("adduc_motion_covered","accumulated_grf_per_sec", self.left_steps)
-        stats.right_adduc_motion_covered_time_corr = self.get_steps_correlation("adduc_motion_covered","accumulated_grf_per_sec", self.right_steps)
-
-        return stats
-    
     def get_steps_correlation(self, attribute_x, attribute_y, step_list):
         value_list_x = []
         value_list_y = []
@@ -108,41 +62,17 @@ class ComplexityMatrixCell(object):
                 return r
             else:
                 return None
-            
-    def get_steps_f_test(self, attribute, step_list_x, step_list_y):
-        value_list_x = []
-        value_list_y = []
-        for item in step_list_x:
-            if(getattr(item,attribute) is not None):
-                value_list_x.append(getattr(item,attribute))
-        for item in step_list_y:    
-            if(getattr(item,attribute) is not None):
-                value_list_y.append(getattr(item,attribute))
-        if(len(value_list_x)==0 or len(value_list_y)==0):
-            return 0
-        else:
-            try:
-                r,p = stats.kruskal(value_list_x, value_list_y)
-                if(p<=.05):
-                    #write out values for temp analysis
-                    #x_frame = pandas.DataFrame(value_list_x)
-                    #y_frame = pandas.DataFrame(value_list_y)
-                    #x_frame.to_csv('C:\\UNC\\v6\\f_test_x_'+self.complexity_level+'_'+self.row_name+'_'+self.column_name+'_'+attribute+'.csv',sep=',')
-                    #y_frame.to_csv('C:\\UNC\\v6\\f_test_y_'+self.complexity_level+'_'+self.row_name+'_'+self.column_name+'_'+attribute+'.csv',sep=',')
-                    return r
-                else:
-                    return None
-            except ValueError:
-                return None   
 
     def get_decay_outliers(self, attribute, label, orientation,active_block_list, step_list):
         
         abs_list = {}
         abs_value_list = []
         abs_outlier_list = []
+        active_block_count = -1
 
         for key in active_block_list:
         
+            active_block_count += 1
             steps = list(x for x in step_list if x.active_block_id == key)
             decay = []
             y0 = None
@@ -176,10 +106,11 @@ class ComplexityMatrixCell(object):
                 abs = ActiveBlockSummary(key)
                 setattr(abs, attribute, decay_mean)
                 setattr(abs, "end_time", t)
+                setattr(abs, "time_block", self.get_time_block(steps[0].active_block_number, len(active_block_list), 3))
                 abs_list[key] = abs
                 abs_value_list.append(decay_mean)
                 
-        
+
 
         #what is the mean of the mean?
         
@@ -198,11 +129,21 @@ class ComplexityMatrixCell(object):
                 outlier.label = label
                 outlier.orientation = orientation
                 outlier.end_time = getattr(value,"end_time")
+                outlier.time_block = getattr(value,"time_block")
                 
                 abs_outlier_list.append(outlier)
 
         return abs_outlier_list
             
+
+    def get_time_block(self, active_block_number, active_block_length, category_count):
+
+        category_width = active_block_length / float(category_count)
+
+        block = math.ceil(float(active_block_number)/category_width)
+
+        return block
+
     def get_steps_sum(self, attribute, step_list):
         value_list = []
         for item in step_list:
@@ -241,15 +182,15 @@ class ComplexityMatrixCell(object):
 
     def get_kruskal_calculations(self):
         calcs = MatrixKruskal()
-        calcs.adduc_ROM = self.get_steps_f_test("adduc_ROM", self.left_steps, self.right_steps)
-        calcs.adduc_motion_covered = self.get_steps_f_test("adduc_motion_covered", self.left_steps, self.right_steps)
-        calcs.flex_ROM = self.get_steps_f_test("flex_ROM", self.left_steps, self.right_steps)
-        calcs.flex_motion_covered = self.get_steps_f_test("flex_motion_covered", self.left_steps, self.right_steps)
+        calcs.adduc_ROM = get_steps_f_test("adduc_ROM", self.left_steps, self.right_steps)
+        calcs.adduc_motion_covered = get_steps_f_test("adduc_motion_covered", self.left_steps, self.right_steps)
+        calcs.flex_ROM = get_steps_f_test("flex_ROM", self.left_steps, self.right_steps)
+        calcs.flex_motion_covered = get_steps_f_test("flex_motion_covered", self.left_steps, self.right_steps)
 
-        calcs.adduc_ROM_hip = self.get_steps_f_test("adduc_ROM_hip", self.left_steps, self.right_steps)
-        calcs.adduc_motion_covered_hip = self.get_steps_f_test("adduc_motion_covered_hip", self.left_steps, self.right_steps)
-        calcs.flex_ROM_hip = self.get_steps_f_test("flex_ROM_hip", self.left_steps, self.right_steps)
-        calcs.flex_motion_covered_hip = self.get_steps_f_test("flex_motion_covered_hip", self.left_steps, self.right_steps)
+        calcs.adduc_ROM_hip = get_steps_f_test("adduc_ROM_hip", self.left_steps, self.right_steps)
+        calcs.adduc_motion_covered_hip = get_steps_f_test("adduc_motion_covered_hip", self.left_steps, self.right_steps)
+        calcs.flex_ROM_hip = get_steps_f_test("flex_ROM_hip", self.left_steps, self.right_steps)
+        calcs.flex_motion_covered_hip = get_steps_f_test("flex_motion_covered_hip", self.left_steps, self.right_steps)
 
         return calcs
 
@@ -260,7 +201,7 @@ class ComplexityMatrixCell(object):
         active_block_list_LF = {x.active_block_id for x in self.left_steps}
         active_block_list_RF = {x.active_block_id for x in self.right_steps}
         active_block_list = list(set(active_block_list_LF).union(active_block_list_RF))
-
+        active_block_list.sort()
 
         #for key in active_block_list:
         #abs = ActiveBlockSummary.ActiveBlockSummary(key)
@@ -336,8 +277,8 @@ class ComplexityMatrixCell(object):
         outlier_list.extend(self.get_decay_outliers("adduc_motion_covered", "Pronation","Right", active_block_list, pronating_steps_RF))
         outlier_list.extend(self.get_decay_outliers("adduc_motion_covered","Supination","Right", active_block_list,  supinating_steps_RF))
 
-        outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Dorisflexion","Left", active_block_list, dorsi_steps_LF))
-        outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Dorisflexion","Right",  active_block_list, dorsi_steps_RF))
+        outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Dorsiflexion","Left", active_block_list, dorsi_steps_LF))
+        outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Dorsiflexion","Right",  active_block_list, dorsi_steps_RF))
         outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Plantarflexion","Left", active_block_list, plantar_steps_LF))
         outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Plantarflexion","Right",active_block_list,  plantar_steps_RF))
         

@@ -7,9 +7,10 @@ class ActiveBlockOutlier(object):
         self.orientation = ""
         self.start_time = None
         self.end_time = None
-        #self.row_name = ""
-        #self.column_name = ""
+        #self.grf_level = ""
+        #self.cma_level = ""
         self.z_score = 0
         self.raw_value = 0
+        self.time_block = 0
 
 

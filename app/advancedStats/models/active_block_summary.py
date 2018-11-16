@@ -2,6 +2,7 @@ class ActiveBlockSummary(object):
     
     def __init__(self, id=None):
         self.id = id
+        self.time_block = 0
         self.start_time = 0
         self.end_time = 0
 
