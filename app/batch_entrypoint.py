@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Entrypoint when called as a batch job
+from aws_xray_sdk.core import xray_recorder
 import os
 from datetime import datetime
 import boto3
@@ -121,6 +122,7 @@ def mkdir(path):
             raise
 
 
+@xray_recorder.capture('preprocessing.app.main')
 def main():
     global script, input_data, meta_data
     meta_data = {}  # In case an exception is thrown when decoding input_data
