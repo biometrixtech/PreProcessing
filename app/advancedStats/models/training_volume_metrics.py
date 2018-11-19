@@ -15,6 +15,28 @@ class SessionTrainingVolume(object):
         self.left_right_bands = None
 
 
+class CombinedReportingBand(object):
+    def __init__(self, descriptor):
+        self.descriptor = descriptor
+        self.seconds = 0
+        self.seconds_percentage = 0.0
+        self.accumulated_grf = 0.0
+        self.accumulated_grf_percentage = 0.0
+        self.cma = 0.0
+        self.cma_percentage = 0.0
+
+
+class SideReportingBand(object):
+    def __init__(self, descriptor, orientation):
+        self.descriptor = descriptor
+        self.orientation = orientation
+        self.average_peak_vGRF = 0.0
+        self.low_average_GRF = 0.0
+        self.low_average_accel = 0.0
+        self.low_gct = 0.0
+        self.low_gct_percentage = 0.0
+
+
 class LowModHighBands(object):
     def __init__(self):
         # seconds (active time) by low, mod, high bands

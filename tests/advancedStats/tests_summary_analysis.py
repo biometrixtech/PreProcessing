@@ -1,5 +1,5 @@
 import advancedStats.logic.asymmetry_logic
-import advancedStats.logic.training_volume_logic
+from advancedStats.logic.training_volume_logic import TrainingVolumeProcessor
 import app.advancedStats.summary_analysis as calc
 from app.advancedStats.models.variable import CategorizationVariable
 
@@ -27,8 +27,8 @@ def test_get_intensity_matrix():
 
     athlete = "Maggie"
     date = "2018-04-24"
-
-    training_data = advancedStats.logic.training_volume_logic.get_session_training_volume_data(athlete, date)
+    processor = TrainingVolumeProcessor()
+    training_data = processor.get_session_training_volume_data(athlete, date)
 
     #this no longer works since no longer dataframe
     training_data.to_csv('~/decay/intensity_matrix_' + athlete + '_' + date + 'v6.csv', sep=',',
