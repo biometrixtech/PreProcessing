@@ -1,8 +1,7 @@
 from __future__ import print_function
 
 from config import get_mongo_collection
-import complexity_symmetry
-import summary_analysis
+# import summary_analysis
 
 def script_handler(input_data):
     print("Running Advanced aggregations")
