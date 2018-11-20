@@ -57,27 +57,27 @@ def script_handler(working_directory, input_data):
                                                       'adduc_range_of_motion_lf',
                                                       'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
                                                       'flex_range_of_motion_lf',
-                                                      'contact_duration_lf',
+                                                      # 'contact_duration_lf',
                                                       'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
                                                       'adduc_range_of_motion_h',
                                                       'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
                                                       'flex_range_of_motion_h',
-                                                      'contact_duration_h',
+                                                      # 'contact_duration_h',
                                                       'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
                                                       'adduc_range_of_motion_rf',
                                                       'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
                                                       'flex_range_of_motion_rf',
-                                                      'contact_duration_rf',
+                                                      # 'contact_duration_rf',
                                                       'stance',
-                                                      'contra_hip_drop_lf',
-                                                      'contra_hip_drop_rf',
-                                                      'ankle_rot_lf',
-                                                      'ankle_rot_rf',
-                                                      'foot_position_lf',
-                                                      'foot_position_rf',
-                                                      'land_pattern_lf',
-                                                      'land_pattern_rf',
-                                                      'land_time'
+                                                      # 'contra_hip_drop_lf',
+                                                      # 'contra_hip_drop_rf',
+                                                      # 'ankle_rot_lf',
+                                                      # 'ankle_rot_rf',
+                                                      # 'foot_position_lf',
+                                                      # 'foot_position_rf',
+                                                      # 'land_pattern_lf',
+                                                      # 'land_pattern_rf',
+                                                      # 'land_time'
                                                       ],
                                                    # nrows=100000
                                                     )
@@ -161,7 +161,7 @@ def script_handler(working_directory, input_data):
             record_out['timeStart'] = block_start
             record_out['timeEnd'] = block_end
 
-            record_out = _aggregate(block_data, record_out, user_mass)
+            record_out = _aggregate(block_data, record_out, user_mass, agg_level='active_blocks')
 
             unit_blocks = []
             for unit_block in active_blocks[block]:
@@ -176,7 +176,7 @@ def script_handler(working_directory, input_data):
                 unit_block_record['timeStart'] = unit_block_start
                 unit_block_record['timeEnd'] = unit_block_end
 
-                unit_block_record = _aggregate(unit_block_data, unit_block_record, user_mass)
+                unit_block_record = _aggregate(unit_block_data, unit_block_record, user_mass, agg_level='unit_blocks')
 
                 unit_blocks.append(unit_block_record)
 
@@ -192,7 +192,7 @@ def script_handler(working_directory, input_data):
         logger.info('Process did not complete successfully! See error below!')
         raise
 
-def _aggregate(data, record, mass):
+def _aggregate(data, record, mass, agg_level):
     """Aggregates different variables for block/unitBlocks
     """
     data.reset_index(drop=True, inplace=True)
@@ -343,45 +343,54 @@ def _aggregate(data, record, mass):
                                             data.epoch_time.values,
                                             ground_phases=[2, 3])
 
-
-    for left_step in range_lf:
-        left_phase = numpy.unique(data.phase_lf[left_step[0]:left_step[1]].values)
-        if numpy.all(left_phase == numpy.array([2., 3.])):
-            left_takeoff = _get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
-            if len(left_takeoff) > 0: # has takeoff as part of ground contact
-                left_takeoff = left_takeoff[0]
-                if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
-                    left_takeoff_start = left_step[0] + left_takeoff[0]
-                    left_end = left_step[1]
-                    right_start = range_rf[:, 0]
-                    right_step = range_rf[(left_takeoff_start <= right_start) & (right_start <= left_end)]
-                    if len(right_step) > 0: # any right step that starts impact withing left_takeoff
-                        # make sure start of right step is impact
-                        right_step = right_step[0]
-                        if data.phase_rf[right_step[0]] == 2 and 3 in numpy.unique(data.phase_rf[right_step[0]:right_step[1]].values):
-                            data.loc[left_step[0]:right_step[1], 'stance'] = [6] * (right_step[1] - left_step[0] + 1)
-                    else:
-                        data.loc[left_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - left_step[0] + 1)
-    for right_step in range_rf:
-        right_phase = numpy.unique(data.phase_rf[right_step[0]:right_step[1]].values)
-        if numpy.all(right_phase == numpy.array([2., 3.])):
-            right_takeoff = _get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
-            if len(right_takeoff) > 0: # has takeoff as part of ground contact
-                right_takeoff = right_takeoff[0]
-                if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
-                    right_takeoff_start = right_step[0] + right_takeoff[0]
-                    right_end = right_step[1]
-                    left_start = range_lf[:, 0]
-                    left_step = range_lf[(right_takeoff_start <= left_start) & (left_start <= right_end)]
-                    if len(left_step) > 0: # any left step that starts impact withing right_takeoff
-                        # make sure start of left step is impact
-                        left_step = left_step[0]
-                        if data.phase_lf[left_step[0]] == 2 and 3 in data.phase_lf[left_step[0]:left_step[1]].values:
-                            data.loc[right_step[0]:left_step[1], 'stance'] = [6] * (left_step[1] - right_step[0] + 1)
-                    else:
-                        data.loc[right_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - right_step[0] + 1)
-
     record = _get_stats(length_lf, length_rf, 'contactDuration', record)
+
+    if agg_level == 'unit_blocks':
+        for left_step in range_lf:
+            left_phase = numpy.unique(data.phase_lf[left_step[0]:left_step[1]].values)
+            if numpy.all(left_phase == numpy.array([2., 3.])):
+                left_takeoff = _get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
+                if len(left_takeoff) > 0: # has takeoff as part of ground contact
+                    left_takeoff = left_takeoff[0]
+                    if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
+                        left_takeoff_start = left_step[0] + left_takeoff[0]
+                        left_end = left_step[1]
+                        right_start = range_rf[:, 0]
+                        right_step = range_rf[(left_takeoff_start <= right_start) & (right_start <= left_end)]
+                        if len(right_step) > 0: # any right step that starts impact withing left_takeoff
+                            # make sure start of right step is impact
+                            right_step = right_step[0]
+                            if data.phase_rf[right_step[0]] == 2 and 3 in numpy.unique(data.phase_rf[right_step[0]:right_step[1]].values):
+                                data.loc[left_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - left_step[0] + 1)
+                        else:
+                            data.loc[left_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - left_step[0] + 1)
+        for right_step in range_rf:
+            right_phase = numpy.unique(data.phase_rf[right_step[0]:right_step[1]].values)
+            if numpy.all(right_phase == numpy.array([2., 3.])):
+                right_takeoff = _get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
+                if len(right_takeoff) > 0: # has takeoff as part of ground contact
+                    right_takeoff = right_takeoff[0]
+                    if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
+                        right_takeoff_start = right_step[0] + right_takeoff[0]
+                        right_end = right_step[1]
+                        left_start = range_lf[:, 0]
+                        left_step = range_lf[(right_takeoff_start <= left_start) & (left_start <= right_end)]
+                        if len(left_step) > 0: # any left step that starts impact withing right_takeoff
+                            # make sure start of left step is impact
+                            left_step = left_step[0]
+                            if data.phase_lf[left_step[0]] == 2 and 3 in data.phase_lf[left_step[0]:left_step[1]].values:
+                                data.loc[right_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - right_step[0] + 1)
+                        else:
+                            data.loc[right_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - right_step[0] + 1)
+        steps_lf = _step_data(data, range_lf, mass, 'LF')
+        record['stepsLF'] = steps_lf
+
+        steps_rf = _step_data(data, range_rf,  mass, 'RF')
+        record['stepsRF'] = steps_rf
+    else:
+        record['stepsLF'] = None
+        record['stepsRF'] = None
+
     # normalize grf by user's mass and remove scaling
     grf = data.total_grf.values * 1000000. / mass / 9.807
     # peak grf
@@ -408,13 +417,6 @@ def _aggregate(data, record, mass):
         ) = _contact_duration_peak_grf(grf,
                                        range_rf,
                                        data.epoch_time.values)
-
-
-    steps_lf = _step_data(data, range_lf, mass, 'LF')
-    record['stepsLF'] = steps_lf
-
-    steps_rf = _step_data(data, range_rf,  mass, 'RF')
-    record['stepsRF'] = steps_rf
 
     record = _get_stats(peak_grf_contact_lf, peak_grf_contact_rf, 'peakGrfContactDuration', record)
     record = _get_stats(peak_grf_impact_lf, peak_grf_impact_rf, 'peakGrfImpactDuration', record)
@@ -457,7 +459,7 @@ def _step_data(data, ranges, mass, sensor):
         # accel aggregation
         step_record['totalAccel'] = numpy.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
-        step_record['irregularAccel'] = numpy.nansum(step_data['irregular_accel'])
+        # step_record['irregularAccel'] = numpy.nansum(step_data['irregular_accel'])
     
         if step_record['totalGRF'] == 0:
             # control aggregation
@@ -466,16 +468,16 @@ def _step_data(data, ranges, mass, sensor):
             step_record['ankleControl'] = None
             step_record['control' + sensor] = None
     
-            # symmetry aggregation
-            step_record['symmetry'] = None
-            step_record['hipSymmetry'] = None
-            step_record['ankleSymmetry'] = None
+            # # symmetry aggregation
+            # step_record['symmetry'] = None
+            # step_record['hipSymmetry'] = None
+            # step_record['ankleSymmetry'] = None
     
-            # consistency aggregation
-            step_record['consistency'] = None
-            step_record['hipConsistency'] = None
-            step_record['ankleConsistency'] = None
-            step_record['consistency' + sensor] = None
+            # # consistency aggregation
+            # step_record['consistency'] = None
+            # step_record['hipConsistency'] = None
+            # step_record['ankleConsistency'] = None
+            # step_record['consistency' + sensor] = None
         else:
             # control aggregation
             step_record['control'] = numpy.sum(step_data['control']*step_data['total_grf']) / step_record['totalGRF']
@@ -483,21 +485,21 @@ def _step_data(data, ranges, mass, sensor):
             step_record['ankleControl'] = numpy.sum(step_data['ankle_control']*step_data['total_grf']) / step_record['totalGRF']
             step_record['control' + sensor] = numpy.sum(step_data['control_' + sensor.lower()]*step_data['total_grf']) / step_record['totalGRF']
     
-            # symmetry aggregation
-            step_record['symmetry'] = numpy.sum(step_data['symmetry']) / step_record['totalGRF']
-            step_record['hipSymmetry'] = numpy.sum(step_data['hip_symmetry']) / step_record['totalGRF']
-            step_record['ankleSymmetry'] = numpy.sum(step_data['ankle_symmetry']) / step_record['totalGRF']
+            # # symmetry aggregation
+            # step_record['symmetry'] = numpy.sum(step_data['symmetry']) / step_record['totalGRF']
+            # step_record['hipSymmetry'] = numpy.sum(step_data['hip_symmetry']) / step_record['totalGRF']
+            # step_record['ankleSymmetry'] = numpy.sum(step_data['ankle_symmetry']) / step_record['totalGRF']
     
-            # consistency aggregation
-            step_record['consistency'] = numpy.sum(step_data['consistency']) / step_record['totalGRF']
-            step_record['hipConsistency'] = numpy.sum(step_data['hip_consistency']) / step_record['totalGRF']
-            step_record['ankleConsistency'] = numpy.sum(step_data['ankle_consistency']) / step_record['totalGRF']
-            step_record['consistency' + sensor] = numpy.sum(step_data['consistency_' + sensor.lower()]) / step_record['totalGRF']
+            # # consistency aggregation
+            # step_record['consistency'] = numpy.sum(step_data['consistency']) / step_record['totalGRF']
+            # step_record['hipConsistency'] = numpy.sum(step_data['hip_consistency']) / step_record['totalGRF']
+            # step_record['ankleConsistency'] = numpy.sum(step_data['ankle_consistency']) / step_record['totalGRF']
+            # step_record['consistency' + sensor] = numpy.sum(step_data['consistency_' + sensor.lower()]) / step_record['totalGRF']
         # fatigue
         step_record['percOptimal'] = perc_optimal_step * 100
         step_record['percIrregular'] = (1 - perc_optimal_step) * 100
 
-        mph = 1.1
+        mph = 1.2
         grf_sub = data.grf[range_gc[0]:range_gc[1]].values
         norm_grf = grf_sub * 1000000. / mass / 9.807
         peak_indices = detect_peaks(norm_grf, mph=mph, mpd=1)
@@ -563,10 +565,10 @@ def _step_data(data, ranges, mass, sensor):
         step_record['flexMotionCoveredTotalHip'] = flex_motion_covered_abs_hip
         step_record['flexMotionCoveredPosHip'] = flex_motion_covered_pos_hip
         step_record['flexMotionCoveredNegHip'] = flex_motion_covered_neg_hip
-        step_record['contraHipDrop' + sensor] = list(step_data['contra_hip_drop_' + sensor.lower()].values)
-        step_record['ankleRotation' + sensor] = list(step_data['ankle_rot_' + sensor.lower()].values)
-        step_record['landPattern' + sensor] = list(step_data['land_pattern_' + sensor.lower()].values)
-        step_record['landTime'] = list(step_data['land_time'].values)
+        # step_record['contraHipDrop' + sensor] = list(step_data['contra_hip_drop_' + sensor.lower()].values)
+        # step_record['ankleRotation' + sensor] = list(step_data['ankle_rot_' + sensor.lower()].values)
+        # step_record['landPattern' + sensor] = list(step_data['land_pattern_' + sensor.lower()].values)
+        # step_record['landTime'] = list(step_data['land_time'].values)
         step_record['stance'] = list(step_data['stance'].values)
         stance = numpy.unique(step_record['stance'])
         if len(stance) > 1:
@@ -598,7 +600,7 @@ def _step_data(data, ranges, mass, sensor):
 def _contact_duration_peak_grf(grf, ranges, epoch_time):
     """get linear combination of peak_grf and ground contact time
     """
-    mph = 1.1
+    mph = 1.2
 
     gct_block = []
     peak_grf_block = []
