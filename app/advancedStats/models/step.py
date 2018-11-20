@@ -117,11 +117,9 @@ class Step(object):
 
     def get_stance(self):
         try:
-            if(self.stance.count(8)+self.stance.count(6)+self.stance.count(2)+self.stance.count(3) >
-                self.stance.count(9)+self.stance.count(7)+self.stance.count(4)+self.stance.count(5)):
+            if self.stance.count(2)+self.stance.count(4) > self.stance.count(3)+self.stance.count(5):
                 return 2
-            elif(self.stance.count(8)+self.stance.count(6)+self.stance.count(2)+self.stance.count(3) <
-                self.stance.count(9)+self.stance.count(7)+self.stance.count(4)+self.stance.count(5)):
+            elif self.stance.count(2)+self.stance.count(4) < self.stance.count(3)+self.stance.count(5):
                 return 4
             else:
                 return 4

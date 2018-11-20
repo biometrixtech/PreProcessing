@@ -218,10 +218,10 @@ class ComplexityMatrixCell(object):
         #outlier_list.extend(self.get_decay_outliers("flex_ROM","flex_ROM","Left",  active_block_list, self.left_steps))
         #outlier_list.extend(self.get_decay_outliers("adduc_ROM","adduc_ROM","Right",  active_block_list, self.right_steps))
         #outlier_list.extend(self.get_decay_outliers("flex_ROM", "flex_ROM","Right", active_block_list, self.right_steps))
-        outlier_list.extend(self.get_decay_outliers("adduc_ROM_hip","adduc_ROM_hip","Left",  active_block_list, self.left_steps))
-        outlier_list.extend(self.get_decay_outliers("flex_ROM_hip","flex_ROM_hip","Left", active_block_list,  self.left_steps))
-        outlier_list.extend(self.get_decay_outliers("adduc_ROM_hip","adduc_ROM_hip","Right",  active_block_list, self.right_steps))
-        outlier_list.extend(self.get_decay_outliers("flex_ROM_hip","flex_ROM_hip","Right", active_block_list,  self.right_steps))
+        outlier_list.extend(self.get_decay_outliers("adduc_ROM_hip","adduc_rom_hip","Left",  active_block_list, self.left_steps))
+        outlier_list.extend(self.get_decay_outliers("flex_ROM_hip","flex_rom_hip","Left", active_block_list,  self.left_steps))
+        outlier_list.extend(self.get_decay_outliers("adduc_ROM_hip","adduc_rom_hip","Right",  active_block_list, self.right_steps))
+        outlier_list.extend(self.get_decay_outliers("flex_ROM_hip","flex_rom_hip","Right", active_block_list,  self.right_steps))
         
 
         pronating_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered >=0)

@@ -69,14 +69,14 @@ class AsymmetryProcessor(object):
 
         asym = LoadingAsymmetry(complexity_level, cma_level, grf_level, stance)
         asym.variable = attribute
-        left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
-        right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
-        asym.total_left_right_sum = left_sum + right_sum
+        asym.total_left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
+        asym.total_right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
+        asym.total_left_right_sum = asym.total_left_sum + asym.total_right_sum
 
         if len(complexity_matrix_cell.left_steps) == 0 or len(complexity_matrix_cell.right_steps) == 0:
-            asym.training_asymmetry = left_sum - right_sum
+            asym.training_asymmetry = asym.total_left_sum - asym.total_right_sum
         else:
-            asym.kinematic_asymmetry = left_sum - right_sum
+            asym.kinematic_asymmetry = asym.total_left_sum - asym.total_right_sum
         asym.total_asymmetry = asym.training_asymmetry + asym.kinematic_asymmetry
         if asym.total_left_right_sum > 0:
             asym.total_percent_asymmetry = (asym.total_asymmetry / asym.total_left_right_sum) * 100
@@ -127,14 +127,14 @@ class AsymmetryProcessor(object):
     def get_movement_asymmetry(self, complexity_level, cma_level, grf_level, stance, left_steps, right_steps):
 
         event = MovementAsymmetry(complexity_level, cma_level, grf_level, stance)
-        event.adduc_ROM = self.get_steps_f_test("adduc_ROM", left_steps, right_steps)
-        event.adduc_motion_covered = self.get_steps_f_test("adduc_motion_covered", left_steps, right_steps)
-        event.flex_ROM = self.get_steps_f_test("flex_ROM", left_steps, right_steps)
-        event.flex_motion_covered = self.get_steps_f_test("flex_motion_covered", left_steps, right_steps)
+        #event.adduc_ROM = self.get_steps_f_test("adduc_ROM", left_steps, right_steps)
+        #event.adduc_motion_covered = self.get_steps_f_test("adduc_motion_covered", left_steps, right_steps)
+        #event.flex_ROM = self.get_steps_f_test("flex_ROM", left_steps, right_steps)
+        #event.flex_motion_covered = self.get_steps_f_test("flex_motion_covered", left_steps, right_steps)
 
-        event.adduc_ROM_hip = self.get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
+        event.adduc_rom_hip = self.get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
         event.adduc_motion_covered_hip = self.get_steps_f_test("adduc_motion_covered_hip", left_steps, right_steps)
-        event.flex_ROM_hip = self.get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
+        event.flex_rom_hip = self.get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
         event.flex_motion_covered_hip = self.get_steps_f_test("flex_motion_covered_hip", left_steps, right_steps)
 
         return event
