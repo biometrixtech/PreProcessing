@@ -456,7 +456,7 @@ def _step_data(data, ranges, mass, sensor):
     
         # accel aggregation
         step_record['totalAccel'] = numpy.nansum(step_data['total_accel'])
-        step_record['peakAccel'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
+        step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
         step_record['irregularAccel'] = numpy.nansum(step_data['irregular_accel'])
     
         if step_record['totalGRF'] == 0:
