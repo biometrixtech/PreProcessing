@@ -37,7 +37,7 @@ class FatigueCell(object):
         asym = LoadingAsymmetry()
         left_sum = self.get_steps_sum(attribute, self.left_steps)
         right_sum = self.get_steps_sum(attribute, self.right_steps)
-        asym.total_sum = left_sum + right_sum
+        asym.total_left_right_sum = left_sum + right_sum
         
         if(len(self.left_steps)==0 or len(self.right_steps)==0):
             asym.training_asymmetry = left_sum-right_sum

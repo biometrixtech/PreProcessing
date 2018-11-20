@@ -65,7 +65,12 @@ class Step(object):
             self.orientation = orientation
             self.duration = mongo_step.get('duration')
             self.total_grf = mongo_step.get('totalGRF')
-            self.accumulated_grf = accumulated_grf+self.total_grf
+            self.peak_grf = mongo_step.get('peakGRF')
+            #self.accumulated_grf = accumulated_grf+self.total_grf
+            if self.peak_grf is not None:
+                self.accumulated_grf = accumulated_grf + self.peak_grf
+            else:
+                self.accumulated_grf = accumulated_grf
             self.accumulated_grf_per_sec = self.accumulated_grf/self.cumulative_end_time
         
             self.total_grf_avg = mongo_step.get('totalGRFAvg')
@@ -74,7 +79,7 @@ class Step(object):
             self.control = mongo_step.get('control')
             self.ankle_control = mongo_step.get('ankleControl')
             self.hip_control = mongo_step.get('hipControl')
-            self.peak_grf = mongo_step.get('peakGRF')
+
 
             if(orientation=="Left"):
                 self.peak_grf_contact_duration = mongo_step.get('peakGrfContactDurationLF')

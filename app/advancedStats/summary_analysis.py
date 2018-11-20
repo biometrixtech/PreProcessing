@@ -30,11 +30,23 @@ def get_unit_blocks(user, date):
 
 
 def query_mongo_ab(collection, user, date, output_path):
-    client = MongoClient('34.210.169.8',username='statsAdmin',password='ButThisGoes211',authSource='admin', authMechanism='SCRAM-SHA-1')
-    db = client.get_database('movementStats')
-    col = db.get_collection(collection)
+    #client = MongoClient('34.210.169.8',username='statsAdmin',password='ButThisGoes211',authSource='admin', authMechanism='SCRAM-SHA-1')
+    #db = client.get_database('movementStats')
+    #col = db.get_collection(collection)
     #users = list(col.distinct("userId"))
     #for u in users:
+
+    load_parameters([
+        'MONGO_HOST',
+        'MONGO_USER',
+        'MONGO_PASSWORD',
+        'MONGO_DATABASE',
+        'MONGO_REPLICASET',
+        'MONGO_COLLECTION_ACTIVEBLOCKS',
+    ], 'mongo')
+
+    col = get_mongo_collection('ACTIVEBLOCKS')
+
     cnt = 0
     bcnt=0
     curDate = ''

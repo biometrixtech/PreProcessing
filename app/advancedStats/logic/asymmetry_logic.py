@@ -28,6 +28,9 @@ class AsymmetryProcessor(object):
         var_list.append(CategorizationVariable("peak_grf_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
         var_list.append(CategorizationVariable("gct_perc_diff_lf", 0, 5, 5, 10, 10, 100, False))
         var_list.append(CategorizationVariable("gct_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
+
+        # var_list.append(CategorizationVariable("peak_grf_gct_left", 0, 5, 5, 10, 10, 100, False))
+        # var_list.append(CategorizationVariable("peak_grf_gct_right", 0, 5, 5, 10, 10, 100, False))
         var_list.append(CategorizationVariable("peak_grf_gct_left_over", 0, 2.5, 2.5, 5, 5, 100, False))
         var_list.append(CategorizationVariable("peak_grf_gct_left_under", 0, 2.5, 2.5, 5, 5, 10, False))
         var_list.append(CategorizationVariable("peak_grf_gct_right_over", 0, 2.5, 2.5, 5, 5, 100, False))
@@ -42,33 +45,41 @@ class AsymmetryProcessor(object):
         events = []
 
         for keys, mcsl in self.single_complexity_matrix.items():
-            event = self.get_loading_asymmetry("total_grf", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
+            total_grf_event = self.get_loading_asymmetry("total_grf", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
                                                "Single")
 
-            events.append(event)
+            #total_accel_event = self.get_loading_asymmetry("total_accel", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
+            #                                   "Single")
+
+            events.append(total_grf_event)
+            #events.append(total_accel_event)
 
         for keys, mcdl in self.double_complexity_matrix.items():
-            event = self.get_loading_asymmetry("total_grf", mcdl, mcdl.complexity_level, mcdl.cma_level, mcdl.grf_level,
+            total_grf_event = self.get_loading_asymmetry("total_grf", mcdl, mcdl.complexity_level, mcdl.cma_level, mcdl.grf_level,
                                                "Double")
+            #total_accel_event = self.get_loading_asymmetry("total_accel", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
+            #                                   "Single")
 
-            events.append(event)
+            events.append(total_grf_event)
+            #events.append(total_accel_event)
 
         return events
 
     def get_loading_asymmetry(self, attribute, complexity_matrix_cell, complexity_level, cma_level, grf_level, stance):
 
         asym = LoadingAsymmetry(complexity_level, cma_level, grf_level, stance)
+        asym.variable = attribute
         left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
         right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
-        asym.total_sum = left_sum + right_sum
+        asym.total_left_right_sum = left_sum + right_sum
 
         if len(complexity_matrix_cell.left_steps) == 0 or len(complexity_matrix_cell.right_steps) == 0:
             asym.training_asymmetry = left_sum - right_sum
         else:
             asym.kinematic_asymmetry = left_sum - right_sum
         asym.total_asymmetry = asym.training_asymmetry + asym.kinematic_asymmetry
-        if asym.total_sum > 0:
-            asym.total_percent_asymmetry = (asym.total_asymmetry / asym.total_sum) * 100
+        if asym.total_left_right_sum > 0:
+            asym.total_percent_asymmetry = (asym.total_asymmetry / asym.total_left_right_sum) * 100
 
         complexity_matrix_summary = complexity_matrix_cell.get_summary()
 
@@ -77,21 +88,21 @@ class AsymmetryProcessor(object):
         asym.total_steps = complexity_matrix_summary.total_steps
         asym.step_asymmetry = asym.left_step_count - asym.right_step_count
         if asym.total_steps > 0:
-            asym.step_count_percent_asymmetry = (asym.step_asymmetry / asym.total_steps) * 100
+            asym.step_count_percent_asymmetry = (asym.step_asymmetry / float(asym.total_steps)) * 100
 
         asym.ground_contact_time_left = complexity_matrix_summary.left_duration
         asym.ground_contact_time_right = complexity_matrix_summary.right_duration
         asym.total_ground_contact_time = complexity_matrix_summary.total_duration
-        asym.ground_contact_time_asymmetry = asym.ground_contact_time_left = asym.ground_contact_time_right
+        asym.ground_contact_time_asymmetry = asym.ground_contact_time_left - asym.ground_contact_time_right
         if asym.total_ground_contact_time > 0:
-            asym.ground_contact_time_percent_asymmetry = (asym.ground_contact_time_asymmetry / asym.total_ground_contact_time) * 100
+            asym.ground_contact_time_percent_asymmetry = (asym.ground_contact_time_asymmetry / float(asym.total_ground_contact_time)) * 100
 
         asym.left_avg_accumulated_grf_sec = complexity_matrix_summary.left_avg_accumulated_grf_sec
         asym.right_avg_accumulated_grf_sec = complexity_matrix_summary.right_avg_accumulated_grf_sec
         asym.accumulated_grf_sec_asymmetry = asym.left_avg_accumulated_grf_sec - asym.right_avg_accumulated_grf_sec
         if asym.right_avg_accumulated_grf_sec > 0:
             asym.accumulated_grf_sec_percent_asymmetry = (asym.left_avg_accumulated_grf_sec /
-                                                          asym.right_avg_accumulated_grf_sec) * 100
+                                                          float(asym.right_avg_accumulated_grf_sec)) * 100
 
         return asym
 
