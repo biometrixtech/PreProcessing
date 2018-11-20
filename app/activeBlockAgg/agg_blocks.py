@@ -346,42 +346,42 @@ def _aggregate(data, record, mass, agg_level):
     record = _get_stats(length_lf, length_rf, 'contactDuration', record)
 
     if agg_level == 'unit_blocks':
-        for left_step in range_lf:
-            left_phase = numpy.unique(data.phase_lf[left_step[0]:left_step[1]].values)
-            if numpy.all(left_phase == numpy.array([2., 3.])):
-                left_takeoff = _get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
-                if len(left_takeoff) > 0: # has takeoff as part of ground contact
-                    left_takeoff = left_takeoff[0]
-                    if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
-                        left_takeoff_start = left_step[0] + left_takeoff[0]
-                        left_end = left_step[1]
-                        right_start = range_rf[:, 0]
-                        right_step = range_rf[(left_takeoff_start <= right_start) & (right_start <= left_end)]
-                        if len(right_step) > 0: # any right step that starts impact withing left_takeoff
-                            # make sure start of right step is impact
-                            right_step = right_step[0]
-                            if data.phase_rf[right_step[0]] == 2 and 3 in numpy.unique(data.phase_rf[right_step[0]:right_step[1]].values):
-                                data.loc[left_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - left_step[0] + 1)
-                        else:
-                            data.loc[left_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - left_step[0] + 1)
-        for right_step in range_rf:
-            right_phase = numpy.unique(data.phase_rf[right_step[0]:right_step[1]].values)
-            if numpy.all(right_phase == numpy.array([2., 3.])):
-                right_takeoff = _get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
-                if len(right_takeoff) > 0: # has takeoff as part of ground contact
-                    right_takeoff = right_takeoff[0]
-                    if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
-                        right_takeoff_start = right_step[0] + right_takeoff[0]
-                        right_end = right_step[1]
-                        left_start = range_lf[:, 0]
-                        left_step = range_lf[(right_takeoff_start <= left_start) & (left_start <= right_end)]
-                        if len(left_step) > 0: # any left step that starts impact withing right_takeoff
-                            # make sure start of left step is impact
-                            left_step = left_step[0]
-                            if data.phase_lf[left_step[0]] == 2 and 3 in data.phase_lf[left_step[0]:left_step[1]].values:
-                                data.loc[right_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - right_step[0] + 1)
-                        else:
-                            data.loc[right_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - right_step[0] + 1)
+        # for left_step in range_lf:
+        #     left_phase = numpy.unique(data.phase_lf[left_step[0]:left_step[1]].values)
+        #     if numpy.all(left_phase == numpy.array([2., 3.])):
+        #         left_takeoff = _get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
+        #         if len(left_takeoff) > 0: # has takeoff as part of ground contact
+        #             left_takeoff = left_takeoff[0]
+        #             if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
+        #                 left_takeoff_start = left_step[0] + left_takeoff[0]
+        #                 left_end = left_step[1]
+        #                 right_start = range_rf[:, 0]
+        #                 right_step = range_rf[(left_takeoff_start <= right_start) & (right_start <= left_end)]
+        #                 if len(right_step) > 0: # any right step that starts impact withing left_takeoff
+        #                     # make sure start of right step is impact
+        #                     right_step = right_step[0]
+        #                     if data.phase_rf[right_step[0]] == 2 and 3 in numpy.unique(data.phase_rf[right_step[0]:right_step[1]].values):
+        #                         data.loc[left_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - left_step[0] + 1)
+        #                 else:
+        #                     data.loc[left_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - left_step[0] + 1)
+        # for right_step in range_rf:
+        #     right_phase = numpy.unique(data.phase_rf[right_step[0]:right_step[1]].values)
+        #     if numpy.all(right_phase == numpy.array([2., 3.])):
+        #         right_takeoff = _get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
+        #         if len(right_takeoff) > 0: # has takeoff as part of ground contact
+        #             right_takeoff = right_takeoff[0]
+        #             if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2: # impact-->takeoff not ground-->takeoff
+        #                 right_takeoff_start = right_step[0] + right_takeoff[0]
+        #                 right_end = right_step[1]
+        #                 left_start = range_lf[:, 0]
+        #                 left_step = range_lf[(right_takeoff_start <= left_start) & (left_start <= right_end)]
+        #                 if len(left_step) > 0: # any left step that starts impact withing right_takeoff
+        #                     # make sure start of left step is impact
+        #                     left_step = left_step[0]
+        #                     if data.phase_lf[left_step[0]] == 2 and 3 in data.phase_lf[left_step[0]:left_step[1]].values:
+        #                         data.loc[right_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - right_step[0] + 1)
+        #                 else:
+        #                     data.loc[right_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - right_step[0] + 1)
         steps_lf = _step_data(data, range_lf, mass, 'LF')
         record['stepsLF'] = steps_lf
 
