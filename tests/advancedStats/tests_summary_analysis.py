@@ -1,3 +1,4 @@
+import pandas
 import advancedStats.logic.asymmetry_logic
 from advancedStats.logic.training_volume_logic import TrainingVolumeProcessor
 import app.advancedStats.summary_analysis as calc
@@ -16,9 +17,9 @@ def test_get_unit_blocks():
 
 def test_get_active_blocks():
     collection = ""
-    athlete = ""
-    date = ""
-    output_path = ""
+    athlete = "Maggie"
+    date = "2018-04-24"
+    output_path = "~/decay/"
 
     calc.query_mongo_ab(collection, athlete, date, output_path)
 
@@ -28,12 +29,62 @@ def test_get_intensity_matrix():
     athlete = "Maggie"
     date = "2018-04-24"
     processor = TrainingVolumeProcessor()
-    training_data = processor.get_session_training_volume_data(athlete, date)
+    td = processor.get_session_training_volume_data(athlete, date)
 
-    #this no longer works since no longer dataframe
-    training_data.to_csv('~/decay/intensity_matrix_' + athlete + '_' + date + 'v6.csv', sep=',',
-                           index_label='variable')
+    training_data = pandas.DataFrame({
+        'accumulated_grf': [td.accumulated_grf],
+        'cma': [td.cma],
+        'active_time': [td.active_time],
+        'gct_left': [td.ground_contact_time_left],
+        'gct_right': [td.ground_contact_time_right],
+        'avg_peak_grf_left': [td.average_peak_vertical_grf_lf],
+        'avg_peak_grf_right': [td.average_peak_vertical_grf_rf],
+        'avg_grf': [td.average_total_GRF],
+        'agg_peak_accel': [td.average_peak_acceleration],
 
+    }, index=["Summary"])
+
+    training_data.to_csv('~/decay/session_workload_summary' + athlete + '_' + date + '.csv', sep=',',
+                           index_label='Level')
+
+def test_get_intensity_bands():
+
+    athlete = "Maggie"
+    date = "2018-04-24"
+    processor = TrainingVolumeProcessor()
+    td = processor.get_session_training_volume_data(athlete, date)
+
+    intensity_df = pandas.DataFrame()
+
+    intensity_df = intensity_df.append(convert_intensity_band_to_csv(td.intensity_bands.low))
+    intensity_df = intensity_df.append(convert_intensity_band_to_csv(td.intensity_bands.moderate))
+    intensity_df = intensity_df.append(convert_intensity_band_to_csv(td.intensity_bands.high))
+    intensity_df = intensity_df.append(convert_intensity_band_to_csv(td.intensity_bands.total))
+
+    intensity_df.to_csv('~/decay/session_intensity_bands' + athlete + '_' + date + '.csv', sep=',',
+                           index_label='Level')
+
+def convert_intensity_band_to_csv(t):
+        ab = pandas.DataFrame({
+            'seconds': [t.seconds],
+            'seconds_percentage': [t.seconds_percentage],
+            'cma': [t.cma],
+            'cma_percentage': [t.cma_percentage],
+            'accumulated_grf': [t.accumulated_grf],
+            'accumulated_grf_percentage': [t.accumulated_grf_percentage],
+            'left_cumulative_average_peak_vGRF': [t.left.cumulative_average_peak_vGRF],
+            'left_cumulative_average_GRF': [t.left.cumulative_average_GRF],
+            'left_cumulative_average_accel': [t.left.cumulative_average_accel],
+            'left_gct': [t.left.gct],
+            'left_gct_percentage': [t.left.gct_percentage],
+            'right_cumulative_average_peak_vGRF': [t.right.cumulative_average_peak_vGRF],
+            'right_cumulative_average_GRF': [t.right.cumulative_average_GRF],
+            'right_cumulative_average_accel': [t.right.cumulative_average_accel],
+            'right_gct': [t.right.gct],
+            'right_gct_percentage': [t.right.gct_percentage],
+        }, index=[t.descriptor])
+
+        return ab
 
 '''Legacy
 def test_get_variable_matrix():

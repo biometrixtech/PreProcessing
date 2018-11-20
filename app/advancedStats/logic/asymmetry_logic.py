@@ -48,20 +48,20 @@ class AsymmetryProcessor(object):
             total_grf_event = self.get_loading_asymmetry("total_grf", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
                                                "Single")
 
-            total_accel_event = self.get_loading_asymmetry("total_accel", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
-                                               "Single")
+            #total_accel_event = self.get_loading_asymmetry("total_accel", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
+            #                                   "Single")
 
             events.append(total_grf_event)
-            events.append(total_accel_event)
+            #events.append(total_accel_event)
 
         for keys, mcdl in self.double_complexity_matrix.items():
             total_grf_event = self.get_loading_asymmetry("total_grf", mcdl, mcdl.complexity_level, mcdl.cma_level, mcdl.grf_level,
                                                "Double")
-            total_accel_event = self.get_loading_asymmetry("total_accel", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
-                                               "Single")
+            #total_accel_event = self.get_loading_asymmetry("total_accel", mcsl, mcsl.complexity_level, mcsl.cma_level, mcsl.grf_level,
+            #                                   "Single")
 
             events.append(total_grf_event)
-            events.append(total_accel_event)
+            #events.append(total_accel_event)
 
         return events
 

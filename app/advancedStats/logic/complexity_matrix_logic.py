@@ -63,7 +63,11 @@ def get_complexity_matrices(athlete, date):
                     left_step = Step(lf_step, accumulated_grf_LF, 'Left', active_block, n, session_position,
                                      sessionTimeStart_object)
                     left_step.active_block_number = active_block_count
-                    accumulated_grf_LF += left_step.total_grf
+                    #accumulated_grf_LF += left_step.total_grf
+                    if left_step.peak_grf is not None:
+                        accumulated_grf_LF += left_step.peak_grf
+                    else:
+                        accumulated_grf_LF += 0
                     if (left_step.stance_calc == 4):
                         dl_comp_matrix.add_step(left_step)
                     elif (left_step.stance_calc == 2):
@@ -74,7 +78,11 @@ def get_complexity_matrices(athlete, date):
                     right_step = Step(rf_step, accumulated_grf_RF, 'Right', active_block, n, session_position,
                                       sessionTimeStart_object)
                     right_step.active_block_number = active_block_count
-                    accumulated_grf_RF += right_step.total_grf
+                    # accumulated_grf_RF += right_step.total_grf
+                    if right_step.peak_grf is not None:
+                        accumulated_grf_RF += right_step.peak_grf
+                    else:
+                        accumulated_grf_RF += 0
                     if (right_step.stance_calc == 4):
                         dl_comp_matrix.add_step(right_step)
                     elif (right_step.stance_calc == 2):
