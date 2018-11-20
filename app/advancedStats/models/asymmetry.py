@@ -67,32 +67,52 @@ class MovementAsymmetry(object):
         self.flex_rom = 0.0
         self.flex_motion_covered = 0.0
         self.adduc_rom_hip = 0.0
-        self.adduc_motion_covered_hip = 0.0
+        self.adduc_motion_covered_tot_hip = 0.0
+        self.adduc_motion_covered_pos_hip = 0.0
+        self.adduc_motion_covered_neg_hip = 0.0
         self.flex_rom_hip = 0.0
-        self.flex_motion_covered_hip = 0.0
+        self.flex_motion_covered_tot_hip = 0.0
+        self.flex_motion_covered_pos_hip = 0.0
+        self.flex_motion_covered_neg_hip = 0.0
 
     def adduc_rom_hip_flag(self):
 
         val = self.adduc_rom_hip
         return self.get_value_for_ftest_results(val)
 
-    def adduc_motion_covered_hip_flag(self):
+    def adduc_motion_covered_tot_hip_flag(self):
 
-        return self.get_value_for_ftest_results(self.adduc_motion_covered_hip)
+        return self.get_value_for_ftest_results(self.adduc_motion_covered_tot_hip)
+
+    def adduc_motion_covered_pos_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.adduc_motion_covered_pos_hip)
+
+    def adduc_motion_covered_neg_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.adduc_motion_covered_neg_hip)
 
     def flex_rom_hip_flag(self):
 
         return self.get_value_for_ftest_results(self.flex_rom_hip)
 
-    def flex_motion_covered_hip_flag(self):
+    def flex_motion_covered_tot_hip_flag(self):
 
-        return self.get_value_for_ftest_results(self.flex_motion_covered_hip)
+        return self.get_value_for_ftest_results(self.flex_motion_covered_tot_hip)
+
+    def flex_motion_covered_pos_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.flex_motion_covered_pos_hip)
+
+    def flex_motion_covered_neg_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.flex_motion_covered_neg_hip)
 
     def get_value_for_ftest_results(self, test_value):
 
-        if test_value > 0.0:
+        if test_value is not None and test_value > 0.0:
             return_value = '1'
-        elif test_value < 0.0:
+        elif  test_value is not None and test_value < 0.0:
             return_value = '1'
         else:
             return_value = ''

@@ -133,9 +133,16 @@ class AsymmetryProcessor(object):
         #event.flex_motion_covered = self.get_steps_f_test("flex_motion_covered", left_steps, right_steps)
 
         event.adduc_rom_hip = self.get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
-        event.adduc_motion_covered_hip = self.get_steps_f_test("adduc_motion_covered_hip", left_steps, right_steps)
+        event.adduc_motion_covered_tot_hip = self.get_steps_f_test("adduc_motion_covered_total_hip", left_steps, right_steps)
+        event.adduc_motion_covered_pos_hip = self.get_steps_f_test("adduc_motion_covered_pos_hip", left_steps,
+                                                               right_steps)
+        event.adduc_motion_covered_neg_hip = self.get_steps_f_test("adduc_motion_covered_neg_hip", left_steps,
+                                                               right_steps)
+
         event.flex_rom_hip = self.get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
-        event.flex_motion_covered_hip = self.get_steps_f_test("flex_motion_covered_hip", left_steps, right_steps)
+        event.flex_motion_covered_tot_hip = self.get_steps_f_test("flex_motion_covered_total_hip", left_steps, right_steps)
+        event.flex_motion_covered_pos_hip = self.get_steps_f_test("flex_motion_covered_pos_hip", left_steps, right_steps)
+        event.flex_motion_covered_neg_hip = self.get_steps_f_test("flex_motion_covered_neg_hip", left_steps, right_steps)
 
         return event
 
@@ -152,6 +159,8 @@ class AsymmetryProcessor(object):
             return 0
         else:
             try:
+                value_list_x.sort()
+                value_list_y.sort()
                 r,p = stats.kruskal(value_list_x, value_list_y)
                 if(p<=.05):
                     #write out values for temp analysis

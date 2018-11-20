@@ -106,7 +106,7 @@ class ComplexityMatrixCell(object):
                 abs = ActiveBlockSummary(key)
                 setattr(abs, attribute, decay_mean)
                 setattr(abs, "end_time", t)
-                setattr(abs, "time_block", self.get_time_block(steps[0].active_block_number, len(active_block_list), 3))
+                setattr(abs, "time_block", self.get_time_block(steps[0].active_block_number, len(active_block_list), 4))
                 abs_list[key] = abs
                 abs_value_list.append(decay_mean)
                 
@@ -141,6 +141,8 @@ class ComplexityMatrixCell(object):
         category_width = active_block_length / float(category_count)
 
         block = math.ceil(float(active_block_number)/category_width)
+
+        block = min(block, category_count)
 
         return block
 
@@ -188,9 +190,9 @@ class ComplexityMatrixCell(object):
         calcs.flex_motion_covered = get_steps_f_test("flex_motion_covered", self.left_steps, self.right_steps)
 
         calcs.adduc_ROM_hip = get_steps_f_test("adduc_ROM_hip", self.left_steps, self.right_steps)
-        calcs.adduc_motion_covered_hip = get_steps_f_test("adduc_motion_covered_hip", self.left_steps, self.right_steps)
+        calcs.adduc_motion_covered_hip = get_steps_f_test("adduc_motion_covered_total_hip", self.left_steps, self.right_steps)
         calcs.flex_ROM_hip = get_steps_f_test("flex_ROM_hip", self.left_steps, self.right_steps)
-        calcs.flex_motion_covered_hip = get_steps_f_test("flex_motion_covered_hip", self.left_steps, self.right_steps)
+        calcs.flex_motion_covered_hip = get_steps_f_test("flex_motion_covered_total_hip", self.left_steps, self.right_steps)
 
         return calcs
 
@@ -224,29 +226,29 @@ class ComplexityMatrixCell(object):
         outlier_list.extend(self.get_decay_outliers("flex_ROM_hip","flex_rom_hip","Right", active_block_list,  self.right_steps))
         
 
-        pronating_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered >=0)
-        supinating_steps_LF = list(x for x in self.left_steps if x.adduc_motion_covered  >=0)
+        #pronating_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered >=0)
+        #supinating_steps_LF = list(x for x in self.left_steps if x.adduc_motion_covered  >=0)
         
-        pronating_steps_LF = list(x for x in self.left_steps if x.adduc_motion_covered <0)
-        supinating_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered <0)
+        #pronating_steps_LF = list(x for x in self.left_steps if x.adduc_motion_covered <0)
+        #supinating_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered <0)
 
-        dorsi_steps_RF = list(x for x in self.right_steps if x.flex_motion_covered >=0)
-        dorsi_steps_LF = list(x for x in self.left_steps if x.flex_motion_covered  >=0)
+        #dorsi_steps_RF = list(x for x in self.right_steps if x.flex_motion_covered >=0)
+        #dorsi_steps_LF = list(x for x in self.left_steps if x.flex_motion_covered  >=0)
         
-        plantar_steps_RF = list(x for x in self.right_steps if x.flex_motion_covered  <0)
-        plantar_steps_LF = list(x for x in self.left_steps if x.flex_motion_covered  <0)
+        #plantar_steps_RF = list(x for x in self.right_steps if x.flex_motion_covered  <0)
+        #plantar_steps_LF = list(x for x in self.left_steps if x.flex_motion_covered  <0)
         
-        adduc_pos_hip_steps_LF = list(x for x in self.left_steps if x.adduc_motion_covered_hip  >=0)
+        adduc_pos_hip_steps_LF = list(x for x in self.left_steps if x.adduc_motion_covered_pos_hip  >0)
        
-        adduc_neg_hip_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered_hip <0)
-        adduc_pos_hip_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered_hip >=0)
-        adduc_neg_hip_steps_LF = list(x for x in self.left_steps if x.adduc_motion_covered_hip  <0)
+        adduc_neg_hip_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered_neg_hip <0)
+        adduc_pos_hip_steps_RF = list(x for x in self.right_steps if x.adduc_motion_covered_pos_hip >0)
+        adduc_neg_hip_steps_LF = list(x for x in self.left_steps if x.adduc_motion_covered_neg_hip  <0)
 
-        flex_pos_hip_steps_RF = list(x for x in self.right_steps if x.flex_motion_covered_hip  >=0)
-        flex_pos_hip_steps_LF = list(x for x in self.left_steps if x.flex_motion_covered_hip  >=0)
+        flex_pos_hip_steps_RF = list(x for x in self.right_steps if x.flex_motion_covered_pos_hip  >0)
+        flex_pos_hip_steps_LF = list(x for x in self.left_steps if x.flex_motion_covered_pos_hip  >0)
         
-        flex_neg_hip_steps_RF = list(x for x in self.right_steps if x.flex_motion_covered_hip  <0)
-        flex_neg_hip_steps_LF = list(x for x in self.left_steps if x.flex_motion_covered_hip  <0)
+        flex_neg_hip_steps_RF = list(x for x in self.right_steps if x.flex_motion_covered_neg_hip  <0)
+        flex_neg_hip_steps_LF = list(x for x in self.left_steps if x.flex_motion_covered_neg_hip  <0)
 
 
         #abs.adduc_pronation_LF = self.get_decay_outliers("adduc_motion_covered",  key, pronating_steps_LF)
@@ -259,17 +261,17 @@ class ComplexityMatrixCell(object):
         #abs.plantarflexion_LF = self.get_decay_outliers("flex_motion_covered",  key, plantar_steps_LF)
         #abs.plantarflexion_RF = self.get_decay_outliers("flex_motion_covered", key,  plantar_steps_RF)
         
-        #abs.adduc_positive_hip_LF = self.get_decay_outliers("adduc_motion_covered_hip",  key, adduc_pos_hip_steps_LF)
-        #abs.flex_positive_hip_LF = self.get_decay_outliers("flex_motion_covered_hip", key,  flex_pos_hip_steps_LF)
+        #abs.adduc_positive_hip_LF = self.get_decay_outliers("adduc_motion_covered_total_hip",  key, adduc_pos_hip_steps_LF)
+        #abs.flex_positive_hip_LF = self.get_decay_outliers("flex_motion_covered_total_hip", key,  flex_pos_hip_steps_LF)
         
-        #abs.adduc_positive_hip_RF = self.get_decay_outliers("adduc_motion_covered_hip", key,  adduc_pos_hip_steps_RF)
-        #abs.flex_positive_hip_RF = self.get_decay_outliers("flex_motion_covered_hip", key,  flex_pos_hip_steps_RF)
+        #abs.adduc_positive_hip_RF = self.get_decay_outliers("adduc_motion_covered_total_hip", key,  adduc_pos_hip_steps_RF)
+        #abs.flex_positive_hip_RF = self.get_decay_outliers("flex_motion_covered_total_hip", key,  flex_pos_hip_steps_RF)
 
-        #abs.adduc_negative_hip_LF = self.get_decay_outliers("adduc_motion_covered_hip", key,  adduc_neg_hip_steps_LF)
-        #abs.flex_negative_hip_LF = self.get_decay_outliers("flex_motion_covered_hip", key,  flex_neg_hip_steps_LF)
+        #abs.adduc_negative_hip_LF = self.get_decay_outliers("adduc_motion_covered_total_hip", key,  adduc_neg_hip_steps_LF)
+        #abs.flex_negative_hip_LF = self.get_decay_outliers("flex_motion_covered_total_hip", key,  flex_neg_hip_steps_LF)
         
-        #abs.adduc_negative_hip_RF = self.get_decay_outliers("adduc_motion_covered_hip", key,  adduc_neg_hip_steps_RF)
-        #abs.flex_negative_hip_RF = self.get_decay_outliers("flex_motion_covered_hip",  key, flex_neg_hip_steps_RF)
+        #abs.adduc_negative_hip_RF = self.get_decay_outliers("adduc_motion_covered_total_hip", key,  adduc_neg_hip_steps_RF)
+        #abs.flex_negative_hip_RF = self.get_decay_outliers("flex_motion_covered_total_hip",  key, flex_neg_hip_steps_RF)
 
 
         #outlier_list.extend(self.get_decay_outliers("adduc_motion_covered","Pronation","Left",  active_block_list, pronating_steps_LF))
@@ -282,17 +284,17 @@ class ComplexityMatrixCell(object):
         #outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Plantarflexion","Left", active_block_list, plantar_steps_LF))
         #outlier_list.extend(self.get_decay_outliers("flex_motion_covered", "Plantarflexion","Right",active_block_list,  plantar_steps_RF))
         
-        outlier_list.extend(self.get_decay_outliers("adduc_motion_covered_hip",  "adduc_pos_hip","Left", active_block_list, adduc_pos_hip_steps_LF))
-        outlier_list.extend(self.get_decay_outliers("flex_motion_covered_hip",  "flex_pos_hip","Left",active_block_list,  flex_pos_hip_steps_LF))
+        outlier_list.extend(self.get_decay_outliers("adduc_motion_covered_pos_hip",  "adduc_pos_hip","Left", active_block_list, adduc_pos_hip_steps_LF))
+        outlier_list.extend(self.get_decay_outliers("flex_motion_covered_pos_hip",  "flex_pos_hip","Left",active_block_list,  flex_pos_hip_steps_LF))
         
-        outlier_list.extend(self.get_decay_outliers("adduc_motion_covered_hip",  "adduc_pos_hip","Right",active_block_list,  adduc_pos_hip_steps_RF))
-        outlier_list.extend(self.get_decay_outliers("flex_motion_covered_hip", "flex_pos_hip","Right",active_block_list,  flex_pos_hip_steps_RF))
+        outlier_list.extend(self.get_decay_outliers("adduc_motion_covered_pos_hip",  "adduc_pos_hip","Right",active_block_list,  adduc_pos_hip_steps_RF))
+        outlier_list.extend(self.get_decay_outliers("flex_motion_covered_pos_hip", "flex_pos_hip","Right",active_block_list,  flex_pos_hip_steps_RF))
 
-        outlier_list.extend(self.get_decay_outliers("adduc_motion_covered_hip",  "adduc_neg_hip","Left",active_block_list,  adduc_neg_hip_steps_LF))
-        outlier_list.extend(self.get_decay_outliers("flex_motion_covered_hip",  "flex_neg_hip","Left",active_block_list,  flex_neg_hip_steps_LF))
+        outlier_list.extend(self.get_decay_outliers("adduc_motion_covered_neg_hip",  "adduc_neg_hip","Left",active_block_list,  adduc_neg_hip_steps_LF))
+        outlier_list.extend(self.get_decay_outliers("flex_motion_covered_neg_hip",  "flex_neg_hip","Left",active_block_list,  flex_neg_hip_steps_LF))
         
-        outlier_list.extend(self.get_decay_outliers("adduc_motion_covered_hip", "adduc_neg_hip","Right",active_block_list,  adduc_neg_hip_steps_RF))
-        outlier_list.extend(self.get_decay_outliers("flex_motion_covered_hip", "flex_neg_hip","Right", active_block_list, flex_neg_hip_steps_RF))
+        outlier_list.extend(self.get_decay_outliers("adduc_motion_covered_neg_hip", "adduc_neg_hip","Right",active_block_list,  adduc_neg_hip_steps_RF))
+        outlier_list.extend(self.get_decay_outliers("flex_motion_covered_neg_hip", "flex_neg_hip","Right", active_block_list, flex_neg_hip_steps_RF))
 
         #abs_list.append(abs)
         return outlier_list

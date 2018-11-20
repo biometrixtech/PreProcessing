@@ -92,9 +92,9 @@ class ComplexityMatrix(object):
             "flex_ROM",
             "flex_motion_covered",
             "adduc_ROM_hip",
-            "adduc_motion_covered_hip",
+            "adduc_motion_covered_total_hip",
             "flex_ROM_hip",
-            "flex_motion_covered_hip",
+            "flex_motion_covered_total_hip",
             ]
 
         for p in property_list:
