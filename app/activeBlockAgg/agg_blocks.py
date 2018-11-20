@@ -385,9 +385,11 @@ def _aggregate(data, record, mass):
     # normalize grf by user's mass and remove scaling
     grf = data.total_grf.values * 1000000. / mass / 9.807
     # peak grf
-    peak_grf_lf, peak_grf_rf = _peak_grf(grf,
-                                         data.phase_lf.values,
-                                         data.phase_rf.values)
+    peak_grf, peak_grf_lf, peak_grf_rf = _peak_grf(grf,
+                                                   data.phase_lf.values,
+                                                   data.phase_rf.values)
+    record['totalGRF'] = numpy.sum(peak_grf)
+    record['totalGRFAvg'] = numpy.mean(peak_grf)
 
     record = _get_peak_grf_stats(peak_grf_lf, peak_grf_rf, record)
 
@@ -696,8 +698,7 @@ def _get_ranges(col_data, value):
 def _peak_grf(grf, phase_lf, phase_rf):
     """Identifies instances of peak grf within block and aggregates them
     """
-    mph = 1.1
-#    grf = grf * 1000000. / mass / 9.807
+    mph = 1.2
     grf_lf = copy.copy(grf)
     grf_rf = copy.copy(grf)
 
@@ -713,8 +714,10 @@ def _peak_grf(grf, phase_lf, phase_rf):
     peaks_rf = detect_peaks(grf_rf, mph=mph, mpd=1)
     peaks_lf = grf_lf[peaks_lf]
     peaks_rf = grf_rf[peaks_rf]
+    peaks_indices = detect_peaks(grf, mph=mph, mpd=6)
+    peaks = grf[peaks_indices]
 
-    return peaks_lf, peaks_rf
+    return peaks, peaks_lf, peaks_rf
 
 
 def _peak_accel(total_accel, mph=15, mpd=5, steps=False):
