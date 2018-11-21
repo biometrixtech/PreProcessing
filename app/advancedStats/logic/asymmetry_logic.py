@@ -24,17 +24,17 @@ class AsymmetryProcessor(object):
 
         # relative magnitude
         var_list = []
-        var_list.append(CategorizationVariable("peak_grf_perc_diff_lf", 0, 5, 5, 10, 10, 100, False))
-        var_list.append(CategorizationVariable("peak_grf_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
-        var_list.append(CategorizationVariable("gct_perc_diff_lf", 0, 5, 5, 10, 10, 100, False))
-        var_list.append(CategorizationVariable("gct_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
+        var_list.append(CategorizationVariable("peak_grf_perc_diff_lf", 0, 5, 5, 10, 10, 100, False, 1))
+        var_list.append(CategorizationVariable("peak_grf_perc_diff_rf", 0, 5, 5, 10, 10, 100, False, 2))
+        var_list.append(CategorizationVariable("gct_perc_diff_lf", 0, 5, 5, 10, 10, 100, False, 3))
+        var_list.append(CategorizationVariable("gct_perc_diff_rf", 0, 5, 5, 10, 10, 100, False, 4))
 
         # var_list.append(CategorizationVariable("peak_grf_gct_left", 0, 5, 5, 10, 10, 100, False))
         # var_list.append(CategorizationVariable("peak_grf_gct_right", 0, 5, 5, 10, 10, 100, False))
-        var_list.append(CategorizationVariable("peak_grf_gct_left_over", 0, 2.5, 2.5, 5, 5, 100, False))
-        var_list.append(CategorizationVariable("peak_grf_gct_left_under", 0, 2.5, 2.5, 5, 5, 10, False))
-        var_list.append(CategorizationVariable("peak_grf_gct_right_over", 0, 2.5, 2.5, 5, 5, 100, False))
-        var_list.append(CategorizationVariable("peak_grf_gct_right_under", 0, 2.5, 2.5, 5, 5, 10, False))
+        var_list.append(CategorizationVariable("peak_grf_gct_left_over", 0, 2.5, 2.5, 5, 5, 100, False, 5))
+        var_list.append(CategorizationVariable("peak_grf_gct_left_under", 0, 2.5, 2.5, 5, 5, 10, False, 6))
+        var_list.append(CategorizationVariable("peak_grf_gct_right_over", 0, 2.5, 2.5, 5, 5, 100, False, 7))
+        var_list.append(CategorizationVariable("peak_grf_gct_right_under", 0, 2.5, 2.5, 5, 5, 10, False, 8))
 
         asym.loading_asymmetry_summaries = self.get_variable_asymmetry_summaries(self.user_id, self.event_date, var_list)
 
@@ -184,6 +184,7 @@ class AsymmetryProcessor(object):
 
         for cat_variable in variable_list:
             variable_matrix[cat_variable.name] = LoadingAsymmetrySummary()
+            variable_matrix[cat_variable.name].sort_order = cat_variable.sort_order
 
         if len(mongo_unit_blocks) > 0:
 

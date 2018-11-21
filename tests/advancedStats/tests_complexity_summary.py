@@ -392,6 +392,7 @@ def test_loading_asymmetry_summaries():
     df = pandas.DataFrame()
     for var, f in session_asymmmetry.loading_asymmetry_summaries.items():
         ab = pandas.DataFrame({
+            'sort_order': [f.sort_order],
             'red:grf': [f.red_grf],
             'red:grf_percent': [f.red_grf_percent],
             'red:cma': [f.red_cma],
@@ -417,6 +418,8 @@ def test_loading_asymmetry_summaries():
             # lots to add here!!!
         }, index=[f.variable_name])
         df = df.append(ab)
+
+    df = df.sort("sort_order")
 
     df.to_csv('~/decay/rel_magnitude_asymmetry_' + athlete + '_' + date + 'v7.csv', sep=',', index_label='Variable',
               columns=[

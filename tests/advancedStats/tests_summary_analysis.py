@@ -21,7 +21,7 @@ def test_get_active_blocks():
     date = "2018-04-24"
     output_path = "~/decay/"
 
-    calc.query_mongo_ab(collection, athlete, date, output_path)
+    calc.query_mongo_ab(athlete, date, output_path)
 
 
 def test_get_intensity_matrix():
@@ -62,7 +62,27 @@ def test_get_intensity_bands():
     intensity_df = intensity_df.append(convert_intensity_band_to_csv(td.intensity_bands.total))
 
     intensity_df.to_csv('~/decay/session_intensity_bands' + athlete + '_' + date + '.csv', sep=',',
-                           index_label='Level')
+                           index_label='Level', columns = [
+                                # 'complexity_level',
+                                'seconds',
+                                'seconds_percentage',
+                                'cma',
+                                'cma_percentage',
+                                'accumulated_grf',
+                                'accumulated_grf_percentage',
+                                'left_cumulative_average_peak_vGRF',
+                                'right_cumulative_average_peak_vGRF',
+                                'left_cumulative_average_GRF',
+                                'right_cumulative_average_GRF',
+                                'left_cumulative_average_accel',
+                                'right_cumulative_average_accel',
+                                'left_gct',
+                                'right_gct',
+                                'left_gct_percentage',
+                                'right_gct_percentage',
+
+    ]
+                        )
 
 def convert_intensity_band_to_csv(t):
         ab = pandas.DataFrame({
@@ -73,14 +93,14 @@ def convert_intensity_band_to_csv(t):
             'accumulated_grf': [t.accumulated_grf],
             'accumulated_grf_percentage': [t.accumulated_grf_percentage],
             'left_cumulative_average_peak_vGRF': [t.left.cumulative_average_peak_vGRF],
-            'left_cumulative_average_GRF': [t.left.cumulative_average_GRF],
-            'left_cumulative_average_accel': [t.left.cumulative_average_accel],
-            'left_gct': [t.left.gct],
-            'left_gct_percentage': [t.left.gct_percentage],
             'right_cumulative_average_peak_vGRF': [t.right.cumulative_average_peak_vGRF],
+            'left_cumulative_average_GRF': [t.left.cumulative_average_GRF],
             'right_cumulative_average_GRF': [t.right.cumulative_average_GRF],
+            'left_cumulative_average_accel': [t.left.cumulative_average_accel],
             'right_cumulative_average_accel': [t.right.cumulative_average_accel],
+            'left_gct': [t.left.gct],
             'right_gct': [t.right.gct],
+            'left_gct_percentage': [t.left.gct_percentage],
             'right_gct_percentage': [t.right.gct_percentage],
         }, index=[t.descriptor])
 

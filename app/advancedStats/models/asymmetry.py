@@ -32,6 +32,7 @@ class LoadingAsymmetry(object):
 class LoadingAsymmetrySummary(object):
     def __init__(self):
         self.variable_name = ""
+        self.sort_order = 0
         self.red_grf = 0.0
         self.red_grf_percent = 0.0
         self.red_cma = 0.0
