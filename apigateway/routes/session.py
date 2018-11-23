@@ -8,7 +8,7 @@ import os
 import re
 
 from fathomapi.api.config import Config
-from fathomapi.utils.exceptions import ApplicationException, DuplicateEntityException
+from fathomapi.utils.exceptions import ApplicationException, DuplicateEntityException, InvalidSchemaException
 from fathomapi.utils.decorators import require
 from fathomapi.utils.xray import xray_recorder
 
@@ -59,18 +59,17 @@ def handle_session_get(session_id):
 @require.authenticated.any
 @xray_recorder.capture('routes.session.upload')
 def handle_session_upload(session_id):
-    session = Session(session_id).get()
-    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
-    xray_recorder.current_segment().put_annotation('sensor_id', ','.join(session['sensor_ids']))
-    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
 
     # Need to use single threading to prevent X Ray tracing errors
     config = TransferConfig(use_threads=False)
     s3_transfer = S3Transfer(client=boto3.client('s3'), config=config)
 
     if request.headers['Content-Type'] == 'application/octet-stream':
+        raw_data = base64.b64decode(request.get_data())
+        if raw_data[:-5] == b'!!!!!':
+            raise InvalidSchemaException('Void character string found at end of body')
         with open('/tmp/binary', 'wb') as f:
-            f.write(base64.b64decode(request.get_data()))
+            f.write(raw_data)
 
     elif request.headers['Content-Type'] == 'application/json':
         if isinstance(request.json, dict) and 'src' in request.json:
@@ -94,10 +93,7 @@ def handle_session_upload(session_id):
     print(json.dumps({'message': 'Uploading to s3://{}/{}'.format(s3_bucket, s3_key)}))
     s3_transfer.upload_file('/tmp/binary', s3_bucket, s3_key)
 
-    # Per request from 221e
-    del session['s3_files']
-
-    return {'session': session}
+    return {'message': 'Received'}, 202
 
 
 @app.route('/<uuid:session_id>', methods=['PATCH'])
