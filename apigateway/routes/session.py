@@ -27,7 +27,7 @@ _s3_config = TransferConfig(use_threads=False)
 @require.body({'event_date': str, 'sensors': list})
 @xray_recorder.capture('routes.session.create')
 def handle_session_create(principal_id=None):
-    xray_recorder.current_segment().put_annotation('accessory_id', principal_id)
+    xray_recorder.current_subsegment().put_annotation('accessory_id', principal_id)
 
     body = request.json
     body['accessory_id'] = principal_id
