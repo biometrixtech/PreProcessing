@@ -13,7 +13,7 @@ class TestStatusNoAuth(BaseTest):
 class TestStatusWrongMethod(BaseTest):
     endpoint = 'status'
     method = 'GET'
-    authorization = get_api_service_token()
+    authorization = jwt_token
     expected_status = 405
 
 

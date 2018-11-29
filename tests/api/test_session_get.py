@@ -1,4 +1,4 @@
-from base_test import BaseTest, get_api_service_token
+from base_test import BaseTest
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
@@ -26,21 +26,21 @@ class TestSessionGetNoAuth(BaseTest):
 class TestSessionGetWrongMethod(BaseTest):
     endpoint = 'session/911bffe6-2649-5b74-825a-7481bdf5920e'
     method = 'POST'
-    authorization = get_api_service_token()
+    authorization = jwt_token
     expected_status = 405
 
 
 class TestSessionGetInvalidUuid(BaseTest):
     endpoint = 'session/foobar'
     method = 'GET'
-    authorization = get_api_service_token()
+    authorization = jwt_token
     expected_status = 400
 
 
 class TestSessionGetNonExistent(BaseTest):
     endpoint = 'session/00000000-0000-4000-8000-000000000000'
     method = 'GET'
-    authorization = get_api_service_token()
+    authorization = jwt_token
     expected_status = 404
 
 
