@@ -6,12 +6,10 @@ from fathomapi.models.dynamodb_entity import DynamodbEntity
 
 
 class Session(DynamodbEntity):
+    _dynamodb_table_name = 'preprocessing-{}-ingest-sessions'.format(Config.get('ENVIRONMENT'))
 
     def __init__(self, session_id):
         super().__init__({'id': session_id})
-
-    def _get_dynamodb_resource(self):
-        return boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(Config.get('ENVIRONMENT')))
 
     @staticmethod
     def generate_uuid(body):
