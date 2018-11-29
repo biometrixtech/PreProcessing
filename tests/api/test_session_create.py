@@ -1,4 +1,4 @@
-from base_test import BaseTest, get_api_service_token
+from base_test import BaseTest
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
@@ -26,7 +26,7 @@ class TestSessionCreateNoAuth(BaseTest):
 class TestSessionCreateWrongMethod(BaseTest):
     endpoint = 'session'
     method = 'GET'
-    authorization = get_api_service_token()
+    authorization = jwt_token
     expected_status = 405
 
 
