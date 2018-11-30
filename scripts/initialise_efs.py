@@ -90,7 +90,7 @@ if __name__ == '__main__':
             'maintenance-initialiseefs',
             ['mkdir -p /net/efs/preprocessing /net/efs/globalmodels /net/efs/globalscalers']
         )
-        commands = ['apk update && apk add aws-cli']
+        commands = ['apk update && apk upgrade musl && apk add aws-cli']
         models = [
             'grf_model_v2_0.h5',
             'grf_model_left_v2_1.h5',

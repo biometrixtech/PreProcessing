@@ -2,7 +2,6 @@
 from __future__ import print_function
 
 import errno
-import json
 import logging
 import numpy as np
 import pandas as pd
@@ -220,9 +219,12 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bf_left = quat_prod(q_sensor_left, q_bftransform_left)
     q_bf_right = quat_prod(q_sensor_right, q_bftransform_right)
 
-    # Rotate left foot by 180º
-    yaw_180 = make_quaternion_array([0, 0, 0, 1], row_count)
-    q_bf_left = quat_prod(q_bf_left, yaw_180)
+    # Rotate right and left foot by 90º
+    # yaw_180 = make_quaternion_array([0, 0, 0, 1], row_count)
+    yaw_90_pos = make_quaternion_array([sqrt(2)/2, 0, 0, sqrt(2)/2], row_count)
+    q_bf_left = quat_prod(q_bf_left, yaw_90_pos)
+    q_bf_right = quat_prod(q_bf_right, yaw_90_pos)
+    # q_bf_left = quat_prod(q_bf_left, yaw_180)
 
     # insert transformed values for ankle sensors into dataframe
     sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
@@ -260,7 +262,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
 
     # Rotate hip sensor by 90º plus the hip neutral transform, find the body
     # frame of the hip data
-    yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, -sqrt(2)/2], row_count)    
+    yaw_90 = make_quaternion_array([sqrt(2)/2, 0, 0, -sqrt(2)/2], row_count)
     q_bf_hip = quat_multi_prod(q_neutraltransform_hip, q_sensor_hip, q_bftransform_hip, yaw_90)
 
     # insert transformed values for hip into dataframe
@@ -290,7 +292,9 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bf_yaw_right = quat_force_euler_angle(q_bf_right, phi=0, theta=0)
 
     # After filtering trasnformed quaternions, reverse transformation to get filtered raw quats
-    q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_180))
+    q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_90_pos))
+    q_bf_right = quat_prod(q_bf_right, quat_conj(yaw_90_pos))
+    # q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_180))
     q_sensor_left = quat_prod(q_bf_left, quat_conj(q_bftransform_left))
     q_sensor_right = quat_prod(q_bf_right, quat_conj(q_bftransform_right))
     q_sensor_hip = quat_multi_prod(quat_conj(q_neutraltransform_hip),
@@ -402,10 +406,10 @@ def script_handler(working_directory, file_name, data):
         logger.info("LOADING DATA")
 
         # read sensor data
-        print(json.dumps(data))
-        print(file_name)
-        file_version = data.get('Version', '2.3')
-        if file_version == '1.0':
+        logger.info(data)
+        logger.info(data.get('SensorDataFileVersion'))
+        logger.info(file_name)
+        if data.get('SensorDataFileVersion', '2.3') == '1.0':
             sdata = pd.read_csv(os.path.join(working_directory, 'downloadandchunk', file_name))
         else:
             sdata = read_file(os.path.join(working_directory, 'downloadandchunk', file_name), data.get('Placement'))
@@ -426,6 +430,7 @@ def script_handler(working_directory, file_name, data):
         sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
         # Process the data and pass it as argument to run_session as
+        file_version = data.get('SensorDataFileVersion', '2.3')
         hip_n_transform = data.get('HipNTransform', None)
 
         # SAVE DEBUG DATA

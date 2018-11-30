@@ -34,7 +34,7 @@ def det_rofp(lf_takeoff, rf_takeoff, grf, phase_lf, phase_rf, stance, hz):
         lf_rofp: array, rate of force absorption left foot
         rf_rofp: array, rate of force absorption right foot
     '''
-    double_leg = np.array([i in [4, 5, 9] for i in stance])
+    double_leg = np.array([i in [3, 5] for i in stance])
     
     # determine rate of force absorption for left & right feet
     if len(lf_takeoff) != 0:

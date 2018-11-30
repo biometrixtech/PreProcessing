@@ -100,7 +100,7 @@ Parameters:
 Mappings:
     TemplateVersion:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
-        Infrastructure: { Commit: "e83a70171b72e8ae1732e30ca51c7d8b0a5882ad" }
+        Infrastructure: { Commit: "fba0b4cc4b55dc377ae003ba907ed552660a579c" }
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -145,6 +145,7 @@ Conditions:
     CreateCompute: { "Fn::And": [ { Condition: "CreateVpc" }, { "Fn::Equals": [ { Ref: "CreateCompute" }, "true" ] } ] }
     CreatePipeline: { "Fn::And": [ { Condition: "CreateCompute" }, { "Fn::Equals": [ { Ref: "CreatePipeline" }, "true" ] } ] }
     CreateIngest: { "Fn::And": [ { Condition: "CreatePipeline" }, { "Fn::Equals": [ { Ref: "CreateIngest" }, "true" ] } ] }
+    CreateApigateway: { Condition: "CreateIngest" }
     CreateMonitoring: { "Fn::And": [ { "Condition": "CreateCompute" }, { "Condition": "CreatePipeline" } ] }
 
 Resources:
@@ -326,9 +327,10 @@ Resources:
             ManagedPolicyArns:
               - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
               - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
-              - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/infrastructure-${Environment}-querypostgres" }
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/preprocessing-${Environment}-ingest-sessions-read" }
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/preprocessing-${Environment}-ingest-sessions-write" }
+              - { "Fn::ImportValue": { "Fn::Sub": "UsersValidateAuthPolicyArn-${Environment}" } }
+              - { "Fn::ImportValue": { "Fn::Sub": "UsersServiceAuthPolicyArn-${Environment}" } }
             Policies:
               - PolicyName: "default"
                 PolicyDocument:
@@ -341,6 +343,7 @@ Resources:
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-apigateway-${AWS::Region}" }
         DependsOn:
           - "IngestStack"
+        Condition: "CreateApigateway"
 
     ApiGatewayLambda:
         Type: "AWS::Lambda::Function"
@@ -355,6 +358,7 @@ Resources:
                     DYNAMODB_TABLENAME_SESSIONS: { "Fn::GetAtt": [ "IngestStack", "Outputs.SessionEventsTableName" ] }
                     ENVIRONMENT: { Ref: 'Environment' }
                     S3_INGEST_BUCKET_NAME: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}" }
+                    SERVICE: 'preprocessing'
             Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"
@@ -368,6 +372,7 @@ Resources:
               - { Key: "Service", Value: "apigateway" }
             TracingConfig:
                 Mode: "Active"
+        Condition: "CreateApigateway"
 
     ApigatewayStack:
         Type: "AWS::CloudFormation::Stack"
@@ -377,8 +382,6 @@ Resources:
                 Environment: { Ref: "Environment" }
                 Service: "apigateway"
                 LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
-                CustomAuthLambdaArn: { "Fn::ImportValue": { "Fn::Sub": "users-${Environment}-CustomAuthLambdaArn" } }
-                CreateCustomDomain: "true"
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-apigateway" } }
               - { Key: "Management", Value: "managed" }
@@ -390,3 +393,4 @@ Resources:
                 TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
             } ] }
             TimeoutInMinutes: 30
+        Condition: "CreateApigateway"

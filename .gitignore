@@ -2,6 +2,9 @@
 *.pyc
 cache/pip/*
 !cache/pip/empty
+.DS_Store
+.idea/*
+.cache
 
 apigateway/*
 !apigateway/routes
@@ -11,3 +14,10 @@ apigateway/flask_lambda.py
 !apigateway/models
 !apigateway/pip_requirements
 !apigateway/schemas
+apigateway/semver.py
+apigateway/six.py
+
+# Don't commit libraries for lambdas, people should rebuild them from the pip_requirements
+/lambdas/*/*/
+/lambdas/*/semver.py
+/lambdas/*/six.py

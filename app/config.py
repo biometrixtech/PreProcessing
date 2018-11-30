@@ -1,19 +1,22 @@
 from pymongo import MongoClient
 import os
+import json
+import boto3
+from botocore.exceptions import ClientError
 
-
-def get_mongo_config(instance):
-    keys = ['host', 'replicaset', 'user', 'password', 'database', 'collection']
-    config = {k.lower(): os.environ.get('MONGO_{}_{}'.format(k.upper(), instance.upper()), None) for k in keys}
+def get_mongo_config():
+    keys = ['host', 'replicaset', 'user', 'password', 'database']
+    config = {k.lower(): os.environ.get('MONGO_{}'.format(k.upper()), None) for k in keys}
     return config
 
 
-def get_mongo_database(instance):
-    config = get_mongo_config(instance)
+def get_mongo_database():
+    config = get_mongo_config()
     mongo_client = MongoClient(
         config['host'],
         replicaset=config['replicaset'] if config['replicaset'] != '---' else None,
         ssl=True,
+        serverSelectionTimeoutMS=10000,
     )
     database = mongo_client[config['database']]
     database.authenticate(config['user'], config['password'], mechanism='SCRAM-SHA-1', source='admin')
@@ -21,7 +24,32 @@ def get_mongo_database(instance):
     return database
 
 
-def get_mongo_collection(instance, collection_override=None):
-    config = get_mongo_config(instance)
-    database = get_mongo_database(instance)
-    return database[collection_override if collection_override is not None else config['collection']]
+def get_mongo_collection(collection, collection_override=None):
+    database = get_mongo_database()
+    mongo_collection = os.environ['MONGO_COLLECTION_' + collection.upper()]
+    return database[collection_override if collection_override is not None else mongo_collection]
+
+
+def get_secret(secret_name):
+    client = boto3.client('secretsmanager')
+    try:
+        secret_name = '/'.join(['preprocessing', os.environ['ENVIRONMENT'], secret_name])
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    except ClientError as e:
+        raise Exception('SecretsManagerError', json.dumps(e.response), 500)
+    else:
+        if 'SecretString' in get_secret_value_response:
+            return json.loads(get_secret_value_response['SecretString'])
+        else:
+            return get_secret_value_response['SecretBinary']
+
+
+def load_parameters(keys, secret_name):
+    keys_to_load = [key for key in keys if key.upper() not in os.environ]
+    if len(keys_to_load) > 0:
+        print('Retrieving configuration for [{}] from SecretsManager'.format(", ".join(keys_to_load)))
+        params = get_secret(secret_name)
+        # Export to environment
+        for k in keys_to_load:
+            os.environ[k.upper()] = params[k.lower()]
+            print("Got value for {} from SecretsManager".format(k))

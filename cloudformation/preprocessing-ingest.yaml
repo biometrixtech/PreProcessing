@@ -55,9 +55,9 @@ Resources:
               - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
               - "arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole"
               - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
-              - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/infrastructure-${Environment}-querypostgres" }
               - { Ref: "SessionEventsReadPolicy" }
               - { Ref: "SessionEventsWritePolicy" }
+              - { "Fn::ImportValue": { "Fn::Sub": "UsersServiceAuthPolicyArn-${Environment}" } }
             Policies:
               - PolicyName: "default"
                 PolicyDocument:
@@ -74,6 +74,13 @@ Resources:
                           - "states:StartExecution"
                         Effect: "Allow"
                         Resource: { Ref: "StateMachineArn" }
+
+                      - Action:
+                          - "lambda:InvokeFunction"
+                        Effect: "Allow"
+                        Resource:
+                          - { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:users-${Environment}-apigateway-execute" }
+                          - { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:hardware-${Environment}-apigateway-execute" }
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-ingest-lambda-${AWS::Region}" }
 
     ##########################################################################################################
@@ -90,12 +97,23 @@ Resources:
               - { AttributeName: "teamId", AttributeType: "S" }
               - { AttributeName: "trainingGroupId", AttributeType: "S" }
               - { AttributeName: "eventDate", AttributeType: "S" }
+              - { AttributeName: "user_id", AttributeType: "S" }
+              - { AttributeName: "event_date", AttributeType: "S" }
             KeySchema:
               - { AttributeName: "id", KeyType: "HASH" }
             ProvisionedThroughput:
                 ReadCapacityUnits: 10
                 WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
             GlobalSecondaryIndexes:
+              - IndexName: "user_id-event_date"
+                KeySchema:
+                  - { AttributeName: "user_id", KeyType: "HASH" }
+                  - { AttributeName: "event_date", KeyType: "RANGE" }
+                Projection:
+                    ProjectionType: "ALL"
+                ProvisionedThroughput:
+                    ReadCapacityUnits: 5
+                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
               - IndexName: "userId-eventDate"
                 KeySchema:
                   - { AttributeName: "userId", KeyType: "HASH" }
@@ -261,101 +279,16 @@ Resources:
         Type: "AWS::Lambda::Function"
         Properties:
             Code:
-                ZipFile: |
-                    import boto3, datetime, decimal, json, os, time, urllib.request
-                    logs_client = boto3.client('logs')
-
-
-                    def handler(event, _):
-                        print(json.dumps(event))
-                        for record in event['Records']:
-                            new_object = load_obj(record['dynamodb'].get('NewImage', {}))
-                            old_object = load_obj(record['dynamodb'].get('OldImage', {}))
-                            changes = {k: (old_object.get(k, None), new_object.get(k, None)) for k, _ in set(new_object.items()).symmetric_difference(set(old_object.items()))}
-
-                            if 'session_status' in changes and changes['session_status'][1] == 'UPLOAD_COMPLETE':
-                                print('Beginning SFN execution')
-                                trigger_sfn(new_object['id'], new_object.get('version', '2.3'))
-
-                            if 'user_id' in changes and new_object['user_id'] != '---':
-                                print('Loading data from users service')
-                                user = make_request('users/user/' + new_object['user_id']).get('user', None)
-                                if user is not None:
-                                    update_dynamodb(new_object['id'], {
-                                        'team_id': user['teams'][0]['id'] if len(user['teams']) else None,
-                                        'training_group_ids': set([tg['id'] for tg in user['training_groups']]) if len(user['training_groups']) else None,
-                                        'user_mass': decimal.Decimal(str(user['biometric_data']['mass']['kg'])),
-                                    })
-
-                            if 'accessory_id' in changes:
-                                print('Loading data from hardware service')
-                                accessory = make_request('hardware/accessory/' + new_object['accessory_id']).get('accessory', None)
-                                if accessory is not None:
-                                    update_dynamodb(new_object['id'], {'user_id': accessory['owner_id'] or '---'})
-
-
-                    def make_request(endpoint):
-                        headers = {'Authorization': os.environ['AUTH_JWT'], 'Accept': 'application/json'}
-                        try:
-                            url = 'https://apis.' + os.environ['ENVIRONMENT'] + '.fathomai.com/' + endpoint
-                            with urllib.request.urlopen(urllib.request.Request(url, headers=headers)) as response:
-                                ret = json.loads(response.read())
-                            print(json.dumps(ret))
-                            return ret
-                        except urllib.error.HTTPError:
-                            return {}
-
-
-                    def trigger_sfn(session_id, version):
-                        now = int(datetime.datetime.utcnow().timestamp())
-                        execution_name = '{}-{}'.format(session_id, int(time.time()))
-                        logs_client.create_log_stream(
-                            logGroupName=os.environ['LOG_GROUP_NAME'],
-                            logStreamName=execution_name
-                        )
-                        logs_client.put_log_events(
-                            logGroupName=os.environ['LOG_GROUP_NAME'],
-                            logStreamName=execution_name,
-                            logEvents=[{'timestamp': now * 1000, 'message': 'SFN Execution triggered'}]
-                        )
-                        boto3.client('stepfunctions').start_execution(
-                            stateMachineArn=os.environ['STATE_MACHINE_ARN'],
-                            name=execution_name,
-                            input=json.dumps({
-                                "Meta": {"ExecutionName": execution_name},
-                                "SourceEvent": {"SessionId": session_id, "SensorDataFileVersion": version}
-                            })
-                        )
-
-
-                    def load_obj(record):
-                        def cast(t, v):
-                            return {
-                                'S': lambda x: x,
-                                'N': lambda x: float(x),
-                                'SS': lambda x: frozenset(x),
-                                'L': lambda x: tuple(x),
-                            }[t](v)
-                        return {attr_name: cast(*list(v.items())[0]) for attr_name, v in record.items()}
-
-
-                    def update_dynamodb(session_id, updates):
-                        updates = {k:v for k,v in updates.items() if v is not None}
-                        update_expression = 'SET {} '.format(', '.join(["{} = :{}".format(k, k) for k in updates.keys()]))
-                        values = {':' + k: v for (k, v) in updates.items()}
-                        print('Updating {} with parameters {}'.format(update_expression, values))
-                        boto3.resource('dynamodb').Table(os.environ['DYNAMODB_TABLE_NAME']).update_item(
-                            Key={'id': session_id},
-                            UpdateExpression=update_expression,
-                            ExpressionAttributeValues=values,
-                        )
-
+                S3Bucket: { "Fn::ImportValue": "InfrastructureBucketName" }
+                S3Key: { "Fn::Sub": [ "lambdas/preprocessing/${TemplateVersion}/sessions_stream.zip", {
+                    TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+                } ] }
             Environment:
                 Variables:
                     DYNAMODB_TABLE_NAME: { Ref: "SessionEventsTable" }
                     ENVIRONMENT: { Ref: "Environment" }
+                    SERVICE: 'preprocessing'
                     STATE_MACHINE_ARN: { Ref: "StateMachineArn" }
-                    AUTH_JWT: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDAifQ.B0cQFH950aef1Wi09GyooBirtCuB7tl9Rr0DPvwQwFE'
                     LOG_GROUP_NAME: { "Fn::Sub": "/biometrix/preprocessing/${Environment}" }
             Handler: "index.handler"
             MemorySize: "256"
