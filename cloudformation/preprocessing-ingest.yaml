@@ -101,9 +101,7 @@ Resources:
               - { AttributeName: "event_date", AttributeType: "S" }
             KeySchema:
               - { AttributeName: "id", KeyType: "HASH" }
-            ProvisionedThroughput:
-                ReadCapacityUnits: 10
-                WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
+            BillingMode: "PAY_PER_REQUEST"
             GlobalSecondaryIndexes:
               - IndexName: "user_id-event_date"
                 KeySchema:
@@ -111,36 +109,24 @@ Resources:
                   - { AttributeName: "event_date", KeyType: "RANGE" }
                 Projection:
                     ProjectionType: "ALL"
-                ProvisionedThroughput:
-                    ReadCapacityUnits: 5
-                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
               - IndexName: "userId-eventDate"
                 KeySchema:
                   - { AttributeName: "userId", KeyType: "HASH" }
                   - { AttributeName: "eventDate", KeyType: "RANGE" }
                 Projection:
                     ProjectionType: "ALL"
-                ProvisionedThroughput:
-                    ReadCapacityUnits: 5
-                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
               - IndexName: "teamId-eventDate"
                 KeySchema:
                   - { AttributeName: "teamId", KeyType: "HASH" }
                   - { AttributeName: "eventDate", KeyType: "RANGE" }
                 Projection:
                     ProjectionType: "ALL"
-                ProvisionedThroughput:
-                    ReadCapacityUnits: 5
-                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
               - IndexName: "trainingGroupId-eventDate"
                 KeySchema:
                   - { AttributeName: "trainingGroupId", KeyType: "HASH" }
                   - { AttributeName: "eventDate", KeyType: "RANGE" }
                 Projection:
                     ProjectionType: "ALL"
-                ProvisionedThroughput:
-                    ReadCapacityUnits: 5
-                    WriteCapacityUnits: { Ref: "DynamodbWriteCapacity" }
             StreamSpecification:
                 StreamViewType: "NEW_AND_OLD_IMAGES"
         DeletionPolicy : "Retain"
