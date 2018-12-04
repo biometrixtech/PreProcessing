@@ -54,8 +54,8 @@ def handle_session_create(principal_id=None):
 @xray_recorder.capture('routes.session.get')
 def handle_session_get(session_id):
     session = Session(session_id).get()
-    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
-    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
+    xray_recorder.current_subsegment().put_annotation('accessory_id', session['accessory_id'])
+    xray_recorder.current_subsegment().put_annotation('user_id', session['user_id'])
     return {'session': session}
 
 
@@ -102,8 +102,8 @@ def handle_session_upload(session_id):
 @xray_recorder.capture('routes.session.patch')
 def handle_session_patch(session_id):
     session = Session(session_id).get()
-    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
-    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
+    xray_recorder.current_subsegment().put_annotation('accessory_id', session['accessory_id'])
+    xray_recorder.current_subsegment().put_annotation('user_id', session['user_id'])
 
     if 'session_status' in request.json:
         allowed_transitions = [
