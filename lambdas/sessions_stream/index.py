@@ -73,6 +73,7 @@ def load_obj(record):
             'N': lambda x: float(x),
             'SS': lambda x: frozenset(x),
             'L': lambda x: tuple(x),
+            'NULL': lambda x: None,
         }[t](v)
 
     return {attr_name: cast(*list(v.items())[0]) for attr_name, v in record.items()}

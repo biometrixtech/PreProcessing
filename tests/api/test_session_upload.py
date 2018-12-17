@@ -1,4 +1,4 @@
-from base_test import BaseTest, get_api_service_token
+from base_test import BaseTest
 import boto3
 import time
 from boto3.dynamodb.conditions import Key, Attr
@@ -28,12 +28,12 @@ class TestSessionUploadNoAuth(BaseTest):
 class TestSessionUploadInvalidUuid(BaseTest):
     endpoint = 'session/foobar/upload'
     method = 'POST'
-    authorization = get_api_service_token()
+    authorization = jwt_token
     expected_status = 400
 
 
 class TestSessionUploadNonExistent(BaseTest):
     endpoint = 'session/00000000-0000-4000-8000-000000000000/upload'
     method = 'POST'
-    authorization = get_api_service_token()
+    authorization = jwt_token
     expected_status = 404

@@ -3,12 +3,12 @@ from flask import request, Blueprint
 import base64
 import boto3
 import datetime
+import io
 import json
-import os
 import re
 
 from fathomapi.api.config import Config
-from fathomapi.utils.exceptions import ApplicationException, DuplicateEntityException
+from fathomapi.utils.exceptions import ApplicationException, DuplicateEntityException, InvalidSchemaException
 from fathomapi.utils.decorators import require
 from fathomapi.utils.xray import xray_recorder
 
@@ -17,13 +17,17 @@ from models.session import Session
 
 app = Blueprint('session', __name__)
 
+_ingest_s3_bucket = boto3.resource('s3').Bucket(Config.get('S3_INGEST_BUCKET_NAME'))
+# Need to use single threading to prevent X Ray tracing errors
+_s3_config = TransferConfig(use_threads=False)
+
 
 @app.route('/', methods=['POST'])
 @require.authenticated.any
 @require.body({'event_date': str, 'sensors': list})
 @xray_recorder.capture('routes.session.create')
 def handle_session_create(principal_id=None):
-    xray_recorder.current_segment().put_annotation('accessory_id', principal_id)
+    xray_recorder.current_subsegment().put_annotation('accessory_id', principal_id)
 
     body = request.json
     body['accessory_id'] = principal_id
@@ -50,8 +54,8 @@ def handle_session_create(principal_id=None):
 @xray_recorder.capture('routes.session.get')
 def handle_session_get(session_id):
     session = Session(session_id).get()
-    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
-    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
+    xray_recorder.current_subsegment().put_annotation('accessory_id', session['accessory_id'])
+    xray_recorder.current_subsegment().put_annotation('user_id', session['user_id'])
     return {'session': session}
 
 
@@ -59,45 +63,38 @@ def handle_session_get(session_id):
 @require.authenticated.any
 @xray_recorder.capture('routes.session.upload')
 def handle_session_upload(session_id):
-    session = Session(session_id).get()
-    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
-    xray_recorder.current_segment().put_annotation('sensor_id', ','.join(session['sensor_ids']))
-    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
 
-    # Need to use single threading to prevent X Ray tracing errors
-    config = TransferConfig(use_threads=False)
-    s3_transfer = S3Transfer(client=boto3.client('s3'), config=config)
+    # For now, we integrate with the ingest subservice by saving the file to the S3 ingest bucket.
+    s3_key = '{}_{}'.format(session_id, str(int(datetime.datetime.now().timestamp() * 1000)))
+    print(json.dumps({'message': 'Uploading to s3://{}/{}'.format(_ingest_s3_bucket.name, s3_key)}))
 
     if request.headers['Content-Type'] == 'application/octet-stream':
-        with open('/tmp/binary', 'wb') as f:
-            f.write(base64.b64decode(request.get_data()))
+        raw_data = base64.b64decode(request.get_data())
+        if raw_data[-5:] == b'!!!!!':
+            raise InvalidSchemaException('Void character string found at end of body')
+        f = io.BytesIO(raw_data)
+        _ingest_s3_bucket.upload_fileobj(f, s3_key, Config=_s3_config)
 
     elif request.headers['Content-Type'] == 'application/json':
-        if isinstance(request.json, dict) and 'src' in request.json:
-            match = re.match('^s3://(?P<bucket>biometrix-[a-zA-Z0-9\-]+)/(?P<key>.+)$', request.json['src'])
-            if match is not None:
-                # Download the file from the foreign S3 bucket
-                print(json.dumps({'message': 'Downloading from s3://{}/{}'.format(match.group('bucket'), match.group('key'))}))
-                s3_transfer.download_file(match.group('bucket'), match.group('key'), '/tmp/binary')
+        if not isinstance(request.json, dict) or 'src' not in request.json:
+            raise InvalidSchemaException('"src" parameter is required for json upload')
+        match = re.match('^s3://(?P<bucket>biometrix-[a-zA-Z0-9\-]+)/(?P<key>.+)$', request.json['src'])
+        if match is None:
+            raise InvalidSchemaException('"src" parameter must be an s3://bucket/key URL')
 
-    if not os.path.isfile('/tmp/binary'):
+        # Copy the file from the foreign S3 bucket
+        print(json.dumps({'message': 'Downloading from s3://{}/{}'.format(match.group('bucket'), match.group('key'))}))
+        boto3.client('s3').download_file(match.group('bucket'), match.group('key'), '/tmp/binary', Config=_s3_config)
+        _ingest_s3_bucket.upload_file('/tmp/binary', s3_key, Config=_s3_config)
+
+    else:
         raise ApplicationException(
             415,
             'UnsupportedContentType',
             'This endpoint requires the Content-Type application/octet-stream with a binary file content, or application/json with a `src` key referring to an S3 bucket'
         )
 
-    # For now, we integrate with the ingest subservice by saving the file to the S3 ingest bucket.
-    s3_bucket = Config.get('S3_INGEST_BUCKET_NAME')
-    part_number = str(int(datetime.datetime.now().timestamp() * 1000))
-    s3_key = '{}_{}'.format(session_id, part_number)
-    print(json.dumps({'message': 'Uploading to s3://{}/{}'.format(s3_bucket, s3_key)}))
-    s3_transfer.upload_file('/tmp/binary', s3_bucket, s3_key)
-
-    # Per request from 221e
-    del session['s3_files']
-
-    return {'session': session}
+    return {'message': 'Received'}, 202
 
 
 @app.route('/<uuid:session_id>', methods=['PATCH'])
@@ -105,8 +102,8 @@ def handle_session_upload(session_id):
 @xray_recorder.capture('routes.session.patch')
 def handle_session_patch(session_id):
     session = Session(session_id).get()
-    xray_recorder.current_segment().put_annotation('accessory_id', session['accessory_id'])
-    xray_recorder.current_segment().put_annotation('user_id', session['user_id'])
+    xray_recorder.current_subsegment().put_annotation('accessory_id', session['accessory_id'])
+    xray_recorder.current_subsegment().put_annotation('user_id', session['user_id'])
 
     if 'session_status' in request.json:
         allowed_transitions = [
