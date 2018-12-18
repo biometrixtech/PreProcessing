@@ -1,6 +1,6 @@
 class CategorizationVariable(object):
     
-    def __init__(self, name,  green_low, green_high,yellow_low, yellow_high,red_low, red_high,low_to_high_scale ):
+    def __init__(self, name,  green_low, green_high,yellow_low, yellow_high,red_low, red_high,low_to_high_scale, sort_order=0 ):
         self.name = name
         self.green_low = green_low
         self.green_high = green_high
@@ -9,6 +9,7 @@ class CategorizationVariable(object):
         self.red_low = red_low
         self.red_high = red_high
         self.invereted= (low_to_high_scale==True)
+        self.sort_order = sort_order
         
 
 

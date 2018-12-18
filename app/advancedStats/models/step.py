@@ -37,9 +37,13 @@ class Step(object):
             self.ankle_rotation = 0
             self.land_pattern = 0
             self.adduc_ROM_hip = 0
-            self.adduc_motion_covered_hip = 0
+            self.adduc_motion_covered_total_hip = 0
+            self.adduc_motion_covered_neg_hip = 0
+            self.adduc_motion_covered_pos_hip = 0
             self.flex_ROM_hip = 0
-            self.flex_motion_covered_hip =0
+            self.flex_motion_covered_total_hip = 0
+            self.flex_motion_covered_neg_hip = 0
+            self.flex_motion_covered_pos_hip = 0
 
             self.land_time = 0
             
@@ -107,9 +111,13 @@ class Step(object):
                 self.land_pattern = mongo_step.get('landPatternRF')
 
             self.adduc_ROM_hip = mongo_step.get('adducROMHip')
-            self.adduc_motion_covered_hip = mongo_step.get('adducMotionCoveredHip')
+            self.adduc_motion_covered_total_hip = mongo_step.get('adducMotionCoveredTotalHip')
+            self.adduc_motion_covered_neg_hip = mongo_step.get('adducMotionCoveredNegHip')
+            self.adduc_motion_covered_pos_hip = mongo_step.get('adducMotionCoveredPosHip')
             self.flex_ROM_hip = mongo_step.get('flexROMHip')
-            self.flex_motion_covered_hip =mongo_step.get('flexMotionCoveredHip')
+            self.flex_motion_covered_total_hip =mongo_step.get('flexMotionCoveredTotalHip')
+            self.flex_motion_covered_neg_hip = mongo_step.get('flexMotionCoveredNegHip')
+            self.flex_motion_covered_pos_hip = mongo_step.get('flexMotionCoveredPosHip')
 
             self.land_time = mongo_step.get('landTime')
             self.stance = mongo_step.get('stance')
@@ -117,11 +125,9 @@ class Step(object):
 
     def get_stance(self):
         try:
-            if(self.stance.count(8)+self.stance.count(6)+self.stance.count(2)+self.stance.count(3) >
-                self.stance.count(9)+self.stance.count(7)+self.stance.count(4)+self.stance.count(5)):
+            if self.stance.count(2)+self.stance.count(4) > self.stance.count(3)+self.stance.count(5):
                 return 2
-            elif(self.stance.count(8)+self.stance.count(6)+self.stance.count(2)+self.stance.count(3) <
-                self.stance.count(9)+self.stance.count(7)+self.stance.count(4)+self.stance.count(5)):
+            elif self.stance.count(2)+self.stance.count(4) < self.stance.count(3)+self.stance.count(5):
                 return 4
             else:
                 return 4

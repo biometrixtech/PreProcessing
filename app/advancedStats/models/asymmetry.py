@@ -9,6 +9,8 @@ class LoadingAsymmetry(object):
         self.training_asymmetry = 0
         self.kinematic_asymmetry = 0
         self.total_asymmetry = self.training_asymmetry+self.kinematic_asymmetry
+        self.total_left_sum = 0
+        self.total_right_sum = 0
         self.total_left_right_sum = 0
         self.total_percent_asymmetry = None
         self.left_step_count = 0
@@ -30,6 +32,7 @@ class LoadingAsymmetry(object):
 class LoadingAsymmetrySummary(object):
     def __init__(self):
         self.variable_name = ""
+        self.sort_order = 0
         self.red_grf = 0.0
         self.red_grf_percent = 0.0
         self.red_cma = 0.0
@@ -65,9 +68,57 @@ class MovementAsymmetry(object):
         self.flex_rom = 0.0
         self.flex_motion_covered = 0.0
         self.adduc_rom_hip = 0.0
-        self.adduc_motion_covered_hip = 0.0
+        self.adduc_motion_covered_tot_hip = 0.0
+        self.adduc_motion_covered_pos_hip = 0.0
+        self.adduc_motion_covered_neg_hip = 0.0
         self.flex_rom_hip = 0.0
-        self.flex_motion_covered_hip = 0.0
+        self.flex_motion_covered_tot_hip = 0.0
+        self.flex_motion_covered_pos_hip = 0.0
+        self.flex_motion_covered_neg_hip = 0.0
+
+    def adduc_rom_hip_flag(self):
+
+        val = self.adduc_rom_hip
+        return self.get_value_for_ftest_results(val)
+
+    def adduc_motion_covered_tot_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.adduc_motion_covered_tot_hip)
+
+    def adduc_motion_covered_pos_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.adduc_motion_covered_pos_hip)
+
+    def adduc_motion_covered_neg_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.adduc_motion_covered_neg_hip)
+
+    def flex_rom_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.flex_rom_hip)
+
+    def flex_motion_covered_tot_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.flex_motion_covered_tot_hip)
+
+    def flex_motion_covered_pos_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.flex_motion_covered_pos_hip)
+
+    def flex_motion_covered_neg_hip_flag(self):
+
+        return self.get_value_for_ftest_results(self.flex_motion_covered_neg_hip)
+
+    def get_value_for_ftest_results(self, test_value):
+
+        if test_value is not None and test_value > 0.0:
+            return_value = '1'
+        elif  test_value is not None and test_value < 0.0:
+            return_value = '1'
+        else:
+            return_value = ''
+
+        return return_value
 
 
 class SessionAsymmetry(object):

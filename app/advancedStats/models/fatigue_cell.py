@@ -59,12 +59,12 @@ class FatigueCell(object):
  
         stats.left_adduc_ROM_hip_mean = self.get_steps_mean("adduc_ROM_hip", self.left_steps)
         stats.left_adduc_ROM_hip_stddev = self.get_steps_stddev("adduc_ROM_hip", self.left_steps)
-        stats.left_adduc_motion_covered_hip_mean = self.get_steps_mean("adduc_motion_covered_hip", self.left_steps)
-        stats.left_adduc_motion_covered_hip_stddev = self.get_steps_stddev("adduc_motion_covered_hip", self.left_steps)       
+        stats.left_adduc_motion_covered_hip_mean = self.get_steps_mean("adduc_motion_covered_total_hip", self.left_steps)
+        stats.left_adduc_motion_covered_hip_stddev = self.get_steps_stddev("adduc_motion_covered_total_hip", self.left_steps)
         stats.left_flex_ROM_hip_mean = self.get_steps_mean("flex_ROM_hip", self.left_steps)
         stats.left_flex_ROM_hip_stddev = self.get_steps_stddev("flex_ROM_hip", self.left_steps)
-        stats.left_flex_motion_covered_hip_mean = self.get_steps_mean("flex_motion_covered_hip", self.left_steps)
-        stats.left_flex_motion_covered_hip_stddev = self.get_steps_stddev("flex_motion_covered_hip", self.left_steps)  
+        stats.left_flex_motion_covered_hip_mean = self.get_steps_mean("flex_motion_covered_total_hip", self.left_steps)
+        stats.left_flex_motion_covered_hip_stddev = self.get_steps_stddev("flex_motion_covered_total_hip", self.left_steps)
 
         stats.right_adduc_ROM_mean = self.get_steps_mean("adduc_ROM", self.right_steps)
         stats.right_adduc_ROM_stddev = self.get_steps_stddev("adduc_ROM", self.right_steps)
@@ -77,12 +77,12 @@ class FatigueCell(object):
 
         stats.right_adduc_ROM_hip_mean = self.get_steps_mean("adduc_ROM_hip", self.right_steps)
         stats.right_adduc_ROM_hip_stddev = self.get_steps_stddev("adduc_ROM_hip", self.right_steps)
-        stats.right_adduc_motion_covered_hip_mean = self.get_steps_mean("adduc_motion_covered_hip", self.right_steps)
-        stats.right_adduc_motion_covered_hip_stddev = self.get_steps_stddev("adduc_motion_covered_hip", self.right_steps)       
+        stats.right_adduc_motion_covered_hip_mean = self.get_steps_mean("adduc_motion_covered_total_hip", self.right_steps)
+        stats.right_adduc_motion_covered_hip_stddev = self.get_steps_stddev("adduc_motion_covered_total_hip", self.right_steps)
         stats.right_flex_ROM_hip_mean = self.get_steps_mean("flex_ROM_hip", self.right_steps)
         stats.right_flex_ROM_hip_stddev = self.get_steps_stddev("flex_ROM_hip", self.right_steps)
-        stats.right_flex_motion_covered_hip_mean = self.get_steps_mean("flex_motion_covered_hip", self.right_steps)
-        stats.right_flex_motion_covered_hip_stddev = self.get_steps_stddev("flex_motion_covered_hip", self.right_steps) 
+        stats.right_flex_motion_covered_hip_mean = self.get_steps_mean("flex_motion_covered_total_hip", self.right_steps)
+        stats.right_flex_motion_covered_hip_stddev = self.get_steps_stddev("flex_motion_covered_total_hip", self.right_steps)
 
         stats.left_adduc_ROM_time_corr = self.get_steps_correlation("adduc_ROM","accumulated_grf_per_sec", self.left_steps)
         stats.right_adduc_ROM_time_corr = self.get_steps_correlation("adduc_ROM","accumulated_grf_per_sec", self.right_steps)

@@ -24,17 +24,17 @@ class AsymmetryProcessor(object):
 
         # relative magnitude
         var_list = []
-        var_list.append(CategorizationVariable("peak_grf_perc_diff_lf", 0, 5, 5, 10, 10, 100, False))
-        var_list.append(CategorizationVariable("peak_grf_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
-        var_list.append(CategorizationVariable("gct_perc_diff_lf", 0, 5, 5, 10, 10, 100, False))
-        var_list.append(CategorizationVariable("gct_perc_diff_rf", 0, 5, 5, 10, 10, 100, False))
+        var_list.append(CategorizationVariable("peak_grf_perc_diff_lf", 0, 5, 5, 10, 10, 100, False, 1))
+        var_list.append(CategorizationVariable("peak_grf_perc_diff_rf", 0, 5, 5, 10, 10, 100, False, 2))
+        var_list.append(CategorizationVariable("gct_perc_diff_lf", 0, 5, 5, 10, 10, 100, False, 3))
+        var_list.append(CategorizationVariable("gct_perc_diff_rf", 0, 5, 5, 10, 10, 100, False, 4))
 
         # var_list.append(CategorizationVariable("peak_grf_gct_left", 0, 5, 5, 10, 10, 100, False))
         # var_list.append(CategorizationVariable("peak_grf_gct_right", 0, 5, 5, 10, 10, 100, False))
-        var_list.append(CategorizationVariable("peak_grf_gct_left_over", 0, 2.5, 2.5, 5, 5, 100, False))
-        var_list.append(CategorizationVariable("peak_grf_gct_left_under", 0, 2.5, 2.5, 5, 5, 10, False))
-        var_list.append(CategorizationVariable("peak_grf_gct_right_over", 0, 2.5, 2.5, 5, 5, 100, False))
-        var_list.append(CategorizationVariable("peak_grf_gct_right_under", 0, 2.5, 2.5, 5, 5, 10, False))
+        var_list.append(CategorizationVariable("peak_grf_gct_left_over", 0, 2.5, 2.5, 5, 5, 100, False, 5))
+        var_list.append(CategorizationVariable("peak_grf_gct_left_under", 0, 2.5, 2.5, 5, 5, 10, False, 6))
+        var_list.append(CategorizationVariable("peak_grf_gct_right_over", 0, 2.5, 2.5, 5, 5, 100, False, 7))
+        var_list.append(CategorizationVariable("peak_grf_gct_right_under", 0, 2.5, 2.5, 5, 5, 10, False, 8))
 
         asym.loading_asymmetry_summaries = self.get_variable_asymmetry_summaries(self.user_id, self.event_date, var_list)
 
@@ -69,14 +69,14 @@ class AsymmetryProcessor(object):
 
         asym = LoadingAsymmetry(complexity_level, cma_level, grf_level, stance)
         asym.variable = attribute
-        left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
-        right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
-        asym.total_left_right_sum = left_sum + right_sum
+        asym.total_left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
+        asym.total_right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
+        asym.total_left_right_sum = asym.total_left_sum + asym.total_right_sum
 
         if len(complexity_matrix_cell.left_steps) == 0 or len(complexity_matrix_cell.right_steps) == 0:
-            asym.training_asymmetry = left_sum - right_sum
+            asym.training_asymmetry = asym.total_left_sum - asym.total_right_sum
         else:
-            asym.kinematic_asymmetry = left_sum - right_sum
+            asym.kinematic_asymmetry = asym.total_left_sum - asym.total_right_sum
         asym.total_asymmetry = asym.training_asymmetry + asym.kinematic_asymmetry
         if asym.total_left_right_sum > 0:
             asym.total_percent_asymmetry = (asym.total_asymmetry / asym.total_left_right_sum) * 100
@@ -127,15 +127,22 @@ class AsymmetryProcessor(object):
     def get_movement_asymmetry(self, complexity_level, cma_level, grf_level, stance, left_steps, right_steps):
 
         event = MovementAsymmetry(complexity_level, cma_level, grf_level, stance)
-        event.adduc_ROM = self.get_steps_f_test("adduc_ROM", left_steps, right_steps)
-        event.adduc_motion_covered = self.get_steps_f_test("adduc_motion_covered", left_steps, right_steps)
-        event.flex_ROM = self.get_steps_f_test("flex_ROM", left_steps, right_steps)
-        event.flex_motion_covered = self.get_steps_f_test("flex_motion_covered", left_steps, right_steps)
+        #event.adduc_ROM = self.get_steps_f_test("adduc_ROM", left_steps, right_steps)
+        #event.adduc_motion_covered = self.get_steps_f_test("adduc_motion_covered", left_steps, right_steps)
+        #event.flex_ROM = self.get_steps_f_test("flex_ROM", left_steps, right_steps)
+        #event.flex_motion_covered = self.get_steps_f_test("flex_motion_covered", left_steps, right_steps)
 
-        event.adduc_ROM_hip = self.get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
-        event.adduc_motion_covered_hip = self.get_steps_f_test("adduc_motion_covered_hip", left_steps, right_steps)
-        event.flex_ROM_hip = self.get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
-        event.flex_motion_covered_hip = self.get_steps_f_test("flex_motion_covered_hip", left_steps, right_steps)
+        event.adduc_rom_hip = self.get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
+        event.adduc_motion_covered_tot_hip = self.get_steps_f_test("adduc_motion_covered_total_hip", left_steps, right_steps)
+        event.adduc_motion_covered_pos_hip = self.get_steps_f_test("adduc_motion_covered_pos_hip", left_steps,
+                                                               right_steps)
+        event.adduc_motion_covered_neg_hip = self.get_steps_f_test("adduc_motion_covered_neg_hip", left_steps,
+                                                               right_steps)
+
+        event.flex_rom_hip = self.get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
+        event.flex_motion_covered_tot_hip = self.get_steps_f_test("flex_motion_covered_total_hip", left_steps, right_steps)
+        event.flex_motion_covered_pos_hip = self.get_steps_f_test("flex_motion_covered_pos_hip", left_steps, right_steps)
+        event.flex_motion_covered_neg_hip = self.get_steps_f_test("flex_motion_covered_neg_hip", left_steps, right_steps)
 
         return event
 
@@ -152,6 +159,8 @@ class AsymmetryProcessor(object):
             return 0
         else:
             try:
+                value_list_x.sort()
+                value_list_y.sort()
                 r,p = stats.kruskal(value_list_x, value_list_y)
                 if(p<=.05):
                     #write out values for temp analysis
@@ -175,6 +184,7 @@ class AsymmetryProcessor(object):
 
         for cat_variable in variable_list:
             variable_matrix[cat_variable.name] = LoadingAsymmetrySummary()
+            variable_matrix[cat_variable.name].sort_order = cat_variable.sort_order
 
         if len(mongo_unit_blocks) > 0:
 

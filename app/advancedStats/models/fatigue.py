@@ -51,6 +51,61 @@ class SessionFatigue(object):
 
         return fatigue_list
 
+    def cma_grf_crosstab(self):
+
+        crosstab_list = []
+
+        val_list = ["Low", "Mod", "High"]
+        stance_list = ["Single Leg", "Double Leg"]
+
+        for s in stance_list:
+            for c in val_list:
+                for g in val_list:
+
+                    crosstab = FatigueByCMAGRFCrossTab(c, g)
+                    crosstab.stance = s
+                    crosstab_list.append(crosstab)
+
+        for e in self.fatigue_events:
+            for c in crosstab_list:
+                if c.cma_level == e.cma_level and c.grf_level == e.grf_level and c.stance == e.stance:
+                    if e.raw_value < 0: # negative decay rate
+                        label = e.attribute_label+"_" + e.orientation.lower() + "_inc"
+                        val = getattr(c, label)
+                    else:
+                        label = e.attribute_label+"_" + e.orientation.lower() + "_dec"
+                        val = getattr(c, label)
+                    setattr(c, label, val+1)
+
+        return crosstab_list
+
+    def active_block_crosstab(self):
+
+        crosstab_list = []
+
+        active_blocks = set(list(x.active_block_id for x in self.fatigue_events))
+
+        for a in active_blocks:
+            crosstab = FatigueByActiveBlockCrossTab()
+            crosstab.active_block = a
+            crosstab_list.append(crosstab)
+
+        for e in self.fatigue_events:
+            for c in crosstab_list:
+                if e.active_block_id == c.active_block:
+                    if e.raw_value < 0: # negative decay rate
+                        label = e.attribute_label+"_" + e.orientation.lower() + "_inc"
+                        val = getattr(c, label)
+                    else:
+                        label = e.attribute_label+"_" + e.orientation.lower() + "_dec"
+                        val = getattr(c, label)
+                    setattr(c, label, val+1)
+                    c.cumulative_end_time = e.cumulative_end_time
+                    c.time_block = e.time_block
+
+        return crosstab_list
+
+
     def cma_grf_summary(self):
 
         fatigue_list = []
@@ -240,6 +295,72 @@ class FatigueByCMAGRF(object):
         self.grf_df = 0
         self.chi_square = 0.0
         self.chi_square_critical_value = 0.0
+
+
+class FatigueByCMAGRFCrossTab(object):
+    def __init__(self, cma_level, grf_level):
+        self.stance = ""
+        self.cma_level = cma_level.replace("CMA", "")
+        self.grf_level = grf_level.replace("Grf", "")
+        self.adduc_pos_hip_left_inc = 0
+        self.adduc_pos_hip_right_inc = 0
+        self.adduc_neg_hip_left_inc = 0
+        self.adduc_neg_hip_right_inc = 0
+        self.flex_pos_hip_left_inc = 0
+        self.flex_pos_hip_right_inc = 0
+        self.flex_neg_hip_left_inc = 0
+        self.flex_neg_hip_right_inc = 0
+
+        self.adduc_pos_hip_left_dec = 0
+        self.adduc_pos_hip_right_dec = 0
+        self.adduc_neg_hip_left_dec = 0
+        self.adduc_neg_hip_right_dec = 0
+        self.flex_pos_hip_left_dec = 0
+        self.flex_pos_hip_right_dec = 0
+        self.flex_neg_hip_left_dec = 0
+        self.flex_neg_hip_right_dec = 0
+
+        self.flex_rom_hip_left_inc = 0
+        self.flex_rom_hip_right_inc = 0
+        self.adduc_rom_hip_left_inc = 0
+        self.adduc_rom_hip_right_inc = 0
+        self.flex_rom_hip_left_dec = 0
+        self.flex_rom_hip_right_dec = 0
+        self.adduc_rom_hip_left_dec = 0
+        self.adduc_rom_hip_right_dec = 0
+
+
+class FatigueByActiveBlockCrossTab(object):
+    def __init__(self):
+        self.active_block = ""
+        self.cumulative_end_time = None
+        self.time_block = 0
+        self.adduc_pos_hip_left_inc = 0
+        self.adduc_pos_hip_right_inc = 0
+        self.adduc_neg_hip_left_inc = 0
+        self.adduc_neg_hip_right_inc = 0
+        self.flex_pos_hip_left_inc = 0
+        self.flex_pos_hip_right_inc = 0
+        self.flex_neg_hip_left_inc = 0
+        self.flex_neg_hip_right_inc = 0
+
+        self.adduc_pos_hip_left_dec = 0
+        self.adduc_pos_hip_right_dec = 0
+        self.adduc_neg_hip_left_dec = 0
+        self.adduc_neg_hip_right_dec = 0
+        self.flex_pos_hip_left_dec = 0
+        self.flex_pos_hip_right_dec = 0
+        self.flex_neg_hip_left_dec = 0
+        self.flex_neg_hip_right_dec = 0
+
+        self.flex_rom_hip_left_inc = 0
+        self.flex_rom_hip_right_inc = 0
+        self.adduc_rom_hip_left_inc = 0
+        self.adduc_rom_hip_right_inc = 0
+        self.flex_rom_hip_left_dec = 0
+        self.flex_rom_hip_right_dec = 0
+        self.adduc_rom_hip_left_dec = 0
+        self.adduc_rom_hip_right_dec = 0
 
 
 # This is the final level summary from statistically significant combined events

@@ -44,6 +44,172 @@ def test_get_cma_grf_summaries():
     assert (len(cma_grf_list) > 0)
 
 
+def test_get_cma_grf_crosstab():
+    athlete = "Maggie"
+    date = "2018-04-24"
+    processor = FatigueProcessor()
+    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
+    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    cma_grf_list = session_fatigue.cma_grf_crosstab()
+
+    fatigue_frame = pandas.DataFrame()
+
+    for f in cma_grf_list:
+        ab = pandas.DataFrame({
+            #'stance': [f.stance],
+            'grf_level': [f.grf_level],
+            'cma_level': [f.cma_level],
+            'adduc_hip_neg_left_dec': [f.adduc_neg_hip_left_dec],
+            'adduc_hip_neg_right_dec': [f.adduc_neg_hip_right_dec],
+            'adduc_hip_neg_left_inc': [f.adduc_neg_hip_left_inc],
+            'adduc_hip_neg_right_inc': [f.adduc_neg_hip_right_inc],
+            'adduc_hip_pos_left_dec': [f.adduc_pos_hip_left_dec],
+            'adduc_hip_pos_right_dec': [f.adduc_pos_hip_right_dec],
+            'adduc_hip_pos_left_inc': [f.adduc_pos_hip_left_inc],
+            'adduc_hip_pos_right_inc': [f.adduc_pos_hip_right_inc],
+
+            'flex_hip_neg_left_dec': [f.flex_neg_hip_left_dec],
+            'flex_hip_neg_right_dec': [f.flex_neg_hip_right_dec],
+            'flex_hip_neg_left_inc': [f.flex_neg_hip_left_inc],
+            'flex_hip_neg_right_inc': [f.flex_neg_hip_right_inc],
+            'flex_hip_pos_left_dec': [f.flex_pos_hip_left_dec],
+            'flex_hip_pos_right_dec': [f.flex_pos_hip_right_dec],
+            'flex_hip_pos_left_inc': [f.flex_pos_hip_left_inc],
+            'flex_hip_pos_right_inc': [f.flex_pos_hip_right_inc],
+
+            'adduc_rom_hip_left_dec': [f.adduc_rom_hip_left_dec],
+            'adduc_rom_hip_right_dec': [f.adduc_rom_hip_right_dec],
+            'adduc_rom_hip_left_inc': [f.adduc_rom_hip_left_inc],
+            'adduc_rom_hip_right_inc': [f.adduc_rom_hip_right_inc],
+            'flex_rom_hip_left_dec': [f.flex_rom_hip_left_dec],
+            'flex_rom_hip_right_dec': [f.flex_rom_hip_right_dec],
+            'flex_rom_hip_left_inc': [f.flex_rom_hip_left_inc],
+            'flex_rom_hip_right_inc': [f.flex_rom_hip_right_inc],
+
+        }, index=[f.stance])
+        fatigue_frame = fatigue_frame.append(ab)
+
+    fatigue_frame.to_csv('~/decay/fatigue_xtab_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
+                       columns=[
+                                'grf_level',
+                                'cma_level',
+                                'adduc_hip_neg_left_dec',
+                                'adduc_hip_neg_right_dec',
+                                'adduc_hip_neg_left_inc',
+                                'adduc_hip_neg_right_inc',
+                                'adduc_hip_pos_left_dec',
+                                'adduc_hip_pos_right_dec',
+                                'adduc_hip_pos_left_inc',
+                                'adduc_hip_pos_right_inc',
+                                'flex_hip_neg_left_dec',
+                                'flex_hip_neg_right_dec',
+                                'flex_hip_neg_left_inc',
+
+                                'flex_hip_neg_right_inc',
+                                'flex_hip_pos_left_dec',
+                                'flex_hip_pos_right_dec',
+
+                                'flex_hip_pos_left_inc',
+                                'flex_hip_pos_right_inc',
+
+                                'adduc_rom_hip_left_dec',
+                                'adduc_rom_hip_right_dec',
+                                'adduc_rom_hip_left_inc',
+
+                                'adduc_rom_hip_right_inc',
+                                'flex_rom_hip_left_dec',
+                                'flex_rom_hip_right_dec',
+                                'flex_rom_hip_left_inc',
+                                'flex_rom_hip_right_inc'
+                       ])
+
+    assert (len(cma_grf_list) > 0)
+
+
+def test_get_active_block_crosstab():
+    athlete = "Maggie"
+    date = "2018-04-24"
+    processor = FatigueProcessor()
+    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
+    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    cma_grf_list = session_fatigue.active_block_crosstab()
+
+    fatigue_frame = pandas.DataFrame()
+
+    for f in cma_grf_list:
+        ab = pandas.DataFrame({
+            # 'stance': [f.stance],
+            'cumulative_end_time': [f.cumulative_end_time],
+            'time_block': [f.time_block],
+            'adduc_hip_neg_left_dec': [f.adduc_neg_hip_left_dec],
+            'adduc_hip_neg_right_dec': [f.adduc_neg_hip_right_dec],
+            'adduc_hip_neg_left_inc': [f.adduc_neg_hip_left_inc],
+            'adduc_hip_neg_right_inc': [f.adduc_neg_hip_right_inc],
+            'adduc_hip_pos_left_dec': [f.adduc_pos_hip_left_dec],
+            'adduc_hip_pos_right_dec': [f.adduc_pos_hip_right_dec],
+            'adduc_hip_pos_left_inc': [f.adduc_pos_hip_left_inc],
+            'adduc_hip_pos_right_inc': [f.adduc_pos_hip_right_inc],
+
+            'flex_hip_neg_left_dec': [f.flex_neg_hip_left_dec],
+            'flex_hip_neg_right_dec': [f.flex_neg_hip_right_dec],
+            'flex_hip_neg_left_inc': [f.flex_neg_hip_left_inc],
+            'flex_hip_neg_right_inc': [f.flex_neg_hip_right_inc],
+            'flex_hip_pos_left_dec': [f.flex_pos_hip_left_dec],
+            'flex_hip_pos_right_dec': [f.flex_pos_hip_right_dec],
+            'flex_hip_pos_left_inc': [f.flex_pos_hip_left_inc],
+            'flex_hip_pos_right_inc': [f.flex_pos_hip_right_inc],
+
+            'adduc_rom_hip_left_dec': [f.adduc_rom_hip_left_dec],
+            'adduc_rom_hip_right_dec': [f.adduc_rom_hip_right_dec],
+            'adduc_rom_hip_left_inc': [f.adduc_rom_hip_left_inc],
+            'adduc_rom_hip_right_inc': [f.adduc_rom_hip_right_inc],
+            'flex_rom_hip_left_dec': [f.flex_rom_hip_left_dec],
+            'flex_rom_hip_right_dec': [f.flex_rom_hip_right_dec],
+            'flex_rom_hip_left_inc': [f.flex_rom_hip_left_inc],
+            'flex_rom_hip_right_inc': [f.flex_rom_hip_right_inc],
+
+        }, index=[f.active_block])
+        fatigue_frame = fatigue_frame.append(ab)
+
+    fatigue_frame.to_csv('~/decay/fatigue_ab_xtab_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Active Block',
+                         columns=[
+                             'cumulative_end_time',
+                             'time_block',
+                             'adduc_hip_neg_left_dec',
+                             'adduc_hip_neg_right_dec',
+                             'adduc_hip_neg_left_inc',
+                             'adduc_hip_neg_right_inc',
+                             'adduc_hip_pos_left_dec',
+                             'adduc_hip_pos_right_dec',
+                             'adduc_hip_pos_left_inc',
+                             'adduc_hip_pos_right_inc',
+                             'flex_hip_neg_left_dec',
+                             'flex_hip_neg_right_dec',
+                             'flex_hip_neg_left_inc',
+
+                             'flex_hip_neg_right_inc',
+                             'flex_hip_pos_left_dec',
+                             'flex_hip_pos_right_dec',
+
+                             'flex_hip_pos_left_inc',
+                             'flex_hip_pos_right_inc',
+
+                             'adduc_rom_hip_left_dec',
+                             'adduc_rom_hip_right_dec',
+                             'adduc_rom_hip_left_inc',
+
+                             'adduc_rom_hip_right_inc',
+                             'flex_rom_hip_left_dec',
+                             'flex_rom_hip_right_dec',
+                             'flex_rom_hip_left_inc',
+                             'flex_rom_hip_right_inc'
+                         ])
+
+    assert (len(cma_grf_list) > 0)
+
+
 def test_get_cma_summaries():
     athlete = "Maggie"
     date = "2018-04-24"
@@ -145,9 +311,9 @@ def test_get_movement_asymmetries_kruskal():
             'flex_ROM': [f.flex_ROM],
             'flex_motion_covered': [f.flex_motion_covered],
             'adduc_ROM_hip': [f.adduc_ROM_hip],
-            'adduc_motion_covered_hip': [f.adduc_motion_covered_hip],
+            'adduc_motion_covered_total_hip': [f.adduc_motion_covered_hip],
             'flex_ROM_hip': [f.flex_ROM_hip],
-            'flex_motion_covered_hip': [f.flex_motion_covered_hip]
+            'flex_motion_covered_total_hip': [f.flex_motion_covered_hip]
         }, index=[f.stance])
         df = df.append(ab)
 
@@ -155,7 +321,7 @@ def test_get_movement_asymmetries_kruskal():
                                columns=[
                                    'complexity_level', 'grf_level', 'cma_level', 'adduc_ROM', 'adduc_motion_covered',
                                    'flex_ROM', 'flex_motion_covered', 'adduc_ROM_hip',
-                                   'adduc_motion_covered_hip', 'flex_ROM_hip', 'flex_motion_covered_hip'])
+                                   'adduc_motion_covered_total_hip', 'flex_ROM_hip', 'flex_motion_covered_total_hip'])
 
 
 
@@ -177,11 +343,18 @@ def test_get_loading_asymmetries():
             'complexity_level': [f.complexity_level],
             'grf_level': [f.grf_level],
             'cma_level': [f.cma_level],
+            'acc_grf_left': [f.total_left_sum],
+            'acc_grf_right': [f.total_right_sum],
             'acc_grf_perc_asymm': [f.total_percent_asymmetry],
+            'gc_event_left': [ f.left_step_count],
+            'gc_event_right': [f.right_step_count],
             'gc_event_perc_asymm': [f.step_count_percent_asymmetry],
+            'gct_left': [f.ground_contact_time_left],
+            'gct_right': [f.ground_contact_time_right],
             'gct_perc_asymm': [f.ground_contact_time_percent_asymmetry],
+            'rate_of_acc_grf_left': [f.left_avg_accumulated_grf_sec],
+            'rate_of_acc_grf_right': [f.right_avg_accumulated_grf_sec],
             'rate_of_acc_grf_perc_asymm': [f.accumulated_grf_sec_percent_asymmetry]
-            # lots to add here!!!
         }, index=[f.stance])
         df = df.append(ab)
 
@@ -190,9 +363,17 @@ def test_get_loading_asymmetries():
                             'complexity_level',
                             'grf_level',
                             'cma_level',
+                            'acc_grf_left',
+                            'acc_grf_right',
                             'acc_grf_perc_asymm',
+                            'gc_event_left',
+                            'gc_event_right',
                             'gc_event_perc_asymm',
+                            'gct_left',
+                            'gct_right',
                             'gct_perc_asymm',
+                            'rate_of_acc_grf_left',
+                            'rate_of_acc_grf_right',
                             'rate_of_acc_grf_perc_asymm',
                         ])
 
@@ -211,6 +392,7 @@ def test_loading_asymmetry_summaries():
     df = pandas.DataFrame()
     for var, f in session_asymmmetry.loading_asymmetry_summaries.items():
         ab = pandas.DataFrame({
+            'sort_order': [f.sort_order],
             'red:grf': [f.red_grf],
             'red:grf_percent': [f.red_grf_percent],
             'red:cma': [f.red_cma],
@@ -236,6 +418,8 @@ def test_loading_asymmetry_summaries():
             # lots to add here!!!
         }, index=[f.variable_name])
         df = df.append(ab)
+
+    df = df.sort("sort_order")
 
     df.to_csv('~/decay/rel_magnitude_asymmetry_' + athlete + '_' + date + 'v7.csv', sep=',', index_label='Variable',
               columns=[
@@ -283,9 +467,9 @@ def test_get_movement_asymmetries():
             'grf_level': [f.grf_level],
             'cma_level': [f.cma_level],
             'adduc_rom_hip': [f.adduc_rom_hip],
-            'adduc_motion_covered_hip': [f.adduc_motion_covered_hip],
+            'adduc_motion_covered_total_hip': [f.adduc_motion_covered_hip],
             'flex_rom_hip': [f.flex_rom_hip],
-            'flex_motion_covered_hip': [f.flex_motion_covered_hip]
+            'flex_motion_covered_total_hip': [f.flex_motion_covered_hip]
             # lots to add here!!!
         }, index=[f.stance])
         df = df.append(ab)
@@ -295,11 +479,86 @@ def test_get_movement_asymmetries():
                             #'complexity_level',
                             'grf_level',
                             'cma_level',
+
                             'adduc_rom_hip',
-                            'adduc_motion_covered_hip',
+                            'adduc_motion_covered_total_hip',
                             'flex_rom_hip',
-                            'flex_motion_covered_hip',
+                            'flex_motion_covered_total_hip',
                         ])
+
+def test_get_loading_and_movement_asymmetries():
+
+    athlete = "Maggie"
+    date = "2018-04-24"
+
+    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+
+    proc = AsymmetryProcessor(athlete, date, "", mc_sl_list, mc_dl_list)
+
+    movement_events = proc.get_movement_asymmetries()
+    loading_events = proc.get_loading_asymmetries()
+
+    df = pandas.DataFrame()
+
+    for d in movement_events:
+        for f in loading_events:
+            if d.cma_level == f.cma_level and d.grf_level == f.grf_level and d.stance == f.stance:
+
+                ab = pandas.DataFrame({
+                    #'complexity_level': [f.complexity_level],
+                    'grf_level': [f.grf_level],
+                    'cma_level': [f.cma_level],
+                    'acc_grf_left': [f.total_left_sum],
+                    'acc_grf_right': [f.total_right_sum],
+                    'acc_grf_perc_asymm': [f.total_percent_asymmetry],
+                    'gc_event_left': [f.left_step_count],
+                    'gc_event_right': [f.right_step_count],
+                    'gc_event_perc_asymm': [f.step_count_percent_asymmetry],
+                    'gct_left': [f.ground_contact_time_left],
+                    'gct_right': [f.ground_contact_time_right],
+                    'gct_perc_asymm': [f.ground_contact_time_percent_asymmetry],
+                    'rate_of_acc_grf_left': [f.left_avg_accumulated_grf_sec],
+                    'rate_of_acc_grf_right': [f.right_avg_accumulated_grf_sec],
+                    'rate_of_acc_grf_perc_asymm': [f.accumulated_grf_sec_percent_asymmetry],
+                    'adduc_rom_hip': [d.adduc_rom_hip_flag()],
+                    'adduc_motion_covered_total_hip': [d.adduc_motion_covered_tot_hip_flag()],
+                    'adduc_motion_covered_pos_hip': [d.adduc_motion_covered_pos_hip_flag()],
+                    'adduc_motion_covered_neg_hip': [d.adduc_motion_covered_neg_hip_flag()],
+                    'flex_rom_hip': [d.flex_rom_hip_flag()],
+                    'flex_motion_covered_total_hip': [d.adduc_motion_covered_tot_hip_flag()],
+                    'flex_motion_covered_pos_hip': [d.adduc_motion_covered_pos_hip_flag()],
+                    'flex_motion_covered_neg_hip': [d.adduc_motion_covered_neg_hip_flag()],
+                }, index=[f.stance])
+                df = df.append(ab)
+
+    df.to_csv('~/decay/loading_movement_asymm_' + athlete + '_' + date + 'v7.csv', sep=',', index_label='Stance',
+                        columns=[
+                            #'complexity_level',
+                            'grf_level',
+                            'cma_level',
+                            'adduc_rom_hip',
+                            'adduc_motion_covered_total_hip',
+                            'adduc_motion_covered_pos_hip',
+                            'adduc_motion_covered_neg_hip',
+                            'flex_rom_hip',
+                            'flex_motion_covered_total_hip',
+                            'flex_motion_covered_pos_hip',
+                            'flex_motion_covered_neg_hip',
+                            'acc_grf_left',
+                            'acc_grf_right',
+                            'acc_grf_perc_asymm',
+                            'gc_event_left',
+                            'gc_event_right',
+                            'gc_event_perc_asymm',
+                            'gct_left',
+                            'gct_right',
+                            'gct_perc_asymm',
+                            'rate_of_acc_grf_left',
+                            'rate_of_acc_grf_right',
+                            'rate_of_acc_grf_perc_asymm',
+                        ])
+
+
 
 
 def test_session_asymmetries():

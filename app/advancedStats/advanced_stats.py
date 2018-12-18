@@ -3,16 +3,13 @@ import pandas
 import cStringIO
 import boto3
 from logic.training_volume_logic import TrainingVolumeProcessor
-from config import load_parameters, get_mongo_collection
+from config import get_mongo_collection
 import summary_analysis
 # import logic.complexity_matrix_logic
 from logic.fatigue_logic import FatigueProcessor
 from logic.asymmetry_logic import AsymmetryProcessor
 from logic import complexity_matrix_logic
 from models.fatigue import SessionFatigue
-
-from config import get_mongo_collection
-# import summary_analysis
 
 def script_handler(working_directory, input_data):
     print("Running Advanced aggregations")
