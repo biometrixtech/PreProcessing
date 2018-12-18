@@ -1,8 +1,8 @@
 from datetime import datetime
-from advancedStats.models.unit_block import UnitBlock
-from advancedStats.models.step import Step
-from advancedStats.summary_analysis import get_unit_blocks
-from advancedStats.models.training_volume_metrics import LeftRightBands, LowModHighBands, SessionTrainingVolume, StanceBands
+from models.unit_block import UnitBlock
+from models.step import Step
+from summary_analysis import get_unit_blocks
+from models.training_volume_metrics import LeftRightBands, LowModHighBands, SessionTrainingVolume, StanceBands
 
 
 class TrainingVolumeProcessor(object):

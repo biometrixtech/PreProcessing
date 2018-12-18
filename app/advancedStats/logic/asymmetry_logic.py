@@ -2,10 +2,10 @@ from datetime import datetime
 
 import pandas
 from scipy import stats
-from app.advancedStats.models.variable import CategorizationVariable
-from advancedStats.models.unit_block import UnitBlock
-from advancedStats.summary_analysis import get_unit_blocks
-from app.advancedStats.models.asymmetry import MovementAsymmetry, LoadingAsymmetry, LoadingAsymmetrySummary, SessionAsymmetry
+from models.variable import CategorizationVariable
+from models.unit_block import UnitBlock
+from summary_analysis import get_unit_blocks
+from models.asymmetry import MovementAsymmetry, LoadingAsymmetry, LoadingAsymmetrySummary, SessionAsymmetry
 
 
 class AsymmetryProcessor(object):
