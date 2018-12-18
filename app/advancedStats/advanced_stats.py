@@ -28,7 +28,7 @@ def script_handler(working_directory, input_data):
 
         # write out active blocks
         summary_analysis.query_mongo_ab(mongo_collection_blocks, user_id, event_date, output_path)
-        write_file_to_s3(output_path+'ab-'+user_id+'_'+event_date+'.csv', "_".join([user_id, event_date]), + "/ab.csv")
+        write_file_to_s3(output_path+'ab-'+user_id+'_'+event_date+'.csv', "_".join([user_id, event_date]) + "/ab.csv")
         mc_sl_list, mc_dl_list = complexity_matrix_logic.get_complexity_matrices(user_id, event_date)
 
         training_volume_processor = TrainingVolumeProcessor()
