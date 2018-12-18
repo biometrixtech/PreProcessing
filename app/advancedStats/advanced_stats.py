@@ -411,7 +411,7 @@ def convert_intensity_band_to_csv(t):
 
 def write_file_to_s3(local_file, file_name):
     s3_client = boto3.client('s3')
-    s3_bucket = 'biometrix-decode'
+    s3_bucket = "biometrix-preprocessing-{env}-us-west-2-advanced-stats".format(env=os.environ['ENVIRONMENT'])
     s3_client.upload_file(local_file, s3_bucket, file_name)
 
 if __name__ == '__main__':
