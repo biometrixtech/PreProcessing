@@ -318,7 +318,6 @@ def main():
                 'MONGO_REPLICASET',
                 'MONGO_COLLECTION_ACTIVEBLOCKS',
             ], 'mongo')
-            pass
             if input_data.get('Sensors') == 3:
                 print('Computing advanced stats for multi-sensor data')
                 from advancedStats import advanced_stats
@@ -328,7 +327,9 @@ def main():
             else:
                 raise Exception('Must have either 1 or 3 sensors')
 
+            mkdir(os.path.join(working_directory, 'advanced_stats'))
             advanced_stats.script_handler(
+                os.path.join(working_directory, 'advanced_stats'),
                 input_data
             )
             send_profiling(meta_data)
