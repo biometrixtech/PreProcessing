@@ -1,4 +1,4 @@
-from models.fatigue import FatigueEvent
+from advancedStats.models.fatigue import FatigueEvent
 
 
 class FatigueProcessor(object):

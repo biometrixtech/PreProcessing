@@ -2,8 +2,8 @@ from datetime import datetime
 
 from pymongo import ASCENDING
 
-from models.complexity_matrix import ComplexityMatrix
-from models.step import Step
+from advancedStats.models.complexity_matrix import ComplexityMatrix
+from advancedStats.models.step import Step
 from config import load_parameters, get_mongo_collection
 
 
