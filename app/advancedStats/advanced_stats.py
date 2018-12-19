@@ -29,7 +29,7 @@ def script_handler(working_directory, input_data):
 
         # write out active blocks
         summary_analysis.query_mongo_ab(mongo_collection_blocks, user_id, event_date, output_path)
-        write_file_to_s3(output_path+'ab-'+user_id+'_'+event_date+'.csv', "_".join([user_id, event_date]) + "/ab.csv")
+        write_file_to_s3(output_path+'ab-'+user_id+'_'+event_date+'.csv', '_'.join([event_date, user_id]) + "/ab.csv")
         mc_sl_list, mc_dl_list = complexity_matrix_logic.get_complexity_matrices(user_id, event_date)
 
         training_volume_processor = TrainingVolumeProcessor()
@@ -79,7 +79,7 @@ def write_session_workload_summary(event_date, output_path, session_training_vol
     }, index=["Summary"])
     training_data.to_csv(output_path + 'session_workload_summary' + user_id + '_' + event_date + '.csv', sep=',',
                          index_label='Level')
-    file_name =  '_'.join([user_id, event_date]) + '/session_workload_summary.csv'
+    file_name =  '_'.join([event_date, user_id]) + '/session_workload_summary.csv'
     write_file_to_s3(output_path + 'session_workload_summary' + user_id + '_' + event_date + '.csv', file_name)
 
 
@@ -109,7 +109,7 @@ def write_intensity_bands(event_date, output_path, session_training_volume_data,
             'right_gct_percentage', ]
     intensity_df.to_csv(output_path + 'session_intensity_bands' + user_id + '_' + event_date + '.csv', sep=',',
                         index_label='Level', columns=columns)
-    file_name = '_'.join([user_id, event_date]) + '/session_intensity_bands.csv'
+    file_name = '_'.join([event_date, user_id]) + '/session_intensity_bands.csv'
     write_file_to_s3(output_path + 'session_intensity_bands' + user_id + '_' + event_date + '.csv', file_name)
 
 
@@ -184,7 +184,7 @@ def write_fatigue_cross_tab(event_date, fatigue_cma_grf_crosstab, output_path, u
                 ]
     fatigue_frame.to_csv(output_path + 'fatigue_xtab_' + user_id + '_' + event_date + '.csv', sep=',',
                          index_label='Stance', columns=columns)
-    file_name = '_'.join([user_id, event_date]) + '/fatigue_xtab.csv'
+    file_name = '_'.join([event_date, user_id]) + '/fatigue_xtab.csv'
     write_file_to_s3(output_path + 'fatigue_xtab_' + user_id + '_' + event_date + '.csv', file_name)
 
 
@@ -257,10 +257,11 @@ def write_fatigue_active_block_cross_tab(fatigue_ab_crosstab, event_date, output
                  'flex_rom_hip_left_inc',
                  'flex_rom_hip_right_inc'
                 ]
-    fatigue_frame.to_csv(output_path + 'fatigue_ab_xtab_' + user_id + '_' + event_date + '.csv', sep=',',
-                         index_label='Active Block', columns=columns)
-    file_name = '_'.join([user_id, event_date]) + '/fatigue_ab_xtab.csv'
-    write_file_to_s3(output_path + 'fatigue_ab_xtab_' + user_id + '_' + event_date + '.csv', file_name)
+    if fatigue_frame.shape[0] > 0:
+        fatigue_frame.to_csv(output_path + 'fatigue_ab_xtab_' + user_id + '_' + event_date + '.csv', sep=',',
+                             index_label='Active Block', columns=columns)
+        file_name = '_'.join([event_date, user_id]) + '/fatigue_ab_xtab.csv'
+        write_file_to_s3(output_path + 'fatigue_ab_xtab_' + user_id + '_' + event_date + '.csv', file_name)
 
 
 def write_loading_movement_asymmetry(event_date, loading_events, movement_events, output_path, user_id):
@@ -321,7 +322,7 @@ def write_loading_movement_asymmetry(event_date, loading_events, movement_events
               ]
     df.to_csv(output_path + 'loading_movement_asymm_' + user_id + '_' + event_date + '.csv', sep=',',
               index_label='Stance', columns=columns)
-    file_name = '_'.join([user_id, event_date]) + '/loading_movement_asymm.csv'
+    file_name = '_'.join([event_date, user_id]) + '/loading_movement_asymm.csv'
     write_file_to_s3(output_path + 'loading_movement_asymm_' + user_id + '_' + event_date + '.csv', file_name)
 
 
@@ -383,7 +384,7 @@ def write_rel_magnitude(event_date, output_path, session_asymmmetry, user_id):
     df.to_csv(output_path + 'rel_magnitude_asymmetry_' + user_id + '_' + event_date + '.csv', sep=',',
               index_label='Variable', columns=columns
               )
-    file_name = '_'.join([user_id, event_date]) + '/rel_magnitude_asymmetry.csv'
+    file_name = '_'.join([event_date, user_id]) + '/rel_magnitude_asymmetry.csv'
     write_file_to_s3(output_path + 'rel_magnitude_asymmetry_' + user_id + '_' + event_date + '.csv', file_name)
 
 
@@ -413,7 +414,20 @@ def convert_intensity_band_to_csv(t):
 def write_file_to_s3(local_file, file_name):
     s3_client = boto3.client('s3')
     s3_bucket = "biometrix-preprocessing-{env}-us-west-2-advanced-stats".format(env=os.environ['ENVIRONMENT'])
-    s3_client.upload_file(local_file, s3_bucket, file_name)
+    # s3_client.upload_file(local_file, s3_bucket, file_name)
 
 if __name__ == '__main__':
-    script_handler("")
+    from config import load_parameters
+    load_parameters([
+        'MONGO_HOST',
+        'MONGO_USER',
+        'MONGO_PASSWORD',
+        'MONGO_DATABASE',
+        'MONGO_REPLICASET',
+        'MONGO_COLLECTION_ACTIVEBLOCKS',
+    ], 'mongo')
+
+    input_data = {"UserId": "fd263811-b299-461f-9e79-895c69612bac",
+                  "EventDate": "2018-12-18"}
+
+    script_handler('//Users/dipeshgautam/Desktop/data/', input_data)
