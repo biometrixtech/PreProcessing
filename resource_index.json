@@ -22,6 +22,7 @@
     ],
     "datastores": [
         { "type": "dynamodb.table", "name": "preprocessing-{ENVIRONMENT}-ingest-sessions" },
-        { "type": "s3.bucket", "name": "biometrix-preprocessing-{ENVIRONMENT}-{REGION}" }
+        { "type": "s3.bucket", "name": "biometrix-preprocessing-{ENVIRONMENT}-{REGION}" },
+        { "type": "s3.bucket", "name": "biometrix-preprocessing-{ENVIRONMENT}-{REGION}-advanced-stats" }
     ]
 }
