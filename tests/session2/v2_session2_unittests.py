@@ -1411,15 +1411,15 @@ class TestPhaseDetection(unittest.TestCase):
         self.assertEqual(len(lf), len(rf))
         self.assertEqual(len(lf), len(laz))
 
-        # for this file, assume that all phases are triggered
+        # for this file, assume that all phases are triggered (takeoff:3 is calculated later)
         self.assertFalse(l0==0)
         self.assertFalse(l1==0)
         self.assertFalse(l2==0)
-        self.assertFalse(l3==0)
+        # self.assertFalse(l3==0)
         self.assertFalse(r0==0)
         self.assertFalse(r1==0)
         self.assertFalse(r2==0)
-        self.assertFalse(r3==0)
+        # self.assertFalse(r3==0)
 
 
     def test__body_phase(self):
@@ -1433,17 +1433,28 @@ class TestPhaseDetection(unittest.TestCase):
         raz = test_data.RaZ.values.reshape(-1, 1)
         laz = test_data.LaZ.values.reshape(-1, 1)
         hz = 100
-        phase, sm_l, em_l, sm_r, em_r = phd._body_phase(raz, laz, hz)        
-        p0 = len(np.where(phase==0)[0])
-        p1 = len(np.where(phase==1)[0])
-        p2 = len(np.where(phase==2)[0])
-        p3 = len(np.where(phase==3)[0])
+        phase_l, phase_r, sm_l, em_l, sm_r, em_r = phd._body_phase(raz, laz, hz)
+        p0 = len(np.where(phase_l == 0)[0])
+        p1 = len(np.where(phase_l == 1)[0])
+        p2 = len(np.where(phase_l == 2)[0])
+        p3 = len(np.where(phase_l == 3)[0])
 
         # for this file, all basic phases should be triggered
-        self.assertFalse(p0==0)
-        self.assertFalse(p1==0)
-        self.assertFalse(p2==0)
-        self.assertFalse(p3==0)
+        self.assertFalse(p0 == 0)
+        self.assertFalse(p1 == 0)
+        self.assertTrue(p2 == 0)
+        self.assertTrue(p3 == 0)
+
+        p0 = len(np.where(phase_r == 0)[0])
+        p1 = len(np.where(phase_r == 1)[0])
+        p2 = len(np.where(phase_r == 2)[0])
+        p3 = len(np.where(phase_r == 3)[0])
+
+        # for this file, all basic phases should be triggered
+        self.assertFalse(p0 == 0)
+        self.assertFalse(p1 == 0)
+        self.assertTrue(p2 == 0)
+        self.assertTrue(p3 == 0)
 
     def test__phase_detect(self):
         '''
@@ -1480,7 +1491,7 @@ class TestPhaseDetection(unittest.TestCase):
         rp = test_data.ReY.values.reshape(-1, 1)
         lp = test_data.LeY.values.reshape(-1, 1)
         hz = 100
-        phase, sm_l, em_l, sm_r, em_r = phd._body_phase(raz, laz, hz)
+        phase_lf, phase_rf, sm_l, em_l, sm_r, em_r = phd._body_phase(raz, laz, hz)
         rimp = phd._impact_detect(sm_r, em_r, raz, rp, hz)
         limp = phd._impact_detect(sm_l, em_l, laz, lp, hz)
         rdiffpos = len(np.where((rimp[:, 1] - rimp[:, 0]) >= 0)[0])
@@ -1490,39 +1501,39 @@ class TestPhaseDetection(unittest.TestCase):
         self.assertEqual(rdiffpos, len(rimp))
         self.assertEqual(ldiffpos, len(limp))
 
-    def test__final_phases(self):
-        '''
-        Tests include:
-            -output formatted appropriately
-            -output matches expectation given known inputs
-        '''
-        lf1 = [0, 1, 2, 3, 4, 5]
-        rf1 = [0, 1, 2, 3, 4, 5, 6]
-        rf2 = [3, 1, 2, 3, 4, 5]
-        lf2 = [4, 1, 2, 3, 4, 5]
-        rf3 = [1, 1, 2, 3, 4, 5]
-        lf4 = [3, 1, 2, 3, 4, 5]
-        rf4 = [5, 1, 2, 3, 4, 5]
-        lf5 = [2, 1, 2, 3, 4, 5]
-        res1l, res1r = phd._final_phases(rf1, lf1)
-        res2l, res2r = phd._final_phases(lf1, lf1)
-        res3l, res3r = phd._final_phases(rf2, lf2)
-        res4l, res4r = phd._final_phases(rf4, lf4)
-
-        # output formatted appropriately
-        self.assertEqual(len(rf1), len(res1r))
-        self.assertEqual(len(lf1), len(res1l))
-
-        # output matches expectation given known inputs
-        self.assertTrue(np.allclose(res1r, rf1))
-        self.assertTrue(np.allclose(res1l, lf1))
-        self.assertTrue(np.allclose(res2l, lf1))
-        self.assertTrue(np.allclose(res2r, lf1))
-        self.assertTrue(np.allclose(res3l, lf2))
-        self.assertTrue(np.allclose(res3r, rf3))
-        self.assertTrue(np.allclose(res4l, lf5))
-        self.assertTrue(np.allclose(res4r, rf4))
-        
+    # def test__final_phases(self):
+    #     '''
+    #     Tests include:
+    #         -output formatted appropriately
+    #         -output matches expectation given known inputs
+    #     '''
+    #     lf1 = [0, 1, 2, 3, 4, 5]
+    #     rf1 = [0, 1, 2, 3, 4, 5, 6]
+    #     rf2 = [3, 1, 2, 3, 4, 5]
+    #     lf2 = [4, 1, 2, 3, 4, 5]
+    #     rf3 = [1, 1, 2, 3, 4, 5]
+    #     lf4 = [3, 1, 2, 3, 4, 5]
+    #     rf4 = [5, 1, 2, 3, 4, 5]
+    #     lf5 = [2, 1, 2, 3, 4, 5]
+    #     res1l, res1r = phd._final_phases(rf1, lf1)
+    #     res2l, res2r = phd._final_phases(lf1, lf1)
+    #     res3l, res3r = phd._final_phases(rf2, lf2)
+    #     res4l, res4r = phd._final_phases(rf4, lf4)
+    #
+    #     # output formatted appropriately
+    #     self.assertEqual(len(rf1), len(res1r))
+    #     self.assertEqual(len(lf1), len(res1l))
+    #
+    #     # output matches expectation given known inputs
+    #     self.assertTrue(np.allclose(res1r, rf1))
+    #     self.assertTrue(np.allclose(res1l, lf1))
+    #     self.assertTrue(np.allclose(res2l, lf1))
+    #     self.assertTrue(np.allclose(res2r, lf1))
+    #     self.assertTrue(np.allclose(res3l, lf2))
+    #     self.assertTrue(np.allclose(res3r, rf3))
+    #     self.assertTrue(np.allclose(res4l, lf5))
+    #     self.assertTrue(np.allclose(res4r, rf4))
+    #
         
 
     def test__filter_data(self):
