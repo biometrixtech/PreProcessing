@@ -220,11 +220,9 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bf_right = quat_prod(q_sensor_right, q_bftransform_right)
 
     # Rotate right and left foot by 90º
-    # yaw_180 = make_quaternion_array([0, 0, 0, 1], row_count)
     yaw_90_pos = make_quaternion_array([sqrt(2)/2, 0, 0, sqrt(2)/2], row_count)
     q_bf_left = quat_prod(q_bf_left, yaw_90_pos)
     q_bf_right = quat_prod(q_bf_right, yaw_90_pos)
-    # q_bf_left = quat_prod(q_bf_left, yaw_180)
 
     # insert transformed values for ankle sensors into dataframe
     sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
@@ -233,7 +231,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     # filter the data for drift for each subset of data with long dynamic activity (>10s)
     # and insert back into the data frame to update dynamic part with filtered data and static part
     # is left as before
-    # left food
+    # left foot
     dynamic_range_lf = detect_long_dynamic(sdata.corrupt_lf.values[:].reshape(-1, 1))
     for i, j in zip(dynamic_range_lf[:, 0], dynamic_range_lf[:, 1]):
         print('i: {}, j: {}'.format(i, j))

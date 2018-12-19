@@ -15,16 +15,15 @@ def connect_mongo():
     """
     Get mongo client connection
     """
-    mongo_database_session = get_mongo_database('SESSION')
-    mongo_database_twomin = get_mongo_database('TWOMIN')
+    mongo_database = get_mongo_database()
 
     # connect to all relevant collections
-    mongo_collection_date = mongo_database_session[os.environ['MONGO_COLLECTION_DATE']]
-    mongo_collection_datetg = mongo_database_session[os.environ['MONGO_COLLECTION_DATETG']]
-    mongo_collection_progcomp = mongo_database_session[os.environ['MONGO_COLLECTION_PROGCOMP']]
+    mongo_collection_date = mongo_database[os.environ['MONGO_COLLECTION_DATE']]
+    mongo_collection_datetg = mongo_database[os.environ['MONGO_COLLECTION_DATETG']]
+    mongo_collection_progcomp = mongo_database[os.environ['MONGO_COLLECTION_PROGCOMP']]
 
-    mongo_collection_twomin = mongo_database_twomin[os.environ['MONGO_COLLECTION_TWOMIN']]
-    mongo_collection_twomintg = mongo_database_twomin[os.environ['MONGO_COLLECTION_TWOMINTG']]
+    mongo_collection_twomin = mongo_database[os.environ['MONGO_COLLECTION_TWOMIN']]
+    mongo_collection_twomintg = mongo_database[os.environ['MONGO_COLLECTION_TWOMINTG']]
 
     return (mongo_collection_date, mongo_collection_datetg, mongo_collection_progcomp,
             mongo_collection_twomin, mongo_collection_twomintg)

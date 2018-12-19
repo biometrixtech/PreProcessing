@@ -21,7 +21,7 @@ def _decode_timestamp(timestamp_data, nrows):
         shifted = temp << shift
 
         timestamp = timestamp + shifted
-    timestamp = timestamp + 1497866400000 # add fathom-origin (2017-06-19)
+    timestamp = timestamp + 1530000000000 # add fathom-origin (2017-06-19)
     return timestamp
 
 # magn magnitude and corrupt enum calc

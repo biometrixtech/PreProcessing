@@ -126,6 +126,8 @@ Resources:
                         Resource:
                           - "arn:aws:s3:::biometrix-decode"
                           - "arn:aws:s3:::biometrix-decode/*"
+                          - { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}-advanced-stats"}
+                          - { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}-advanced-stats/*"}
 
                       - Action:
                           - "states:SendTaskFailure"
