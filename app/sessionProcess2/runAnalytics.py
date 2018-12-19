@@ -116,7 +116,6 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
 
     # prepare data for grf prediction
-    mass = 60
     data.mass = mass*9.807/1000 # convert mass from kg to kN
     grf_data, nan_row = prepare_data(data, sc)
 
@@ -128,7 +127,7 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
     # predict left grf (binary 0(air) or 1(ground))
     grf_lf = grf_fit_left.predict(grf_data_sl).reshape(-1,)
-    sl_grf_cutoff= .5
+    sl_grf_cutoff = .5
     grf_lf[grf_lf <= sl_grf_cutoff] = 0
     grf_lf[grf_lf > sl_grf_cutoff] = 1
 
@@ -141,7 +140,8 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
     grf = _filter_data(grf, cutoff=18)
 
     # set grf value below certain threshold to 0
-    grf[grf <= .1] = 0
+    grf[grf <= .2*data.mass] = 0
+    # grf[grf <= .1] = 0
     # fill in nans for rows with missing predictors
     length = len(data_in)
     grf_temp = np.ones(length)
@@ -167,16 +167,6 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
     del grf_data, nan_row, grf_fit, grf, grf_temp, grf_lf, grf_rf, grf_lf_temp, grf_rf_temp
     logger.info('DONE WITH GRF PREDICTION!')
-
-    # update phase with grf information
-    # Change phases to 0,1,2 encoding
-    data.phase_lf[data.phase_lf==1] = 0
-    data.phase_lf[(data.phase_lf==2) | (data.phase_lf==3)] = 1
-    data.phase_lf[data.phase_lf==4] = 2
-    
-    data.phase_rf[data.phase_rf==2] = 0
-    data.phase_rf[(data.phase_rf==1) | (data.phase_rf==3)] = 1
-    data.phase_rf[data.phase_rf==5] = 2
 
     (
         data.grf,

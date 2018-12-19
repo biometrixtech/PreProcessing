@@ -19,7 +19,7 @@ def script_handler(working_directory, input_data):
     logger.info('Running program composition aggregation  on "{}"'.format(working_directory.split('/')[-1]))
 
     try:
-        mongo_collection = get_mongo_collection('SESSION', os.environ['MONGO_COLLECTION_PROGCOMP'])
+        mongo_collection = get_mongo_collection('PROGCOMP')
 
         tmp_filename = '/tmp/readfile'
         copyfile(os.path.join(working_directory, 'scoring'), tmp_filename)

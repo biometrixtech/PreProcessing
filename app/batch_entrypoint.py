@@ -318,20 +318,20 @@ def main():
                 'MONGO_REPLICASET',
                 'MONGO_COLLECTION_ACTIVEBLOCKS',
             ], 'mongo')
-            pass
-            # if input_data.get('Sensors') == 3:
-            #     print('Computing block multi-sensor data')
-            #     from activeBlockAgg import agg_blocks
-            # elif input_data.get('Sensors') == 1:
-            #     print('Computing block single-sensor data')
-            #     from activeBlockAgg1 import agg_blocks
-            # else:
-            #     raise Exception('Must have either 1 or 3 sensors')
+            if input_data.get('Sensors') == 3:
+                print('Computing advanced stats for multi-sensor data')
+                from advancedStats import advanced_stats
+            elif input_data.get('Sensors') == 1:
+                print('Skipping advanced stats calculations for single-sensor data')
+                pass
+            else:
+                raise Exception('Must have either 1 or 3 sensors')
 
-            # agg_blocks.script_handler(
-            #     working_directory,
-            #     input_data
-            # )
+            mkdir(os.path.join(working_directory, 'advanced_stats'))
+            advanced_stats.script_handler(
+                os.path.join(working_directory, 'advanced_stats'),
+                input_data
+            )
             send_profiling(meta_data)
 
         elif script == 'aggregatetwomin':
