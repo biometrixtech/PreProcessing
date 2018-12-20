@@ -306,14 +306,14 @@ def test_get_movement_asymmetries_kruskal():
             'complexity_level': [f.complexity_level],
             'grf_level': [f.grf_level],
             'cma_level': [f.cma_level],
-            'adduc_ROM': [f.adduc_ROM],
+            'adduc_ROM': [f.adduc_rom],
             'adduc_motion_covered': [f.adduc_motion_covered],
-            'flex_ROM': [f.flex_ROM],
+            'flex_ROM': [f.flex_rom],
             'flex_motion_covered': [f.flex_motion_covered],
-            'adduc_ROM_hip': [f.adduc_ROM_hip],
-            'adduc_motion_covered_total_hip': [f.adduc_motion_covered_hip],
-            'flex_ROM_hip': [f.flex_ROM_hip],
-            'flex_motion_covered_total_hip': [f.flex_motion_covered_hip]
+            'adduc_ROM_hip': [f.adduc_rom_hip],
+            'adduc_motion_covered_total_hip': [f.adduc_motion_covered_tot_hip],
+            'flex_ROM_hip': [f.flex_rom_hip],
+            'flex_motion_covered_total_hip': [f.flex_motion_covered_tot_hip]
         }, index=[f.stance])
         df = df.append(ab)
 
@@ -467,9 +467,9 @@ def test_get_movement_asymmetries():
             'grf_level': [f.grf_level],
             'cma_level': [f.cma_level],
             'adduc_rom_hip': [f.adduc_rom_hip],
-            'adduc_motion_covered_total_hip': [f.adduc_motion_covered_hip],
+            'adduc_motion_covered_total_hip': [f.adduc_motion_covered_tot_hip],
             'flex_rom_hip': [f.flex_rom_hip],
-            'flex_motion_covered_total_hip': [f.flex_motion_covered_hip]
+            'flex_motion_covered_total_hip': [f.flex_motion_covered_tot_hip]
             # lots to add here!!!
         }, index=[f.stance])
         df = df.append(ab)
