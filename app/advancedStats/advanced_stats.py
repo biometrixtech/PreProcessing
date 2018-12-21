@@ -182,10 +182,11 @@ def write_fatigue_cross_tab(event_date, fatigue_cma_grf_crosstab, output_path, u
                  'flex_rom_hip_left_inc',
                  'flex_rom_hip_right_inc'
                 ]
-    fatigue_frame.to_csv(output_path + 'fatigue_xtab_' + user_id + '_' + event_date + '.csv', sep=',',
-                         index_label='Stance', columns=columns)
-    file_name = '_'.join([event_date, user_id]) + '/fatigue_xtab.csv'
-    write_file_to_s3(output_path + 'fatigue_xtab_' + user_id + '_' + event_date + '.csv', file_name)
+    if fatigue_frame.shape[0] > 0:
+        fatigue_frame.to_csv(output_path + 'fatigue_xtab_' + user_id + '_' + event_date + '.csv', sep=',',
+                             index_label='Stance', columns=columns)
+        file_name = '_'.join([event_date, user_id]) + '/fatigue_xtab.csv'
+        write_file_to_s3(output_path + 'fatigue_xtab_' + user_id + '_' + event_date + '.csv', file_name)
 
 
 def write_fatigue_active_block_cross_tab(fatigue_ab_crosstab, event_date, output_path, user_id):
@@ -428,6 +429,6 @@ if __name__ == '__main__':
     ], 'mongo')
 
     input_data = {"UserId": "fd263811-b299-461f-9e79-895c69612bac",
-                  "EventDate": "2018-12-18"}
+                  "EventDate": "2018-12-17"}
 
-    script_handler('//Users/dipeshgautam/Desktop/data/', input_data)
+    script_handler('~/', input_data)
