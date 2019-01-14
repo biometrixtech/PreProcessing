@@ -12,10 +12,11 @@ from config import load_parameters
 
 
 def send_success(meta, output):
-    if 'TaskToken' in meta:
+    task_token = meta.get('TaskToken', None)
+    if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_success(
-            taskToken=meta['TaskToken'],
+            taskToken=task_token,
             output=json.dumps({
                 "Meta": meta,
                 "Status": 'SUCCEEDED',
@@ -35,7 +36,7 @@ def send_profiling(meta):
 
     
 def send_failure(meta, exception):
-    task_token = meta['TaskToken']
+    task_token = meta.get('TaskToken', None)
     if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_failure(
@@ -46,7 +47,7 @@ def send_failure(meta, exception):
 
 
 def send_heartbeat(meta):
-    task_token = meta['TaskToken']
+    task_token = meta.get('TaskToken', None)
     if task_token is not None:
         sfn_client = boto3.client('stepfunctions')
         sfn_client.send_task_heartbeat(
@@ -144,8 +145,11 @@ def main():
             send_profiling(meta_data)
             return
 
-        session_id = input_data.get('SessionId')
-        os.environ['SESSION_ID'] = session_id
+        if 'SESSION_ID' not in os.environ:
+            session_id = input_data.get('SessionId')
+            os.environ['SESSION_ID'] = session_id
+        else:
+            session_id = os.environ['SESSION_ID']
         working_directory = os.path.join('/net/efs/preprocessing', session_id)
 
         if script == 'downloadandchunk':
