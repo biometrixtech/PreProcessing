@@ -8,7 +8,9 @@ import json
 import sys
 import time
 import traceback
+
 from config import load_parameters
+from datastore import Datastore
 
 
 def send_success(meta, output):
@@ -150,24 +152,15 @@ def main():
             os.environ['SESSION_ID'] = session_id
         else:
             session_id = os.environ['SESSION_ID']
-        working_directory = os.path.join('/net/efs/preprocessing', session_id)
+
+        datastore = Datastore(session_id)
 
         if script == 'downloadandchunk':
-            print('Running downloadAndChunk()')
-
-            if not os.path.isdir('/net/efs/preprocessing'):
-                raise Exception("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
-
-            # Create the working directory
-            mkdir(working_directory)
-            from downloadAndChunk import downloadAndChunk
-            mkdir(os.path.join(working_directory, 'downloadandchunk'))
-            combined_file = downloadAndChunk.script_handler(session_id, os.path.join(working_directory, 'downloadandchunk'))
+            from jobs.downloadandchunk import DownloadandchunkJob
+            combined_file = DownloadandchunkJob(datastore).run()
 
             # Upload combined file back to s3
-            s3_client = boto3.client('s3')
-            s3_bucket = 'biometrix-decode'
-            s3_client.upload_file(combined_file, s3_bucket, session_id + '_combined')
+            boto3.client('s3').upload_file(combined_file, 'biometrix-decode', f'{datastore.session_id}_combined')
 
             send_profiling(meta_data)
 
