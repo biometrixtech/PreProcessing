@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 
-_ddb_table = boto3.resource('dynamodb').Table(f'preprocessing-{os.environ["ENVIRONMENT"]}-ingest-sessions')
+_ddb_table = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ["ENVIRONMENT"]))
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 _logger = logging.getLogger()
@@ -33,7 +33,7 @@ class Datastore:
 
         if datum not in self._metadata:
             if default == NotImplemented:
-                raise KeyError(f'Key {datum} not found in metadata')
+                raise KeyError('Key {} not found in metadata'.format(datum))
             else:
                 return default
 
@@ -50,7 +50,7 @@ class Datastore:
             KeyConditionExpression=Key('id').eq(self.session_id),
         )
         if len(ret['Items']) == 0:
-            raise ValueError(f'Could not load metadata for session {self.session_id} from DynamoDB')
+            raise ValueError('Could not load metadata for session {} from DynamoDB'.format(self.session_id))
         self._metadata = ret['Items'][0]
 
     stages = {

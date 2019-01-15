@@ -24,7 +24,7 @@ class DownloadandchunkJob(Job):
         _logger.info(s3_files)
 
         if len(s3_files) == 0:
-            raise Exception(f'There are no uploaded chunks for session {self.datastore.session_id}')
+            raise Exception('There are no uploaded chunks for session {}'.format(self.datastore.session_id))
 
         # Compare the hashes of each chunk to eliminate duplicate files
         files_by_hash = {}
@@ -41,7 +41,7 @@ class DownloadandchunkJob(Job):
                 file_hash = hashlib.sha256(f.read()).digest().encode('hex')
             files_by_hash.setdefault(file_hash, []).append((s3_key, tmp_filename))
 
-            _logger.debug(f'Downloaded "s3://{s3_bucket}/{s3_key}", which has hash {file_hash}, to {tmp_filename}')
+            _logger.debug('Downloaded "s3://{}/{}", which has hash {}, to {}'.format(s3_bucket, s3_key, file_hash, tmp_filename))
 
         # Keep only the first file exhibiting each hash, and sort by upload timestamp
         s3_files = sorted([sorted(files)[0] for files in files_by_hash.values()])
