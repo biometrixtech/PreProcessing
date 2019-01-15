@@ -12,6 +12,7 @@ from ..job import Job
 from .decode_data import read_file
 
 _logger = logging.getLogger(__name__)
+_s3_client = boto3.client('s3')
 
 
 class DownloadandchunkJob(Job):
@@ -28,12 +29,11 @@ class DownloadandchunkJob(Job):
         files_by_hash = {}
 
         # Download file
-        s3_client = boto3.client('s3')
         s3_bucket = 'biometrix-preprocessing-{}-{}'.format(os.environ['ENVIRONMENT'], os.environ['AWS_DEFAULT_REGION'])
         for s3_key in s3_files:
 
             tmp_filename = self.datastore.get_temporary_filename()
-            s3_client.download_file(s3_bucket, s3_key, tmp_filename)
+            _s3_client.download_file(s3_bucket, s3_key, tmp_filename)
 
             with open(tmp_filename, 'rb') as f:
                 file_hash = hashlib.sha256(f.read()).digest().encode('hex')
@@ -65,4 +65,7 @@ class DownloadandchunkJob(Job):
         # Save to datastore
         self.datastore.put_data(self.name, data)
 
-        return concat_filename
+        # Upload combined, undecoded file back to s3
+        combined_s3_key = self.datastore.session_id + '_combined'
+        _logger.debug('Uploading combined file to "s3://biometrix-decode/{}",'.format(s3_bucket, combined_s3_key))
+        _s3_client.upload_file(concat_filename, 'biometrix-decode', combined_s3_key)
