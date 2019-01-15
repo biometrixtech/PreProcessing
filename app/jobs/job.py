@@ -18,7 +18,7 @@ class Job:
         return self.__class__.__name__.lower().replace('job', '')
 
     def run(self):
-        _logger.info(f'Running job {self.name} on session {self.datastore.session_id}')
+        _logger.info('Running job {} on session {}'.format(self.name, self.datastore.session_id))
         try:
             self._run()
         except Exception as e:
