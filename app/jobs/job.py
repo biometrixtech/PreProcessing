@@ -24,7 +24,7 @@ class Job:
         except Exception as e:
             _logger.error(e)
             _logger.info('Process did not complete successfully! See error below!')
-            raise e
+            raise
 
     @abstractmethod
     def _run(self):

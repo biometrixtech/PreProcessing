@@ -141,12 +141,12 @@ def read_file(filename):
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
     output_pd['epoch_time'] = output_pd['epoch_time']. astype(float)
     output_pd['corrupt'] = output_pd['corrupt']. astype(int)
-    output_pd['magn_lf'] = output_pd['magn_lf']. astype(int)
-    output_pd['corrupt_lf'] = output_pd['corrupt_lf']. astype(int)
-    output_pd['magn_h'] = output_pd['magn_h']. astype(int)
-    output_pd['corrupt_h'] = output_pd['corrupt_h']. astype(int)
-    output_pd['magn_rf'] = output_pd['magn_rf']. astype(int)
-    output_pd['corrupt_rf'] = output_pd['corrupt_rf']. astype(int)
+    output_pd['magn_A'] = output_pd['magn_A']. astype(int)
+    output_pd['corrupt_A'] = output_pd['corrupt_A']. astype(int)
+    output_pd['magn_B'] = output_pd['magn_B']. astype(int)
+    output_pd['corrupt_B'] = output_pd['corrupt_B']. astype(int)
+    output_pd['magn_C'] = output_pd['magn_C']. astype(int)
+    output_pd['corrupt_C'] = output_pd['corrupt_C']. astype(int)
     ms_elapsed = np.ediff1d(timestamp, to_begin=10)
     pos_timestamp = ms_elapsed >= 0
     output_pd = output_pd.iloc[pos_timestamp]
