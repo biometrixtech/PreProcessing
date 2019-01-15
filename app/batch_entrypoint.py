@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Entrypoint when called as a batch job
+from __future__ import print_function
 import os
 from datetime import datetime
 import boto3

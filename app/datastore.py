@@ -10,6 +10,8 @@ import pandas
 import sys
 import tempfile
 
+from chunk.chunk import chunk_by_line
+
 
 _ddb_table = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ["ENVIRONMENT"]))
 
@@ -75,38 +77,44 @@ class Datastore:
 
         return data
 
-    def put_data(self, source_job, data, columns=None, part_number=None):
-        if source_job not in self.stages:
-            raise ValueError('Unknown stage {}'.format(source_job))
-        plurality, encoding = self.stages[source_job]
+    def put_data(self, source_job, data, columns=None, chunk_size=0, is_binary=False):
+        if isinstance(source_job, tuple):
+            source_job, part_number = source_job
+        else:
+            part_number = None
 
         # First save the file to a temporary location
-        if encoding == 'binary':
+        if isinstance(data, str):
             # In this case, the `data` is actually the temporary filename
             tmp_filename = data
 
         else:
             # Data is a pandas DataFrame object
-            tmp_filename = '/tmp/output'
-            tmp_file = open('/tmp/output', 'wb')
-            data.to_csv(tmp_file, index=False, na_rep='', columns=columns)
+            tmp_filename = self.get_temporary_filename()
+            with open(tmp_filename, 'wb') as tmp_file:
+                data.to_csv(tmp_file, index=False, na_rep='', columns=columns)
 
         # Now move the file into the correct location
-        if plurality == 'chunked':
-            if part_number is None:
-                raise ValueError('Output of {} is chunked, must supply a part number'.format(source_job))
+        if chunk_size > 0:
+            if part_number is not None:
+                raise ValueError('Output of {} is chunked, cannot accept part number'.format(source_job))
 
-            _mkdir(os.path.join(self.working_directory, source_job))
-            if part_number == '*':
-                # This is the whole file, we need to chunk it
+            output_dir = os.path.join(self.working_directory, source_job)
+            _mkdir(output_dir)
+
+            if is_binary:
                 # TODO
                 raise NotImplementedError()
             else:
-                os.rename(tmp_filename, os.path.join(self.working_directory, source_job, part_number))
+                # TODO
+                chunk_by_line(tmp_filename, output_dir, chunk_size)
 
         else:
             _mkdir(self.working_directory)
-            os.rename(tmp_filename, os.path.join(self.working_directory, source_job))
+            if part_number is not None:
+                os.rename(tmp_filename, os.path.join(self.working_directory, source_job, '_' + part_number))
+            else:
+                os.rename(tmp_filename, os.path.join(self.working_directory, source_job))
 
     def _read_single_csv(self, stage, part_number=None):
         """

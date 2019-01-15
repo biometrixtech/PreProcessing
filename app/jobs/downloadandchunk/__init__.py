@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import os
+import pandas as pd
 import re
 import subprocess
 import sys
@@ -55,8 +56,14 @@ class DownloadandchunkJob(Job):
         for (s3_filename, local_filename) in s3_files:
             subprocess.check_call('cat {} >> {}'.format(local_filename, concat_filename), shell=True)
 
-        # Decode binary data
-        data = read_file(concat_filename)
+        # Decode the raw data
+        if self.datastore.get_metadatum('version', '2.3') == '1.0':
+            data = pd.read_csv(concat_filename)
+        else:
+            data = read_file(concat_filename)
+            if len(data) == 0:
+                raise Exception("Sensor data is empty!")
+            _logger.info("Decoded data")
 
         # Save to datastore
         self.datastore.put_data(self.name, data)
