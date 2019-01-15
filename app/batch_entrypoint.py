@@ -160,7 +160,7 @@ def main():
             combined_file = DownloadandchunkJob(datastore).run()
 
             # Upload combined file back to s3
-            boto3.client('s3').upload_file(combined_file, 'biometrix-decode', f'{datastore.session_id}_combined')
+            boto3.client('s3').upload_file(combined_file, 'biometrix-decode', datastore.session_id + '_combined')
 
             send_profiling(meta_data)
 
