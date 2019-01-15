@@ -7,6 +7,7 @@ import glob
 import logging
 import os
 import pandas
+import shutil
 import sys
 import tempfile
 
@@ -112,9 +113,11 @@ class Datastore:
         else:
             _mkdir(self.working_directory)
             if part_number is not None:
-                os.rename(tmp_filename, os.path.join(self.working_directory, source_job, '_' + part_number))
+                output_filename = os.path.join(self.working_directory, source_job, '_' + part_number)
             else:
-                os.rename(tmp_filename, os.path.join(self.working_directory, source_job))
+                output_filename = os.path.join(self.working_directory, source_job)
+            _logger.debug('Copying {} to {}'.format(tmp_filename, output_filename))
+            shutil.copy(tmp_filename, output_filename)
 
     def _read_single_csv(self, stage, part_number=None):
         """
