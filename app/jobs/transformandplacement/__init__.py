@@ -18,7 +18,7 @@ _logger = logging.getLogger(__name__)
 _s3_client = boto3.client('s3')
 
 
-class DownloadandchunkJob(Job):
+class TransformandplacementJob(Job):
 
     def _run(self):
         if self.datastore.get_metadatum('version') == '1.0':
