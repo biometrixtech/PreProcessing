@@ -6,12 +6,16 @@ from datetime import datetime
 import boto3
 import errno
 import json
+import logging
 import sys
 import time
 import traceback
 
 from config import load_parameters
 from datastore import Datastore
+
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 def send_success(meta, output):

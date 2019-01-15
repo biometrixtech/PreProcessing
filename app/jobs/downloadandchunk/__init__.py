@@ -11,9 +11,7 @@ import sys
 from ..job import Job
 from .decode_data import read_file
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.INFO)
 
 
 class DownloadandchunkJob(Job):

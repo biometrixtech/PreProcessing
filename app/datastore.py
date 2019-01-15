@@ -14,11 +14,9 @@ import tempfile
 from chunk.chunk import chunk_by_line
 
 
-_ddb_table = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ["ENVIRONMENT"]))
+_logger = logging.getLogger(__name__)
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-_logger = logging.getLogger()
-_logger.setLevel(logging.INFO)
+_ddb_table = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ["ENVIRONMENT"]))
 
 
 class Datastore:
