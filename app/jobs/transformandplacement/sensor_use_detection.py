@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from exceptions import PlacementDetectionException
+from .exceptions import PlacementDetectionException
 
 
 def detect_single_sensor(data):
@@ -46,15 +46,15 @@ def detect_hip_sensor(accel, win=100, thresh=2.):
 
     movement_perc = np.array([count_sensor0[0], count_sensor1[1], count_sensor2[2]]) / float(counts)
     if count_sensor0[0] > 0:
-        ratio_sensor0 = np.array([count_sensor0[1], count_sensor0[2]])/ float(count_sensor0[0])
+        ratio_sensor0 = np.array([count_sensor0[1], count_sensor0[2]]) / float(count_sensor0[0])
     else:
         ratio_sensor0 = np.array([0., 0.])
     if count_sensor1[1] > 0:
-        ratio_sensor1 = np.array([count_sensor1[0], count_sensor1[2]])/ float(count_sensor1[1])
+        ratio_sensor1 = np.array([count_sensor1[0], count_sensor1[2]]) / float(count_sensor1[1])
     else:
         ratio_sensor1 = np.array([0., 0.])
     if count_sensor2[2] > 0:
-        ratio_sensor2 = np.array([count_sensor2[0], count_sensor2[1]])/ float(count_sensor2[2])
+        ratio_sensor2 = np.array([count_sensor2[0], count_sensor2[1]]) / float(count_sensor2[2])
     else:
         ratio_sensor2 = np.array([0., 0.])
 
@@ -159,8 +159,8 @@ def detect_data_truncation(data, placement, sensors=3):
                 # in hip or for a continuous 7 minutes without considering hips,
                 # we're assuming user either took off the sensors or sensor fell off and
                 # processing as single sensor
-                if missing_left > five_mins or missing_right > five_mins or \
-                cont_missing_left > seven_mins or cont_missing_right > seven_mins:
+                if missing_left > five_mins or missing_right > five_mins \
+                        or cont_missing_left > seven_mins or cont_missing_right > seven_mins:
                     print('Feet inactive for extended period. Moving to single sensor.')
                     return (False, True, None)
                 else:
@@ -177,7 +177,7 @@ def detect_data_truncation(data, placement, sensors=3):
         for h in hip:
             if missing_hip >= seven_mins:
                 print("Truncating data as movement in hip not detected for extended period")
-                return(True, True, (counter - 84) * win)
+                return (True, True, (counter - 84) * win)
             else:
                 missing_hip = missing_hip + 1 if h == 0 else 0
             counter += 1

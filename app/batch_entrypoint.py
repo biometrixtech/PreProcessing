@@ -167,42 +167,33 @@ def main():
             send_profiling(meta_data)
 
         elif script == 'transformandplacement':
-            print('Running transformandplacement()')
-            if input_data['Version'] == '1.0':
-                ret = {
-                    'Placement': [0, 1, 2],
-                    'BodyFrameTransforms': {
-                        'Left': [1, 0, 0, 0],
-                        'Hip': [1, 0, 0, 0],
-                        'Right': [1, 0, 0, 0],
-                    },
-                    'HipNeutralYaw': [1, 0, 0, 0],
-                    'Sensors': 3,
-                }
-            else:
-                from transform_and_placement import transform_and_placement
-                ret = transform_and_placement.script_handler(
-                    working_directory,
-                    input_data['SessionId']
-                )
-            from chunk import chunk
-            combined_file = os.path.join(working_directory, 'downloadandchunk', session_id)
-            if input_data['Version'] == '1.0':
-                file_names = chunk.chunk_by_line(
-                    combined_file,
-                    os.path.join(working_directory, 'downloadandchunk'),
-                    100000  # 100,000 records per chunk
-                    )
-            else:
-                file_names = chunk.chunk_by_byte(
-                    combined_file,
-                    os.path.join(working_directory, 'downloadandchunk'),
-                    100000 * 40  # 100,000 records, 40 bytes per record
-                )
-            ret["Filenames"] = file_names
-            ret["FileCount"] = len(file_names)
-            os.remove(combined_file)
-            send_success(meta_data, ret)
+            from jobs.transformandplacement import TransformandplacementJob
+            TransformandplacementJob(datastore).run()
+            #
+            #
+            #
+            #     ret = transform_and_placement.script_handler(
+            #         working_directory,
+            #         input_data['SessionId']
+            #     )
+            # from utils import chunk
+            # combined_file = os.path.join(working_directory, 'downloadandchunk', session_id)
+            # if input_data['Version'] == '1.0':
+            #     file_names = chunk.chunk_by_line(
+            #         combined_file,
+            #         os.path.join(working_directory, 'downloadandchunk'),
+            #         100000  # 100,000 records per chunk
+            #         )
+            # else:
+            #     file_names = chunk.chunk_by_byte(
+            #         combined_file,
+            #         os.path.join(working_directory, 'downloadandchunk'),
+            #         100000 * 40  # 100,000 records, 40 bytes per record
+            #     )
+            # ret["Filenames"] = file_names
+            # ret["FileCount"] = len(file_names)
+            # os.remove(combined_file)
+            # send_success(meta_data, ret)
             send_profiling(meta_data)
 
         elif script == 'sessionprocess2':
@@ -250,7 +241,7 @@ def main():
             print(boundaries)
 
             # Chunk files for input to writemongo
-            from chunk import chunk
+            from utils import chunk
             mkdir(os.path.join(working_directory, 'scoring_chunked'))
             file_names = chunk.chunk_by_line(
                 os.path.join(working_directory, 'scoring'),

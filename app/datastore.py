@@ -8,14 +8,12 @@ import logging
 import os
 import pandas
 import shutil
-import sys
 import tempfile
 
-from chunk.chunk import chunk_by_line
+from utils.chunk import chunk_by_line
 
 
 _logger = logging.getLogger(__name__)
-print(_logger.getEffectiveLevel())
 
 _ddb_table = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ["ENVIRONMENT"]))
 
@@ -61,19 +59,11 @@ class Datastore:
         'scoring': ('combined', 'csv'),
     }
 
-    def get_data(self, from_stage, part_number=None):
-        if from_stage not in self.stages:
-            raise ValueError('Unknown stage {}'.format(from_stage))
-        plurality, encoding = self.stages[from_stage]
-
-        if plurality == 'chunked' and part_number is None:
-            data = self._read_multiple_csv(from_stage)
+    def get_data(self, source_job, part_number=None):
+        if part_number == '*':
+            data = self._read_multiple_csv(source_job)
         else:
-            data = self._read_single_csv(from_stage, part_number)
-
-        if encoding == 'binary':
-            # TODO
-            raise NotImplementedError()
+            data = self._read_single_csv(source_job, part_number)
 
         return data
 
@@ -120,21 +110,21 @@ class Datastore:
             _logger.debug('Copying {} to {}'.format(tmp_filename, output_filename))
             shutil.copy(tmp_filename, output_filename)
 
-    def _read_single_csv(self, stage, part_number=None):
+    def _read_single_csv(self, source_job, part_number=None):
         """
         Read a single CSV file with pandas.  Copy the file to the local filesystem first,
         as that improves read performance.
-        :param stage:
+        :param source_job:
         :return:
         """
         if part_number is not None:
-            source_filename = os.path.join(self.working_directory, stage, part_number)
+            source_filename = os.path.join(self.working_directory, source_job, '_' + part_number)
         else:
-            source_filename = os.path.join(self.working_directory, stage)
+            source_filename = os.path.join(self.working_directory, source_job)
 
-        tmp_filename = '/tmp/readfile'
+        tmp_filename = self.get_temporary_filename()
         copyfile(source_filename, tmp_filename)
-        _logger.info("Copied {} to local FS".format(source_filename))
+        _logger.info("Copied {} to local filesystem {}".format(source_filename, tmp_filename))
 
         data = pandas.read_csv(tmp_filename)
 
@@ -143,16 +133,16 @@ class Datastore:
 
         return data
 
-    def _read_multiple_csv(self, stage):
+    def _read_multiple_csv(self, source_job):
         """
         Read multiple CSV files together.  We do this by loading each CSV file into memory,
         concatenating them, and then feeding the array through a StringIO to pandas.read_csv()
-        :param stage:
+        :param source_job:
         :return:
         """
         # Find all files in the directory
         file_names = []
-        for file in glob.glob(os.path.join(self.working_directory, stage, '[0-9]*')):
+        for file in glob.glob(os.path.join(self.working_directory, source_job, '[0-9]*')):
             print("Found file {}".format(file))
             file_name = os.path.basename(file)
             file_names.append(file_name)

@@ -5,15 +5,13 @@ Created on Wed Sep 28 17:42:39 2016
 @author: court
 """
 
-# import relevant packages
 import numpy as np
 
 
 """
 ############################################################################
 Conceptual explanations to be given under:
-https://sites.google.com/a/biometrixtech.com/wiki/home/preprocessing/
-anatomical/concepts
+https://sites.google.com/a/biometrixtech.com/wiki/home/preprocessing/anatomical/concepts
 Further documentation of code to be given under:
 https://drive.google.com/drive/folders/0Bzd7PD0NIJ7ZZmJ5aVRsUnVOZ3c
 ##########################################################################
@@ -21,7 +19,6 @@ https://drive.google.com/drive/folders/0Bzd7PD0NIJ7ZZmJ5aVRsUnVOZ3c
 
 
 def quat_prod(q1, q2):
-
     """
     Function to compute the product between two quaternions... q1 followed by
     a rotation of q2.
@@ -31,7 +28,6 @@ def quat_prod(q1, q2):
 
     Return:
         Quaternion representing the final orientation.
-
     """
 
     # normalize rotation quaternion
@@ -52,8 +48,8 @@ def quat_prod(q1, q2):
 
     return prod
 
-def _vector_quat_prod(q1, q2):
 
+def _vector_quat_prod(q1, q2):
     """
     Function to compute the product between two quaternions during vector
     rotation - does not include normalization step of regular quaternion
@@ -83,11 +79,9 @@ def _vector_quat_prod(q1, q2):
     return prod
 
 
-
 def quat_norm(q):
     """
     Function that normalizes a quaternion
-    
     """
     
     # Find the magnitude and divide
@@ -98,10 +92,8 @@ def quat_norm(q):
 
 
 def quat_conj(q):
-
     """
     Function that returns conjugate of input quaternion.
-    
     """
 
     # first term unchanged, last three terms are negative of inital quaternion
@@ -114,7 +106,6 @@ def quat_conj(q):
 
 
 def vect_rot(v, q):
-
     """
     Function that rotates a vector v by rotation quaternion q.
 
@@ -124,7 +115,6 @@ def vect_rot(v, q):
 
     Return:
         3D rotated vector
-
     """
 
     # Create storage for variable values
@@ -144,10 +134,8 @@ def vect_rot(v, q):
 
 
 def find_rot(q1, q2):
-
     """
     Function that finds rotation between first and second quaternions.
-
     """
 
     # Create storage vector for product
@@ -160,10 +148,8 @@ def find_rot(q1, q2):
 
 
 def quat_avg(data):
-
     """
     Function that "averages" a column of quaternions into a single quaternion.
-
     """
 
     # Average data along columns

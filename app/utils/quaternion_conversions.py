@@ -6,7 +6,7 @@ Created on Wed Sep 28 17:42:39 2016
 """
 
 import numpy as np
-import quatOps as qo
+import utils.quaternion_operations as qo
 
 
 """
@@ -18,7 +18,8 @@ cosine matrices
 
 
 def quat_to_euler(q):
-    """Function that transforms quaternion into Euler angles, assuming ZYX
+    """
+    Function that transforms quaternion into Euler angles, assuming ZYX
     config.
 
     Args:
@@ -28,31 +29,28 @@ def quat_to_euler(q):
         psi: euler angle measuring rotaion about x axis (roll)
         theta: euler angle measuring rotaion about y axis (pitch)
         phi: euler angle measuring rotaion about z axis (yaw)
-
     """
 
     q = qo.quat_norm(q)
 
     # YAW COMPONENT
-    d = 2*q[:, 1]*q[:, 2]+2*q[:, 0]*q[:, 3]
-    e = 1-2*q[:, 2]**2-2*q[:, 3]**2
+    d = 2 * q[:, 1] * q[:, 2] + 2 * q[:, 0] * q[:, 3]
+    e = 1 - 2 * q[:, 2]**2 - 2*q[:, 3]**2
     psi = np.arctan2(d, e)
 
     # PITCH COMPONENT
-    c = -q[:, 1]*q[:, 3]+q[:, 0]*q[:, 2]
+    c = -q[:, 1] * q[:, 3] + q[:, 0] * q[:, 2]
     c[c > .5] = .5
     c[c < -.5] = -.5
     theta = np.arcsin(2*c)
 
     # ROLL COMPONENT
-    a = 1-2*q[:, 1]**2-2*q[:, 2]**2
-    b = 2*(q[:, 2]*q[:, 3])+2*q[:, 0]*q[:, 1]
+    a = 1 - 2 * q[:, 1]**2 - 2*q[:, 2]**2
+    b = 2 * (q[:, 2] * q[:, 3]) + 2 * q[:, 0] * q[:, 1]
     phi = np.arctan2(b, a)
     
-    if any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
-             < np.array([[1e-8]*4]), axis=1) == 4):
-        ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) \
-                     < np.array([[1e-8]*4]), axis=1) == 4
+    if any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) < np.array([[1e-8] * 4]), axis=1) == 4):
+        ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) < np.array([[1e-8] * 4]), axis=1) == 4
         psi[ind] = 0
         theta[ind] = np.pi
         phi[ind] = 0
@@ -74,7 +72,6 @@ def euler_to_quat(euler_data):
 
     Returns:
         single (WXYZ) quaternion transformation of given euler angles
-
     """
 
     # isolate roll, pitch, and yaw
@@ -83,12 +80,12 @@ def euler_to_quat(euler_data):
     yaw = euler_data[:, 2]
 
     # compute real and imaginary components of intermediate quaternions
-    real_roll = np.cos(0.5*roll).reshape(-1, 1)
-    imag_roll = np.sin(0.5*roll).reshape(-1, 1)
-    real_pitch = np.cos(0.5*pitch).reshape(-1, 1)
-    imag_pitch = np.sin(0.5*pitch).reshape(-1, 1)
-    real_yaw = np.cos(0.5*yaw).reshape(-1, 1)
-    imag_yaw = np.sin(0.5*yaw).reshape(-1, 1)
+    real_roll = np.cos(0.5 * roll).reshape(-1, 1)
+    imag_roll = np.sin(0.5 * roll).reshape(-1, 1)
+    real_pitch = np.cos(0.5 * pitch).reshape(-1, 1)
+    imag_pitch = np.sin(0.5 * pitch).reshape(-1, 1)
+    real_yaw = np.cos(0.5 * yaw).reshape(-1, 1)
+    imag_yaw = np.sin(0.5 * yaw).reshape(-1, 1)
 
     # compile the intermediate quaternions
     roll_quat = np.hstack((real_roll, imag_roll))

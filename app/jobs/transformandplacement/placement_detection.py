@@ -3,9 +3,9 @@ from __future__ import print_function
 import numpy as np
 from scipy.stats import skew
 
-import quatConvs as qc
-import quatOps as qo
-from exceptions import PlacementDetectionException
+import utils.quaternion_conversions as qc
+import utils.quaternion_operations as qo
+from .exceptions import PlacementDetectionException
 
 
 def detect_placement(data):
@@ -17,8 +17,8 @@ def detect_placement(data):
         try:
             data_sub = data.loc[start[i]:end[i], :]
             data_sub.reset_index(inplace=True, drop=True)
-            quats_1 = data_sub.loc[:, ['qW0', 'qX0', 'qY0', 'qZ0']].values.reshape(-1, 4)
-            quats_2 = data_sub.loc[:, ['qW2', 'qX2', 'qY2', 'qZ2']].values.reshape(-1, 4)
+            quats_1 = data_sub.loc[:, ['AqW', 'AqX', 'AqY', 'AqZ']].values.reshape(-1, 4)
+            quats_2 = data_sub.loc[:, ['CqW', 'CqX', 'CqY', 'CqZ']].values.reshape(-1, 4)
 
             # prepare foot1 data
             pitch_foot1 = qc.quat_to_euler(quats_1)[100:, 1] * 180 / np.pi
@@ -141,7 +141,6 @@ def shift_accel(data):
     data.aZ2 = data.aZ2 - np.nanmean(data.aZ2[0:100])
 
 
-
 def extract_geometry(quats, rot=None):
 
     i = np.array([0, 1, 0, 0]).reshape(1, 4)
@@ -152,7 +151,6 @@ def extract_geometry(quats, rot=None):
     extension = np.arctan2(vi[:, 3], np.sqrt(vi[:, 1]**2+vi[:, 2]**2)) * 180 / np.pi
 
     return -extension.reshape(-1, 1)
-
 
 
 def is_foot1_left(pitch_foot1, pitch_foot2):

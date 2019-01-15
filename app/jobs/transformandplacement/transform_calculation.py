@@ -3,8 +3,8 @@ from __future__ import print_function
 import math
 import numpy as np
 
-from quatConvs import euler_to_quat, quat_to_euler
-from quatOps import quat_conj, quat_avg
+from utils.quaternion_conversions import euler_to_quat, quat_to_euler
+from utils.quaternion_operations import quat_conj, quat_avg
 
 
 def compute_transform(data, placement, sensors=3):
@@ -90,7 +90,7 @@ def detect_still(data, sensors, hip):
     for i in range(len(end)):
         end[i] = min([end[i], start[i] + 300])
         if end[i] - start[i] >= 125:
-            return start[i], end[i] # return the first section of data where we have enough points
+            return start[i], end[i]  # return the first section of data where we have enough points
 
 
 def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
@@ -102,4 +102,3 @@ def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
     if psi is not None:
         euler_angles[:, 2] = psi
     return euler_to_quat(euler_angles)
-
