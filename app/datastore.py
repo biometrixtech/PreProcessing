@@ -15,6 +15,7 @@ from chunk.chunk import chunk_by_line
 
 
 _logger = logging.getLogger(__name__)
+print(_logger.getEffectiveLevel())
 
 _ddb_table = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ["ENVIRONMENT"]))
 
@@ -86,10 +87,12 @@ class Datastore:
         if isinstance(data, str):
             # In this case, the `data` is actually the temporary filename
             tmp_filename = data
+            _logger.debug('Data already saved in temporary file {}'.format(tmp_filename))
 
         else:
             # Data is a pandas DataFrame object
             tmp_filename = self.get_temporary_filename()
+            _logger.debug('Saving dataset to {}'.format(tmp_filename))
             with open(tmp_filename, 'wb') as tmp_file:
                 data.to_csv(tmp_file, index=False, na_rep='', columns=columns)
 

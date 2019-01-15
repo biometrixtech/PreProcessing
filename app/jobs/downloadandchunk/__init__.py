@@ -16,7 +16,6 @@ _logger = logging.getLogger(__name__)
 
 class DownloadandchunkJob(Job):
 
-    @property
     def _run(self):
         s3_files = self.datastore.get_metadatum('s3_files', None) or self.datastore.get_metadatum('s3Files')
         s3_files.remove('_empty')  # Placeholder list entry
