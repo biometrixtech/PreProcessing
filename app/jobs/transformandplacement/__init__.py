@@ -16,6 +16,8 @@ _s3_client = boto3.client('s3')
 class TransformandplacementJob(Job):
 
     def _run(self):
+        data = self.datastore.get_data('downloadandchunk')
+
         if self.datastore.get_metadatum('version') == '1.0':
             ret = {
                 'placement': [0, 1, 2],
@@ -26,16 +28,27 @@ class TransformandplacementJob(Job):
                 },
                 'hip_neutral_yaw': [1, 0, 0, 0],
                 'sensors': 3,
+                'truncation_index': None,
             }
         else:
-            ret = self.execute()
+            ret = self.execute(data)
 
         _logger.info(ret)
         self.datastore.put_metadata(ret)
 
-    def execute(self):
-        data = self.datastore.get_data('downloadandchunk')
-        data = data.loc[:2000000]
+        if ret['truncation_index'] is not None:
+            data = data.loc[:ret['truncation_index']]
+
+        placement = zip(ret['placement'], ['l', 'h', 'r'])
+        column_prefixes = ['magn_', 'corrupt_', 'aX', 'aY', 'aZ', 'qX', 'qY', 'qZ', 'qW']
+        for old, new in placement:
+            for prefix in column_prefixes:
+                data.rename(index=str, columns={prefix + str(old): prefix + str(new)})
+
+        self.datastore.put_data('transformandplacement', data, chunk_size=100000)
+
+    def execute(self, all_data):
+        data = all_data.loc[:2000000]
 
         try:
             # if placement passes without issue, go to multiple sensor processing
@@ -46,12 +59,9 @@ class TransformandplacementJob(Job):
 
             # if placement passed, check to see if any sensor fell down or data missing for
             # any of the sensors
-            truncated, single_sensor, index = detect_data_truncation(data, placement)
+            truncation_index, single_sensor = detect_data_truncation(data, placement)
 
-            if truncated:
-                self._truncate_file(index)
-
-            elif single_sensor:
+            if single_sensor:
                 _logger.info('single Sensor')
                 sensors = 1
 
@@ -65,7 +75,8 @@ class TransformandplacementJob(Job):
                     'right': body_frame_transforms[2],
                 },
                 'hip_neutral_yaw': body_frame_transforms[3],
-                'sensors': sensors
+                'sensors': sensors,
+                'truncation_index': truncation_index,
             }
 
         except PlacementDetectionException as err:
@@ -76,10 +87,7 @@ class TransformandplacementJob(Job):
             # detect the single sensor being used
             # placement = detect_single_sensor(data)
             placement = [0, 1, 2]
-            truncated, single_sensor, index = detect_data_truncation(data, placement, sensors)
-
-            if truncated:
-                self._truncate_file(index)
+            truncation_index, single_sensor = detect_data_truncation(data, placement, sensors)
 
             # get transformation values
             data_sub = copy.copy(data.loc[0:2000, :])
@@ -94,7 +102,8 @@ class TransformandplacementJob(Job):
                     'right': body_frame_transforms[2],
                 },
                 'hip_neutral_yaw': body_frame_transforms[3],
-                'sensors': sensors
+                'sensors': sensors,
+                'truncation_index': truncation_index,
             }
 
     def _truncate_file(self, index):
