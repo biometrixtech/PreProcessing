@@ -1,12 +1,7 @@
 import boto3
 import copy
-import json
 import logging
 import os
-import pandas as pd
-import re
-import subprocess
-import sys
 
 from ..job import Job
 from .exceptions import PlacementDetectionException
@@ -23,19 +18,20 @@ class TransformandplacementJob(Job):
     def _run(self):
         if self.datastore.get_metadatum('version') == '1.0':
             ret = {
-                'Placement': [0, 1, 2],
-                'BodyFrameTransforms': {
-                    'Left': [1, 0, 0, 0],
-                    'Hip': [1, 0, 0, 0],
-                    'Right': [1, 0, 0, 0],
+                'placement': [0, 1, 2],
+                'body_frame_transforms': {
+                    'left': [1, 0, 0, 0],
+                    'hip': [1, 0, 0, 0],
+                    'right': [1, 0, 0, 0],
                 },
-                'HipNeutralYaw': [1, 0, 0, 0],
-                'Sensors': 3,
+                'hip_neutral_yaw': [1, 0, 0, 0],
+                'sensors': 3,
             }
         else:
             ret = self.execute()
 
         _logger.info(ret)
+        self.datastore.put_metadata(ret)
 
     def execute(self):
         data = self.datastore.get_data('downloadandchunk')
@@ -80,14 +76,14 @@ class TransformandplacementJob(Job):
             body_frame_transforms = compute_transform(data_sub, placement, sensors)
 
             return {
-                'Placement': placement,
-                'BodyFrameTransforms': {
-                    'Left': body_frame_transforms[0],
-                    'Hip': body_frame_transforms[1],
-                    'Right': body_frame_transforms[2],
+                'placement': placement,
+                'body_frame_transforms': {
+                    'left': body_frame_transforms[0],
+                    'hip': body_frame_transforms[1],
+                    'right': body_frame_transforms[2],
                 },
-                'HipNeutralYaw': body_frame_transforms[3],
-                'Sensors': sensors
+                'hip_neutral_yaw': body_frame_transforms[3],
+                'sensors': sensors
             }
 
         except PlacementDetectionException as err:
@@ -126,12 +122,12 @@ class TransformandplacementJob(Job):
             body_frame_transforms = compute_transform(data_sub, placement, sensors)
 
             return {
-                'Placement': placement,
-                'BodyFrameTransforms': {
-                    'Left': body_frame_transforms[0],
-                    'Hip': body_frame_transforms[1],
-                    'Right': body_frame_transforms[2],
+                'placement': placement,
+                'body_frame_transforms': {
+                    'left': body_frame_transforms[0],
+                    'hip': body_frame_transforms[1],
+                    'right': body_frame_transforms[2],
                 },
-                'HipNeutralYaw': body_frame_transforms[3],
-                'Sensors': sensors
+                'hip_neutral_yaw': body_frame_transforms[3],
+                'sensors': sensors
             }

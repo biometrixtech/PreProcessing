@@ -2,15 +2,19 @@ from boto3.dynamodb.conditions import Key
 from io import StringIO
 from shutil import copyfile
 import boto3
+import datetime
 import errno
 import glob
+import json
 import logging
 import os
 import pandas
 import shutil
 import tempfile
 
+from utils import format_datetime
 from utils.chunk import chunk_by_line
+from utils.dynamodb_update import DynamodbUpdate
 
 
 _logger = logging.getLogger(__name__)
@@ -40,8 +44,31 @@ class Datastore:
         return self._metadata[datum]
 
     def put_metadatum(self, datum, value):
-        # TODO
-        raise NotImplementedError
+        self.put_metadata({datum: value})
+
+    def put_metadata(self, data):
+        upsert = DynamodbUpdate()
+        for key, value in data.items():
+            upsert.set(key, value)
+
+        _logger.debug(json.dumps({
+            'UpdateExpression': upsert.update_expression,
+            'ExpressionAttributeNames': upsert.parameter_names,
+            'ExpressionAttributeValues': upsert.parameter_values,
+        }))
+
+        if len(upsert.parameter_names) == 0:
+            return
+
+        # Update updated_date, if we're updating anything else
+        upsert.set('updated_date', format_datetime(datetime.datetime.now()))
+
+        _ddb_table.update_item(
+            Key={'id': self.session_id},
+            UpdateExpression=upsert.update_expression,
+            ExpressionAttributeNames=upsert.parameter_names,
+            ExpressionAttributeValues=upsert.parameter_values
+        )
 
     def _load_metadata_from_ddb(self):
         ret = _ddb_table.query(
