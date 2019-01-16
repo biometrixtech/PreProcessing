@@ -12,7 +12,7 @@ import pandas
 import shutil
 import tempfile
 
-from utils import format_datetime
+from utils import format_datetime, json_serialise
 from utils.chunk import chunk_by_line
 from utils.dynamodb_update import DynamodbUpdate
 
@@ -55,7 +55,7 @@ class Datastore:
             'UpdateExpression': upsert.update_expression,
             'ExpressionAttributeNames': upsert.parameter_names,
             'ExpressionAttributeValues': upsert.parameter_values,
-        }))
+        }, default=json_serialise))
 
         if len(upsert.parameter_names) == 0:
             return

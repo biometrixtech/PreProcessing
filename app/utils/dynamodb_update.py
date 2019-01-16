@@ -15,29 +15,20 @@ class DynamodbUpdate:
         key = self._register_parameter_name(field)
         if key is not None:
             self._set.add('#{key} = :{key}'.format(key=key))
-            self._parameter_values[':' + key] = self._cast(value)
+            self._parameter_values[':' + key] = _cast(value)
 
     def add(self, field, value):
         key = self._register_parameter_name(field)
         if key is not None:
             self._add.add('#{key} = :{key}'.format(key=key))
             value = set(value) if isinstance(value, list) else value
-            self._parameter_values[':' + key] = self._cast(value)
+            self._parameter_values[':' + key] = _cast(value)
 
     def delete(self, field, value):
         key = self._register_parameter_name(field)
         if key is not None:
             self._delete.add('#{key} = :{key}'.format(key=key))
-            self._parameter_values[':' + key] = self._cast(value)
-
-    @staticmethod
-    def _cast(value):
-        if isinstance(value, (int, float)):
-            return Decimal(value)
-        elif isinstance(value, (list, dict, tuple, set)):
-            return json.dumps(value)
-        else:
-            return value
+            self._parameter_values[':' + key] = _cast(value)
 
     @property
     def update_expression(self):
@@ -66,3 +57,12 @@ class DynamodbUpdate:
             'parameter_names': self.parameter_names,
             'parameter_values': self.parameter_values,
         })
+
+
+def _cast(value):
+    if isinstance(value, (int, float)):
+        return Decimal(value)
+    elif isinstance(value, (list, dict, tuple, set)):
+        return json.dumps(value)
+    else:
+        return value
