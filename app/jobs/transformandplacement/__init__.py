@@ -49,25 +49,7 @@ class TransformandplacementJob(Job):
             truncated, single_sensor, index = detect_data_truncation(data, placement)
 
             if truncated:
-                if index < 2000:
-                    raise PlacementDetectionException('File too short after truncation.')
-                else:
-                    _logger.info('Data truncated at index: {}'.format(index))
-                    tmp_filename = filepath + '_tmp'
-                    # truncate combined file at lines where truncation was detected
-                    os.system(
-                        'head -c {bytes} {filepath} > {truncated_filename}'.format(
-                            bytes=index * 40,
-                            filepath=filepath,
-                            truncated_filename=tmp_filename
-                            )
-                        )
-                    # copy tmp_file to replace the original file
-                    os.system('cat {tmp_filename} > {filepath}'.format(
-                        tmp_filename=tmp_filename,
-                        filepath=filepath))
-                    # finally delete temporary file
-                    os.remove(tmp_filename)
+                self._truncate_file(index)
 
             elif single_sensor:
                 _logger.info('single Sensor')
@@ -95,26 +77,9 @@ class TransformandplacementJob(Job):
             # placement = detect_single_sensor(data)
             placement = [0, 1, 2]
             truncated, single_sensor, index = detect_data_truncation(data, placement, sensors)
+
             if truncated:
-                if index <= 2000:
-                    raise PlacementDetectionException('File too short after truncation.')
-                else:
-                    _logger.info('Data truncated at index: {}'.format(index))
-                    tmp_filename = filepath + '_tmp'
-                    # truncate combined file at lines where truncation was detected
-                    os.system(
-                        'head -c {bytes} {filepath} > {truncated_filename}'.format(
-                            bytes=index * 40,
-                            filepath=filepath,
-                            truncated_filename=tmp_filename
-                            )
-                        )
-                    # copy tmp_file to replace the original file
-                    os.system('cat {tmp_filename} > {filepath}'.format(
-                        tmp_filename=tmp_filename,
-                        filepath=filepath))
-                    # finally delete temporary file
-                    os.remove(tmp_filename)
+                self._truncate_file(index)
 
             # get transformation values
             data_sub = copy.copy(data.loc[0:2000, :])
@@ -131,3 +96,24 @@ class TransformandplacementJob(Job):
                 'hip_neutral_yaw': body_frame_transforms[3],
                 'sensors': sensors
             }
+
+    def _truncate_file(self, index):
+        if index <= 2000:
+            raise PlacementDetectionException('File too short after truncation.')
+        else:
+            _logger.info('Data truncated at index: {}'.format(index))
+            tmp_filename = filepath + '_tmp'
+            # truncate combined file at lines where truncation was detected
+            os.system(
+                'head -c {bytes} {filepath} > {truncated_filename}'.format(
+                    bytes=index * 40,
+                    filepath=filepath,
+                    truncated_filename=tmp_filename
+                    )
+                )
+            # copy tmp_file to replace the original file
+            os.system('cat {tmp_filename} > {filepath}'.format(
+                tmp_filename=tmp_filename,
+                filepath=filepath))
+            # finally delete temporary file
+            os.remove(tmp_filename)

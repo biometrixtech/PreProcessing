@@ -11,32 +11,32 @@ class DynamodbUpdate:
     def set(self, field, value):
         key = self._register_parameter_name(field)
         if key is not None:
-            self._set.add(f'#{key} = :{key}')
-            self._parameter_values[f':{key}'] = value
+            self._set.add('#{key} = :{key}'.format(key=key))
+            self._parameter_values[':' + key] = value
 
     def add(self, field, value):
         key = self._register_parameter_name(field)
         if key is not None:
-            self._add.add(f'#{key} :{key}')
+            self._add.add('#{key} = :{key}'.format(key=key))
             value = set(value) if isinstance(value, list) else value
-            self._parameter_values[f':{key}'] = value
+            self._parameter_values[':' + key] = value
 
     def delete(self, field, value):
         key = self._register_parameter_name(field)
         if key is not None:
-            self._delete.add(f'#{key} :{key}')
-            self._parameter_values[f':{key}'] = value
+            self._delete.add('#{key} = :{key}'.format(key=key))
+            self._parameter_values[':' + key] = value
 
     @property
     def update_expression(self):
         set_str = 'SET {}'.format(', '.join(self._set)) if len(self._set) else ''
         add_str = 'ADD {}'.format(', '.join(self._add)) if len(self._add) else ''
         del_str = 'DELETE {}'.format(', '.join(self._delete)) if len(self._delete) else ''
-        return f'{set_str} {add_str} {del_str}'
+        return set_str + ' ' + add_str + ' ' + del_str
 
     @property
     def parameter_names(self):
-        return {f'#p{i}': n for i, n in enumerate(self._parameter_names)}
+        return {'#p' + str(i): n for i, n in enumerate(self._parameter_names)}
 
     @property
     def parameter_values(self):
