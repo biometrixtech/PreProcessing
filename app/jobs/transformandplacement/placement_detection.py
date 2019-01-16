@@ -17,8 +17,8 @@ def detect_placement(data):
         try:
             data_sub = data.loc[start[i]:end[i], :]
             data_sub.reset_index(inplace=True, drop=True)
-            quats_1 = data_sub.loc[:, ['AqW', 'AqX', 'AqY', 'AqZ']].values.reshape(-1, 4)
-            quats_2 = data_sub.loc[:, ['CqW', 'CqX', 'CqY', 'CqZ']].values.reshape(-1, 4)
+            quats_1 = data_sub.loc[:, ['qW0', 'qX0', 'qY0', 'qZ0']].values.reshape(-1, 4)
+            quats_2 = data_sub.loc[:, ['qW2', 'qX2', 'qY2', 'qZ2']].values.reshape(-1, 4)
 
             # prepare foot1 data
             pitch_foot1 = qc.quat_to_euler(quats_1)[100:, 1] * 180 / np.pi

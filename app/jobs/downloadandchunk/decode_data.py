@@ -13,12 +13,12 @@ import pandas as pd
 incoming_from_accessory = [
     'epoch_time',
     'corrupt',
-    'magn_A', 'corrupt_A',
-    'AaX', 'AaY', 'AaZ', 'AqX', 'AqY', 'AqZ', 'AqW',
-    'magn_B', 'corrupt_B',
-    'BaX', 'BaY', 'BaZ', 'BqX', 'BqY', 'BqZ', 'BqW',
-    'magn_C', 'corrupt_C',
-    'CaX', 'CaY', 'CaZ', 'CqX', 'CqY', 'CqZ', 'CqW'
+    'magn_0', 'corrupt_0',
+    'aX0', 'aY0', 'aZ0', 'qX0', 'qY0', 'qZ0', 'qW0',
+    'magn_1', 'corrupt_1',
+    'aX1', 'aY1', 'aZ1', 'qX1', 'qY1', 'qZ1', 'qW1',
+    'magn_2', 'corrupt_2',
+    'aX2', 'aY2', 'aZ2', 'qX2', 'qY2', 'qZ2', 'qW2'
 ]
 
 
@@ -141,12 +141,12 @@ def read_file(filename):
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
     output_pd['epoch_time'] = output_pd['epoch_time']. astype(float)
     output_pd['corrupt'] = output_pd['corrupt']. astype(int)
-    output_pd['magn_A'] = output_pd['magn_A']. astype(int)
-    output_pd['corrupt_A'] = output_pd['corrupt_A']. astype(int)
-    output_pd['magn_B'] = output_pd['magn_B']. astype(int)
-    output_pd['corrupt_B'] = output_pd['corrupt_B']. astype(int)
-    output_pd['magn_C'] = output_pd['magn_C']. astype(int)
-    output_pd['corrupt_C'] = output_pd['corrupt_C']. astype(int)
+    output_pd['magn_0'] = output_pd['magn_0']. astype(int)
+    output_pd['corrupt_0'] = output_pd['corrupt_0']. astype(int)
+    output_pd['magn_1'] = output_pd['magn_1']. astype(int)
+    output_pd['corrupt_1'] = output_pd['corrupt_1']. astype(int)
+    output_pd['magn_2'] = output_pd['magn_2']. astype(int)
+    output_pd['corrupt_2'] = output_pd['corrupt_2']. astype(int)
     ms_elapsed = np.ediff1d(timestamp, to_begin=10)
     pos_timestamp = ms_elapsed >= 0
     output_pd = output_pd.iloc[pos_timestamp]

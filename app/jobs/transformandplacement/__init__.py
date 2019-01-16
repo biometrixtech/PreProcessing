@@ -35,6 +35,8 @@ class TransformandplacementJob(Job):
         else:
             ret = self.execute()
 
+        _logger.info(ret)
+
     def execute(self):
         data = self.datastore.get_data('downloadandchunk')
         data = data.loc[:2000000]
