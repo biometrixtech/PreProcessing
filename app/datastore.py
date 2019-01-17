@@ -109,7 +109,7 @@ class Datastore:
         else:
             # Data is a pandas DataFrame object
             tmp_filename = self.get_temporary_filename()
-            _logger.debug('Saving dataset to {}'.format(tmp_filename))
+            _logger.debug('Saving dataset (size {}) to {}'.format(data.shape, tmp_filename))
             with open(tmp_filename, 'wb') as tmp_file:
                 data.to_csv(tmp_file, index=False, na_rep='', columns=columns)
 
