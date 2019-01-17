@@ -24,6 +24,7 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
             header_filename=header_filename
         )
     )
+    _logger.debug('Filesize of {} is {}'.format(header_filename, os.path.getsize(header_filename)))
 
     # Strip the header from the file
     body_filename = '/tmp/chunk_body'
@@ -33,6 +34,7 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
             body_filename=body_filename
         )
     )
+    _logger.debug('Filesize of {} is {}'.format(body_filename, os.path.getsize(body_filename)))
 
     # Divide file into chunks
     tmp_chunk_dir = '/tmp/chunk'
@@ -54,6 +56,7 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
 
     # Prepend the column headers to each file and copy to the output directory
     file_names = []
+    _logger.debug(tmp_chunk_dir)
     for file in glob.glob(tmp_chunk_dir + '/chunk_[0-9]*'):
         file_name = os.path.basename(file)
         output_filepath = os.path.join(output_dir, file_name)

@@ -112,6 +112,7 @@ class Datastore:
             _logger.debug('Saving dataset (size {}) to {}'.format(data.shape, tmp_filename))
             with open(tmp_filename, 'wb') as tmp_file:
                 data.to_csv(tmp_file, index=False, na_rep='', columns=columns)
+            _logger.debug('Filesize of {} is {}'.format(tmp_filename, os.path.getsize(tmp_filename)))
 
         # Now move the file into the correct location
         if chunk_size > 0:
