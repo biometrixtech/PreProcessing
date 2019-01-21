@@ -1,25 +1,57 @@
-FROM python:2.7
+FROM alectolytic/scipy:latest
 
 # Set up users and directories
 USER root
-RUN mkdir /net /net/efs
+RUN [ -d /net ] || mkdir /net /net/efs
 WORKDIR /opt/biometrix/preprocessing
 
 # Install packages
-RUN apt-get update && apt-get install -y \
-    nfs-common \
-    python-pip \
-  && apt-get clean
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+    && apk update \
+    && apk add --no-cache \
+        # Provides the non-busybox version of `split` and `csplit` which have more functionality
+        coreutils \
+        # Allows mounting NFS directories
+        nfs-utils \
+#
+    # Build dependencies, will remove later
+    && apk add --no-cache --virtual .build-deps \
+        # For general building
+        build-base \
+        # For building h5py
+        python2-dev \
+#
+    # For building h5py
+    && apk add --no-cache --virtual .build-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5-dev
+
+RUN pip install --upgrade --no-cache-dir --compile pip
+RUN CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
+    pip install --upgrade --no-cache-dir --compile --global-option=build_ext \
+        boto3==1.9.2 \
+            botocore==1.12.82 \
+                docutils==0.14 \
+                jmespath==0.9.3 \
+                python-dateutil==2.7.5 \
+                    six==1.11.0 \
+                urllib3==1.24.1 \
+            jmespath==0.9.3 \
+            s3transfer==0.1.13 \
+        pymongo==3.7.2 \
+        Keras==2.2.4 \
+            h5py==2.9.0 \
+            PyYAML==3.13 \
+        pandas==0.23.4 \
+            python-dateutil==2.7.5 \
+            pytz==2018.9 \
+        futures==3.1.1
+
+# Remove build dependencies, and clean up stuff
+RUN apk del .build-deps && rm -rf /root/.cache
 
 # Set up entrypoint
 COPY ./docker/entrypoint.sh .
 RUN chmod a+x /opt/biometrix/preprocessing/entrypoint.sh
 ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
-
-# Install python dependencies
-COPY cache/pip /root/.cache/pip
-COPY app/pip_requirements .
-RUN pip install -r pip_requirements
 
 # Copy application code
 COPY ./app .
