@@ -6,7 +6,7 @@ Created on Wed Sep 28 17:42:39 2016
 """
 
 import numpy as np
-import utils.quaternion_operations as qo
+from .quaternion_operations import quat_prod, quat_norm
 
 
 """
@@ -31,7 +31,7 @@ def quat_to_euler(q):
         phi: euler angle measuring rotaion about z axis (yaw)
     """
 
-    q = qo.quat_norm(q)
+    q = quat_norm(q)
 
     # YAW COMPONENT
     d = 2 * q[:, 1] * q[:, 2] + 2 * q[:, 0] * q[:, 3]
@@ -99,6 +99,6 @@ def euler_to_quat(euler_data):
     yaw_quat = np.hstack((yaw_quat, imag_yaw))
 
     # combine intermediate quaternions to get final
-    q = qo.quat_prod(qo.quat_prod(yaw_quat, pitch_quat), roll_quat)
+    q = quat_prod(quat_prod(yaw_quat, pitch_quat), roll_quat)
 
     return q
