@@ -4,10 +4,12 @@ import logging
 import os
 
 from ..job import Job
+from .apply_data_transformations import apply_data_transformations
 from .exceptions import PlacementDetectionException
 from .placement_detection import detect_placement, shift_accel
 from .sensor_use_detection import detect_single_sensor, detect_data_truncation
 from .transform_calculation import compute_transform
+from .epoch_time_transform import convert_epochtime_datetime_mselapsed
 
 _logger = logging.getLogger(__name__)
 _s3_client = boto3.client('s3')
@@ -44,6 +46,12 @@ class TransformandplacementJob(Job):
         for old, new in placement:
             for prefix in column_prefixes:
                 data.rename(index=str, columns={prefix + str(old): prefix + str(new)})
+
+        # Apply normalisation transforms
+        data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'])
+
+        # ms_elapsed and datetime
+        data.time_stamp, data.ms_elapsed = convert_epochtime_datetime_mselapsed(data.epoch_time)
 
         self.datastore.put_data('transformandplacement', data, chunk_size=100000)
 
@@ -105,24 +113,3 @@ class TransformandplacementJob(Job):
                 'sensors': sensors,
                 'truncation_index': truncation_index,
             }
-
-    def _truncate_file(self, index):
-        if index <= 2000:
-            raise PlacementDetectionException('File too short after truncation.')
-        else:
-            _logger.info('Data truncated at index: {}'.format(index))
-            tmp_filename = filepath + '_tmp'
-            # truncate combined file at lines where truncation was detected
-            os.system(
-                'head -c {bytes} {filepath} > {truncated_filename}'.format(
-                    bytes=index * 40,
-                    filepath=filepath,
-                    truncated_filename=tmp_filename
-                    )
-                )
-            # copy tmp_file to replace the original file
-            os.system('cat {tmp_filename} > {filepath}'.format(
-                tmp_filename=tmp_filename,
-                filepath=filepath))
-            # finally delete temporary file
-            os.remove(tmp_filename)

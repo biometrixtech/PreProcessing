@@ -7,6 +7,8 @@ Created on Wed Sep 28 17:42:39 2016
 
 import numpy as np
 
+from .quaternion_conversions import quat_to_euler, euler_to_quat
+
 
 """
 ############################################################################
@@ -77,6 +79,15 @@ def _vector_quat_prod(q1, q2):
     prod = np.hstack((s3.reshape(len(s1), 1), v3))
 
     return prod
+
+
+def quat_multi_prod(*quaternions):
+    if len(quaternions) == 0:
+        raise ValueError('Must supply at least one argument')
+    elif len(quaternions) == 1:
+        return quaternions[0]
+    else:
+        return quat_prod(quaternions[0], quat_multi_prod(*quaternions[1:]))
 
 
 def quat_norm(q):
@@ -160,4 +171,15 @@ def quat_avg(data):
     avg_quat = quat_norm(avg_quat)
 
     return avg_quat
+
+
+def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
+    euler_angles = quat_to_euler(quaternion)
+    if phi is not None:
+        euler_angles[:, 0] = phi
+    if theta is not None:
+        euler_angles[:, 1] = theta
+    if psi is not None:
+        euler_angles[:, 2] = psi
+    return euler_to_quat(euler_angles)
 
