@@ -132,9 +132,9 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     row_count = sdata.shape[0]
 
     # Create arrays of the transformation quaternions
-    q_bftransform_left = make_quaternion_array(bf_transforms['Left'], row_count)
-    q_bftransform_hip = make_quaternion_array(bf_transforms['Hip'], row_count)
-    q_bftransform_right = make_quaternion_array(bf_transforms['Right'], row_count)
+    q_bftransform_left = make_quaternion_array(bf_transforms['left'], row_count)
+    q_bftransform_hip = make_quaternion_array(bf_transforms['hip'], row_count)
+    q_bftransform_right = make_quaternion_array(bf_transforms['right'], row_count)
     q_neutraltransform_hip = make_quaternion_array(hip_neutral_transform, row_count)
 
     # Extract the orientation quaternions from the data
