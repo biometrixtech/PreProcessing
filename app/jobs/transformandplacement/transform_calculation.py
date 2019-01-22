@@ -13,9 +13,9 @@ def compute_transform(data, placement, sensors=3):
     data = data.loc[start:end, :]
     data.reset_index(inplace=True, drop=True)
 
-    quat0 = data.loc[:, ['qW0', 'qX0', 'qY0', 'qZ0']].values.reshape(-1, 4)
-    quat1 = data.loc[:, ['qW1', 'qX1', 'qY1', 'qZ1']].values.reshape(-1, 4)
-    quat2 = data.loc[:, ['qW2', 'qX2', 'qY2', 'qZ2']].values.reshape(-1, 4)
+    quat0 = data.loc[:, ['quat_0_w', 'quat_0_x', 'quat_0_y', 'quat_0_z']].values.reshape(-1, 4)
+    quat1 = data.loc[:, ['quat_1_w', 'quat_1_x', 'quat_1_y', 'quat_1_z']].values.reshape(-1, 4)
+    quat2 = data.loc[:, ['quat_2_w', 'quat_2_x', 'quat_2_y', 'quat_2_z']].values.reshape(-1, 4)
 
     left_quaternions = quat0 if placement[0] == 0 else quat1 if placement[0] == 1 else quat2
     hip_quaternions = quat0 if placement[1] == 0 else quat1 if placement[1] == 1 else quat2
