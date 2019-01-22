@@ -4,8 +4,8 @@ from math import sqrt
 from scipy.signal import butter, filtfilt
 import numpy as np
 
-from utils.quaternion_operations import quat_conj, quat_prod, quat_multi_prod, vect_rot, quat_force_euler_angle, quat_avg
-from utils.quaternion_conversions import quat_to_euler, euler_to_quat
+from utils.quaternion_operations import quat_conj, quat_prod, quat_multi_prod, vect_rot, quat_avg
+from utils.quaternion_conversions import quat_to_euler, euler_to_quat, quat_force_euler_angle
 
 
 def make_quaternion_array(quaternion, length):

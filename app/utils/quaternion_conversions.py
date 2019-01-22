@@ -102,3 +102,14 @@ def euler_to_quat(euler_data):
     q = quat_prod(quat_prod(yaw_quat, pitch_quat), roll_quat)
 
     return q
+
+
+def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
+    euler_angles = quat_to_euler(quaternion)
+    if phi is not None:
+        euler_angles[:, 0] = phi
+    if theta is not None:
+        euler_angles[:, 1] = theta
+    if psi is not None:
+        euler_angles[:, 2] = psi
+    return euler_to_quat(euler_angles)
