@@ -25,26 +25,26 @@ def prepare_data(data_in, sc, sl=False):
     """
 
     data = pd.DataFrame()
-    data['LaX'] = np.array(data_in.LaX.reshape(-1,))
-    data['LaY'] = np.array(data_in.LaY)
-    data['LaZ'] = np.array(data_in.LaZ)
-    data['LeX'] = np.array(data_in.LeX)
-    data['LeY'] = np.array(data_in.LeY)
-    data['LeZ'] = np.array(data_in.LeZ)
+    data['acc_lf_x'] = np.array(data_in.acc_lf_x.reshape(-1,))
+    data['acc_lf_y'] = np.array(data_in.acc_lf_y)
+    data['acc_lf_z'] = np.array(data_in.acc_lf_z)
+    data['euler_lf_x'] = np.array(data_in.euler_lf_x)
+    data['euler_lf_y'] = np.array(data_in.euler_lf_y)
+    data['euler_lf_z'] = np.array(data_in.euler_lf_z)
     data['phase_lf'] = np.array(data_in.phase_lf)
     data['RaX'] = np.array(data_in.RaX)
     data['RaY'] = np.array(data_in.RaY)
     data['RaZ'] = np.array(data_in.RaZ)
-    data['ReX'] = np.array(data_in.ReX)
-    data['ReY'] = np.array(data_in.ReY)
-    data['ReZ'] = np.array(data_in.ReZ)
+    data['euler_rf_x'] = np.array(data_in.euler_rf_x)
+    data['euler_rf_y'] = np.array(data_in.euler_rf_y)
+    data['euler_rf_z'] = np.array(data_in.euler_rf_z)
     data['phase_rf'] = np.array(data_in.phase_rf)
-    data['HaX'] = np.array(data_in.HaX)
-    data['HaY'] = np.array(data_in.HaY)
-    data['HaZ'] = np.array(data_in.HaZ)
-    data['HeX'] = np.array(data_in.HeX)
-    data['HeY'] = np.array(data_in.HeY)
-    data['HeZ'] = np.array(data_in.HeZ)
+    data['acc_hip_x'] = np.array(data_in.acc_hip_x)
+    data['acc_hip_y'] = np.array(data_in.acc_hip_y)
+    data['acc_hip_z'] = np.array(data_in.acc_hip_z)
+    data['euler_hip_x'] = np.array(data_in.euler_hip_x)
+    data['euler_hip_y'] = np.array(data_in.euler_hip_y)
+    data['euler_hip_z'] = np.array(data_in.euler_hip_z)
     data['mass'] = np.array(data_in.mass)
 
     # create dummy variables for phase
@@ -79,8 +79,8 @@ def prepare_data(data_in, sc, sl=False):
             data[var2_d] = np.ediff1d(data[var2], to_begin=np.nan)
 
     # Add variables for total acceleration in all sensors and the changes
-    data['left_accel'] = np.sqrt(data.LaX**2+data.LaY**2+data.LaZ**2)
-    data['hip_accel'] = np.sqrt(data.HaX**2+data.HaY**2+data.HaZ**2)
+    data['left_accel'] = np.sqrt(data.acc_lf_x**2+data.acc_lf_y**2+data.acc_lf_z**2)
+    data['hip_accel'] = np.sqrt(data.acc_hip_x**2+data.acc_hip_y**2+data.acc_hip_z**2)
     data['right_accel'] = np.sqrt(data.RaX**2+data.RaY**2+data.RaZ**2)
 
     for var in ['left_accel', 'hip_accel', 'right_accel']:
@@ -89,30 +89,30 @@ def prepare_data(data_in, sc, sl=False):
 
     # Define set of predictors to use
     if not sl:
-        predictors = ['LaX', 'LaY', 'LaZ',
+        predictors = ['acc_lf_x', 'acc_lf_y', 'acc_lf_z',
                       'RaX', 'RaY', 'RaZ',
-                      'HaX', 'HaY', 'HaZ',
-                      'LeX_d', 'LeY_d', 'LeZ_d',
-                      'ReX_d', 'ReY_d', 'ReZ_d',
-                      'HeX_d', 'HeY_d', 'HeZ_d',
-                      'LaX_d', 'LaY_d', 'LaZ_d',
+                      'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
+                      'euler_lf_x_d', 'euler_lf_y_d', 'euler_lf_z_d',
+                      'euler_rf_x_d', 'euler_rf_y_d', 'euler_rf_z_d',
+                      'euler_hip_x_d', 'euler_hip_y_d', 'euler_hip_z_d',
+                      'acc_lf_x_d', 'acc_lf_y_d', 'acc_lf_z_d',
                       'RaX_d', 'RaY_d', 'RaZ_d',
-                      'HaX_d', 'HaY_d', 'HaZ_d',
+                      'acc_hip_x_d', 'acc_hip_y_d', 'acc_hip_z_d',
                       'hip_accel', 'right_accel', 'left_accel',
                       'left_accel_d', 'right_accel_d', 'hip_accel_d',
                       'mass',
                       'phase_lf_0', 'phase_lf_1', 'phase_lf_2',
                       'phase_rf_0', 'phase_rf_1', 'phase_rf_2']
     else:
-        predictors = ['LaX', 'LaY', 'LaZ',
+        predictors = ['acc_lf_x', 'acc_lf_y', 'acc_lf_z',
                       'RaX', 'RaY', 'RaZ',
-                      'HaX', 'HaY', 'HaZ',
-                      'LeX_d', 'LeY_d', 'LeZ_d',
-                      'ReX_d', 'ReY_d', 'ReZ_d',
-                      'HeX_d', 'HeY_d', 'HeZ_d',
-                      'LaX_d', 'LaY_d', 'LaZ_d',
+                      'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
+                      'euler_lf_x_d', 'euler_lf_y_d', 'euler_lf_z_d',
+                      'euler_rf_x_d', 'euler_rf_y_d', 'euler_rf_z_d',
+                      'euler_hip_x_d', 'euler_hip_y_d', 'euler_hip_z_d',
+                      'acc_lf_x_d', 'acc_lf_y_d', 'acc_lf_z_d',
                       'RaX_d', 'RaY_d', 'RaZ_d',
-                      'HaX_d', 'HaY_d', 'HaZ_d',
+                      'acc_hip_x_d', 'acc_hip_y_d', 'acc_hip_z_d',
                       'hip_accel', 'right_accel', 'left_accel',
                       'left_accel_d', 'right_accel_d', 'hip_accel_d',
                       'mass']

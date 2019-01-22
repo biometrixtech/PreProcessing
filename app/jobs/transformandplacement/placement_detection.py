@@ -17,8 +17,8 @@ def detect_placement(data):
         try:
             data_sub = data.loc[start[i]:end[i], :]
             data_sub.reset_index(inplace=True, drop=True)
-            quats_1 = data_sub.loc[:, ['qW0', 'qX0', 'qY0', 'qZ0']].values.reshape(-1, 4)
-            quats_2 = data_sub.loc[:, ['qW2', 'qX2', 'qY2', 'qZ2']].values.reshape(-1, 4)
+            quats_1 = data_sub.loc[:, ['quat_0_x', 'quat_0_y', 'quat_0_z', 'quat_0_w']].values.reshape(-1, 4)
+            quats_2 = data_sub.loc[:, ['quat_2_x', 'quat_2_y', 'quat_2_z', 'quat_2_w']].values.reshape(-1, 4)
 
             # prepare foot1 data
             pitch_foot1 = qc.quat_to_euler(quats_1)[100:, 1] * 180 / np.pi
@@ -29,7 +29,7 @@ def detect_placement(data):
             # elif np.nanmean(pitch_foot1[0:100]) < -35:
             #     pitch_foot1 = extract_geometry(quats_1, np.pi/2)
 
-            if np.nanmean(data_sub.aY0_original.values[0:100]) < -4.9:  # the sensor was upside down
+            if np.nanmean(data_sub.acc_0_y_original.values[0:100]) < -4.9:  # the sensor was upside down
                 pitch_foot1 = -pitch_foot1
 
             # prepare foot2 data
@@ -41,7 +41,7 @@ def detect_placement(data):
             # elif np.nanmean(pitch_foot2[0:100]) < -35:
             #     pitch_foot2 = extract_geometry(quats_2, np.pi/2)
 
-            if np.nanmean(data_sub.aY2_original.values[0:100]) < -4.9:  # the sensor was upside down
+            if np.nanmean(data_sub.acc_2_y_original.values[0:100]) < -4.9:  # the sensor was upside down
                 pitch_foot2 = -pitch_foot2
 
             return [0, 1, 2] if is_foot1_left(pitch_foot1, pitch_foot2) else [2, 1, 0]
@@ -58,9 +58,9 @@ def detect_activity(data):
     """
     thresh = 5.  # threshold to detect balance phase
     bal_win = 100  # sampling window to determine balance phase
-    acc_mag_0 = np.sqrt(data.aX0**2 + data.aY0**2 + data.aZ0**2)
-    acc_mag_1 = np.sqrt(data.aX1**2 + data.aY1**2 + data.aZ1**2)
-    acc_mag_2 = np.sqrt(data.aX2**2 + data.aY2**2 + data.aZ2**2)
+    acc_mag_0 = np.sqrt(data.acc_0_x**2 + data.acc_0_y**2 + data.acc_0_z**2)
+    acc_mag_1 = np.sqrt(data.acc_1_x**2 + data.acc_1_y**2 + data.acc_1_z**2)
+    acc_mag_2 = np.sqrt(data.acc_2_x**2 + data.acc_2_y**2 + data.acc_2_z**2)
     total_acc_mag = acc_mag_0 + acc_mag_1 + acc_mag_2
 
     dummy_balphase = []  # dummy variable to store indexes of balance phase
@@ -125,20 +125,20 @@ def detect_activity(data):
 def shift_accel(data):
     """Adjust acceleration so that all axes are centered around 0
     """
-    data.loc[:, 'aY0_original'] = data.aY0.values
-    data.aX0 = data.aX0 - np.nanmean(data.aX0[0:100])
-    data.aY0 = data.aY0 - np.nanmean(data.aY0[0:100])
-    data.aZ0 = data.aZ0 - np.nanmean(data.aZ0[0:100])
+    data.loc[:, 'acc_0_y_original'] = data.acc_0_y.values
+    data.acc_0_x = data.acc_0_x - np.nanmean(data.acc_0_x[0:100])
+    data.acc_0_y = data.acc_0_y - np.nanmean(data.acc_0_y[0:100])
+    data.acc_0_z = data.acc_0_z - np.nanmean(data.acc_0_z[0:100])
 
-    data.loc[:, 'aY1_original'] = data.aY1.values
-    data.aX1 = data.aX1 - np.nanmean(data.aX1[0:100])
-    data.aY1 = data.aY1 - np.nanmean(data.aY1[0:100])
-    data.aZ1 = data.aZ1 - np.nanmean(data.aZ1[0:100])
+    data.loc[:, 'acc_1_y_original'] = data.acc_1_y.values
+    data.acc_1_x = data.acc_1_x - np.nanmean(data.acc_1_x[0:100])
+    data.acc_1_y = data.acc_1_y - np.nanmean(data.acc_1_y[0:100])
+    data.acc_1_z = data.acc_1_z - np.nanmean(data.acc_1_z[0:100])
 
-    data.loc[:, 'aY2_original'] = data.aY2.values
-    data.aX2 = data.aX2 - np.nanmean(data.aX2[0:100])
-    data.aY2 = data.aY2 - np.nanmean(data.aY2[0:100])
-    data.aZ2 = data.aZ2 - np.nanmean(data.aZ2[0:100])
+    data.loc[:, 'acc_2_y_original'] = data.acc_2_y.values
+    data.acc_2_x = data.acc_2_x - np.nanmean(data.acc_2_x[0:100])
+    data.acc_2_y = data.acc_2_y - np.nanmean(data.acc_2_y[0:100])
+    data.acc_2_z = data.acc_2_z - np.nanmean(data.acc_2_z[0:100])
 
 
 def extract_geometry(quats, rot=None):

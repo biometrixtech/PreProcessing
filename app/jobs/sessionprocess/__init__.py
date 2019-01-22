@@ -24,9 +24,9 @@ _output_columns = [
     'rate_force_absorption_lf', 'rate_force_absorption_rf',
     'rate_force_production_lf', 'rate_force_production_rf', 'total_accel',
     'stance', 'plane', 'rot', 'lat', 'vert', 'horz',
-    'LeX', 'LeY', 'HeX', 'HeY', 'ReX', 'ReY',
-    'LaX', 'LaY', 'LaZ',
-    'HaX', 'HaY', 'HaZ',
+    'euler_lf_x', 'euler_lf_y', 'euler_hip_x', 'euler_hip_y', 'euler_rf_x', 'euler_rf_y',
+    'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
+    'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
     'RaX', 'RaY', 'RaZ',
     'corrupt_lf', 'corrupt_h', 'corrupt_rf',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
@@ -93,8 +93,8 @@ class SessionprocessJob(Job):
 
     def _flag_data_quality(self, data):
         big_jump = 30
-        baseline_az = np.nanmean(data.loc[0:100, ['LaZ', 'HaZ', 'RaZ']], axis=0).reshape(1, 3)
-        diff = data.loc[:, ['LaZ', 'HaZ', 'RaZ']].values - baseline_az
+        baseline_az = np.nanmean(data.loc[0:100, ['acc_lf_z', 'acc_hip_z', 'RaZ']], axis=0).reshape(1, 3)
+        diff = data.loc[:, ['acc_lf_z', 'acc_hip_z', 'RaZ']].values - baseline_az
         high_accel = (diff >= big_jump).astype(int)
         for i in range(3):
             if high_accel[0, i] == 1:

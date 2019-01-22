@@ -138,9 +138,9 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_neutraltransform_hip = make_quaternion_array(hip_neutral_transform, row_count)
 
     # Extract the orientation quaternions from the data
-    q_sensor_left = sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1, 4)
-    q_sensor_hip = sdata.loc[:, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1, 4)
-    q_sensor_right = sdata.loc[:, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1, 4)
+    q_sensor_left = sdata.loc[:, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']].values.reshape(-1, 4)
+    q_sensor_hip = sdata.loc[:, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']].values.reshape(-1, 4)
+    q_sensor_right = sdata.loc[:, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']].values.reshape(-1, 4)
 
     # Apply body frame transform to transform pitch and roll in feet
     q_bf_left = quat_prod(q_sensor_left, q_bftransform_left)
@@ -152,8 +152,8 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bf_right = quat_prod(q_bf_right, yaw_90_pos)
 
     # insert transformed values for ankle sensors into dataframe
-    sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']] = q_bf_left
-    sdata.loc[:, ['RqW', 'RqX', 'RqY', 'RqZ']] = q_bf_right
+    sdata.loc[:, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']] = q_bf_left
+    sdata.loc[:, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']] = q_bf_right
 
     # filter the data for drift for each subset of data with long dynamic activity (>10s)
     # and insert back into the data frame to update dynamic part with filtered data and static part
@@ -169,8 +169,8 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        lf_quat = drift_filter(sdata.loc[s:e, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1, 4))
-        sdata.loc[i:j, ['LqW', 'LqX', 'LqY', 'LqZ']] = lf_quat[pad:, :]
+        lf_quat = drift_filter(sdata.loc[s:e, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']].values.reshape(-1, 4))
+        sdata.loc[i:j, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']] = lf_quat[pad:, :]
 
     # right foot
     dynamic_range_rf = detect_long_dynamic(sdata.corrupt_rf.values[:].reshape(-1, 1))
@@ -182,8 +182,8 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        rf_quat = drift_filter(sdata.loc[s:e, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1, 4))
-        sdata.loc[i:j, ['RqW', 'RqX', 'RqY', 'RqZ']] = rf_quat[pad:, :]
+        rf_quat = drift_filter(sdata.loc[s:e, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']].values.reshape(-1, 4))
+        sdata.loc[i:j, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']] = rf_quat[pad:, :]
 
     # Rotate hip sensor by 90º plus the hip neutral transform, find the body
     # frame of the hip data
@@ -191,7 +191,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bf_hip = quat_multi_prod(q_neutraltransform_hip, q_sensor_hip, q_bftransform_hip, yaw_90)
 
     # insert transformed values for hip into dataframe
-    sdata.loc[:, ['HqW', 'HqX', 'HqY', 'HqZ']] = q_bf_hip
+    sdata.loc[:, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']] = q_bf_hip
     # repeat drift filtering for hip sensor
     dynamic_range_h = detect_long_dynamic(sdata.corrupt_h.values[:].reshape(-1, 1))
     for i, j in zip(dynamic_range_h[:, 0], dynamic_range_h[:, 1]):
@@ -202,14 +202,14 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        h_quat = drift_filter(sdata.loc[s:e, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1, 4))
-        sdata.loc[i:j, ['HqW', 'HqX', 'HqY', 'HqZ']] = h_quat[pad:, :]
+        h_quat = drift_filter(sdata.loc[s:e, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']].values.reshape(-1, 4))
+        sdata.loc[i:j, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']] = h_quat[pad:, :]
 
     # for acceleration transformation, get the bodyframe transformed quaternions
     # this included both transformation and drift filtering
-    q_bf_left = sdata.loc[:, ['LqW', 'LqX', 'LqY', 'LqZ']].values.reshape(-1, 4)
-    q_bf_hip = sdata.loc[:, ['HqW', 'HqX', 'HqY', 'HqZ']].values.reshape(-1, 4)
-    q_bf_right = sdata.loc[:, ['RqW', 'RqX', 'RqY', 'RqZ']].values.reshape(-1, 4)
+    q_bf_left = sdata.loc[:, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']].values.reshape(-1, 4)
+    q_bf_hip = sdata.loc[:, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']].values.reshape(-1, 4)
+    q_bf_right = sdata.loc[:, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']].values.reshape(-1, 4)
 
     # Isolate the yaw component of the instantaneous sensor orientations
     q_bf_yaw_left = quat_force_euler_angle(q_bf_left, phi=0, theta=0)
@@ -227,8 +227,8 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
                                    quat_conj(q_bftransform_hip))
 
     # Extract the sensor-frame acceleration values and create imaginary quaternions
-    acc_sensor_left = sdata.loc[:, ['LaX', 'LaY', 'LaZ']].values.reshape(-1, 3)
-    acc_sensor_hip = sdata.loc[:, ['HaX', 'HaY', 'HaZ']].values.reshape(-1, 3)
+    acc_sensor_left = sdata.loc[:, ['acc_lf_x', 'acc_lf_y', 'acc_lf_z']].values.reshape(-1, 3)
+    acc_sensor_hip = sdata.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']].values.reshape(-1, 3)
     acc_sensor_right = sdata.loc[:, ['RaX', 'RaY', 'RaZ']].values.reshape(-1, 3)
 
     # Transform left sensor
@@ -248,8 +248,8 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     acc_aif_right = vect_rot(acc_sensor_right, acc_aiftransform_right)
 
     # Re-insert the updated values
-    sdata.loc[:, ['LaX', 'LaY', 'LaZ']] = acc_aif_left
-    sdata.loc[:, ['HaX', 'HaY', 'HaZ']] = acc_aif_hip
+    sdata.loc[:, ['acc_lf_x', 'acc_lf_y', 'acc_lf_z']] = acc_aif_left
+    sdata.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']] = acc_aif_hip
     sdata.loc[:, ['RaX', 'RaY', 'RaZ']] = acc_aif_right
 
     # subtract the effects of gravity
@@ -260,7 +260,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
 
 def apply_acceleration_normalisation(sdata):
     # Remove the effects of gravity
-    sdata.LaZ -= 9.80665
-    sdata.HaZ -= 9.80665
+    sdata.acc_lf_z -= 9.80665
+    sdata.acc_hip_z -= 9.80665
     sdata.RaZ -= 9.80665
     return sdata

@@ -21,12 +21,12 @@ def run_relative_cmes(data):
             - stance - enumerated stance value
             - phase_lf - enumerated left phase value
             - phase_rf - enumerated right phase value
-            - LeX - left foot adduction
-            - LeY - left foot flexion
-            - HeX - hip adduction
-            - HeY - hip flexion
-            - ReX - right foot adduction
-            - ReY - right foot flexion
+            - euler_lf_x - left foot adduction
+            - euler_lf_y - left foot flexion
+            - euler_hip_x - hip adduction
+            - euler_hip_y - hip flexion
+            - euler_rf_x - right foot adduction
+            - euler_rf_y - right foot flexion
 
     Return --
         data: data frame with the same columns attached as the input, with
@@ -71,12 +71,12 @@ def run_relative_cmes(data):
     lphase = copy.deepcopy(data.phase_lf.reshape(-1, 1))
     rphase = copy.deepcopy(data.phase_rf.reshape(-1, 1))
 
-    adduction_l = data.LeX.reshape(-1, 1)
-    flexion_l = data.LeY.reshape(-1, 1)
-    adduction_h = data.HeX.reshape(-1, 1)
-    flexion_h = data.HeY.reshape(-1, 1)
-    adduction_r = data.ReX.reshape(-1, 1)
-    flexion_r = data.ReY.reshape(-1, 1)
+    adduction_l = data.euler_lf_x.reshape(-1, 1)
+    flexion_l = data.euler_lf_y.reshape(-1, 1)
+    adduction_h = data.euler_hip_x.reshape(-1, 1)
+    flexion_h = data.euler_hip_y.reshape(-1, 1)
+    adduction_r = data.euler_rf_x.reshape(-1, 1)
+    flexion_r = data.euler_rf_y.reshape(-1, 1)
 
     alnorm_motion_covered_abs = np.empty(len(length)).reshape(-1, 1) * np.nan
     alnorm_motion_covered_pos = np.empty(len(length)).reshape(-1, 1) * np.nan

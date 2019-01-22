@@ -51,9 +51,9 @@ def detect_still(data, sensors, hip):
     """
     thresh = 5.  # threshold to detect balance phase
     bal_win = 125  # sampling window to determine balance phase
-    acc_mag_0 = np.sqrt(data.aX0 ** 2 + data.aY0 ** 2 + data.aZ0 ** 2)
-    acc_mag_1 = np.sqrt(data.aX1 ** 2 + data.aY1 ** 2 + data.aZ1 ** 2)
-    acc_mag_2 = np.sqrt(data.aX2 ** 2 + data.aY2 ** 2 + data.aZ2 ** 2)
+    acc_mag_0 = np.sqrt(data.acc_0_x ** 2 + data.acc_0_y ** 2 + data.acc_0_z ** 2)
+    acc_mag_1 = np.sqrt(data.acc_1_x ** 2 + data.acc_1_y ** 2 + data.acc_1_z ** 2)
+    acc_mag_2 = np.sqrt(data.acc_2_x ** 2 + data.acc_2_y ** 2 + data.acc_2_z ** 2)
     if sensors == 3:
         total_acc_mag = acc_mag_0 + acc_mag_1 + acc_mag_2
     elif sensors == 1:

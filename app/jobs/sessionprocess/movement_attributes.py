@@ -114,35 +114,35 @@ def run_stance_analysis(data):
     """
 
     # get eul data, hz, hip acc, phases from data frame
-    LeX = data.LeX.reshape(-1, 1)
-    LeY = data.LeY.reshape(-1, 1)
-    LeZ = data.LeZ.reshape(-1, 1)
+    euler_lf_x = data.euler_lf_x.reshape(-1, 1)
+    euler_lf_y = data.euler_lf_y.reshape(-1, 1)
+    euler_lf_z = data.euler_lf_z.reshape(-1, 1)
 
-    HeX = data.HeX.reshape(-1, 1)
-    HeY = data.HeY.reshape(-1, 1)
-    HeZ = data.HeZ.reshape(-1, 1)
+    euler_hip_x = data.euler_hip_x.reshape(-1, 1)
+    euler_hip_y = data.euler_hip_y.reshape(-1, 1)
+    euler_hip_z = data.euler_hip_z.reshape(-1, 1)
 
-    ReX = data.ReX.reshape(-1, 1)
-    ReY = data.ReY.reshape(-1, 1)
-    ReZ = data.ReZ.reshape(-1, 1)
+    euler_rf_x = data.euler_rf_x.reshape(-1, 1)
+    euler_rf_y = data.euler_rf_y.reshape(-1, 1)
+    euler_rf_z = data.euler_rf_z.reshape(-1, 1)
 
-    leuls = np.hstack((LeX, LeY))
-    leuls = np.hstack((leuls, LeZ))
+    leuls = np.hstack((euler_lf_x, euler_lf_y))
+    leuls = np.hstack((leuls, euler_lf_z))
 
-    heuls = np.hstack((HeX, HeY))
-    heuls = np.hstack((heuls, HeZ))
+    heuls = np.hstack((euler_hip_x, euler_hip_y))
+    heuls = np.hstack((heuls, euler_hip_z))
 
-    reuls = np.hstack((ReX, ReY))
-    reuls = np.hstack((reuls, ReZ))
+    reuls = np.hstack((euler_rf_x, euler_rf_y))
+    reuls = np.hstack((reuls, euler_rf_z))
 
     hz = 100
 
-    HaX = data.HaX.reshape(-1, 1)
-    HaY = data.HaY.reshape(-1, 1)
-    HaZ = data.HaZ.reshape(-1, 1)
+    acc_hip_x = data.acc_hip_x.reshape(-1, 1)
+    acc_hip_y = data.acc_hip_y.reshape(-1, 1)
+    acc_hip_z = data.acc_hip_z.reshape(-1, 1)
 
-    hacc = np.hstack((HaX, HaY))
-    hacc = np.hstack((hacc, HaZ))
+    hacc = np.hstack((acc_hip_x, acc_hip_y))
+    hacc = np.hstack((hacc, acc_hip_z))
 
     lf_ph = data.phase_lf.reshape(-1, 1)
     rf_ph = data.phase_rf.reshape(-1, 1)

@@ -14,11 +14,11 @@ incoming_from_accessory = [
     'epoch_time',
     'corrupt',
     'magn_0', 'corrupt_0',
-    'aX0', 'aY0', 'aZ0', 'qX0', 'qY0', 'qZ0', 'qW0',
+    'acc_0_x', 'acc_0_y', 'acc_0_z', 'quat_0_x', 'quat_0_y', 'quat_0_z', 'quat_0_w',
     'magn_1', 'corrupt_1',
-    'aX1', 'aY1', 'aZ1', 'qX1', 'qY1', 'qZ1', 'qW1',
+    'acc_1_x', 'acc_1_y', 'acc_1_z', 'quat_1_x', 'quat_1_y', 'quat_1_z', 'quat_1_w',
     'magn_2', 'corrupt_2',
-    'aX2', 'aY2', 'aZ2', 'qX2', 'qY2', 'qZ2', 'qW2'
+    'acc_2_x', 'acc_2_y', 'acc_2_z', 'quat_2_x', 'quat_2_y', 'quat_2_z', 'quat_2_w',
 ]
 
 
@@ -43,7 +43,7 @@ def _decode_magn(magn_data, nrow):
     magn_magnitude = magn_magnitude * 32  # multiply by 32 to calculate magnitude in mGauss
 
     # corrupt_enum = magn_temp & 7
-    corrupt_enum = magn_temp # corrupt indicator changed
+    corrupt_enum = magn_temp  # corrupt indicator changed
     return np.concatenate((magn_magnitude.reshape(-1, 1),
                            corrupt_enum.reshape(-1, 1)), axis=1)
 

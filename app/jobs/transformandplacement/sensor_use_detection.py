@@ -11,9 +11,9 @@ def detect_single_sensor(data):
         placement list with [left, hip, right] placement only hip is true placement. Left and
         right are dummy placementes
     """
-    sensor0 = np.sqrt(np.sum(data.loc[:, ['aX0', 'aY0', 'aZ0']].values ** 2, axis=1))
-    sensor1 = np.sqrt(np.sum(data.loc[:, ['aX1', 'aY1', 'aZ1']].values ** 2, axis=1))
-    sensor2 = np.sqrt(np.sum(data.loc[:, ['aX2', 'aY2', 'aZ2']].values ** 2, axis=1))
+    sensor0 = np.sqrt(np.sum(data.loc[:, ['acc_0_x', 'acc_0_y', 'acc_0_z']].values ** 2, axis=1))
+    sensor1 = np.sqrt(np.sum(data.loc[:, ['acc_1_x', 'acc_1_y', 'acc_1_z']].values ** 2, axis=1))
+    sensor2 = np.sqrt(np.sum(data.loc[:, ['acc_2_x', 'acc_2_y', 'acc_2_z']].values ** 2, axis=1))
 
     placement = detect_hip_sensor([sensor0, sensor1, sensor2])
 
@@ -109,9 +109,9 @@ def detect_data_truncation(data, placement, sensors=3):
             single_sensor=True if single sensor processing required
             truncation_index location to truncate if truncation required
     """
-    sensor0 = np.sqrt(np.sum(data.loc[:, ['aX0', 'aY0', 'aZ0']].values ** 2, axis=1))
-    sensor1 = np.sqrt(np.sum(data.loc[:, ['aX1', 'aY1', 'aZ1']].values ** 2, axis=1))
-    sensor2 = np.sqrt(np.sum(data.loc[:, ['aX2', 'aY2', 'aZ2']].values ** 2, axis=1))
+    sensor0 = np.sqrt(np.sum(data.loc[:, ['acc_0_x', 'acc_0_y', 'acc_0_z']].values ** 2, axis=1))
+    sensor1 = np.sqrt(np.sum(data.loc[:, ['acc_1_x', 'acc_1_y', 'acc_1_z']].values ** 2, axis=1))
+    sensor2 = np.sqrt(np.sum(data.loc[:, ['acc_2_x', 'acc_2_y', 'acc_2_z']].values ** 2, axis=1))
 
     left = sensor0 if placement[0] == 0 else sensor1 if placement[0] == 1 else sensor2
     hip = sensor0 if placement[1] == 0 else sensor1 if placement[1] == 1 else sensor2

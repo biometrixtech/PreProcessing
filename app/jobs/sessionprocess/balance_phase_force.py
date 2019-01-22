@@ -9,7 +9,7 @@ import numpy as np
 
 
 def calculate_balance_phase_force(data):
-    accel_mag = np.sqrt(data.HaX**2 + data.HaY**2 + data.HaZ**2)
+    accel_mag = np.sqrt(data.acc_hip_x**2 + data.acc_hip_y**2 + data.acc_hip_z**2)
     balance = np.array((data.phase_lf == 0) | data.phase_rf == 0).reshape(-1,)
 #    balance = np.array([i in [2, 3, 4, 5] for i in data.stance])
     stance = np.array(data.stance)

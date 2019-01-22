@@ -41,11 +41,11 @@ class TransformandplacementJob(Job):
         if ret['truncation_index'] is not None:
             data = data.loc[:ret['truncation_index']]
 
-        placement = zip(ret['placement'], ['l', 'h', 'r'])
-        column_prefixes = ['magn_', 'corrupt_', 'aX', 'aY', 'aZ', 'qX', 'qY', 'qZ', 'qW']
+        placement = zip(ret['placement'], ['lf', 'hip', 'rf'])
+        column_prefixes = ['magn_{}', 'corrupt_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y', 'quat_{}_z', 'quat_{}_w']
         for old, new in placement:
             for prefix in column_prefixes:
-                data.rename(index=str, columns={prefix + str(old): prefix + str(new)})
+                data.rename(index=str, columns={prefix.format(str(old)): prefix.format(str(new))})
 
         # Apply normalisation transforms
         data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'])
