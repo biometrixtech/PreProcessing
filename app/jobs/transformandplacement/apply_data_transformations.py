@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from math import sqrt
 from scipy.signal import butter, filtfilt
 import numpy as np
