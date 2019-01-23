@@ -27,7 +27,7 @@ class SessionprocessJob(Job):
         sc_single_leg = _load_scaler(os.environ['SL_MS_SCALER'])
 
         _logger.info("LOADING DATA")
-        part_number = None  # TODO chunking
+        part_number = 0  # TODO chunking
         sdata = self.datastore.get_data('transformandplacement', part_number)
         _logger.info("DATA LOADED!")
 
