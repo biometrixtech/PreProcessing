@@ -49,7 +49,7 @@ class TransformandplacementJob(Job):
                 renames[prefix.format(str(old))] = prefix.format(str(new))
 
         _logger.debug(renames)
-        data.rename(index=str, columns=renames)
+        data = data.rename(index=str, columns=renames)
         _logger.debug(data.columns.values.tolist())
 
         # Apply normalisation transforms
