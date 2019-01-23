@@ -20,11 +20,11 @@ class SessionprocessJob(Job):
 
         # GRF
         # load model
-        grf_fit = _load_model(os.environ['MS_MODEL'], False)
-        sc = _load_model(os.environ['MS_SCALER'], True)
-        grf_fit_lf = _load_model(os.environ['LF_MS_MODEL'], False)
-        grf_fit_rf = _load_model(os.environ['RF_MS_MODEL'], False)
-        sc_single_leg = _load_model(os.environ['SL_MS_SCALER'], True)
+        grf_fit = _load_model(os.environ['MS_MODEL'])
+        grf_fit_lf = _load_model(os.environ['LF_MS_MODEL'])
+        grf_fit_rf = _load_model(os.environ['RF_MS_MODEL'])
+        sc = _load_scaler(os.environ['MS_SCALER'])
+        sc_single_leg = _load_scaler(os.environ['SL_MS_SCALER'])
 
         _logger.info("LOADING DATA")
         part_number = None  # TODO chunking
@@ -91,11 +91,14 @@ class SessionprocessJob(Job):
         sns_client.publish(TopicArn=sns_topic, Message=message, Subject=subject)
 
 
-def _load_model(model, is_pickled):
-    path = os.path.join(os.environ['MS_MODEL_PATH'], model)
+def _load_model(model):
+    path = os.path.join('/net/efs/globalmodels', model)
     _logger.info("Loading model from {}".format(path))
-    if is_pickled:
-        with open(path) as f:
-            return pickle.load(f)
-    else:
-        return load_model(path)
+    return load_model(path)
+
+
+def _load_scaler(model):
+    path = os.path.join('/net/efs/globalscalers', model)
+    _logger.info("Loading scaler from {}".format(path))
+    with open(path) as f:
+        return pickle.load(f)
