@@ -28,7 +28,7 @@ class SessionprocessJob(Job):
 
         _logger.info("LOADING DATA")
         part_number = None  # TODO chunking
-        sdata = self.datastore.get_data('transformanplacement', part_number)
+        sdata = self.datastore.get_data('transformandplacement', part_number)
         _logger.info("DATA LOADED!")
 
         if len(sdata) == 0:
