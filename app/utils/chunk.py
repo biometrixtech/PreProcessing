@@ -42,22 +42,23 @@ def chunk_by_line(input_filename, output_dir, chunk_size):
     if isinstance(chunk_size, list):
         if len(chunk_size) == 0:
             # Special case the scenario where we have no boundaries, and hence only expect one output file
-            shell(['cp', body_filename, tmp_chunk_dir + '/chunk_00'])
+            shell(['cp', body_filename, tmp_chunk_dir + '/00'])
         else:
-            shell(['csplit', '-f', tmp_chunk_dir + '/chunk', '-b', '_%02d', body_filename] + [str(l) for l in chunk_size])
+            shell(['csplit', '-f', tmp_chunk_dir + '/', '-b', '_%04d', body_filename] + [str(l) for l in chunk_size])
     else:
         shell([
             'split',
             '-l', str(chunk_size),
+            '-a', '4',
             '-d',
             body_filename,
-            tmp_chunk_dir + '_',
+            tmp_chunk_dir + '/',
         ])
 
     # Prepend the column headers to each file and copy to the output directory
     file_names = []
     _logger.debug(tmp_chunk_dir)
-    for file in glob.glob(tmp_chunk_dir + '/chunk_[0-9]*'):
+    for file in glob.glob(tmp_chunk_dir + '/[0-9]*'):
         file_name = os.path.basename(file)
         output_filepath = os.path.join(output_dir, file_name)
         shell(

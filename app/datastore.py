@@ -146,7 +146,7 @@ class Datastore:
         :return:
         """
         if part_number is not None:
-            source_filename = os.path.join(self.working_directory, source_job, '_' + part_number)
+            source_filename = os.path.join(self.working_directory, source_job, "{:04d}".format(part_number))
         else:
             source_filename = os.path.join(self.working_directory, source_job)
 
