@@ -202,7 +202,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        h_quat = drift_filter(sdata.loc[s:e, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']].values.reshape(-1, 4))
+        h_quat = drift_filter(sdata.ix[s:e, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']].values.reshape(-1, 4))
         sdata.loc[i:j, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']] = h_quat[pad:, :]
 
     # for acceleration transformation, get the bodyframe transformed quaternions
