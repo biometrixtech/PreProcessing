@@ -229,7 +229,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     # Extract the sensor-frame acceleration values and create imaginary quaternions
     acc_sensor_left = sdata.loc[:, ['acc_lf_x', 'acc_lf_y', 'acc_lf_z']].values.reshape(-1, 3)
     acc_sensor_hip = sdata.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']].values.reshape(-1, 3)
-    acc_sensor_right = sdata.loc[:, ['RaX', 'RaY', 'RaZ']].values.reshape(-1, 3)
+    acc_sensor_right = sdata.loc[:, ['acc_rf_x', 'acc_rf_y', 'acc_rf_z']].values.reshape(-1, 3)
 
     # Transform left sensor
     acc_aiftransform_left = quat_prod(quat_conj(q_sensor_left), q_bf_yaw_left)
@@ -250,7 +250,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     # Re-insert the updated values
     sdata.loc[:, ['acc_lf_x', 'acc_lf_y', 'acc_lf_z']] = acc_aif_left
     sdata.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']] = acc_aif_hip
-    sdata.loc[:, ['RaX', 'RaY', 'RaZ']] = acc_aif_right
+    sdata.loc[:, ['acc_rf_x', 'acc_rf_y', 'acc_rf_z']] = acc_aif_right
 
     # subtract the effects of gravity
     sdata = apply_acceleration_normalisation(sdata)
@@ -262,5 +262,5 @@ def apply_acceleration_normalisation(sdata):
     # Remove the effects of gravity
     sdata.acc_lf_z -= 9.80665
     sdata.acc_hip_z -= 9.80665
-    sdata.RaZ -= 9.80665
+    sdata.acc_rf_z -= 9.80665
     return sdata

@@ -52,7 +52,7 @@ _output_columns = [
     'euler_lf_x', 'euler_lf_y', 'euler_hip_x', 'euler_hip_y', 'euler_rf_x', 'euler_rf_y',
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
-    'RaX', 'RaY', 'RaZ',
+    'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
     'corrupt_lf', 'corrupt_hip', 'corrupt_rf',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     'adduc_range_of_motion_lf',
@@ -78,7 +78,7 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
     Args:
         data_in: raw data object with attributes of:
             epoch_time, corrupt_magn, missing_type, acc_lf_x, acc_lf_y, acc_lf_z, quat_lf_x, quat_lf_y,
-            quat_lf_z, acc_hip_x, acc_hip_y, acc_hip_z, quat_hip_x, quat_hip_y, quat_hip_z, RaX, RaY, RaZ, quat_rf_x, quat_rf_y, quat_rf_z
+            quat_lf_z, acc_hip_x, acc_hip_y, acc_hip_z, quat_hip_x, quat_hip_y, quat_hip_z, acc_rf_x, acc_rf_y, acc_rf_z, quat_rf_x, quat_rf_y, quat_rf_z
         file_version: file format and type version (matching accessory sensor dev)
         mass: user's mass in kg
         grf_fit: keras fitted model for grf prediction
@@ -137,7 +137,7 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
     del lf_euls, h_euls, rf_euls
 
     # PHASE DETECTION
-    data.phase_lf, data.phase_rf = combine_phase(data.acc_lf_z, data.RaZ, data.acc_lf_z, data.RaZ, data.euler_lf_y, data.euler_rf_y, sampl_freq)
+    data.phase_lf, data.phase_rf = combine_phase(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, data.euler_lf_y, data.euler_rf_y, sampl_freq)
     logger.info('DONE WITH PHASE DETECTION!')
 
     # prepare data for grf prediction

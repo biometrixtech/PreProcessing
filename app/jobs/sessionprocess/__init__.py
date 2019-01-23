@@ -58,8 +58,8 @@ class SessionprocessJob(Job):
 
     def _flag_data_quality(self, data):
         big_jump = 30
-        baseline_az = np.nanmean(data.loc[0:100, ['acc_lf_z', 'acc_hip_z', 'RaZ']], axis=0).reshape(1, 3)
-        diff = data.loc[:, ['acc_lf_z', 'acc_hip_z', 'RaZ']].values - baseline_az
+        baseline_az = np.nanmean(data.loc[0:100, ['acc_lf_z', 'acc_hip_z', 'acc_rf_z']], axis=0).reshape(1, 3)
+        diff = data.loc[:, ['acc_lf_z', 'acc_hip_z', 'acc_rf_z']].values - baseline_az
         high_accel = (diff >= big_jump).astype(int)
         for i in range(3):
             if high_accel[0, i] == 1:

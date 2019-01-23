@@ -32,9 +32,9 @@ def prepare_data(data_in, sc, sl=False):
     data['euler_lf_y'] = np.array(data_in.euler_lf_y)
     data['euler_lf_z'] = np.array(data_in.euler_lf_z)
     data['phase_lf'] = np.array(data_in.phase_lf)
-    data['RaX'] = np.array(data_in.RaX)
-    data['RaY'] = np.array(data_in.RaY)
-    data['RaZ'] = np.array(data_in.RaZ)
+    data['acc_rf_x'] = np.array(data_in.acc_rf_x)
+    data['acc_rf_y'] = np.array(data_in.acc_rf_y)
+    data['acc_rf_z'] = np.array(data_in.acc_rf_z)
     data['euler_rf_x'] = np.array(data_in.euler_rf_x)
     data['euler_rf_y'] = np.array(data_in.euler_rf_y)
     data['euler_rf_z'] = np.array(data_in.euler_rf_z)
@@ -81,7 +81,7 @@ def prepare_data(data_in, sc, sl=False):
     # Add variables for total acceleration in all sensors and the changes
     data['left_accel'] = np.sqrt(data.acc_lf_x**2+data.acc_lf_y**2+data.acc_lf_z**2)
     data['hip_accel'] = np.sqrt(data.acc_hip_x**2+data.acc_hip_y**2+data.acc_hip_z**2)
-    data['right_accel'] = np.sqrt(data.RaX**2+data.RaY**2+data.RaZ**2)
+    data['right_accel'] = np.sqrt(data.acc_rf_x**2+data.acc_rf_y**2+data.acc_rf_z**2)
 
     for var in ['left_accel', 'hip_accel', 'right_accel']:
         var_d = var+'_d'
@@ -90,13 +90,13 @@ def prepare_data(data_in, sc, sl=False):
     # Define set of predictors to use
     if not sl:
         predictors = ['acc_lf_x', 'acc_lf_y', 'acc_lf_z',
-                      'RaX', 'RaY', 'RaZ',
+                      'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
                       'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
                       'euler_lf_x_d', 'euler_lf_y_d', 'euler_lf_z_d',
                       'euler_rf_x_d', 'euler_rf_y_d', 'euler_rf_z_d',
                       'euler_hip_x_d', 'euler_hip_y_d', 'euler_hip_z_d',
                       'acc_lf_x_d', 'acc_lf_y_d', 'acc_lf_z_d',
-                      'RaX_d', 'RaY_d', 'RaZ_d',
+                      'acc_rf_x_d', 'acc_rf_y_d', 'acc_rf_z_d',
                       'acc_hip_x_d', 'acc_hip_y_d', 'acc_hip_z_d',
                       'hip_accel', 'right_accel', 'left_accel',
                       'left_accel_d', 'right_accel_d', 'hip_accel_d',
@@ -105,13 +105,13 @@ def prepare_data(data_in, sc, sl=False):
                       'phase_rf_0', 'phase_rf_1', 'phase_rf_2']
     else:
         predictors = ['acc_lf_x', 'acc_lf_y', 'acc_lf_z',
-                      'RaX', 'RaY', 'RaZ',
+                      'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
                       'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
                       'euler_lf_x_d', 'euler_lf_y_d', 'euler_lf_z_d',
                       'euler_rf_x_d', 'euler_rf_y_d', 'euler_rf_z_d',
                       'euler_hip_x_d', 'euler_hip_y_d', 'euler_hip_z_d',
                       'acc_lf_x_d', 'acc_lf_y_d', 'acc_lf_z_d',
-                      'RaX_d', 'RaY_d', 'RaZ_d',
+                      'acc_rf_x_d', 'acc_rf_y_d', 'acc_rf_z_d',
                       'acc_hip_x_d', 'acc_hip_y_d', 'acc_hip_z_d',
                       'hip_accel', 'right_accel', 'left_accel',
                       'left_accel_d', 'right_accel_d', 'hip_accel_d',
