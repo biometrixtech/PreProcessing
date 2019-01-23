@@ -7,12 +7,15 @@ WORKDIR /opt/biometrix/preprocessing
 
 # Install packages
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+    && echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
     && apk update \
     && apk add --no-cache \
         # Provides the non-busybox version of `split` and `csplit` which have more functionality
         coreutils \
         # Allows mounting NFS directories
         nfs-utils \
+        # Needed for operation of h5py / Keras
+        hdf5 \
 #
     # Build dependencies, will remove later
     && apk add --no-cache --virtual .build-deps \
