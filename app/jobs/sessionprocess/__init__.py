@@ -94,7 +94,7 @@ class SessionprocessJob(Job):
 def _load_model(model):
     path = os.path.join('/net/efs/globalmodels', model)
     _logger.info("Loading model from {}".format(path))
-    return load_model(path)
+    return load_model(str(path))
 
 
 def _load_scaler(model):
