@@ -53,7 +53,7 @@ _output_columns = [
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
     'RaX', 'RaY', 'RaZ',
-    'corrupt_lf', 'corrupt_h', 'corrupt_rf',
+    'corrupt_lf', 'corrupt_hip', 'corrupt_rf',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     'adduc_range_of_motion_lf',
     'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',

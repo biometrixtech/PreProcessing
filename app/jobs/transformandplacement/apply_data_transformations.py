@@ -193,7 +193,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     # insert transformed values for hip into dataframe
     sdata.loc[:, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']] = q_bf_hip
     # repeat drift filtering for hip sensor
-    dynamic_range_h = detect_long_dynamic(sdata.corrupt_h.values[:].reshape(-1, 1))
+    dynamic_range_h = detect_long_dynamic(sdata.corrupt_hip.values[:].reshape(-1, 1))
     for i, j in zip(dynamic_range_h[:, 0], dynamic_range_h[:, 1]):
         s = i - 50
         e = j
