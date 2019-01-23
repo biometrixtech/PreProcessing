@@ -43,9 +43,14 @@ class TransformandplacementJob(Job):
 
         placement = zip(ret['placement'], ['lf', 'hip', 'rf'])
         column_prefixes = ['magn_{}', 'corrupt_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y', 'quat_{}_z', 'quat_{}_w']
+        renames = {}
         for old, new in placement:
             for prefix in column_prefixes:
-                data.rename(index=str, columns={prefix.format(str(old)): prefix.format(str(new))})
+                renames[prefix.format(str(old))] = prefix.format(str(new))
+
+        _logger.debug(renames)
+        data.rename(index=str, columns=renames)
+        _logger.debug(data.dtype.names)
 
         # Apply normalisation transforms
         data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'])
