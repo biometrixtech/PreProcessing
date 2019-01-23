@@ -48,7 +48,8 @@ RUN CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" 
             python-dateutil==2.7.5 \
             pytz==2018.9 \
         futures==3.1.1 \
-        enum34==1.1.6
+        enum34==1.1.6 \
+        scikit-learn==0.20.2
 
 # Remove build dependencies, and clean up stuff
 RUN apk del .build-deps && rm -rf /root/.cache
