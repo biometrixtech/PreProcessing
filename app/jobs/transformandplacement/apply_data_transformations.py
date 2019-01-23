@@ -169,7 +169,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        lf_quat = drift_filter(sdata.loc[s:e, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']].values.reshape(-1, 4))
+        lf_quat = drift_filter(sdata.ix[s:e, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']].values.reshape(-1, 4))
         sdata.loc[i:j, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']] = lf_quat[pad:, :]
 
     # right foot
@@ -182,7 +182,7 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
             pad = i
         else:
             pad = 50
-        rf_quat = drift_filter(sdata.loc[s:e, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']].values.reshape(-1, 4))
+        rf_quat = drift_filter(sdata.ix[s:e, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']].values.reshape(-1, 4))
         sdata.loc[i:j, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']] = rf_quat[pad:, :]
 
     # Rotate hip sensor by 90º plus the hip neutral transform, find the body
