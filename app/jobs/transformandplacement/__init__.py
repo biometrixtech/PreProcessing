@@ -50,7 +50,7 @@ class TransformandplacementJob(Job):
 
         _logger.debug(renames)
         data.rename(index=str, columns=renames)
-        _logger.debug(data.dtype.names)
+        _logger.debug(data.columns.values.tolist())
 
         # Apply normalisation transforms
         data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'])
