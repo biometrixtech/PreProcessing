@@ -10,7 +10,7 @@ import utils.quaternion_operations as qo
 import utils.quaternion_conversions as qc
 
 
-def calculate_rot_cmes(lf_quat, hip_quat, rf_quat, phase_lf, phase_rf):
+def calculate_rot_cmes(lf_eul, hip_eul, rf_eul, phase_lf, phase_rf):
     """
     Calculates the offset of an athlete from a "neutral" position.
 
@@ -32,13 +32,7 @@ def calculate_rot_cmes(lf_quat, hip_quat, rf_quat, phase_lf, phase_rf):
             neutral when on ground
         hip_rot: lateral rotation of hips from adjusted inertial frame,
             currently just a placeholder
-
     """
-
-    # divide quats into Euler angles
-    lf_eul = qc.quat_to_euler(lf_quat)
-    hip_eul = qc.quat_to_euler(hip_quat)
-    rf_eul = qc.quat_to_euler(rf_quat)
 
     length = len(lf_eul)
 
@@ -62,7 +56,7 @@ def calculate_rot_cmes(lf_quat, hip_quat, rf_quat, phase_lf, phase_rf):
     hip_rot_lf = _filt_rot_cme(hip_roll, phase_lf, [0, 2, 3])
     hip_rot_rf = _filt_rot_cme(hip_roll, phase_rf, [0, 2, 3])
     contra_hip_drop_lf = hip_rot_lf.reshape(-1, 3)[:, 0]
-    contra_hip_drop_lf = contra_hip_drop_lf* - 1 # fix so superior > 0
+    contra_hip_drop_lf = contra_hip_drop_lf * -1  # fix so superior > 0
     contra_hip_drop_rf = hip_rot_rf.reshape(-1, 3)[:, 0]
     del hip_rot_lf, hip_rot_rf
 
@@ -73,7 +67,7 @@ def calculate_rot_cmes(lf_quat, hip_quat, rf_quat, phase_lf, phase_rf):
     roll_lf = _filt_rot_cme(lf_roll, phase_lf, [0, 2, 3])
     roll_rf = _filt_rot_cme(rf_roll, phase_rf, [0, 2, 3])
     ankle_rot_lf = roll_lf.reshape(-1, 3)[:, 0]
-    ankle_rot_lf = ankle_rot_lf*-1 # fix so medial > 0
+    ankle_rot_lf = ankle_rot_lf * -1  # fix so medial > 0
     ankle_rot_rf = roll_rf.reshape(-1, 3)[:, 0]
     del neutral_eul, roll_lf, roll_rf
   
@@ -84,7 +78,7 @@ def calculate_rot_cmes(lf_quat, hip_quat, rf_quat, phase_lf, phase_rf):
     yaw_lf = _cont_rot_cme(lf_yaw, phase_lf, [0, 2, 3], hip_yaw)
     yaw_rf = _cont_rot_cme(rf_yaw, phase_rf, [0, 2, 3], hip_yaw)
     foot_position_lf = yaw_lf.reshape(-1, 3)[:, 2]
-    foot_position_lf = foot_position_lf*-1 # fix so medial > 0
+    foot_position_lf = foot_position_lf * -1  # fix so medial > 0
     foot_position_rf = yaw_rf.reshape(-1, 3)[:, 2]
     del hip_yaw, yaw_lf, yaw_rf
 
@@ -232,7 +226,7 @@ def calculate_rot_cmes_v1(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, r
     roll_lf = _cont_rot_cme(lf_roll, phase_lf, [0, 2, 3], lf_neutral_roll)
     roll_rf = _cont_rot_cme(rf_roll, phase_rf, [0, 2, 3], rf_neutral_roll)
     ankle_rot_lf = roll_lf.reshape(-1, 3)[:, 0]
-    ankle_rot_lf = ankle_rot_lf*-1 # fix so medial > 0
+    ankle_rot_lf = ankle_rot_lf * -1  # fix so medial > 0
     ankle_rot_rf = roll_rf.reshape(-1, 3)[:, 0]
     del lf_neutral_roll, rf_neutral_roll, roll_lf, roll_rf
 
@@ -241,7 +235,7 @@ def calculate_rot_cmes_v1(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, r
     yaw_lf = _cont_rot_cme(lf_yaw, phase_lf, [0, 2, 3], lf_neutral_yaw)
     yaw_rf = _cont_rot_cme(rf_yaw, phase_rf, [0, 2, 3], rf_neutral_yaw)
     foot_position_lf = yaw_lf.reshape(-1, 3)[:, 2]
-    foot_position_lf = foot_position_lf*-1  # fix so medial > 0
+    foot_position_lf = foot_position_lf * -1  # fix so medial > 0
     foot_position_rf = yaw_rf.reshape(-1, 3)[:, 2]
     del lf_neutral_yaw, rf_neutral_yaw, yaw_lf, yaw_rf
 

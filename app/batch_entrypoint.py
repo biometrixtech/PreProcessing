@@ -2,469 +2,319 @@
 # Entrypoint when called as a batch job
 from __future__ import print_function
 import os
-from datetime import datetime
-import boto3
-import errno
-import json
 import logging
 import sys
-import time
-import traceback
 
 from config import load_parameters
 from datastore import Datastore
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+_logger = logging.getLogger(__name__)
 
 
-def send_success(meta, output):
-    task_token = meta.get('TaskToken', None)
-    if task_token is not None:
-        sfn_client = boto3.client('stepfunctions')
-        sfn_client.send_task_success(
-            taskToken=task_token,
-            output=json.dumps({
-                "Meta": meta,
-                "Status": 'SUCCEEDED',
-                "Output": output
-            })
-        )
+def main(script):
+    if script == 'noop':
+        _logger.info('Noop job')
+        # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
+        return
 
+    if 'SESSION_ID' not in os.environ:
+        raise Exception('No session id given')
+    else:
+        session_id = os.environ['SESSION_ID']
 
-def send_profiling(meta):
-    if 'Profiling' in meta:
-        meta['Profiling']['EndTime'] = time.time()
-        put_cloudwatch_metric(
-            'BatchJobProcessTime',
-            float(meta['Profiling']['EndTime']) - float(meta['Profiling']['StartTime']),
-            'Seconds'
-        )
+    datastore = Datastore(session_id)
 
-    
-def send_failure(meta, exception):
-    task_token = meta.get('TaskToken', None)
-    if task_token is not None:
-        sfn_client = boto3.client('stepfunctions')
-        sfn_client.send_task_failure(
-            taskToken=task_token,
-            error=type(exception).__name__,
-            cause=traceback.format_exc()
-        )
+    if script == 'downloadandchunk':
+        from jobs.downloadandchunk import DownloadandchunkJob
+        DownloadandchunkJob(datastore).run()
 
+    elif script == 'transformandplacement':
+        from jobs.transformandplacement import TransformandplacementJob
+        TransformandplacementJob(datastore).run()
 
-def send_heartbeat(meta):
-    task_token = meta.get('TaskToken', None)
-    if task_token is not None:
-        sfn_client = boto3.client('stepfunctions')
-        sfn_client.send_task_heartbeat(
-            taskToken=task_token,
-        )
+    elif script == 'sessionprocess':
+        load_parameters(['MS_MODEL',
+                         'LF_MS_MODEL',
+                         'RF_MS_MODEL',
+                         'MS_SCALER',
+                         'SL_MS_SCALER'],
+                         'models')
+        # Use theano backend for keras
+        os.environ['KERAS_BACKEND'] = 'theano'
 
+        from jobs.sessionprocess import SessionprocessJob
+        SessionprocessJob(datastore).run()
 
-# def chunk_list(l, n):
-#     """Yield successive n-sized chunks from l."""
-#     for i in range(0, len(l), n):
-#         yield l[i:i + n]
+    # elif script == 'sessionprocess1':
+    #     load_parameters(['MS_MODEL',
+    #                      'LF_MS_MODEL',
+    #                      'RF_MS_MODEL',
+    #                      'MS_SCALER',
+    #                      'SL_MS_SCALER'],
+    #                      'models')
+    #     # Use theano backend for keras
+    #     os.environ['KERAS_BACKEND'] = 'theano'
+    #     if input_data.get('Sensors') == 3:
+    #         print('Running sessionprocess on multi-sensor data')
+    #         from sessionProcess2 import sessionProcess
+    #     elif input_data.get('Sensors') == 1:
+    #         print('Running sessionprocess on single-sensor data')
+    #         from sessionProcess1 import sessionProcess
+    #     else:
+    #         raise Exception('Must have either 1 or 3 sensors')
+    #
+    #     file_name = input_data.get('Filenames', [])[int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))]
+    #     sessionProcess.script_handler(
+    #         working_directory,
+    #         file_name,
+    #         input_data
+    #     )
+    #     print(meta_data)
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'scoring':
+    #     if input_data.get('Sensors') == 3:
+    #         print('Running scoring on multi-sensor data')
+    #         from scoring import scoringProcess
+    #     elif input_data.get('Sensors') == 1:
+    #         print('Running scoring on single-sensor data')
+    #         from scoring1 import scoringProcess
+    #     else:
+    #         raise Exception('Must have either 1 or 3 sensors')
+    #
+    #     boundaries = scoringProcess.script_handler(
+    #         working_directory,
+    #         input_data.get('Filenames', None),
+    #         input_data
+    #     )
+    #     print(boundaries)
+    #
+    #     # Chunk files for input to writemongo
+    #     from utils import chunk
+    #     mkdir(os.path.join(working_directory, 'scoring_chunked'))
+    #     file_names = chunk.chunk_by_line(
+    #         os.path.join(working_directory, 'scoring'),
+    #         os.path.join(working_directory, 'scoring_chunked'),
+    #         boundaries
+    #     )
+    #
+    #     send_success(meta_data, {"Filenames": file_names, "FileCount": len(file_names)})
+    #
+    # elif script == 'aggregatesession':
+    #     load_parameters([
+    #         'MONGO_HOST',
+    #         'MONGO_USER',
+    #         'MONGO_PASSWORD',
+    #         'MONGO_DATABASE',
+    #         'MONGO_REPLICASET',
+    #         'MONGO_COLLECTION_SESSION',
+    #     ], 'mongo')
+    #     if input_data.get('Sensors') == 3:
+    #         print('Computing session aggregations on multi-sensor data')
+    #         from sessionAgg import agg_session
+    #     elif input_data.get('Sensors') == 1:
+    #         print('Computing session aggregations on single sensor data')
+    #         from sessionAgg1 import agg_session
+    #     else:
+    #         raise Exception('Must have either 1 or 3 sensors')
+    #
+    #     agg_session.script_handler(
+    #         working_directory,
+    #         input_data
+    #     )
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'aggregateblocks':
+    #     load_parameters([
+    #         'MONGO_HOST',
+    #         'MONGO_USER',
+    #         'MONGO_PASSWORD',
+    #         'MONGO_DATABASE',
+    #         'MONGO_REPLICASET',
+    #         'MONGO_COLLECTION_ACTIVEBLOCKS',
+    #     ], 'mongo')
+    #     if input_data.get('Sensors') == 3:
+    #         print('Computing block multi-sensor data')
+    #         from activeBlockAgg import agg_blocks
+    #     elif input_data.get('Sensors') == 1:
+    #         print('Computing block single-sensor data')
+    #         from activeBlockAgg1 import agg_blocks
+    #     else:
+    #         raise Exception('Must have either 1 or 3 sensors')
+    #
+    #     agg_blocks.script_handler(
+    #         working_directory,
+    #         input_data
+    #     )
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'advancedstats':
+    #     load_parameters([
+    #         'MONGO_HOST',
+    #         'MONGO_USER',
+    #         'MONGO_PASSWORD',
+    #         'MONGO_DATABASE',
+    #         'MONGO_REPLICASET',
+    #         'MONGO_COLLECTION_ACTIVEBLOCKS',
+    #     ], 'mongo')
+    #     if input_data.get('Sensors') == 3:
+    #         print('Computing advanced stats for multi-sensor data')
+    #         from advancedStats import advanced_stats
+    #         mkdir(os.path.join(working_directory, 'advanced_stats'))
+    #         advanced_stats.script_handler(
+    #             os.path.join(working_directory, 'advanced_stats'),
+    #             input_data
+    #         )
+    #         send_profiling(meta_data)
+    #     elif input_data.get('Sensors') == 1:
+    #         print('Skipping advanced stats calculations for single-sensor data')
+    #     else:
+    #         raise Exception('Must have either 1 or 3 sensors')
+    #
+    #
+    # elif script == 'aggregatetwomin':
+    #     load_parameters([
+    #         'MONGO_HOST',
+    #         'MONGO_USER',
+    #         'MONGO_PASSWORD',
+    #         'MONGO_DATABASE',
+    #         'MONGO_REPLICASET',
+    #         'MONGO_COLLECTION_TWOMIN',
+    #     ], 'mongo')
+    #     if input_data.get('Sensors') == 3:
+    #         print('Computing two minute aggregations on multi-sensor data')
+    #         from twoMinuteAgg import agg_twomin
+    #     elif input_data.get('Sensors') == 1:
+    #         print('Computing two minute aggregations on single-sensor data')
+    #         from twoMinuteAgg1 import agg_twomin
+    #     else:
+    #         raise Exception('Must have either 1 or 3 sensors')
+    #
+    #     agg_twomin.script_handler(
+    #         working_directory,
+    #         'chunk_{index:02d}'.format(index=int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))),
+    #         input_data
+    #     )
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'aggregatedateuser':
+    #     print('Computing date-user aggregations')
+    #     load_parameters([
+    #         'MONGO_HOST',
+    #         'MONGO_USER',
+    #         'MONGO_PASSWORD',
+    #         'MONGO_DATABASE',
+    #         'MONGO_REPLICASET',
+    #         'MONGO_COLLECTION_SESSION',
+    #         'MONGO_COLLECTION_DATE',
+    #     ], 'mongo')
+    #     from dateAggUser import agg_date_user
+    #
+    #     agg_date_user.script_handler(
+    #         input_data
+    #     )
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'aggregateprogcomp':
+    #     if input_data.get('Sensors') == 3:
+    #         print('Computing program composition aggregations')
+    #         load_parameters([
+    #             'MONGO_HOST',
+    #             'MONGO_USER',
+    #             'MONGO_PASSWORD',
+    #             'MONGO_DATABASE',
+    #             'MONGO_REPLICASET',
+    #             'MONGO_COLLECTION_PROGCOMP',
+    #         ], 'mongo')
+    #         from progComp import prog_comp
+    #
+    #         prog_comp.script_handler(
+    #             working_directory,
+    #             input_data
+    #         )
+    #     else:
+    #         print('Program composition is not needed for single-sensor data')
+    #
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'aggregateprogcompdate':
+    #     if input_data.get('Sensors') == 3:
+    #         print('Computing program composition date aggregations')
+    #         load_parameters([
+    #             'MONGO_HOST',
+    #             'MONGO_USER',
+    #             'MONGO_PASSWORD',
+    #             'MONGO_DATABASE',
+    #             'MONGO_REPLICASET',
+    #             'MONGO_COLLECTION_PROGCOMP',
+    #             'MONGO_COLLECTION_PROGCOMPDATE',
+    #         ], 'mongo')
+    #         from progCompDate import prog_comp_date
+    #
+    #         prog_comp_date.script_handler(
+    #             input_data
+    #         )
+    #     else:
+    #         print('Program composition is not needed for single-sensor data')
+    #
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'aggregateteam':
+    #     print('Computing team aggregations')
+    #     load_parameters([
+    #         'MONGO_HOST',
+    #         'MONGO_USER',
+    #         'MONGO_PASSWORD',
+    #         'MONGO_DATABASE',
+    #         'MONGO_REPLICASET',
+    #         'MONGO_COLLECTION_DATE',
+    #         'MONGO_COLLECTION_DATETEAM',
+    #         'MONGO_COLLECTION_PROGCOMPDATE',
+    #         'MONGO_COLLECTION_TWOMIN',
+    #         'MONGO_COLLECTION_TWOMINTEAM',
+    #     ], 'mongo')
+    #     from teamAgg import agg_team
+    #
+    #     agg_team.script_handler(
+    #         input_data
+    #     )
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'aggregatetraininggroup':
+    #     print('Computing training group aggregations')
+    #     load_parameters([
+    #         'MONGO_HOST',
+    #         'MONGO_USER',
+    #         'MONGO_PASSWORD',
+    #         'MONGO_DATABASE',
+    #         'MONGO_REPLICASET',
+    #         'MONGO_COLLECTION_DATE',
+    #         'MONGO_COLLECTION_DATETG',
+    #         'MONGO_COLLECTION_PROGCOMP',
+    #         'MONGO_COLLECTION_PROGCOMPDATE',
+    #         'MONGO_COLLECTION_TWOMIN',
+    #         'MONGO_COLLECTION_TWOMINTG',
+    #     ], 'mongo')
+    #     from TGAgg import agg_tg
+    #
+    #     agg_tg.script_handler(
+    #         input_data
+    #     )
+    #     send_profiling(meta_data)
+    #
+    # elif script == 'cleanup':
+    #     print('Cleaning up intermediate files')
+    #     from cleanup import cleanup
+    #     cleanup.script_handler(
+    #         working_directory
+    #     )
+    #     send_profiling(meta_data)
 
-
-# def load_parameters(keys):
-#     keys_to_load = [key for key in keys if key.upper() not in os.environ]
-#     if len(keys_to_load) > 0:
-#         print('Retrieving configuration for [{}] from SSM'.format(", ".join(keys_to_load)))
-#         ssm_client = boto3.client('ssm')
-
-#         for key_batch in chunk_list(keys_to_load, 10):
-#             response = ssm_client.get_parameters(
-#                 Names=['preprocessing.{}.{}'.format(os.environ['ENVIRONMENT'], key.lower()) for key in key_batch],
-#                 WithDecryption=True
-#             )
-#             params = {p['Name'].split('.')[-1].upper(): p['Value'] for p in response['Parameters']}
-#             # Export to environment
-#             for k, v in params.items():
-#                 print("Got value for {} from SSM".format(k))
-#                 os.environ[k] = v
-
-
-def put_cloudwatch_metric(metric_name, value, unit):
-    try:
-        cloudwatch_client = boto3.client('cloudwatch')
-        cloudwatch_client.put_metric_data(
-            Namespace='Preprocessing',
-            MetricData=[
-                {
-                    'MetricName': metric_name,
-                    'Dimensions': [
-                        {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
-                        {'Name': 'Job', 'Value': script},
-                    ],
-                    'Timestamp': datetime.utcnow(),
-                    'Value': value,
-                    'Unit': unit,
-                },
-                {
-                    'MetricName': metric_name,
-                    'Dimensions': [{'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']}],
-                    'Timestamp': datetime.utcnow(),
-                    'Value': value,
-                    'Unit': unit,
-                },
-            ]
-        )
-    except Exception as exception:
-        print("Could not put cloudwatch metric")
-        print(repr(exception))
-        # Continue
-
-
-def mkdir(path):
-    """
-    Create a directory, but don't fail if it already exists
-    :param path:
-    """
-    try:
-        os.makedirs(path)
-    except OSError as exception:
-        if exception.errno != errno.EEXIST:
-            raise
-
-
-def main():
-    global script, input_data, meta_data
-    meta_data = {}  # In case an exception is thrown when decoding input_data
-
-    try:
-        script = sys.argv[1]
-        input_data = json.loads(sys.argv[2])
-        meta_data = json.loads(sys.argv[3])
-
-        if 'Profiling' in meta_data:
-            meta_data['Profiling']['StartTime'] = time.time()
-            put_cloudwatch_metric(
-                'BatchJobScheduleLatency',
-                float(meta_data['Profiling']['StartTime']) - float(meta_data['Profiling']['ScheduleTime']),
-                'Seconds'
-            )
-
-        if script == 'noop':
-            print('Noop job')
-            # A noop job used as a 'gate', using job dependencies to recombine parallel tasks
-            send_profiling(meta_data)
-            return
-
-        if 'SESSION_ID' not in os.environ:
-            session_id = input_data.get('SessionId')
-            os.environ['SESSION_ID'] = session_id
-        else:
-            session_id = os.environ['SESSION_ID']
-
-        datastore = Datastore(session_id)
-
-        if script == 'downloadandchunk':
-            from jobs.downloadandchunk import DownloadandchunkJob
-            DownloadandchunkJob(datastore).run()
-
-        elif script == 'transformandplacement':
-            from jobs.transformandplacement import TransformandplacementJob
-            TransformandplacementJob(datastore).run()
-
-        elif script == 'sessionprocess':
-            load_parameters(['MS_MODEL',
-                             'LF_MS_MODEL',
-                             'RF_MS_MODEL',
-                             'MS_SCALER',
-                             'SL_MS_SCALER'],
-                             'models')
-            # Use theano backend for keras
-            os.environ['KERAS_BACKEND'] = 'theano'
-
-            from jobs.sessionprocess import SessionprocessJob
-            SessionprocessJob(datastore).run()
-
-        # elif script == 'sessionprocess1':
-        #     load_parameters(['MS_MODEL',
-        #                      'LF_MS_MODEL',
-        #                      'RF_MS_MODEL',
-        #                      'MS_SCALER',
-        #                      'SL_MS_SCALER'],
-        #                      'models')
-        #     # Use theano backend for keras
-        #     os.environ['KERAS_BACKEND'] = 'theano'
-        #     if input_data.get('Sensors') == 3:
-        #         print('Running sessionprocess on multi-sensor data')
-        #         from sessionProcess2 import sessionProcess
-        #     elif input_data.get('Sensors') == 1:
-        #         print('Running sessionprocess on single-sensor data')
-        #         from sessionProcess1 import sessionProcess
-        #     else:
-        #         raise Exception('Must have either 1 or 3 sensors')
-        #
-        #     file_name = input_data.get('Filenames', [])[int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))]
-        #     sessionProcess.script_handler(
-        #         working_directory,
-        #         file_name,
-        #         input_data
-        #     )
-        #     print(meta_data)
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'scoring':
-        #     if input_data.get('Sensors') == 3:
-        #         print('Running scoring on multi-sensor data')
-        #         from scoring import scoringProcess
-        #     elif input_data.get('Sensors') == 1:
-        #         print('Running scoring on single-sensor data')
-        #         from scoring1 import scoringProcess
-        #     else:
-        #         raise Exception('Must have either 1 or 3 sensors')
-        #
-        #     boundaries = scoringProcess.script_handler(
-        #         working_directory,
-        #         input_data.get('Filenames', None),
-        #         input_data
-        #     )
-        #     print(boundaries)
-        #
-        #     # Chunk files for input to writemongo
-        #     from utils import chunk
-        #     mkdir(os.path.join(working_directory, 'scoring_chunked'))
-        #     file_names = chunk.chunk_by_line(
-        #         os.path.join(working_directory, 'scoring'),
-        #         os.path.join(working_directory, 'scoring_chunked'),
-        #         boundaries
-        #     )
-        #
-        #     send_success(meta_data, {"Filenames": file_names, "FileCount": len(file_names)})
-        #
-        # elif script == 'aggregatesession':
-        #     load_parameters([
-        #         'MONGO_HOST',
-        #         'MONGO_USER',
-        #         'MONGO_PASSWORD',
-        #         'MONGO_DATABASE',
-        #         'MONGO_REPLICASET',
-        #         'MONGO_COLLECTION_SESSION',
-        #     ], 'mongo')
-        #     if input_data.get('Sensors') == 3:
-        #         print('Computing session aggregations on multi-sensor data')
-        #         from sessionAgg import agg_session
-        #     elif input_data.get('Sensors') == 1:
-        #         print('Computing session aggregations on single sensor data')
-        #         from sessionAgg1 import agg_session
-        #     else:
-        #         raise Exception('Must have either 1 or 3 sensors')
-        #
-        #     agg_session.script_handler(
-        #         working_directory,
-        #         input_data
-        #     )
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'aggregateblocks':
-        #     load_parameters([
-        #         'MONGO_HOST',
-        #         'MONGO_USER',
-        #         'MONGO_PASSWORD',
-        #         'MONGO_DATABASE',
-        #         'MONGO_REPLICASET',
-        #         'MONGO_COLLECTION_ACTIVEBLOCKS',
-        #     ], 'mongo')
-        #     if input_data.get('Sensors') == 3:
-        #         print('Computing block multi-sensor data')
-        #         from activeBlockAgg import agg_blocks
-        #     elif input_data.get('Sensors') == 1:
-        #         print('Computing block single-sensor data')
-        #         from activeBlockAgg1 import agg_blocks
-        #     else:
-        #         raise Exception('Must have either 1 or 3 sensors')
-        #
-        #     agg_blocks.script_handler(
-        #         working_directory,
-        #         input_data
-        #     )
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'advancedstats':
-        #     load_parameters([
-        #         'MONGO_HOST',
-        #         'MONGO_USER',
-        #         'MONGO_PASSWORD',
-        #         'MONGO_DATABASE',
-        #         'MONGO_REPLICASET',
-        #         'MONGO_COLLECTION_ACTIVEBLOCKS',
-        #     ], 'mongo')
-        #     if input_data.get('Sensors') == 3:
-        #         print('Computing advanced stats for multi-sensor data')
-        #         from advancedStats import advanced_stats
-        #         mkdir(os.path.join(working_directory, 'advanced_stats'))
-        #         advanced_stats.script_handler(
-        #             os.path.join(working_directory, 'advanced_stats'),
-        #             input_data
-        #         )
-        #         send_profiling(meta_data)
-        #     elif input_data.get('Sensors') == 1:
-        #         print('Skipping advanced stats calculations for single-sensor data')
-        #     else:
-        #         raise Exception('Must have either 1 or 3 sensors')
-        #
-        #
-        # elif script == 'aggregatetwomin':
-        #     load_parameters([
-        #         'MONGO_HOST',
-        #         'MONGO_USER',
-        #         'MONGO_PASSWORD',
-        #         'MONGO_DATABASE',
-        #         'MONGO_REPLICASET',
-        #         'MONGO_COLLECTION_TWOMIN',
-        #     ], 'mongo')
-        #     if input_data.get('Sensors') == 3:
-        #         print('Computing two minute aggregations on multi-sensor data')
-        #         from twoMinuteAgg import agg_twomin
-        #     elif input_data.get('Sensors') == 1:
-        #         print('Computing two minute aggregations on single-sensor data')
-        #         from twoMinuteAgg1 import agg_twomin
-        #     else:
-        #         raise Exception('Must have either 1 or 3 sensors')
-        #
-        #     agg_twomin.script_handler(
-        #         working_directory,
-        #         'chunk_{index:02d}'.format(index=int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))),
-        #         input_data
-        #     )
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'aggregatedateuser':
-        #     print('Computing date-user aggregations')
-        #     load_parameters([
-        #         'MONGO_HOST',
-        #         'MONGO_USER',
-        #         'MONGO_PASSWORD',
-        #         'MONGO_DATABASE',
-        #         'MONGO_REPLICASET',
-        #         'MONGO_COLLECTION_SESSION',
-        #         'MONGO_COLLECTION_DATE',
-        #     ], 'mongo')
-        #     from dateAggUser import agg_date_user
-        #
-        #     agg_date_user.script_handler(
-        #         input_data
-        #     )
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'aggregateprogcomp':
-        #     if input_data.get('Sensors') == 3:
-        #         print('Computing program composition aggregations')
-        #         load_parameters([
-        #             'MONGO_HOST',
-        #             'MONGO_USER',
-        #             'MONGO_PASSWORD',
-        #             'MONGO_DATABASE',
-        #             'MONGO_REPLICASET',
-        #             'MONGO_COLLECTION_PROGCOMP',
-        #         ], 'mongo')
-        #         from progComp import prog_comp
-        #
-        #         prog_comp.script_handler(
-        #             working_directory,
-        #             input_data
-        #         )
-        #     else:
-        #         print('Program composition is not needed for single-sensor data')
-        #
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'aggregateprogcompdate':
-        #     if input_data.get('Sensors') == 3:
-        #         print('Computing program composition date aggregations')
-        #         load_parameters([
-        #             'MONGO_HOST',
-        #             'MONGO_USER',
-        #             'MONGO_PASSWORD',
-        #             'MONGO_DATABASE',
-        #             'MONGO_REPLICASET',
-        #             'MONGO_COLLECTION_PROGCOMP',
-        #             'MONGO_COLLECTION_PROGCOMPDATE',
-        #         ], 'mongo')
-        #         from progCompDate import prog_comp_date
-        #
-        #         prog_comp_date.script_handler(
-        #             input_data
-        #         )
-        #     else:
-        #         print('Program composition is not needed for single-sensor data')
-        #
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'aggregateteam':
-        #     print('Computing team aggregations')
-        #     load_parameters([
-        #         'MONGO_HOST',
-        #         'MONGO_USER',
-        #         'MONGO_PASSWORD',
-        #         'MONGO_DATABASE',
-        #         'MONGO_REPLICASET',
-        #         'MONGO_COLLECTION_DATE',
-        #         'MONGO_COLLECTION_DATETEAM',
-        #         'MONGO_COLLECTION_PROGCOMPDATE',
-        #         'MONGO_COLLECTION_TWOMIN',
-        #         'MONGO_COLLECTION_TWOMINTEAM',
-        #     ], 'mongo')
-        #     from teamAgg import agg_team
-        #
-        #     agg_team.script_handler(
-        #         input_data
-        #     )
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'aggregatetraininggroup':
-        #     print('Computing training group aggregations')
-        #     load_parameters([
-        #         'MONGO_HOST',
-        #         'MONGO_USER',
-        #         'MONGO_PASSWORD',
-        #         'MONGO_DATABASE',
-        #         'MONGO_REPLICASET',
-        #         'MONGO_COLLECTION_DATE',
-        #         'MONGO_COLLECTION_DATETG',
-        #         'MONGO_COLLECTION_PROGCOMP',
-        #         'MONGO_COLLECTION_PROGCOMPDATE',
-        #         'MONGO_COLLECTION_TWOMIN',
-        #         'MONGO_COLLECTION_TWOMINTG',
-        #     ], 'mongo')
-        #     from TGAgg import agg_tg
-        #
-        #     agg_tg.script_handler(
-        #         input_data
-        #     )
-        #     send_profiling(meta_data)
-        #
-        # elif script == 'cleanup':
-        #     print('Cleaning up intermediate files')
-        #     from cleanup import cleanup
-        #     cleanup.script_handler(
-        #         working_directory
-        #     )
-        #     send_profiling(meta_data)
-
-        else:
-            raise Exception("Unknown batchjob '{}'".format(script))
-
-        send_profiling(meta_data)
-
-    except Exception as e:
-        print(e)
-        send_failure(meta_data, e)
-        raise
-
-
-def json_serial(obj):
-    """JSON serializer for objects not serializable by default json code"""
-    if isinstance(obj, datetime):
-        serial = obj.isoformat()
-        return serial
-    raise TypeError("Type not serializable")
+    else:
+        raise Exception("Unknown batchjob '{}'".format(script))
 
 
 if __name__ == '__main__':
-    script = input_data = meta_data = None
-    main()
+    main(sys.argv[1])

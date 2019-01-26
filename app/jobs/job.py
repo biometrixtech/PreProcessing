@@ -1,8 +1,12 @@
 from abc import abstractmethod
+import boto3
+import datetime
 import logging
+import os
 
 
 _logger = logging.getLogger(__name__)
+_cloudwatch_client = boto3.client('cloudwatch')
 
 
 class Job:
@@ -29,3 +33,32 @@ class Job:
     @abstractmethod
     def _run(self):
         raise NotImplementedError
+
+    def put_cloudwatch_metric(self, metric_name, value, unit):
+        try:
+            _cloudwatch_client.put_metric_data(
+                Namespace='Preprocessing',
+                MetricData=[
+                    {
+                        'MetricName': metric_name,
+                        'Dimensions': [
+                            {'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']},
+                            {'Name': 'Job', 'Value': self.name},
+                        ],
+                        'Timestamp': datetime.datetime.utcnow(),
+                        'Value': value,
+                        'Unit': unit,
+                    },
+                    {
+                        'MetricName': metric_name,
+                        'Dimensions': [{'Name': 'Environment', 'Value': os.environ['ENVIRONMENT']}],
+                        'Timestamp': datetime.datetime.utcnow(),
+                        'Value': value,
+                        'Unit': unit,
+                    },
+                ]
+            )
+        except Exception as e:
+            _logger.warning("Could not put cloudwatch metric")
+            _logger.warning(repr(e))
+            # Continue

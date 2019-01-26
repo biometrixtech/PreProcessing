@@ -56,7 +56,7 @@ class TransformandplacementJob(Job):
         data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'])
 
         # ms_elapsed and datetime
-        data.time_stamp, data.ms_elapsed = convert_epochtime_datetime_mselapsed(data.epoch_time)
+        data['time_stamp'], data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(data.epoch_time)
 
         self.datastore.put_data('transformandplacement', data, chunk_size=100000)
 

@@ -34,7 +34,7 @@ def plane_analysis(hip_acc, hip_eul, ms_elapsed):
 
     # create storage for variables
     len_hip_acc = len(hip_acc)
-    sampling_rate = 1000/ms_elapsed
+    sampling_rate = 1000 / ms_elapsed
     del ms_elapsed  # not used in further computations
     lat_binary = np.zeros((len_hip_acc, 1))
     vert_binary = np.zeros((len_hip_acc, 1))
@@ -52,7 +52,7 @@ def plane_analysis(hip_acc, hip_eul, ms_elapsed):
     _pos_diff = np.vstack((np.array([[0, 0, 0]]), np.diff(hip_eul, axis=0)))
     del hip_eul  # not used in further computations
     _pos_diff = np.nan_to_num(_pos_diff)
-    _ang_vel = _pos_diff*sampling_rate
+    _ang_vel = _pos_diff * sampling_rate
     del _pos_diff  # not used in further computations
     _ang_vel = np.nan_to_num(_ang_vel)
         
@@ -114,17 +114,17 @@ def run_stance_analysis(data):
     """
 
     # get eul data, hz, hip acc, phases from data frame
-    euler_lf_x = data.euler_lf_x.reshape(-1, 1)
-    euler_lf_y = data.euler_lf_y.reshape(-1, 1)
-    euler_lf_z = data.euler_lf_z.reshape(-1, 1)
+    euler_lf_x = data.euler_lf_x.values.reshape(-1, 1)
+    euler_lf_y = data.euler_lf_y.values.reshape(-1, 1)
+    euler_lf_z = data.euler_lf_z.values.reshape(-1, 1)
 
-    euler_hip_x = data.euler_hip_x.reshape(-1, 1)
-    euler_hip_y = data.euler_hip_y.reshape(-1, 1)
-    euler_hip_z = data.euler_hip_z.reshape(-1, 1)
+    euler_hip_x = data.euler_hip_x.values.reshape(-1, 1)
+    euler_hip_y = data.euler_hip_y.values.reshape(-1, 1)
+    euler_hip_z = data.euler_hip_z.values.reshape(-1, 1)
 
-    euler_rf_x = data.euler_rf_x.reshape(-1, 1)
-    euler_rf_y = data.euler_rf_y.reshape(-1, 1)
-    euler_rf_z = data.euler_rf_z.reshape(-1, 1)
+    euler_rf_x = data.euler_rf_x.values.reshape(-1, 1)
+    euler_rf_y = data.euler_rf_y.values.reshape(-1, 1)
+    euler_rf_z = data.euler_rf_z.values.reshape(-1, 1)
 
     leuls = np.hstack((euler_lf_x, euler_lf_y))
     leuls = np.hstack((leuls, euler_lf_z))
@@ -137,15 +137,15 @@ def run_stance_analysis(data):
 
     hz = 100
 
-    acc_hip_x = data.acc_hip_x.reshape(-1, 1)
-    acc_hip_y = data.acc_hip_y.reshape(-1, 1)
-    acc_hip_z = data.acc_hip_z.reshape(-1, 1)
+    acc_hip_x = data.acc_hip_x.values.reshape(-1, 1)
+    acc_hip_y = data.acc_hip_y.values.reshape(-1, 1)
+    acc_hip_z = data.acc_hip_z.values.reshape(-1, 1)
 
     hacc = np.hstack((acc_hip_x, acc_hip_y))
     hacc = np.hstack((hacc, acc_hip_z))
 
-    lf_ph = data.phase_lf.reshape(-1, 1)
-    rf_ph = data.phase_rf.reshape(-1, 1)
+    lf_ph = data.phase_lf.values.reshape(-1, 1)
+    rf_ph = data.phase_rf.values.reshape(-1, 1)
 
     # find total accel
     hip_tot_acc = total_accel(hacc)

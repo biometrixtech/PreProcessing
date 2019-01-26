@@ -72,11 +72,11 @@ _output_columns = [
 ]
 
 
-def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, sc, sc_single_leg, hip_n_transform):
+def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, sc, sc_single_leg, hip_n_transform):
     """Creates object attributes according to session analysis process.
 
     Args:
-        data_in: raw data object with attributes of:
+        data: raw data object with attributes of:
             epoch_time, corrupt_magn, missing_type, acc_lf_x, acc_lf_y, acc_lf_z, quat_lf_x, quat_lf_y,
             quat_lf_z, acc_hip_x, acc_hip_y, acc_hip_z, quat_hip_x, quat_hip_y, quat_hip_z, acc_rf_x, acc_rf_y, acc_rf_z, quat_rf_x, quat_rf_y, quat_rf_z
         file_version: file format and type version (matching accessory sensor dev)
@@ -92,23 +92,21 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
         result: string signifying success or failure.
         Note: In case of completion for local run, returns movement table.
     """
-    columns = data_in.columns
-    data = RawFrame(data_in, columns)
     sampl_freq = 100
 
     # Compute euler angles, geometric interpretation of data as appropriate
     lf_quats = np.hstack([data.quat_lf_w, data.quat_lf_x, data.quat_lf_y,
                           data.quat_lf_z]).reshape(-1, 4)
     lf_euls = qc.quat_to_euler(lf_quats)
-    data.euler_lf_z = lf_euls[:, 2].reshape(-1, 1)
+    data['euler_lf_z'] = lf_euls[:, 2].reshape(-1, 1)
 
     hip_quats = np.hstack([data.quat_hip_w, data.quat_hip_x, data.quat_hip_y, data.quat_hip_z]).reshape(-1, 4)
-    h_euls = qc.quat_to_euler(hip_quats)
-    data.euler_hip_z = h_euls[:, 2].reshape(-1, 1)
+    hip_euls = qc.quat_to_euler(hip_quats)
+    data['euler_hip_z'] = hip_euls[:, 2].reshape(-1, 1)
 
     rf_quats = np.hstack([data.quat_rf_w, data.quat_rf_x, data.quat_rf_y, data.quat_rf_z]).reshape(-1, 4)
     rf_euls = qc.quat_to_euler(rf_quats)
-    data.euler_rf_z = rf_euls[:, 2].reshape(-1, 1)
+    data['euler_rf_z'] = rf_euls[:, 2].reshape(-1, 1)
 
     (
         adduction_lf,
@@ -120,31 +118,29 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
     ) = extract_geometry(lf_quats, hip_quats, rf_quats)
 
     if file_version == '1.0':
-        data.euler_lf_x = lf_euls[:, 0].reshape(-1, 1)
-        data.euler_lf_y = lf_euls[:, 1].reshape(-1, 1)
-        data.euler_hip_x = h_euls[:, 0].reshape(-1, 1)
-        data.euler_hip_y = h_euls[:, 1].reshape(-1, 1)
-        data.euler_rf_x = rf_euls[:, 0].reshape(-1, 1)
-        data.euler_rf_y = rf_euls[:, 1].reshape(-1, 1)
+        data['euler_lf_x'] = lf_euls[:, 0].reshape(-1, 1)
+        data['euler_lf_y'] = lf_euls[:, 1].reshape(-1, 1)
+        data['euler_hip_x'] = hip_euls[:, 0].reshape(-1, 1)
+        data['euler_hip_y'] = hip_euls[:, 1].reshape(-1, 1)
+        data['euler_rf_x'] = rf_euls[:, 0].reshape(-1, 1)
+        data['euler_rf_y'] = rf_euls[:, 1].reshape(-1, 1)
     else:
-        data.euler_lf_x = adduction_lf.reshape(-1, 1)
-        data.euler_lf_y = flexion_lf.reshape(-1, 1)
-        data.euler_hip_x = adduction_h.reshape(-1, 1)
-        data.euler_hip_y = flexion_h.reshape(-1, 1)
-        data.euler_rf_x = adduction_rf.reshape(-1, 1)
-        data.euler_rf_y = flexion_rf.reshape(-1, 1)
-
-    del lf_euls, h_euls, rf_euls
+        data['euler_lf_x'] = adduction_lf.reshape(-1, 1)
+        data['euler_lf_y'] = flexion_lf.reshape(-1, 1)
+        data['euler_hip_x'] = adduction_h.reshape(-1, 1)
+        data['euler_hip_y'] = flexion_h.reshape(-1, 1)
+        data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
+        data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
 
     # PHASE DETECTION
-    data.phase_lf, data.phase_rf = combine_phase(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, data.euler_lf_y, data.euler_rf_y, sampl_freq)
+    data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, data.euler_lf_y, data.euler_rf_y, sampl_freq)
     logger.info('DONE WITH PHASE DETECTION!')
 
     # prepare data for grf prediction
-    data.mass = mass*9.807/1000  # convert mass from kg to kN
-    grf_data, nan_row = prepare_data(data, sc)
+    weight = mass * 9.807  # convert mass from kg to N
+    grf_data, nan_row = prepare_data(data, sc, mass)
 
-    grf_data_sl, nan_row_sl = prepare_data(data, sc_single_leg, sl=True)
+    grf_data_sl, nan_row_sl = prepare_data(data, sc_single_leg, mass, is_single_leg=True)
 
     # predict grf
     grf = grf_fit.predict(grf_data).reshape(-1,)
@@ -164,10 +160,10 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
     grf = _filter_data(grf, cutoff=18)
 
     # set grf value below certain threshold to 0
-    grf[grf <= .2*data.mass] = 0
+    grf[grf <= .0002*weight] = 0
     # grf[grf <= .1] = 0
     # fill in nans for rows with missing predictors
-    length = len(data_in)
+    length = len(data)
     grf_temp = np.ones(length)
     grf_lf_temp = np.ones(length)
     grf_rf_temp = np.ones(length)
@@ -185,25 +181,25 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
             grf_lf_temp[i] = grf_lf_temp[i - 1]
             grf_rf_temp[i] = grf_rf_temp[i - 1]
 
-    data.grf = grf_temp*1000
-    data.grf_lf = grf_lf_temp
-    data.grf_rf = grf_rf_temp
+    data['grf'] = grf_temp * 1000
+    data['grf_lf'] = grf_lf_temp
+    data['grf_rf'] = grf_rf_temp
 
     del grf_data, nan_row, grf_fit, grf, grf_temp, grf_lf, grf_rf, grf_lf_temp, grf_rf_temp
     logger.info('DONE WITH GRF PREDICTION!')
 
     (
-        data.grf,
-        data.phase_lf,
-        data.phase_rf
+        data['grf'],
+        data['phase_lf'],
+        data['phase_rf']
     ) = update_phase_grf(data.grf, data.grf_lf, data.grf_rf, data.phase_lf, data.phase_rf, mass)
 
     logger.info('DONE UPDATING PHASE WITH GRF')
 
     # DETECT IMPACT PHASE INTERVALS
     (
-        data.impact_phase_lf,
-        data.impact_phase_rf,
+        data['impact_phase_lf'],
+        data['impact_phase_rf'],
         lf_imp_range,
         rf_imp_range
     ) = detect_start_end_impact_phase(lph=data.phase_lf, rph=data.phase_rf)
@@ -211,47 +207,47 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
     # isolate hip acceleration and euler angle data
-    hip_acc = np.hstack([data.acc_hip_x, data.acc_hip_y, data.acc_hip_z])
-    hip_eul = np.hstack([data.euler_hip_x, data.euler_hip_y, data.euler_hip_z])
+    hip_acc = np.hstack([data.acc_hip_x, data.acc_hip_y, data.acc_hip_z]).reshape(-1, 3)
 
     # analyze planes of movement
     (
-        data.lat,
-        data.vert,
-        data.horz,
-        data.rot,
-        data.lat_binary,
-        data.vert_binary,
-        data.horz_binary,
-        data.rot_binary,
-        data.stationary_binary,
-        data.total_accel
-    ) = plane_analysis(hip_acc, hip_eul, data.ms_elapsed)
+        data['lat'],
+        data['vert'],
+        data['horz'],
+        data['rot'],
+        data['lat_binary'],
+        data['vert_binary'],
+        data['horz_binary'],
+        data['rot_binary'],
+        data['stationary_binary'],
+        data['total_accel']
+    ) = plane_analysis(hip_acc, hip_euls, data.ms_elapsed.values.reshape(-1, 1))
 
     # analyze stance
-    data.stance = run_stance_analysis(data)
-    del hip_acc, hip_eul
+    data['stance'] = run_stance_analysis(data)
+    del hip_acc
     logger.info('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
 
     # Enumerate plane and stance
-    data.plane = np.array([0]*len(data.rot)).reshape(-1, 1)
+    plane = np.array([0]*len(data.rot)).reshape(-1, 1)
 
     # Enumerate plane
-    data.plane[data.rot_binary == 1] = 1
-    data.plane[data.lat_binary == 1] = 2
-    data.plane[data.vert_binary == 1] = 3
-    data.plane[data.horz_binary == 1] = 4
-    data.plane[(data.rot_binary == 1) & (data.lat_binary == 1)] = 5
-    data.plane[(data.rot_binary == 1) & (data.vert_binary == 1)] = 6
-    data.plane[(data.rot_binary == 1) & (data.horz_binary == 1)] = 7
-    data.plane[(data.lat_binary == 1) & (data.vert_binary == 1)] = 8
-    data.plane[(data.lat_binary == 1) & (data.horz_binary == 1)] = 9
-    data.plane[(data.vert_binary == 1) & (data.horz_binary == 1)] = 10
-    data.plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1)] = 11
-    data.plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.horz_binary == 1)] = 12
-    data.plane[(data.rot_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 13
-    data.plane[(data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 14
-    data.plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 15
+    plane[data.rot_binary == 1] = 1
+    plane[data.lat_binary == 1] = 2
+    plane[data.vert_binary == 1] = 3
+    plane[data.horz_binary == 1] = 4
+    plane[(data.rot_binary == 1) & (data.lat_binary == 1)] = 5
+    plane[(data.rot_binary == 1) & (data.vert_binary == 1)] = 6
+    plane[(data.rot_binary == 1) & (data.horz_binary == 1)] = 7
+    plane[(data.lat_binary == 1) & (data.vert_binary == 1)] = 8
+    plane[(data.lat_binary == 1) & (data.horz_binary == 1)] = 9
+    plane[(data.vert_binary == 1) & (data.horz_binary == 1)] = 10
+    plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1)] = 11
+    plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.horz_binary == 1)] = 12
+    plane[(data.rot_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 13
+    plane[(data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 14
+    plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 15
+    data['plane'] = plane
 
     # MOVEMENT QUALITY FEATURES
 
@@ -268,24 +264,24 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
 
         # calculate movement attributes
         (
-            data.contra_hip_drop_lf,
-            data.contra_hip_drop_rf,
-            data.ankle_rot_lf,
-            data.ankle_rot_rf,
-            data.foot_position_lf,
-            data.foot_position_rf
+            data['contra_hip_drop_lf'],
+            data['contra_hip_drop_rf'],
+            data['ankle_rot_lf'],
+            data['ankle_rot_rf'],
+            data['foot_position_lf'],
+            data['foot_position_rf']
         ) = calculate_rot_cmes_v1(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, rf_neutral, data.phase_lf, data.phase_rf)
         del lf_quat, hip_quat, rf_quat
         del lf_neutral, hip_neutral, rf_neutral
     else:
         (
-            data.contra_hip_drop_lf,
-            data.contra_hip_drop_rf,
-            data.ankle_rot_lf,
-            data.ankle_rot_rf,
-            data.foot_position_lf,
-            data.foot_position_rf
-        ) = calculate_rot_cmes(lf_quat, hip_quat, rf_quat, data.phase_lf, data.phase_rf)
+            data['contra_hip_drop_lf'],
+            data['contra_hip_drop_rf'],
+            data['ankle_rot_lf'],
+            data['ankle_rot_rf'],
+            data['foot_position_lf'],
+            data['foot_position_rf']
+        ) = calculate_rot_cmes(lf_euls, hip_euls, rf_euls, data.phase_lf, data.phase_rf)
         del lf_quat, hip_quat, rf_quat
 
     # new relative CMEs
@@ -302,14 +298,14 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
     if len(n_landtime) != 0:
         n_landpattern = landing_pattern(data.euler_rf_y, data.euler_lf_y, ltime_index, lf_rf_imp_indicator, sampl_freq, n_landtime)
         land_time, land_pattern = continuous_values(n_landpattern, n_landtime, len(data.acc_lf_x), ltime_index)
-        data.land_time = land_time.reshape(-1, 1)
-        data.land_pattern_rf = land_pattern[:, 0].reshape(-1, 1)
-        data.land_pattern_lf = land_pattern[:, 1].reshape(-1, 1)
+        data['land_time'] = land_time.reshape(-1, 1)
+        data['land_pattern_rf'] = land_pattern[:, 0].reshape(-1, 1)
+        data['land_pattern_lf'] = land_pattern[:, 1].reshape(-1, 1)
         del n_landpattern, land_time, land_pattern
     else:
-        data.land_time = np.zeros((len(data.acc_lf_x), 1))*np.nan
-        data.land_pattern_lf = np.zeros((len(data.acc_lf_x), 1))*np.nan
-        data.land_pattern_rf = np.zeros((len(data.acc_lf_x), 1))*np.nan
+        data['land_time'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
+        data['land_pattern_lf'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
+        data['land_pattern_rf'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
     del n_landtime, ltime_index, lf_rf_imp_indicator
     logger.info('DONE WITH IMPACT CME!')
 
@@ -320,70 +316,74 @@ def run_session(data_in, file_version, mass, grf_fit, grf_fit_left, grf_fit_righ
         data.impact_phase_rf,
         lf_imp_range,
         rf_imp_range
-    ) = detect_start_end_impact_phase(lph=data.phase_lf.reshape(-1, 1), rph=data.phase_rf.reshape(-1, 1))
+    ) = detect_start_end_impact_phase(
+        lph=data.phase_lf.values.reshape(-1, 1),
+        rph=data.phase_rf.values.reshape(-1, 1)
+    )
 
     rofa_lf, rofa_rf = detect_rate_of_force_absorption(
         lf_imp=lf_imp_range,
         rf_imp=rf_imp_range,
-        grf=data.grf.reshape(-1, 1),
+        grf=data.grf.values.reshape(-1, 1),
         phase_lf=data.phase_lf,
         phase_rf=data.phase_rf,
         stance=data.stance,
         hz=sampl_freq
     )
     # rofa is normalized for user weight
-    data.rate_force_absorption_lf = rofa_lf / (data.mass * 1000)
-    data.rate_force_absorption_rf = rofa_rf / (data.mass * 1000)
+    data['rate_force_absorption_lf'] = rofa_lf / weight
+    data['rate_force_absorption_rf'] = rofa_rf / weight
 
     logger.info('DONE WITH RATE OF FORCE ABSORPTION!')
 
     # RATE OF FORCE PRODUCTION
     # DETECT TAKEOFF PHASE INTERVALS
     (
-        data.takeoff_phase_lf,
-        data.takeoff_phase_rf,
+        data['takeoff_phase_lf,'],
+        data['takeoff_phase_rf'],
         lf_takeoff_range,
         rf_takeoff_range
-    ) = detect_start_end_takeoff_phase(lph=data.phase_lf.reshape(-1, 1),
-                                       rph=data.phase_rf.reshape(-1, 1))
+    ) = detect_start_end_takeoff_phase(lph=data.phase_lf.values.reshape(-1, 1),
+                                       rph=data.phase_rf.values.reshape(-1, 1))
 
     rofp_lf, rofp_rf = detect_rate_of_force_production(
         lf_takeoff=lf_takeoff_range,
         rf_takeoff=rf_takeoff_range,
-        grf=data.grf.reshape(-1, 1),
+        grf=data.grf.values.reshape(-1, 1),
         phase_lf=data.phase_lf,
         phase_rf=data.phase_rf,
         stance=data.stance,
         hz=sampl_freq
     )
     # rofp is normalized for user weight
-    data.rate_force_production_lf = rofp_lf / (data.mass * 1000)
-    data.rate_force_production_rf = rofp_rf / (data.mass * 1000)
+    data['rate_force_production_lf'] = rofp_lf / weight
+    data['rate_force_production_rf'] = rofp_rf / weight
     logger.info('DONE WITH RATE OF FORCE PRODUCTION!')
 
     # MAGNITUDE OF GRF DURING BALANCE PHASE
-    data.grf_bal_phase = calculate_balance_phase_force(data) / (data.mass * 1000)
+    data['grf_bal_phase'] = calculate_balance_phase_force(data) / weight
 
     # DEFINE UNIT ACTIVE BLOCKS
     data.total_accel[data.stance == 0] = 0
-    data.active = define_unit_blocks(data.total_accel)
+    data['active'] = define_unit_blocks(data.total_accel)
 
     # combine into data table
     length = len(data.acc_lf_x)
-    setattr(data, 'loading_lf', np.array([np.nan]*length).reshape(-1, 1))
-    setattr(data, 'loading_rf', np.array([np.nan]*length).reshape(-1, 1))
-    setattr(data, 'grf_lf', np.array([np.nan]*length).reshape(-1, 1))
-    setattr(data, 'grf_rf', np.array([np.nan]*length).reshape(-1, 1))
-    scoring_data = pd.DataFrame(data={'obs_index': data.obs_index.reshape(-1,),
-                                      'time_stamp': data.time_stamp.reshape(-1,),
-                                      'epoch_time': data.epoch_time.reshape(-1,),
-                                      'ms_elapsed': data.ms_elapsed.reshape(-1,)})
-    for var in _output_columns[4:]:
-        frame = pd.DataFrame(data={var: data.__dict__[var].reshape(-1, )}, index=scoring_data.index)
-        frames = [scoring_data, frame]
-        scoring_data = pd.concat(frames, axis=1)
-        del frame, frames, data.__dict__[var]
-    del data
+    data['loading_lf'] = np.array([np.nan]*length).reshape(-1, 1)
+    data['loading_rf'] = np.array([np.nan]*length).reshape(-1, 1)
+    data['grf_lf'] = np.array([np.nan]*length).reshape(-1, 1)
+    data['grf_rf'] = np.array([np.nan]*length).reshape(-1, 1)
+    scoring_data = data.loc[:, _output_columns]
+    # scoring_data = pd.DataFrame(data={'obs_index': data.obs_index.values.reshape(-1,),
+    #                                   'time_stamp': data.time_stamp.values.reshape(-1,),
+    #                                   'epoch_time': data.epoch_time.values.reshape(-1,),
+    #                                   'ms_elapsed': data.ms_elapsed.values.reshape(-1,)})
+    # for var in _output_columns[4:]:
+    #     frame = pd.DataFrame(data={var: data[var].reshape(-1, )}, index=scoring_data.index)
+    #     frames = [scoring_data, frame]
+    #     scoring_data = pd.concat(frames, axis=1)
+    #     del frame, frames, data.__dict__[var]
+    # del data
 
     logger.info("Table Created")
 

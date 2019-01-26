@@ -47,12 +47,12 @@ def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
         rf_ph: an array, different phases of right foot
     """
     # reshape for faster computation
-    laz = laz.reshape(-1,)
-    raz = raz.reshape(-1,)
-    la_magn = la_magn.reshape(-1,)
-    ra_magn = ra_magn.reshape(-1,)
-    pitch_lf = pitch_lf.reshape(-1,) * 180 / np.pi
-    pitch_rf = pitch_rf.reshape(-1,) * 180 / np.pi
+    laz = laz.values.reshape(-1,)
+    raz = raz.values.reshape(-1,)
+    la_magn = la_magn.values.reshape(-1,)
+    ra_magn = ra_magn.values.reshape(-1,)
+    pitch_lf = pitch_lf.values.reshape(-1,) * 180 / np.pi
+    pitch_rf = pitch_rf.values.reshape(-1,) * 180 / np.pi
 
     # Check and mark rows with missing data
     length = len(laz)
@@ -446,7 +446,7 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
 
     # detect peaks
     mph = 1.4 * mass * 9.807
-    peaks = detect_peaks(grf, mph=mph, mpd=12, show=False)
+    peaks = detect_peaks(grf, mph=mph, mpd=12)
     contact_lengths = []
     for _range in ranges:
         # check if there's any peaks over certain height during the ground contact phase
@@ -583,7 +583,7 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
 
 def _detect_takeoff(phase):
     imp_range, imp_len = _zero_runs(col_dat=phase, static=2)
-    phase_copy = copy.copy(phase).reshape(-1,)
+    phase_copy = copy.copy(phase).values.reshape(-1,)
     takeoff = []
 
     # takeoffs from impact

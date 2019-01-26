@@ -86,7 +86,12 @@ class Datastore:
         'scoring': ('combined', 'csv'),
     }
 
-    def get_data(self, source_job, part_number=None):
+    def get_data(self, source_job):
+        if isinstance(source_job, tuple):
+            source_job, part_number = source_job
+        else:
+            part_number = None
+
         if part_number == '*':
             data = self._read_multiple_csv(source_job)
         else:
@@ -130,13 +135,14 @@ class Datastore:
                 chunk_by_line(tmp_filename, output_dir, chunk_size)
 
         else:
-            _mkdir(self.working_directory)
             if part_number is not None:
-                output_filename = os.path.join(self.working_directory, source_job, '_' + part_number)
+                _mkdir(os.path.join(self.working_directory, source_job))
+                output_filename = os.path.join(self.working_directory, source_job, "{:04d}".format(part_number))
             else:
+                _mkdir(self.working_directory)
                 output_filename = os.path.join(self.working_directory, source_job)
             _logger.debug('Copying {} to {}'.format(tmp_filename, output_filename))
-            shutil.copy(tmp_filename, output_filename)
+            shutil.copyfile(tmp_filename, output_filename)
 
     def _read_single_csv(self, source_job, part_number=None):
         """

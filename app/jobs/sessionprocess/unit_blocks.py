@@ -5,7 +5,7 @@ from scipy.signal import butter, filtfilt
 
 def define_unit_blocks(accel):
     # filter acceleration data
-    accel = _filter_data(accel.reshape(-1,), cutoff=6)
+    accel = _filter_data(accel.values.reshape(-1,), cutoff=6)
     # initial definition of active as > 5m/s^2
     active = accel >= 5.
     # filter out instances of inactive that are too short

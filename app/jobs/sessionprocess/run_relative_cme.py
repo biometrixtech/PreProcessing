@@ -65,18 +65,18 @@ def run_relative_cmes(data):
 
     length = data.epoch_time
 
-    stance = data.stance.reshape(-1, 1)
+    stance = data.stance.values.reshape(-1, 1)
     ms_elapsed = np.array([10] * len(length)).reshape(-1, 1)
 
-    lphase = copy.deepcopy(data.phase_lf.reshape(-1, 1))
-    rphase = copy.deepcopy(data.phase_rf.reshape(-1, 1))
+    lphase = copy.deepcopy(data.phase_lf.values.reshape(-1, 1))
+    rphase = copy.deepcopy(data.phase_rf.values.reshape(-1, 1))
 
-    adduction_l = data.euler_lf_x.reshape(-1, 1)
-    flexion_l = data.euler_lf_y.reshape(-1, 1)
-    adduction_h = data.euler_hip_x.reshape(-1, 1)
-    flexion_h = data.euler_hip_y.reshape(-1, 1)
-    adduction_r = data.euler_rf_x.reshape(-1, 1)
-    flexion_r = data.euler_rf_y.reshape(-1, 1)
+    adduction_l = data.euler_lf_x.values.reshape(-1, 1)
+    flexion_l = data.euler_lf_y.values.reshape(-1, 1)
+    adduction_h = data.euler_hip_x.values.reshape(-1, 1)
+    flexion_h = data.euler_hip_y.values.reshape(-1, 1)
+    adduction_r = data.euler_rf_x.values.reshape(-1, 1)
+    flexion_r = data.euler_rf_y.values.reshape(-1, 1)
 
     alnorm_motion_covered_abs = np.empty(len(length)).reshape(-1, 1) * np.nan
     alnorm_motion_covered_pos = np.empty(len(length)).reshape(-1, 1) * np.nan
@@ -240,38 +240,38 @@ def run_relative_cmes(data):
                             fhnorm_motion_covered_abs, fhnorm_motion_covered_pos, fhnorm_motion_covered_neg,
                             fhnorm_range_of_motion)
 
-    data.adduc_motion_covered_abs_lf = alnorm_motion_covered_abs
-    data.adduc_motion_covered_pos_lf = alnorm_motion_covered_pos
-    data.adduc_motion_covered_neg_lf = alnorm_motion_covered_neg
-    data.adduc_range_of_motion_lf = alnorm_range_of_motion
+    data['adduc_motion_covered_abs_lf'] = alnorm_motion_covered_abs
+    data['adduc_motion_covered_pos_lf'] = alnorm_motion_covered_pos
+    data['adduc_motion_covered_neg_lf'] = alnorm_motion_covered_neg
+    data['adduc_range_of_motion_lf'] = alnorm_range_of_motion
 
-    data.flex_motion_covered_abs_lf = flnorm_motion_covered_abs
-    data.flex_motion_covered_pos_lf = flnorm_motion_covered_pos
-    data.flex_motion_covered_neg_lf = flnorm_motion_covered_neg
-    data.flex_range_of_motion_lf = flnorm_range_of_motion
-    data.contact_duration_lf = flcontact_duration
+    data['flex_motion_covered_abs_lf'] = flnorm_motion_covered_abs
+    data['flex_motion_covered_pos_lf'] = flnorm_motion_covered_pos
+    data['flex_motion_covered_neg_lf'] = flnorm_motion_covered_neg
+    data['flex_range_of_motion_lf'] = flnorm_range_of_motion
+    data['contact_duration_lf'] = flcontact_duration
 
-    data.adduc_motion_covered_abs_h = ahnorm_motion_covered_abs
-    data.adduc_motion_covered_pos_h = ahnorm_motion_covered_pos
-    data.adduc_motion_covered_neg_h = ahnorm_motion_covered_neg
-    data.adduc_range_of_motion_h = ahnorm_range_of_motion
+    data['adduc_motion_covered_abs_h'] = ahnorm_motion_covered_abs
+    data['adduc_motion_covered_pos_h'] = ahnorm_motion_covered_pos
+    data['adduc_motion_covered_neg_h'] = ahnorm_motion_covered_neg
+    data['adduc_range_of_motion_h'] = ahnorm_range_of_motion
 
-    data.flex_motion_covered_abs_h = fhnorm_motion_covered_abs
-    data.flex_motion_covered_pos_h = fhnorm_motion_covered_pos
-    data.flex_motion_covered_neg_h = fhnorm_motion_covered_neg
-    data.flex_range_of_motion_h = fhnorm_range_of_motion
-    data.contact_duration_h = fhcontact_duration
+    data['flex_motion_covered_abs_h'] = fhnorm_motion_covered_abs
+    data['flex_motion_covered_pos_h'] = fhnorm_motion_covered_pos
+    data['flex_motion_covered_neg_h'] = fhnorm_motion_covered_neg
+    data['flex_range_of_motion_h'] = fhnorm_range_of_motion
+    data['contact_duration_h'] = fhcontact_duration
 
-    data.adduc_motion_covered_abs_rf = arnorm_motion_covered_abs
-    data.adduc_motion_covered_pos_rf = arnorm_motion_covered_pos
-    data.adduc_motion_covered_neg_rf = arnorm_motion_covered_neg
-    data.adduc_range_of_motion_rf = arnorm_range_of_motion
+    data['adduc_motion_covered_abs_rf'] = arnorm_motion_covered_abs
+    data['adduc_motion_covered_pos_rf'] = arnorm_motion_covered_pos
+    data['adduc_motion_covered_neg_rf'] = arnorm_motion_covered_neg
+    data['adduc_range_of_motion_rf'] = arnorm_range_of_motion
 
-    data.flex_motion_covered_abs_rf = frnorm_motion_covered_abs
-    data.flex_motion_covered_pos_rf = frnorm_motion_covered_pos
-    data.flex_motion_covered_neg_rf = frnorm_motion_covered_neg
-    data.flex_range_of_motion_rf = frnorm_range_of_motion
-    data.contact_duration_rf = frcontact_duration
+    data['flex_motion_covered_abs_rf'] = frnorm_motion_covered_abs
+    data['flex_motion_covered_pos_rf'] = frnorm_motion_covered_pos
+    data['flex_motion_covered_neg_rf'] = frnorm_motion_covered_neg
+    data['flex_range_of_motion_rf'] = frnorm_range_of_motion
+    data['contact_duration_rf'] = frcontact_duration
 
     return data
 

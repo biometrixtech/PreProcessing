@@ -28,7 +28,7 @@ class SessionprocessJob(Job):
 
         _logger.info("LOADING DATA")
         part_number = 0  # TODO chunking
-        sdata = self.datastore.get_data('transformandplacement', part_number)
+        sdata = self.datastore.get_data(('transformandplacement', part_number))
         _logger.info("DATA LOADED!")
 
         if len(sdata) == 0:
@@ -38,7 +38,7 @@ class SessionprocessJob(Job):
             self._flag_data_quality(sdata)
 
         # Read user mass
-        mass = self.datastore.get_metadatum('user_mass')
+        mass = float(self.datastore.get_metadatum('user_mass'))
 
         size = len(sdata)
         sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
@@ -52,7 +52,7 @@ class SessionprocessJob(Job):
         # Output data
         output_data_batch = output_data_batch.replace('None', '')
         output_data_batch = output_data_batch.round(5)
-        self.datastore.put_data('sessionprocess', output_data_batch)
+        self.datastore.put_data(('sessionprocess', part_number), output_data_batch)
 
         _logger.info('Outcome: Success!')
 
