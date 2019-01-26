@@ -47,6 +47,10 @@ def main(script):
         from jobs.sessionprocess import SessionprocessJob
         SessionprocessJob(datastore).run()
 
+    elif script == 'scoring':
+        from jobs.scoring import ScoringJob
+        ScoringJob(datastore).run()
+
     # elif script == 'sessionprocess1':
     #     load_parameters(['MS_MODEL',
     #                      'LF_MS_MODEL',
