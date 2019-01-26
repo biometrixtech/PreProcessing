@@ -68,8 +68,8 @@ def control_score(eul_lf_x, eul_hip_x, eul_rf_x, phase_lf, phase_rf):
 
     return (
         control.reshape(-1, 1),
-        hip_control.reshape(-1, 1),
+        hip_control.values.reshape(-1, 1),
         ankle_control.reshape(-1, 1),
-        control_lf.reshape(-1, 1),
-        control_rf.reshape(-1, 1)
+        control_lf.values.reshape(-1, 1),
+        control_rf.values.reshape(-1, 1)
     )

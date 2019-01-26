@@ -174,16 +174,10 @@ class Datastore:
         :param source_job:
         :return:
         """
-        # Find all files in the directory
-        file_names = []
-        for file in glob.glob(os.path.join(self.working_directory, source_job, '[0-9]*')):
-            print("Found file {}".format(file))
-            file_name = os.path.basename(file)
-            file_names.append(file_name)
-
         csv_data = []
         count = 0
-        for filename in file_names:
+        for filename in glob.glob(os.path.join(self.working_directory, source_job, '[0-9]*')):
+            _logger.debug('Reading {}'.format(filename))
             with open(filename, 'r') as f:
                 lines = f.readlines()
                 if count == 0:
@@ -194,7 +188,7 @@ class Datastore:
 
         _logger.info("{} rows".format(len(csv_data) - 1))
         csv_data = u"\n".join(csv_data)
-        return StringIO(csv_data)
+        return pandas.read_csv(StringIO(csv_data))
 
     @property
     def session_id(self):

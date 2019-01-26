@@ -101,7 +101,7 @@ class ScoringJob(Job):
             data['ankle_control'],
             data['control_lf'],
             data['control_rf']
-        ) = control_score(data.eul_lf_x, data.eul_hip_x, data.eul_rf_x, data.phase_lf, data.phase_rf)
+        ) = control_score(data.euler_lf_x, data.euler_hip_x, data.euler_rf_x, data.phase_lf, data.phase_rf)
         _logger.info('DONE WITH CONTROL SCORES!')
 
         grf_scale = 1000000
@@ -126,5 +126,5 @@ class ScoringJob(Job):
         # TODO replace computing boundaries for twoMin by active blocks
 
         # Output data
-        self.datastore.put_data('scoring', columns=_output_columns)
+        self.datastore.put_data('scoring', data, columns=_output_columns)
         _logger.info("DONE WRITING OUTPUT FILE")
