@@ -75,6 +75,20 @@ def main(script):
         from jobs.advancedstats import AdvancedstatsJob
         AdvancedstatsJob(datastore).run()
 
+    elif script == 'sessionprocess1':
+        load_parameters([
+            'MS_MODEL',
+            'LF_MS_MODEL',
+            'RF_MS_MODEL',
+            'MS_SCALER',
+            'SL_MS_SCALER'
+        ], 'models')
+        # Use theano backend for keras
+        os.environ['KERAS_BACKEND'] = 'theano'
+
+        from jobs.sessionprocess1 import Sessionprocess1Job
+        Sessionprocess1Job(datastore).run()
+
     # elif script == 'sessionprocess1':
     #     load_parameters(['MS_MODEL',
     #                      'LF_MS_MODEL',
