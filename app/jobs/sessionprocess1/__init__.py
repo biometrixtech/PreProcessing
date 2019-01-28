@@ -2,6 +2,7 @@ import boto3
 import logging
 
 from ..job import Job
+from .run_analytics import run_session
 
 _logger = logging.getLogger(__name__)
 _s3_client = boto3.client('s3')
