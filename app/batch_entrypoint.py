@@ -51,6 +51,30 @@ def main(script):
         from jobs.scoring import ScoringJob
         ScoringJob(datastore).run()
 
+    elif script == 'aggregateblocks':
+        load_parameters([
+            'MONGO_HOST',
+            'MONGO_USER',
+            'MONGO_PASSWORD',
+            'MONGO_DATABASE',
+            'MONGO_REPLICASET',
+            'MONGO_COLLECTION_ACTIVEBLOCKS',
+        ], 'mongo')
+        from jobs.aggregateblocks import AggregateBlocksJob
+        AggregateBlocksJob(datastore).run()
+
+    elif script == 'advancedstats':
+        load_parameters([
+            'MONGO_HOST',
+            'MONGO_USER',
+            'MONGO_PASSWORD',
+            'MONGO_DATABASE',
+            'MONGO_REPLICASET',
+            'MONGO_COLLECTION_ACTIVEBLOCKS',
+        ], 'mongo')
+        from jobs.advancedstats import AdvancedstatsJob
+        AdvancedstatsJob(datastore).run()
+
     # elif script == 'sessionprocess1':
     #     load_parameters(['MS_MODEL',
     #                      'LF_MS_MODEL',
