@@ -160,7 +160,7 @@ class Datastore:
         copyfile(source_filename, tmp_filename)
         _logger.info("Copied {} to local filesystem {}".format(source_filename, tmp_filename))
 
-        data = pandas.read_csv(tmp_filename, columns=columns)
+        data = pandas.read_csv(tmp_filename, usecols=columns)
 
         os.remove(tmp_filename)
         _logger.info("Removed temporary file")
@@ -188,7 +188,7 @@ class Datastore:
 
         _logger.info("{} rows".format(len(csv_data) - 1))
         csv_data = u"\n".join(csv_data)
-        return pandas.read_csv(StringIO(csv_data), columns=columns)
+        return pandas.read_csv(StringIO(csv_data), usecols=columns)
 
     @property
     def session_id(self):
