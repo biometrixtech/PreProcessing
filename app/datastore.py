@@ -86,16 +86,16 @@ class Datastore:
         'scoring': ('combined', 'csv'),
     }
 
-    def get_data(self, source_job):
+    def get_data(self, source_job, columns=None):
         if isinstance(source_job, tuple):
             source_job, part_number = source_job
         else:
             part_number = None
 
         if part_number == '*':
-            data = self._read_multiple_csv(source_job)
+            data = self._read_multiple_csv(source_job, columns=columns)
         else:
-            data = self._read_single_csv(source_job, part_number)
+            data = self._read_single_csv(source_job, part_number, columns=columns)
 
         return data
 
@@ -144,7 +144,7 @@ class Datastore:
             _logger.debug('Copying {} to {}'.format(tmp_filename, output_filename))
             shutil.copyfile(tmp_filename, output_filename)
 
-    def _read_single_csv(self, source_job, part_number=None):
+    def _read_single_csv(self, source_job, part_number=None, columns=None):
         """
         Read a single CSV file with pandas.  Copy the file to the local filesystem first,
         as that improves read performance.
@@ -160,14 +160,14 @@ class Datastore:
         copyfile(source_filename, tmp_filename)
         _logger.info("Copied {} to local filesystem {}".format(source_filename, tmp_filename))
 
-        data = pandas.read_csv(tmp_filename)
+        data = pandas.read_csv(tmp_filename, columns=columns)
 
         os.remove(tmp_filename)
         _logger.info("Removed temporary file")
 
         return data
 
-    def _read_multiple_csv(self, source_job):
+    def _read_multiple_csv(self, source_job, columns=None):
         """
         Read multiple CSV files together.  We do this by loading each CSV file into memory,
         concatenating them, and then feeding the array through a StringIO to pandas.read_csv()
@@ -188,7 +188,7 @@ class Datastore:
 
         _logger.info("{} rows".format(len(csv_data) - 1))
         csv_data = u"\n".join(csv_data)
-        return pandas.read_csv(StringIO(csv_data))
+        return pandas.read_csv(StringIO(csv_data), columns=columns)
 
     @property
     def session_id(self):

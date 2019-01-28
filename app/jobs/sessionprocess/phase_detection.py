@@ -13,7 +13,7 @@ import numpy as np
 from scipy.signal import butter, filtfilt
 
 from .constants import constants as ct
-from .detect_peaks import detect_peaks
+from utils.detect_peaks import detect_peaks
 
 logger = logging.getLogger()
 
