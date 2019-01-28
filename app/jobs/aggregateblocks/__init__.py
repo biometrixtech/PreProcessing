@@ -59,7 +59,7 @@ class AggregateBlocksJob(Job):
 
     def _run(self):
 
-        data = self.datastore.get_data(('scoring', '*'))
+        data = self.datastore.get_data('scoring')
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
 
         # team_id = input_data.get('TeamId', None)
