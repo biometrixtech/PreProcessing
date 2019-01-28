@@ -1,4 +1,3 @@
-from __future__ import print_function
 from collections import OrderedDict
 import logging
 import pandas as pd
@@ -62,12 +61,7 @@ class AggregateBlocksJob(Job):
         data = self.datastore.get_data('scoring')
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
 
-        # team_id = input_data.get('TeamId', None)
-        # training_group_id = input_data.get('TrainingGroupIds', None)
-        # user_id = input_data.get('UserId', None)
-        # session_event_id = input_data.get('SessionId', None)
-        user_mass = self.datastore.get_metadatum('user_mass', None)
-        # event_date = input_data.get('EventDate')
+        user_mass = float(self.datastore.get_metadatum('user_mass', None))
 
         data.active[data.stance == 0] = 0
         active_ind = np.array([k == 1 for k in data['active']])
@@ -109,7 +103,7 @@ class AggregateBlocksJob(Job):
 
         # segment data into blocks
         active_blocks = define_blocks(data['active'].values)
-        print("Beginning iteration over {} blocks".format(len(active_blocks)))
+        _logger.info("Beginning iteration over {} blocks".format(len(active_blocks)))
         for block in active_blocks:
             block_start_index = active_blocks[block][0][0]
             block_end_index = active_blocks[block][-1][1]
