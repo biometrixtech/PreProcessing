@@ -1,9 +1,8 @@
-
-import quatConvs as qc
+from .convert_time import get_times
 from .extract_geometry import extract_geometry
 from .movement_attributes import get_total_accel, standing_or_not
 from .unit_blocks import define_unit_blocks
-from .convert_time import get_times
+from utils.quaternion_conversions import quat_to_euler
 
 
 def run_session(data):
@@ -19,7 +18,7 @@ def run_session(data):
     data['time_stamp'], data['ms_elapsed'] = get_times(data['epoch_time'].values)
     # Compute euler angles, geometric interpretation of data as appropriate
     quats = data.loc[:, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']].values
-    euls = qc.quat_to_euler(quats)
+    euls = quat_to_euler(quats)
     data['euler_hip_z'] = euls[:, 2].reshape(-1, 1)
 
     (
