@@ -1,6 +1,6 @@
 from boto3.dynamodb.conditions import Key
 from io import StringIO
-from shutil import copyfile
+from shutil import copyfile, rmtree
 import boto3
 import datetime
 import errno
@@ -87,6 +87,12 @@ class Datastore:
     }
 
     def get_data(self, source_job, columns=None):
+        """
+        Get the data from a particular job
+        :param source_job: string or (string, int)
+        :param columns: [String]
+        :return: DataFrame
+        """
         if isinstance(source_job, tuple):
             source_job, part_number = source_job
         else:
@@ -143,6 +149,13 @@ class Datastore:
                 output_filename = os.path.join(self.working_directory, source_job)
             _logger.debug('Copying {} to {}'.format(tmp_filename, output_filename))
             shutil.copyfile(tmp_filename, output_filename)
+
+    def delete_data(self):
+        """
+        Delete all stored data files
+        :return:
+        """
+        shutil.rmtree(self.working_directory)
 
     def _read_single_csv(self, source_job, part_number=None, columns=None):
         """
