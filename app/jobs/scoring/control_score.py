@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 
-def control_score(eul_lf_x, eul_hip_x, eul_rf_x, phase_lf, phase_rf):
+def control_score(eul_lf_x, euler_hip_x, eul_rf_x, phase_lf, phase_rf):
     """Calculates instantaneous control scores
     Scoring is based on standard deviation of euler angle (x) within a certian
     window.
@@ -17,7 +17,7 @@ def control_score(eul_lf_x, eul_hip_x, eul_rf_x, phase_lf, phase_rf):
     Args:
         eul_lf_x: left euler X
         eul_rf_x: right euler X
-        eul_hip_x: hip euler x
+        euler_hip_x: hip euler x
         phase_lf: left foot phase
         phase_rf: right foot phase
     Returns:
@@ -26,24 +26,24 @@ def control_score(eul_lf_x, eul_hip_x, eul_rf_x, phase_lf, phase_rf):
     """
     n = int(120/10.) + 1
     m = 5
-    eul_lf_x_copy = np.array(eul_lf_x)
-    eul_rf_x_copy = np.array(eul_rf_x)
-    eul_hip_x_copy = np.array(eul_hip_x)
-    eul_lf_x_copy[np.array([i == 1 for i in phase_lf])] = np.nan
-    eul_rf_x_copy[np.array([i == 1 for i in phase_rf])] = np.nan
-    eul_hip_x_copy[np.array([i == 1 for i in phase_lf]) & np.array([i == 1 for i in phase_rf])] = np.nan
+    euler_lf_x_copy = np.array(eul_lf_x)
+    euler_rf_x_copy = np.array(eul_rf_x)
+    euler_hip_x_copy = np.array(euler_hip_x)
+    euler_lf_x_copy[np.array([i == 1 for i in phase_lf])] = np.nan
+    euler_rf_x_copy[np.array([i == 1 for i in phase_rf])] = np.nan
+    euler_hip_x_copy[np.array([i == 1 for i in phase_lf]) & np.array([i == 1 for i in phase_rf])] = np.nan
 
     # TODO(Dipesh) Handle weird jumps in euler angles/ possibly add handling of missing data)
-    eul_lf_x_pd = pd.Series(eul_lf_x_copy.reshape(-1,))
-    eul_hip_x_pd = pd.Series(eul_hip_x_copy.reshape(-1,))
-    eul_rf_x_pd = pd.Series(eul_rf_x_copy.reshape(-1,))
+    euler_lf_x_pd = pd.Series(euler_lf_x_copy.reshape(-1,))
+    euler_hip_x_pd = pd.Series(euler_hip_x_copy.reshape(-1,))
+    euler_rf_x_pd = pd.Series(euler_rf_x_copy.reshape(-1,))
 
-    score_raw_l = eul_lf_x_pd.rolling(min_periods=m, window=n, center=True).std()
-    score_raw_h = eul_hip_x_pd.rolling(min_periods=m, window=n, center=True).std()
-    score_raw_r = eul_rf_x_pd.rolling(min_periods=m, window=n, center=True).std()
-    score_raw_l[np.isnan(eul_lf_x_pd)] = np.nan
-    score_raw_h[np.isnan(eul_hip_x_pd)] = np.nan
-    score_raw_r[np.isnan(eul_rf_x_pd)] = np.nan
+    score_raw_l = euler_lf_x_pd.rolling(min_periods=m, window=n, center=True).std()
+    score_raw_h = euler_hip_x_pd.rolling(min_periods=m, window=n, center=True).std()
+    score_raw_r = euler_rf_x_pd.rolling(min_periods=m, window=n, center=True).std()
+    score_raw_l[np.isnan(euler_lf_x_pd)] = np.nan
+    score_raw_h[np.isnan(euler_hip_x_pd)] = np.nan
+    score_raw_r[np.isnan(euler_rf_x_pd)] = np.nan
     # TODO(Dipesh) Need to update the bounds based on data
     upper = .35  # upper bound for what sd is considered 0 score
     lower = 0.  # lower bound for what sd is considered 100,

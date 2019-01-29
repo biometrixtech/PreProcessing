@@ -33,7 +33,7 @@ class Scoring1Job(Job):
         # CONTROL SCORE
         (
             data['control']
-        ) = control_score(data.eul_hip_x)
+        ) = control_score(data.euler_hip_x)
 
         _logger.info('DONE WITH CONTROL SCORES!')
 
