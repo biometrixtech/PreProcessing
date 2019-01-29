@@ -142,18 +142,21 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
     grf_data_sl, nan_row_sl = prepare_data(data, sc_single_leg, mass, is_single_leg=True)
 
     # predict grf
-    grf = grf_fit.predict(grf_data).reshape(-1,)
+    with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_predict'):
+        grf = grf_fit.predict(grf_data).reshape(-1,)
 
     # predict left grf (binary 0(air) or 1(ground))
-    grf_lf = grf_fit_left.predict(grf_data_sl).reshape(-1,)
-    sl_grf_cutoff = .5
-    grf_lf[grf_lf <= sl_grf_cutoff] = 0
-    grf_lf[grf_lf > sl_grf_cutoff] = 1
+    with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_lf_predict'):
+        grf_lf = grf_fit_left.predict(grf_data_sl).reshape(-1,)
+        sl_grf_cutoff = .5
+        grf_lf[grf_lf <= sl_grf_cutoff] = 0
+        grf_lf[grf_lf > sl_grf_cutoff] = 1
 
     # predict right grf (binary 0(air) or 1(ground))
-    grf_rf = grf_fit_right.predict(grf_data_sl).reshape(-1,)
-    grf_rf[grf_rf <= sl_grf_cutoff] = 0
-    grf_rf[grf_rf > sl_grf_cutoff] = 1
+    with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_rf_predict'):
+        grf_rf = grf_fit_right.predict(grf_data_sl).reshape(-1,)
+        grf_rf[grf_rf <= sl_grf_cutoff] = 0
+        grf_rf[grf_rf > sl_grf_cutoff] = 1
 
     # pass predicted data through low-pass filter
     grf = _filter_data(grf, cutoff=18)
