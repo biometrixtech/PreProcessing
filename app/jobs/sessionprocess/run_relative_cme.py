@@ -335,7 +335,7 @@ def _driftless_cmes(data, ranges, ms_elapsed, mot_cov_abs, mot_cov_pos, mot_cov_
     return mot_cov_abs, mot_cov_pos, mot_cov_neg, range_mot
 
 
-@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._norm_range_of_motion')
+# @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._norm_range_of_motion')
 def _norm_range_of_motion(data, time):
     """
     Function that returns the range of euler angles moved through in the
@@ -374,7 +374,7 @@ def _norm_range_of_motion(data, time):
         return mot_range * 1000  # 1000 multiplier puts in units of seconds
 
 
-@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._norm_motion_covered')
+# @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._norm_motion_covered')
 def _norm_motion_covered(data, time, cme):
     """
     Function that returns the total euler angles moved through in the
@@ -417,7 +417,7 @@ def _norm_motion_covered(data, time, cme):
         return mot * 1000  # 1000 multiplier puts in units of seconds
 
 
-@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._rough_contact_duration')
+# @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._rough_contact_duration')
 def _rough_contact_duration(stance):
     """
     Function that divides the window of stance into contact vs. non-contact
@@ -489,7 +489,7 @@ def _detect_long_dynamic(dyn_vs_static):
     return long_dyn_range
 
 
-@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._get_ranges')
+# @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._get_ranges')
 def _get_ranges(col_data, value, ret_length=False):
     """
     Function that determines the beginning and end indices of stretches of
@@ -543,26 +543,6 @@ def _get_ranges(col_data, value, ret_length=False):
         return ranges, length
     else:
         return ranges
-
-
-@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._filter_data')
-def _filter_data(x, filt='band', lowcut=.1, highcut=40, fs=100, order=4):
-    """
-    Forward-backward bandpass butterworth filter
-    defaults:
-        lowcut freq: 0.1
-        hicut freq: 20
-        sampling rage: 100hz
-        order: 4
-    """
-    nyq = 0.5 * fs
-    low = lowcut/nyq
-    high = highcut/nyq
-    if filt == 'low':
-        b, a = butter(order, high, btype='low', analog=False)
-    elif filt == 'band':
-        b, a = butter(order, [low, high], btype='band', analog=False)
-    return filtfilt(b, a, x, axis=0)
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._remove_filtered_ends')
