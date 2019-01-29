@@ -631,7 +631,7 @@ Resources:
                                                 }
                                             },
                                             "ResultPath": "$.TaskResult",
-                                            "Next": "Post"
+                                            "End": true
                                         }
                                     }
                                 },
