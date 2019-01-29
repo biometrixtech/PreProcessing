@@ -5,6 +5,9 @@ import os
 import logging
 import sys
 
+from aws_xray_sdk.core import xray_recorder, patch_all
+patch_all()
+
 from config import load_parameters
 from datastore import Datastore
 
@@ -13,6 +16,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
 
 
+@xray_recorder.capture('preprocessing.app.main')
 def main(script):
     if script == 'noop':
         _logger.info('Noop job')
