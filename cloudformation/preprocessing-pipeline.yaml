@@ -171,13 +171,23 @@ Resources:
             Type: "container"
             Parameters: { "Meta": "{}", "Input": "{}" }
             ContainerProperties:
-                Command: [ "Ref::Job", "Ref::Input", "Ref::Meta" ]
-                Memory: 512
-                Privileged: true
+                Command: [ "Ref::Job" ]
+                Environment:
+                  - { Name: "AWS_DEFAULT_REGION", Value: { Ref: "AWS::Region" } }
+                  - { Name: "ENVIRONMENT", Value: { Ref: "Environment" } }
+                Image: { Ref: "BatchJobImage" }
                 JobRoleArn: { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/preprocessing-${Environment}-execute-${AWS::Region}" }
+                Memory: 512
+                MountPoints:
+                  - SourceVolume: 'efs'
+                    ContainerPath: '/net/efs'
+                Privileged: true
                 ReadonlyRootFilesystem: false
                 Vcpus: 2
-                Image: { Ref: "BatchJobImage" }
+                Volumes:
+                  - Name: 'efs'
+                    Host:
+                        SourcePath: '/net/efs'
             JobDefinitionName: { "Fn::Sub": "preprocessing-${Environment}-batchjob" }
             RetryStrategy:
                 Attempts: 1

@@ -329,10 +329,10 @@ Resources:
                 IamInstanceProfile:
                     Name: { Ref: "Ec2InstanceStartupProfile" }
                 KeyName: { Ref: "Keypair" }
-                SecurityGroupIds:
-                  - { Ref: "Ec2SecurityGroup" }
-                  - { Ref: "EfsSecurityGroup" }
-                  - { Ref: "Ec2SecurityGroupInternalSsh" }
+#                SecurityGroupIds:
+#                  - { Ref: "Ec2SecurityGroup" }
+#                  - { Ref: "EfsSecurityGroup" }
+#                  - { Ref: "Ec2SecurityGroupInternalSsh" }
                 TagSpecifications:
                   - ResourceType: "instance"
                     Tags:
@@ -363,8 +363,8 @@ Resources:
                               - jq
 
                             runcmd:
-                              - mkdir -p /mnt/efs
-                              - echo "${EfsFileSystem}:/ /mnt/efs efs tls,_netdev" >> /etc/fstab
+                              - mkdir -p /net/efs
+                              - echo "${EfsFileSystem}:/ /net/efs efs tls,_netdev" >> /etc/fstab
                               - mount -a -t efs defaults
 
                             --==BOUNDARY==
@@ -405,7 +405,7 @@ Resources:
                 InstanceTypes: { Ref: "InstanceSize" }
                 LaunchTemplate:
                     LaunchTemplateId: { Ref: "LaunchTemplate" }
-                    LaunchTemplateVersion: { "Fn::GetAtt": [ "LaunchTemplate", "LatestVersionNumber" ] }
+                    Version: { "Fn::GetAtt": [ "LaunchTemplate", "LatestVersionNumber" ] }
                 MaxvCpus: 16
                 MinvCpus: 0
                 SecurityGroupIds:
@@ -417,12 +417,12 @@ Resources:
                     [ { Ref: "PrivateSubnetAlphaId" }, { Ref: "PrivateSubnetBetaId" } ],
                     [ { Ref: "PrivateSubnetAlphaId" } ]
                 ]}
-                Tags:
-                    Name: { "Fn::Sub": "preprocessing-${Environment}-compute" }
-                    Management: "managed"
-                    Project: "preprocessing"
-                    Environment: { Ref: "Environment" }
-                    Service: "batch"
+#                Tags:
+#                    Name: { "Fn::Sub": "preprocessing-${Environment}-compute" }
+#                    Management: "managed"
+#                    Project: "preprocessing"
+#                    Environment: { Ref: "Environment" }
+#                    Service: "batch"
                 Type: "EC2"
             ServiceRole: { "Fn::ImportValue": "ServiceRoleBatch" }
             State: "ENABLED"
