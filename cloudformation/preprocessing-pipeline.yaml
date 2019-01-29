@@ -281,50 +281,50 @@ Resources:
                     "States": {
                         "JobNames": {
                             "Type": "Task",
-                            "Resource": "${LambdaJobNames}",
+                            "Resource": "${LambdaJobNames.Arn}",
                             "InputPath": "$.SourceEvent.SessionId",
                             "ResultPath": "$._BatchJobNames",
                             "Next": "UpdateStatus0"
                         },
-                                        "UpdateStatus0": {
-                                            "Type": "Task",
-                                            "Resource": "arn:aws:states:::dynamodb:updateItem",
-                                            "Parameters": {
-                                                "TableName": "preprocessing-${Environment}-ingest-sessions",
-                                                "Key": {
-                                                    "id": { "S.$": "$.SourceEvent.SessionId" }
-                                                },
-                                                "AttributeUpdates": {
-                                                    "session_status": { "Action": "PUT", "Value": { "S": "PROCESSING_IN_PROGRESS" } }
-                                                },
-                                                "ReturnValues": "ALL_NEW"
-                                            },
+                        "UpdateStatus0": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::dynamodb:updateItem",
+                            "Parameters": {
+                                "TableName": "preprocessing-${Environment}-ingest-sessions",
+                                "Key": {
+                                    "id": { "S.$": "$.SourceEvent.SessionId" }
+                                },
+                                "AttributeUpdates": {
+                                    "session_status": { "Action": "PUT", "Value": { "S": "PROCESSING_IN_PROGRESS" } }
+                                },
+                                "ReturnValues": "ALL_NEW"
+                            },
                             "ResultPath": "$.ReadDatabase",
                             "Next": "DownloadAndChunk"
                         },
-                                        "DownloadAndChunk": {
-                                            "Type": "Task",
-                                            "Resource": "arn:aws:states:::batch:submitJob.sync",
-                                            "Parameters": {
-                                                "JobDefinition": "${BatchJobDefinition}",
-                                                "JobName.$": "$._BatchJobNames.downloadandchunk",
-                                                "JobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
-                                                "Parameters": {
-                                                    "Job": "downloadandchunk"
-                                                },
-                                                "ContainerOverrides": {
-                                                    "Memory": 2048,
-                                                    "Vcpus": 2,
-                                                    "Environment": [
-                                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                                        { "Name": "SFN_EXECUTION_NAME", "Value.$": "$.Meta.ExecutionName" },
-                                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                                        { "Name": "ENVIRONMENT", "Value": "dev" }
-                                                    ]
-                                                },
-                                                "RetryStrategy": {
-                                                    "Attempts": 2
-                                                }
+                        "DownloadAndChunk": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::batch:submitJob.sync",
+                            "Parameters": {
+                                "JobDefinition": "${BatchJobDefinition}",
+                                "JobName.$": "$._BatchJobNames.downloadandchunk",
+                                "JobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
+                                "Parameters": {
+                                    "Job": "downloadandchunk"
+                                },
+                                "ContainerOverrides": {
+                                    "Memory": 2048,
+                                    "Vcpus": 2,
+                                    "Environment": [
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
+                                        { "Name": "SFN_EXECUTION_NAME", "Value.$": "$.Meta.ExecutionName" },
+                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
+                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                    ]
+                                },
+                                "RetryStrategy": {
+                                    "Attempts": 2
+                                }
                            },
                             "Catch": [
                                 {
