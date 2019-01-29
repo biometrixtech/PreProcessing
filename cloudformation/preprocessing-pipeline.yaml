@@ -632,7 +632,7 @@ Resources:
                                             },
                                             "ResultPath": "$.TaskResult",
                                             "Next": "Post"
-                                        },
+                                        }
                                     }
                                 },
                                 {
