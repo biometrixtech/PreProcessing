@@ -7,6 +7,10 @@ import sys
 
 from aws_xray_sdk.core import xray_recorder, patch_all
 patch_all()
+xray_recorder.configure(
+    sampling=False,
+    context_missing='LOG_ERROR',
+)
 
 from config import load_parameters
 from datastore import Datastore
@@ -118,4 +122,5 @@ def main(script):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    with xray_recorder.begin_segment('preprocessing.app') as segment:
+        main(sys.argv[1])
