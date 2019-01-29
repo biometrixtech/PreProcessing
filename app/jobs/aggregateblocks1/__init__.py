@@ -1,3 +1,4 @@
+from aws_xray_sdk.core import xray_recorder
 from collections import OrderedDict
 import logging
 import pandas as pd
@@ -14,6 +15,7 @@ _logger = logging.getLogger()
 
 class Aggregateblocks1Job(Job):
 
+    @xray_recorder.capture('app.jobs.aggregateblocks1._run')
     def _run(self):
         data = self.datastore.get_data('scoring1')
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')

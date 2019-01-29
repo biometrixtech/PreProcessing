@@ -1,3 +1,4 @@
+from aws_xray_sdk.core import xray_recorder
 import boto3
 import hashlib
 import json
@@ -17,6 +18,7 @@ _s3_client = boto3.client('s3')
 
 class DownloadandchunkJob(Job):
 
+    @xray_recorder.capture('app.jobs.downloadandchunk._run')
     def _run(self):
         s3_files = self.datastore.get_metadatum('s3_files', None) or self.datastore.get_metadatum('s3Files')
         s3_files.remove('_empty')  # Placeholder list entry

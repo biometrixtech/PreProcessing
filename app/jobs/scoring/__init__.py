@@ -1,4 +1,5 @@
 from __future__ import print_function
+from aws_xray_sdk.core import xray_recorder
 import logging
 import numpy as np
 
@@ -86,6 +87,7 @@ _output_columns = [
 
 class ScoringJob(Job):
 
+    @xray_recorder.capture('app.jobs.scoring._run')
     def _run(self):
 
         data = self.datastore.get_data(('sessionprocess', '*'))

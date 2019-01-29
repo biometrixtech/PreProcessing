@@ -20,7 +20,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
 
 
-@xray_recorder.capture('preprocessing.app.main')
+@xray_recorder.capture('app.main')
 def main(script):
     if script == 'noop':
         _logger.info('Noop job')
@@ -122,5 +122,6 @@ def main(script):
 
 
 if __name__ == '__main__':
-    with xray_recorder.in_segment('preprocessing.app') as segment:
+    with xray_recorder.in_segment('preprocessing.{}.app'.format(os.environ.get('ENVIRONMENT', None))) as segment:
+        segment.put_annotation('environment', os.environ.get('ENVIRONMENT', None))
         main(sys.argv[1])

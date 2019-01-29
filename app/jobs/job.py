@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from aws_xray_sdk.core import xray_recorder
 import boto3
 import datetime
 import logging
@@ -34,6 +35,7 @@ class Job:
     def _run(self):
         raise NotImplementedError
 
+    @xray_recorder.capture('app.job.put_cloudwatch_metric')
     def put_cloudwatch_metric(self, metric_name, value, unit):
         try:
             _cloudwatch_client.put_metric_data(

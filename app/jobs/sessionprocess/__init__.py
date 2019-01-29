@@ -1,3 +1,4 @@
+from aws_xray_sdk.core import xray_recorder
 from keras.models import load_model
 import boto3
 import logging
@@ -14,6 +15,7 @@ _s3_client = boto3.client('s3')
 
 class SessionprocessJob(Job):
 
+    @xray_recorder.capture('app.jobs.sessionprocess._run')
     def _run(self):
 
         _logger.info("STARTED PROCESSING!")

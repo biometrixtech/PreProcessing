@@ -1,3 +1,4 @@
+from aws_xray_sdk.core import xray_recorder
 from boto3.dynamodb.conditions import Key
 from io import StringIO
 from shutil import copyfile, rmtree
@@ -31,6 +32,7 @@ class Datastore:
         if not os.path.isdir('/net/efs/preprocessing'):
             raise Exception("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
 
+    @xray_recorder.capture('app.datastore.get_metadatum')
     def get_metadatum(self, datum, default=NotImplemented):
         if self._metadata is None:
             self._load_metadata_from_ddb()
@@ -46,6 +48,7 @@ class Datastore:
     def put_metadatum(self, datum, value):
         self.put_metadata({datum: value})
 
+    @xray_recorder.capture('app.datastore.put_metadata')
     def put_metadata(self, data):
         upsert = DynamodbUpdate()
         for key, value in data.items():
@@ -70,6 +73,7 @@ class Datastore:
             ExpressionAttributeValues=upsert.parameter_values
         )
 
+    @xray_recorder.capture('app.datastore._load_metadata_from_ddb')
     def _load_metadata_from_ddb(self):
         ret = _ddb_table.query(
             Select='ALL_ATTRIBUTES',
@@ -86,6 +90,7 @@ class Datastore:
         'scoring': ('combined', 'csv'),
     }
 
+    @xray_recorder.capture('app.datastore.get_data')
     def get_data(self, source_job, columns=None):
         """
         Get the data from a particular job
@@ -105,6 +110,7 @@ class Datastore:
 
         return data
 
+    @xray_recorder.capture('app.datastore.put_data')
     def put_data(self, source_job, data, columns=None, chunk_size=0, is_binary=False):
         if isinstance(source_job, tuple):
             source_job, part_number = source_job
@@ -150,6 +156,7 @@ class Datastore:
             _logger.debug('Copying {} to {}'.format(tmp_filename, output_filename))
             shutil.copyfile(tmp_filename, output_filename)
 
+    @xray_recorder.capture('app.datastore.delete_data')
     def delete_data(self):
         """
         Delete all stored data files
@@ -157,6 +164,7 @@ class Datastore:
         """
         shutil.rmtree(self.working_directory)
 
+    @xray_recorder.capture('app.datastore._read_single_csv')
     def _read_single_csv(self, source_job, part_number=None, columns=None):
         """
         Read a single CSV file with pandas.  Copy the file to the local filesystem first,
@@ -180,6 +188,7 @@ class Datastore:
 
         return data
 
+    @xray_recorder.capture('app.datastore._read_multipel_csv')
     def _read_multiple_csv(self, source_job, columns=None):
         """
         Read multiple CSV files together.  We do this by loading each CSV file into memory,
