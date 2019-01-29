@@ -54,7 +54,7 @@ _input_columns = [
 ]
 
 
-class AggregateBlocksJob(Job):
+class AggregateblocksJob(Job):
 
     def _run(self):
 

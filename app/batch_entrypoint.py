@@ -93,6 +93,18 @@ def main(script):
         from jobs.scoring1 import Scoring1Job
         Scoring1Job(datastore).run()
 
+    elif script == 'aggregateblocks1':
+        load_parameters([
+            'MONGO_HOST',
+            'MONGO_USER',
+            'MONGO_PASSWORD',
+            'MONGO_DATABASE',
+            'MONGO_REPLICASET',
+            'MONGO_COLLECTION_ACTIVEBLOCKS',
+        ], 'mongo')
+        from jobs.aggregateblocks1 import Aggregateblocks1Job
+        Aggregateblocks1Job(datastore).run()
+
     # elif script == 'sessionprocess1':
     #     load_parameters(['MS_MODEL',
     #                      'LF_MS_MODEL',
