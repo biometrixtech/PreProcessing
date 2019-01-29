@@ -15,7 +15,7 @@ _logger = logging.getLogger()
 class Aggregateblocks1Job(Job):
 
     def _run(self):
-        data = self.datastore.get_data('scoring')
+        data = self.datastore.get_data('scoring1')
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
 
         user_mass = float(self.datastore.get_metadatum('user_mass', None))
