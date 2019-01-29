@@ -20,7 +20,7 @@ _output_columns = [
 ]
 
 
-class ScoringJob(Job):
+class Scoring1Job(Job):
 
     def _run(self):
 
