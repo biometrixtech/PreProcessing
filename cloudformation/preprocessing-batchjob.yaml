@@ -53,6 +53,7 @@ Resources:
         Type: "AWS::ECR::Repository"
         Properties:
             RepositoryName: { "Fn::Sub": "preprocessing/batchjob" }
+            # TODO tags are supported, but not implemented in CF yet
 
     ##########################################################################################################
     ##  IAM
@@ -102,6 +103,7 @@ Resources:
                   - { Name: "AWS_DEFAULT_REGION", Value: { Ref: "AWS::Region" } }
                   - { Name: "ECR_REGISTRY", Value: { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com" } }
                   - { Name: "ECR_REPOSITORY", Value: { Ref: "EcrRepository" } }
+                  - { Name: "CACHE_VERSION", Value: "76a7570e0667109f43b269bee1c7f1889111fb1e" }  # TODO configurable
             TimeoutInMinutes: 30
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-batchjob" } }
@@ -114,28 +116,23 @@ Resources:
                 BuildSpec: |
                     version: 0.2
                     phases:
-                        install:
-                            commands:
-                                # Upgrade AWS CLI
-                              - pip install --upgrade --user awscli
-                              - aws --version
-
                         pre_build:
                             commands:
                               - GIT_COMMIT=$(git rev-parse $CODEBUILD_SOURCE_VERSION)
                               - IMAGE_NAME=$ECR_REGISTRY/$ECR_REPOSITORY:$GIT_COMMIT
 
                                 # Log in to the registry
-                              - $(aws ecr get-login --region $AWS_DEFAULT_REGION)
+                              - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+
+                              - docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$CACHE_VERSION
 
                         build:
                             commands:
                                 # Build the docker image
-                              - docker build -f docker/preprocessing.docker -t $IMAGE_NAME .
+                              - docker build -f docker/preprocessing.docker --cache-from $ECR_REGISTRY/$ECR_REPOSITORY:$CACHE_VERSION -t $IMAGE_NAME .
 
                         post_build:
                             commands:
-
                                 # Push the image to the docker registry
                               - docker push $IMAGE_NAME
 
