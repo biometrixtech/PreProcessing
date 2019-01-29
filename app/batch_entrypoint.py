@@ -122,5 +122,5 @@ def main(script):
 
 
 if __name__ == '__main__':
-    with xray_recorder.begin_segment('preprocessing.app') as segment:
+    with xray_recorder.in_segment('preprocessing.app') as segment:
         main(sys.argv[1])
