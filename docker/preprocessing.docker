@@ -12,8 +12,6 @@ RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repos
     && apk add --no-cache \
         # Provides the non-busybox version of `split` and `csplit` which have more functionality
         coreutils \
-        # Allows mounting NFS directories
-        nfs-utils \
         # Needed for operation of h5py / Keras
         hdf5 \
 #
@@ -30,6 +28,9 @@ RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repos
 RUN pip install --upgrade --no-cache-dir --compile pip
 RUN CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
     pip install --upgrade --no-cache-dir --compile --global-option=build_ext \
+        aws_xray_sdk==2.3.0 \
+            jsonpickle==1.1 \
+            wrapt==1.11.1 \
         boto3==1.9.2 \
             botocore==1.12.82 \
                 docutils==0.14 \
