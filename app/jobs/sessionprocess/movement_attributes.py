@@ -4,11 +4,12 @@ Created on Tue Dec 05 14:40:57 201
 
 @author: court
 """
-
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import copy
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes.plane_analysis')
 def plane_analysis(hip_acc, hip_eul, ms_elapsed):
     """Define planes in which movement is occurring at a point in time.
     
@@ -92,6 +93,7 @@ def plane_analysis(hip_acc, hip_eul, ms_elapsed):
     return lat, vert, horz, rot, lat_binary, vert_binary, horz_binary, rot_binary, stationary_binary, accel_mag.reshape(-1, 1)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes.run_stance_analysis')
 def run_stance_analysis(data):
     """Determine the subject's stance.
     
@@ -110,7 +112,6 @@ def run_stance_analysis(data):
             [7] Double impact
             [8] Single takeoff
             [9] Double takeoff
-        
     """
 
     # get eul data, hz, hip acc, phases from data frame
@@ -170,8 +171,10 @@ def run_stance_analysis(data):
     return stance
     
 
+@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes.standing_or_not')
 def standing_or_not(hip_eul, hz):
-    """Determine when the subject is standing or not.
+    """
+    Determine when the subject is standing or not.
     
     Args:
         hip_eul: body frame euler angle position data at hip        
@@ -243,6 +246,7 @@ def standing_or_not(hip_eul, hz):
     return standing, not_standing
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes.sort_phases')
 def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
     """
     Function to identify true stances according to user's position and motion.
@@ -489,6 +493,7 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
 
 # helper functions
 
+@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes._num_runs')
 def _num_runs(arr, num):
     """
     Function that determines the beginning and end indices of stretches of
@@ -528,6 +533,7 @@ def _num_runs(arr, num):
     return ranges
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes._zero_runs')
 def _zero_runs(col_dat, static):
     """
     Determine the start and end of each impact.
@@ -561,6 +567,7 @@ def _zero_runs(col_dat, static):
     return ranges, length
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes.total_accel')
 def total_accel(hip_acc_aif):
     """Take magnitude of acceleration at each point in time.
 
@@ -577,6 +584,7 @@ def total_accel(hip_acc_aif):
     return accel_mag
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes.enumerate_stance')
 def enumerate_stance(left_dyn_balance, right_dyn_balance, double_dyn_balance,
                      left_stat_balance, right_stat_balance, double_stat_balance,
                      left_impact, right_impact, double_impact, left_takeoff, right_takeoff,

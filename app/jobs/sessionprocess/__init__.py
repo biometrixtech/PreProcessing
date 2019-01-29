@@ -58,6 +58,7 @@ class SessionprocessJob(Job):
 
         _logger.info('Outcome: Success!')
 
+    @xray_recorder.capture('app.jobs.sessionprocess._flag_data_quality')
     def _flag_data_quality(self, data):
         big_jump = 30
         baseline_az = np.nanmean(data.loc[0:100, ['acc_lf_z', 'acc_hip_z', 'acc_rf_z']], axis=0).reshape(1, 3)
@@ -78,6 +79,7 @@ class SessionprocessJob(Job):
                 self._send_notification(accel_error_count)
                 break
 
+    @xray_recorder.capture('app.jobs.sessionprocess._send_notification')
     def _send_notification(self, accel_error_count):
         message = 'Possible acceleration issue with file: {} with {} instances of possible jumps'.format(
             self.datastore.session_id,
@@ -93,12 +95,14 @@ class SessionprocessJob(Job):
         sns_client.publish(TopicArn=sns_topic, Message=message, Subject=subject)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess._load_model')
 def _load_model(model):
     path = os.path.join('/net/efs/globalmodels', model)
     _logger.info("Loading model from {}".format(path))
     return load_model(str(path))
 
 
+@xray_recorder.capture('app.jobs.sessionprocess._load_scaler')
 def _load_scaler(model):
     path = os.path.join('/net/efs/globalscalers', model)
     _logger.info("Loading scaler from {}".format(path))

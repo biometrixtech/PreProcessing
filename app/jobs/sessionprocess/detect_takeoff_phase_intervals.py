@@ -4,10 +4,11 @@ Created on Tue Feb  7 16:14:03 2017
 
 @author: ankurmanikandan
 """
-
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.detect_takeoff_phase_intervals.detect_start_end_takeoff_phase')
 def detect_start_end_takeoff_phase(lph, rph):
     """
     Detect impact phase for left and right foot.
@@ -41,7 +42,8 @@ def detect_start_end_takeoff_phase(lph, rph):
     
     return lf_takeoff_start_stop.reshape(-1, 1), rf_takeoff_start_stop.reshape(-1, 1), lf_range_takeoff, rf_range_takeoff
 
-    
+
+@xray_recorder.capture('app.jobs.sessionprocess.detect_takeoff_phase_intervals._zero_runs')
 def _zero_runs(col_dat, takeoff_value):
     """
     Determine the start and end of each impact.

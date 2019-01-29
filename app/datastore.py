@@ -188,7 +188,7 @@ class Datastore:
 
         return data
 
-    @xray_recorder.capture('app.datastore._read_multipel_csv')
+    @xray_recorder.capture('app.datastore._read_multiple_csv')
     def _read_multiple_csv(self, source_job, columns=None):
         """
         Read multiple CSV files together.  We do this by loading each CSV file into memory,

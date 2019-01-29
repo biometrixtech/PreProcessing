@@ -1,3 +1,4 @@
+from aws_xray_sdk.core import xray_recorder
 import boto3
 import copy
 import logging
@@ -17,6 +18,7 @@ _s3_client = boto3.client('s3')
 
 class TransformandplacementJob(Job):
 
+    @xray_recorder.capture('app.jobs.transformandplacement._run')
     def _run(self):
         data = self.datastore.get_data('downloadandchunk')
 

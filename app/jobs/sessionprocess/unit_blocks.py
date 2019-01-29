@@ -1,8 +1,10 @@
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 
 from scipy.signal import butter, filtfilt
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.unit_blocks.define_unit_blocks')
 def define_unit_blocks(accel):
     # filter acceleration data
     accel = _filter_data(accel.values.reshape(-1,), cutoff=6)
@@ -31,6 +33,7 @@ def define_unit_blocks(accel):
     return active.astype(int).reshape(-1, 1)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.unit_blocks._zero_runs')
 def _zero_runs(col_dat, value):
     """
     Determine the start and end of each impact.
@@ -63,6 +66,7 @@ def _zero_runs(col_dat, value):
     return ranges, length
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.unit_blocks._filter_data')
 def _filter_data(x, cutoff=12, fs=100, order=4):
     """forward-backward lowpass butterworth filter
     defaults:

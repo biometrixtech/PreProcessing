@@ -6,12 +6,13 @@ Created on Fri Oct 14 11:57:32 2016
 """
 
 from __future__ import division
-
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, filtfilt
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.prep_grf_data.prepare_data')
 def prepare_data(data_in, scaler_model, user_mass, is_single_leg=False):
     """Subsets and transforms the training data as well as define features
     to be used
@@ -140,6 +141,7 @@ def prepare_data(data_in, scaler_model, user_mass, is_single_leg=False):
     return x, nan_row
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.prep_grf_data._filter_data')
 def _filter_data(x, cutoff=6, fs=100, order=4):
     """forward-backward lowpass butterworth filter
     defaults:

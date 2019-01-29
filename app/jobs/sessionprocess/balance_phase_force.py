@@ -4,10 +4,11 @@ Created on Fri Dec 08 19:59:10 2017
 
 @author: Administrator
 """
-
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.balance_phase_force.calculate_balance_phase_force')
 def calculate_balance_phase_force(data):
     accel_mag = np.sqrt(data.acc_hip_x**2 + data.acc_hip_y**2 + data.acc_hip_z**2)
     balance = np.array((data.phase_lf == 0) | data.phase_rf == 0).reshape(-1,)
@@ -50,6 +51,7 @@ def calculate_balance_phase_force(data):
     return magn_grf
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.balance_phase_force._zero_runs')
 def _zero_runs(col_dat, bal_value):
     """
     Determine the start and end of each impact.

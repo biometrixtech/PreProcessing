@@ -4,15 +4,15 @@ Created on Wed Jun 22 12:11:52 2016
 
 @author: Ankur
 """
-
+from aws_xray_sdk.core import xray_recorder
 import logging
-
 import numpy as np
 
 
 logger = logging.getLogger()
     
-    
+
+@xray_recorder.capture('app.jobs.sessionprocess.impact_cme.sync_time')
 def sync_time(rf_start, lf_start, sampl_rate):
     """
     Determine the land time on impact for right and left feet.
@@ -62,6 +62,7 @@ def sync_time(rf_start, lf_start, sampl_rate):
     return np.array(diff).reshape(-1, 1), np.array(ltime_index).reshape(-1, 1), np.array(lf_rf_imp_indicator).reshape(-1, 1)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.impact_cme.landing_pattern')
 def landing_pattern(rf_euly, lf_euly, land_time_index, l_r_imp_ind, sampl_rate,
                     land_time):
     
@@ -94,6 +95,7 @@ def landing_pattern(rf_euly, lf_euly, land_time_index, l_r_imp_ind, sampl_rate,
     return np.array(out_pattern).reshape(-1, 2)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.impact_cme.continuous_values')
 def continuous_values(land_pattern, land_time, data_length, landtime_index):
     
     """Make the length of land time and land pattern variables the same

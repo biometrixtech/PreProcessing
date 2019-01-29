@@ -22,9 +22,12 @@ class Job:
     def name(self):
         return self.__class__.__name__.lower().replace('job', '')
 
+    @xray_recorder.capture('app.job.run')
     def run(self):
         _logger.info('Running job {} on session {}'.format(self.name, self.datastore.session_id))
         try:
+            xray_recorder.current_segment().put_annotation('batchjob', self.name)
+            xray_recorder.current_segment().put_annotation('session_id', self.datastore.session_id)
             self._run()
         except Exception as e:
             _logger.error(e)

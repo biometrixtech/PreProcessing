@@ -4,12 +4,13 @@ Created on Tue Nov 28 15:16:08 2017
 
 @author: court
 """
-
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import copy
 from scipy.signal import butter, filtfilt
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes.run_relative_cmes')
 def run_relative_cmes(data):
     """
     Function that takes a (nxm) data frame and returns an (nx(m+p)) data frame
@@ -276,6 +277,7 @@ def run_relative_cmes(data):
     return data
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._drift_agnostic_cmes')
 def _drift_agnostic_cmes(cme, data_range, stance):
     """
     Function that calculates CME values for which drift is deemed to be
@@ -299,6 +301,7 @@ def _drift_agnostic_cmes(cme, data_range, stance):
     return cme
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._driftless_cmes')
 def _driftless_cmes(data, ranges, ms_elapsed, mot_cov_abs, mot_cov_pos, mot_cov_neg, range_mot):
     """
     Function that calculates CME values after drift affects have been removed
@@ -332,6 +335,7 @@ def _driftless_cmes(data, ranges, ms_elapsed, mot_cov_abs, mot_cov_pos, mot_cov_
     return mot_cov_abs, mot_cov_pos, mot_cov_neg, range_mot
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._norm_range_of_motion')
 def _norm_range_of_motion(data, time):
     """
     Function that returns the range of euler angles moved through in the
@@ -370,6 +374,7 @@ def _norm_range_of_motion(data, time):
         return mot_range * 1000  # 1000 multiplier puts in units of seconds
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._norm_motion_covered')
 def _norm_motion_covered(data, time, cme):
     """
     Function that returns the total euler angles moved through in the
@@ -412,6 +417,7 @@ def _norm_motion_covered(data, time, cme):
         return mot * 1000  # 1000 multiplier puts in units of seconds
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._rough_contact_duration')
 def _rough_contact_duration(stance):
     """
     Function that divides the window of stance into contact vs. non-contact
@@ -457,6 +463,7 @@ def _rough_contact_duration(stance):
     return contact / 1000.  # 1000 divisor puts in units of seconds
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._detect_long_dynamic')
 def _detect_long_dynamic(dyn_vs_static):
     """
     Determine if the data is corrupt because of drift or short switch from dynamic to static algorithm
@@ -482,6 +489,7 @@ def _detect_long_dynamic(dyn_vs_static):
     return long_dyn_range
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._get_ranges')
 def _get_ranges(col_data, value, ret_length=False):
     """
     Function that determines the beginning and end indices of stretches of
@@ -537,6 +545,7 @@ def _get_ranges(col_data, value, ret_length=False):
         return ranges
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._filter_data')
 def _filter_data(x, filt='band', lowcut=.1, highcut=40, fs=100, order=4):
     """
     Forward-backward bandpass butterworth filter
@@ -556,6 +565,7 @@ def _filter_data(x, filt='band', lowcut=.1, highcut=40, fs=100, order=4):
     return filtfilt(b, a, x, axis=0)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._remove_filtered_ends')
 def _remove_filtered_ends(data_range, dyn_range):
     """
     Function that takes in arrays containing ranges of data corresponding

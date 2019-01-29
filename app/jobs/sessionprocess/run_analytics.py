@@ -11,16 +11,14 @@ Input data called from 'biometrix-blockcontainer'
 
 Output data collected in BlockEvent Table.
 """
-
+from aws_xray_sdk.core import xray_recorder
 from scipy.signal import butter, filtfilt
 import copy
 import logging
 import numpy as np
-import pandas as pd
 
 from .balance_cme import calculate_rot_cmes, calculate_rot_cmes_v1
 from .balance_phase_force import calculate_balance_phase_force
-from .data_object import RawFrame
 from .detect_impact_phase_intervals import detect_start_end_impact_phase
 from .detect_takeoff_phase_intervals import detect_start_end_takeoff_phase
 from .extract_geometry import extract_geometry
@@ -72,6 +70,7 @@ _output_columns = [
 ]
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.run_session')
 def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, sc, sc_single_leg, hip_n_transform):
     """Creates object attributes according to session analysis process.
 
@@ -392,6 +391,7 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
     return scoring_data
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.update_stance')
 def update_stance(data):
     length_lf, range_lf = _contact_duration(data.phase_lf.values,
                                             data.active.values,
@@ -477,6 +477,7 @@ def update_stance(data):
     return data
 
 
+@xray_recorder.capture('app.jobs.sessionprocess._contact_duration')
 def _contact_duration(phase, active, epoch_time, ground_phases):
     """compute contact duration in ms given phase data
     """
@@ -501,6 +502,7 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     return length, ranges
 
 
+@xray_recorder.capture('app.jobs.sessionprocess._get_ranges')
 def _get_ranges(col_data, value):
     """
     For a given categorical data, determine start and end index for the given value
@@ -540,8 +542,10 @@ def _get_ranges(col_data, value):
     return ranges
 
 
+@xray_recorder.capture('app.jobs.sessionprocess._filter_data')
 def _filter_data(x, cutoff=12, fs=100, order=4):
-    """forward-backward lowpass butterworth filter
+    """
+    Forward-backward lowpass butterworth filter
     defaults:
         cutoff freq: 12hz
         sampling rage: 100hz
@@ -552,6 +556,7 @@ def _filter_data(x, cutoff=12, fs=100, order=4):
     return filtfilt(b, a, x, axis=0)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess._calculate_hip_neutral')
 def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
     # Transform Data into Neutral Versions, for balanceCME Calculations
 
@@ -585,6 +590,7 @@ def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
     return lf_neutral, hip_neutral, rf_neutral
 
 
+@xray_recorder.capture('app.jobs.sessionprocess._zero_runs')
 def _zero_runs(col_dat, static):
     """
     Determine the start and end of each impact.

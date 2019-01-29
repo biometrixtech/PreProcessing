@@ -4,10 +4,11 @@ Created on Wed Dec 21 08:01:53 2016
 
 @author: ankurmanikandan
 """
-
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.rate_of_force_absorption.detect_rate_of_force_absorption')
 def detect_rate_of_force_absorption(lf_imp, rf_imp, grf, phase_lf, phase_rf, stance, hz):
     """
     Determine rate of force absorption.
@@ -56,6 +57,7 @@ def detect_rate_of_force_absorption(lf_imp, rf_imp, grf, phase_lf, phase_rf, sta
     return lf_rofa, rf_rofa
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.rate_of_force_absorption._det_lf_rf_rofa')
 def _det_lf_rf_rofa(grf, s_imp, e_imp, stance, hz):
     """
     Determine rate of force absorption.

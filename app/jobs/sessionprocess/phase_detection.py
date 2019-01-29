@@ -4,7 +4,7 @@ Created on Mon Dec 12 10:02:11 2016
 
 @author: ankurmanikandan
 """
-
+from aws_xray_sdk.core import xray_recorder
 from enum import Enum
 import logging
 import copy
@@ -28,6 +28,7 @@ class phase_id(Enum):
     takeoff = 3  # when the foot is taking off from the ground (from impact or balance)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection.combine_phase')
 def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
     """
     Combines balance, foot in the air and impact phases for left and 
@@ -125,6 +126,7 @@ def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
     return lf_ph, rf_ph
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._body_phase')
 def _body_phase(raz, laz, hz):
     """
     Combining phases of both left and right feet.
@@ -186,6 +188,7 @@ def _body_phase(raz, laz, hz):
     return np.array(l), np.array(r), sm_l, em_l, sm_r, em_r
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._phase_detect')
 def _phase_detect(acc, hz):
     """
     Detect when foot is on the ground vs. when foot is in the air
@@ -239,6 +242,7 @@ def _phase_detect(acc, hz):
     return bal_phase
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._impact_detect')
 def _impact_detect(start_move, end_move, az, pitch, hz):
     """
     Detect when impact occurs.
@@ -369,6 +373,7 @@ def _impact_detect(start_move, end_move, az, pitch, hz):
     return np.array(imp)    
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._final_phases')
 def _final_phases(rf_ph, lf_ph):
     """
     Determine the final phases of right and left feet.
@@ -394,6 +399,7 @@ def _final_phases(rf_ph, lf_ph):
     return lf_ph, rf_ph
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._filter_data')
 def _filter_data(x, filt='band', lowcut=0.1, highcut=40, fs=100, order=4):
     """forward-backward bandpass butterworth filter
     defaults:
@@ -411,6 +417,7 @@ def _filter_data(x, filt='band', lowcut=0.1, highcut=40, fs=100, order=4):
     return filtfilt(b, a, x, axis=0)
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._update_phase_grf')
 def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
     """
     Inputs:
@@ -581,6 +588,7 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
     return grf, phase_lf, phase_rf
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._detect_takeoff')
 def _detect_takeoff(phase):
     imp_range, imp_len = _zero_runs(col_dat=phase, static=2)
     phase_copy = copy.copy(phase).values.reshape(-1,)
@@ -607,6 +615,7 @@ def _detect_takeoff(phase):
     return phase
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._assign_right_left')
 def _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range):
     # for left foot
     ground_lf = np.where(grf_lf == 1)[0]
@@ -677,6 +686,7 @@ def _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range):
         phase_rf[_range[0]:_range[1]] = 1
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.phase_detection._zero_runs')
 def _zero_runs(col_dat, static):
     """
     Determine the start and end of each impact.

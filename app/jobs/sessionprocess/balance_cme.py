@@ -4,12 +4,13 @@ Created on Fri Oct 14 05:34:54 2016
 
 @author: court
 """
-
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import utils.quaternion_operations as qo
 import utils.quaternion_conversions as qc
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.balance_cme.calculate_rot_cmes')
 def calculate_rot_cmes(lf_eul, hip_eul, rf_eul, phase_lf, phase_rf):
     """
     Calculates the offset of an athlete from a "neutral" position.
@@ -86,6 +87,7 @@ def calculate_rot_cmes(lf_eul, hip_eul, rf_eul, phase_lf, phase_rf):
         foot_position_lf, foot_position_rf
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.balance_cme._cont_rot_cme')
 def _cont_rot_cme(data, state, states, neutral):
     """
     Calculates the rotation of a body from its "neutral" position.
@@ -114,6 +116,7 @@ def _cont_rot_cme(data, state, states, neutral):
     return comparison
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.balance_cme._filt_rot_cme')
 def _filt_rot_cme(data, state, states):
     """
     Calculates the rotation of a body from its "neutral" position.
@@ -135,6 +138,7 @@ def _filt_rot_cme(data, state, states):
     return result
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.balance_cme.calculate_rot_cmes_v1')
 def calculate_rot_cmes_v1(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, rf_neutral, phase_lf, phase_rf):
     """
     Calculates the offset of an athlete from a "neutral" position, from version 1 data

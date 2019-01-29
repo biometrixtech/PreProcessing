@@ -4,11 +4,12 @@ Created on Thu Nov 16 12:00:29 2017
 
 @author: court
 """
-
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import utils.quaternion_operations as qo
 
 
+@xray_recorder.capture('app.jobs.sessionprocess.detect_geometry.extract_geometry')
 def extract_geometry(qL, qH, qR):
     """
     Function to interpret quaternion data geometrically.
