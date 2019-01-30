@@ -426,7 +426,7 @@ def _run_symmetry(left, right, symmetry_scores):
     return symmetry_scores
 
 
-@xray_recorder.capture('app.jobs.scoring._run_consistency')
+# @xray_recorder.capture('app.jobs.scoring._run_consistency')
 def _run_consistency(dist, consistency_scores, double=False):
     """
     Compute symmetry score for the given left, right CME pair and append to the numpy array
