@@ -6,15 +6,15 @@ Created on Wed Oct 12 11:16:55 2016
 """
 
 from __future__ import division
-import logging
-
-import copy
-import numpy as np
-import pandas as pd
-
+from aws_xray_sdk.core import xray_recorder
 from scipy.interpolate import UnivariateSpline
 from sklearn.neighbors.kde import KernelDensity as kde
 from sklearn import mixture
+import copy
+import logging
+import numpy as np
+import pandas as pd
+
 
 logger = logging.getLogger()
 
@@ -29,6 +29,7 @@ Outputs: Input data frame with Consistency and symmetry scores, destructive mult
 """
 
 
+@xray_recorder.capture('app.jobs.scoring.score')
 def score(data, grf_scale):
     """
     Average consistency, symmetry, control scores at sensor level,
@@ -104,6 +105,7 @@ def score(data, grf_scale):
     return data
 
 
+@xray_recorder.capture('app.jobs.scoring._score_subset')
 def _score_subset(data, data_sub, cme_to_use):
     """
     Run consistency and symmetry scoring on the subset of data and insert the respective scores
@@ -130,6 +132,7 @@ def _score_subset(data, data_sub, cme_to_use):
     data.loc[data_sub.index, 'consistency_rf'] = cons_rf
 
 
+@xray_recorder.capture('app.jobs.scoring._categorize_data')
 def _categorize_data(data):
     """
     Categorize and enumerate data based on phase2 categorization
@@ -177,6 +180,7 @@ def _categorize_data(data):
     return data
 
 
+@xray_recorder.capture('app.jobs.scoring._ankle')
 def _ankle(data, cme):
     """
     Calculates consistency and symmetry score for each ankle features and
@@ -298,6 +302,7 @@ def _ankle(data, cme):
     return ankle_symmetry, consistency_lf, consistency_rf, ankle_consistency
 
 
+@xray_recorder.capture('app.jobs.scoring._hip')
 def _hip(data, cme):
     """
     Calculates consistency and symmetry score for each hip features and averages the score
@@ -386,6 +391,7 @@ def _hip(data, cme):
     return hip_symmetry, hip_consistency
 
 
+@xray_recorder.capture('app.jobs.scoring._run_symmetry')
 def _run_symmetry(left, right, symmetry_scores):
     """
     Compute symmetry score for the given left, right CME pair and append to the numpy array
@@ -420,6 +426,7 @@ def _run_symmetry(left, right, symmetry_scores):
     return symmetry_scores
 
 
+@xray_recorder.capture('app.jobs.scoring._run_consistency')
 def _run_consistency(dist, consistency_scores, double=False):
     """
     Compute symmetry score for the given left, right CME pair and append to the numpy array
@@ -439,6 +446,7 @@ def _run_consistency(dist, consistency_scores, double=False):
     return consistency_scores
 
 
+@xray_recorder.capture('app.jobs.scoring._symmetry_score')
 def _symmetry_score(dist_l, dist_r, kernel):
     """
     Calculates symmetry score for each point of the two distribution
@@ -496,6 +504,7 @@ def _symmetry_score(dist_l, dist_r, kernel):
     return left_score_fn, right_score_fn
 
 
+@xray_recorder.capture('app.jobs.scoring._con_fun')
 def _con_fun(dist, double=False):
     """
     Creates consistency score for individual points and create an

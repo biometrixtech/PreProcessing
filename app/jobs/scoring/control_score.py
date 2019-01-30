@@ -5,10 +5,12 @@ Created on Mon Oct 10 12:34:44 2016
 @author: Gautam
 """
 from __future__ import division
+from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import pandas as pd
 
 
+@xray_recorder.capture('app.jobs.scoring.control_score.control_score')
 def control_score(eul_lf_x, euler_hip_x, eul_rf_x, phase_lf, phase_rf):
     """Calculates instantaneous control scores
     Scoring is based on standard deviation of euler angle (x) within a certian
