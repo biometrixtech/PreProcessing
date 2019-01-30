@@ -1,4 +1,4 @@
-FROM alectolytic/scipy:latest
+FROM alpine:3.8
 
 # Set up users and directories
 USER root
@@ -6,27 +6,39 @@ RUN [ -d /net ] || mkdir /net /net/efs
 WORKDIR /opt/biometrix/preprocessing
 
 # Install packages
-RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
-    && echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
-    && apk update \
-    && apk add --no-cache \
+#RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+#    && echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+RUN apk update \
+    && apk add --no-cache --virtual .runtime-deps \
         # Provides the non-busybox version of `split` and `csplit` which have more functionality
         coreutils \
-        # Needed for operation of h5py / Keras
-        hdf5 \
+        # Python, obviously
+        python py-pip \
+        # Needed for operation of scipy
+        freetype libgcc libpng libgfortran libstdc++ musl openblas tcl tk \
 #
-    # Build dependencies, will remove later
+    # General build dependencies, will remove later
     && apk add --no-cache --virtual .build-deps \
         # For general building
         build-base \
-        # For building h5py
         python2-dev \
+        gfortran \
+        # For scipy
+        freetype-dev \
+        openblas-dev \
+        pkgconfig \
 #
     # For building h5py
-    && apk add --no-cache --virtual .build-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5-dev
-
-RUN pip install --upgrade --no-cache-dir --compile pip
-RUN CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
+    && apk add --no-cache --virtual .build-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5-dev \
+    # For operation of Keras
+    && apk add --no-cache --virtual .runtime-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/community/ hdf5 \
+#
+    && pip install --upgrade --no-cache-dir --compile pip \
+    && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
+        pip install --no-cache-dir numpy==1.16.0 \
+    && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
+        pip install --no-cache-dir scipy==1.2.0 \
+    && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
     pip install --upgrade --no-cache-dir --compile --global-option=build_ext \
         aws_xray_sdk==2.3.0 \
             jsonpickle==1.1 \
@@ -50,10 +62,10 @@ RUN CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" 
             pytz==2018.9 \
         futures==3.1.1 \
         enum34==1.1.6 \
-        scikit-learn==0.20.2
-
-# Remove build dependencies, and clean up stuff
-RUN apk del .build-deps && rm -rf /root/.cache
+        scikit-learn==0.20.2 \
+#
+    # Remove build dependencies, and clean up stuff
+    && apk del .build-deps && rm -rf /root/.cache
 
 # Set up entrypoint
 COPY ./docker/entrypoint.sh .

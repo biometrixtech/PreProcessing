@@ -75,9 +75,9 @@ def euler_to_quat(euler_data):
     """
 
     # isolate roll, pitch, and yaw
-    roll = euler_data[:, 0]
-    pitch = euler_data[:, 1]
-    yaw = euler_data[:, 2]
+    roll = euler_data[:, 0].astype(float)
+    pitch = euler_data[:, 1].astype(float)
+    yaw = euler_data[:, 2].astype(float)
 
     # compute real and imaginary components of intermediate quaternions
     real_roll = np.cos(0.5 * roll).reshape(-1, 1)
