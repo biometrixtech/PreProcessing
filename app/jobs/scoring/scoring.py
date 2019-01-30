@@ -504,7 +504,7 @@ def _symmetry_score(dist_l, dist_r, kernel):
     return left_score_fn, right_score_fn
 
 
-@xray_recorder.capture('app.jobs.scoring._con_fun')
+# @xray_recorder.capture('app.jobs.scoring._con_fun')
 def _con_fun(dist, double=False):
     """
     Creates consistency score for individual points and create an

@@ -122,6 +122,8 @@ def main(script):
 
 
 if __name__ == '__main__':
+    job = sys.argv[1]
     with xray_recorder.in_segment('preprocessing.{}.app'.format(os.environ.get('ENVIRONMENT', None))) as segment:
         segment.put_annotation('environment', os.environ.get('ENVIRONMENT', None))
-        main(sys.argv[1])
+        segment.put_http_meta('url', 'batch://preprocessing.dev.fathomai.com/{}'.format(job))
+        main(job)
