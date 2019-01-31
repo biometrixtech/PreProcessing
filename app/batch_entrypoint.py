@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Entrypoint when called as a batch job
 from __future__ import print_function
 import os

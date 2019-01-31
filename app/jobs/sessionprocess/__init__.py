@@ -106,5 +106,5 @@ def _load_model(model):
 def _load_scaler(model):
     path = os.path.join('/net/efs/globalscalers', model)
     _logger.info("Loading scaler from {}".format(path))
-    with open(path) as f:
-        return pickle.load(f)
+    with open(path, 'rb') as f:
+        return pickle.load(f, encoding='latin1')

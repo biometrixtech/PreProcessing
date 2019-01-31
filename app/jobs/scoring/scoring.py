@@ -462,14 +462,13 @@ def _symmetry_score(dist_l, dist_r, kernel):
     dist_right = np.sort(dist_r[np.isfinite(dist_r)])
 
     # Use sample of points in scoring if above threshold
-    np.random.seed(0115)
+    np.random.seed(77)
     sample_size = min([len(dist_left), len(dist_right), 10000])
     dist_l1 = np.random.choice(dist_left, size=sample_size,
                                replace=False).reshape(-1, 1)
     dist_r1 = np.random.choice(dist_right, size=sample_size,
                                replace=False).reshape(-1, 1)
-    #Bandwith needs to be adjusted with the data length and sd of data
-    #using constant for now
+    # Bandwith needs to be adjusted with the data length and sd of data using constant for now
     band_left = 1.06*np.std(dist_l1)*(len(dist_l1))**(-.2)
     band_right = 1.06*np.std(dist_r1)*(len(dist_r1))**(-.2)
 
@@ -477,9 +476,8 @@ def _symmetry_score(dist_l, dist_r, kernel):
                            atol=1E-3).fit(dist_l1)
     kernel_density_r = kde(kernel=kernel, bandwidth=band_right, rtol=1E-3,
                            atol=1E-3).fit(dist_r1)
-    #Calculate density estimate for left data under both distribution
-    #and calculate score based on difference and create a dictionary for
-    #mapping
+    # Calculate density estimate for left data under both distribution and calculate score based on difference
+    # and create a dictionary for mapping
     len_l = min(len(dist_l1), 1000)
     sample_left = np.linspace(min(dist_l1), max(dist_l1), len_l).reshape(-1, 1)
     den_dist_l_kde_l = np.exp(kernel_density_l.score_samples(sample_left))

@@ -13,7 +13,7 @@ RUN apk update \
         # Provides the non-busybox version of `split` and `csplit` which have more functionality
         coreutils \
         # Python, obviously
-        python py-pip \
+        python3 py3-pip \
         # Needed for operation of scipy
         freetype libgcc libpng libgfortran libstdc++ musl openblas tcl tk \
 #
@@ -21,7 +21,7 @@ RUN apk update \
     && apk add --no-cache --virtual .build-deps \
         # For general building
         build-base \
-        python2-dev \
+        python3-dev \
         gfortran \
         # For scipy
         freetype-dev \
@@ -33,13 +33,11 @@ RUN apk update \
     # For operation of Keras
     && apk add --no-cache --virtual .runtime-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/community/ hdf5 \
 #
-    && pip install --upgrade --no-cache-dir --compile pip \
+    && python3 -m pip install --upgrade --no-cache-dir --compile pip \
     && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
-        pip install --no-cache-dir numpy==1.16.0 \
-    && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
-        pip install --no-cache-dir scipy==1.2.0 \
-    && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
-    pip install --upgrade --no-cache-dir --compile --global-option=build_ext \
+       pip install --no-cache-dir --compile --global-option=build_ext \
+        numpy==1.16.0 \
+        scipy==1.2.0 \
         aws_xray_sdk==2.3.0 \
             jsonpickle==1.1 \
             wrapt==1.11.1 \
@@ -60,17 +58,13 @@ RUN apk update \
         pandas==0.23.4 \
             python-dateutil==2.7.5 \
             pytz==2018.9 \
-        futures==3.1.1 \
-        enum34==1.1.6 \
         scikit-learn==0.20.2 \
 #
     # Remove build dependencies, and clean up stuff
     && apk del .build-deps && rm -rf /root/.cache
 
 # Set up entrypoint
-COPY ./docker/entrypoint.sh .
-RUN chmod a+x /opt/biometrix/preprocessing/entrypoint.sh
-ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
+ENTRYPOINT ["/opt/biometrix/preprocessing/batch_entrypoint.py"]
 
 # Copy application code
 COPY ./app .
