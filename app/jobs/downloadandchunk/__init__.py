@@ -38,7 +38,7 @@ class DownloadandchunkJob(Job):
             _s3_client.download_file(s3_bucket, s3_key, tmp_filename)
 
             with open(tmp_filename, 'rb') as f:
-                file_hash = hashlib.sha256(f.read()).digest().encode('hex')
+                file_hash = hashlib.sha256(f.read()).digest().hex()
             files_by_hash.setdefault(file_hash, []).append((s3_key, tmp_filename))
 
             _logger.debug('Downloaded "s3://{}/{}", which has hash {}, to {}'.format(s3_bucket, s3_key, file_hash, tmp_filename))
