@@ -21,6 +21,7 @@ from utils.dynamodb_update import DynamodbUpdate
 _logger = logging.getLogger(__name__)
 
 _ddb_table = boto3.resource('dynamodb').Table('preprocessing-{}-ingest-sessions'.format(os.environ["ENVIRONMENT"]))
+_s3_client = boto3.client('s3')
 
 
 class Datastore:
@@ -211,6 +212,10 @@ class Datastore:
         _logger.info("{} rows".format(len(csv_data) - 1))
         csv_data = u"\n".join(csv_data)
         return pandas.read_csv(StringIO(csv_data), usecols=columns)
+
+    def copy_to_s3(self, source_job, s3_bucket, s3_filename):
+        s3_bucket = f'biometrix-preprocessing-{os.environ["ENVIRONMENT"]}-{os.environ["AWS_DEFAULT_REGION"]}-{s3_bucket}'
+        _s3_client.upload_file(os.path.join(self.working_directory, source_job), s3_bucket, s3_filename)
 
     @property
     def session_id(self):

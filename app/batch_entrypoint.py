@@ -81,7 +81,8 @@ def main(script):
             'MONGO_REPLICASET',
             'MONGO_COLLECTION_ACTIVEBLOCKS',
         ], 'mongo')
-        raise NotImplementedError()
+        from jobs.advancedstats import AdvancedstatsJob
+        AdvancedstatsJob(datastore).run()
 
     elif script == 'sessionprocess1':
         load_parameters([
