@@ -31,7 +31,7 @@ class Datastore:
         self._metadata = None
 
         if not os.path.isdir('/net/efs/preprocessing'):
-            raise Exception("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
+            raise NotADirectoryError("/net/efs/preprocessing directory does not exist.  Has the EFS filesystem been initialised?")
 
     @xray_recorder.capture('app.datastore.get_metadatum')
     def get_metadatum(self, datum, default=NotImplemented):

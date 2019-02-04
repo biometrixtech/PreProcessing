@@ -1,63 +1,83 @@
 import pandas
 
-import advancedStats.logic.complexity_matrix_logic
-from advancedStats.logic.fatigue_logic import FatigueProcessor
-from advancedStats.logic.asymmetry_logic import AsymmetryProcessor
-# import app.advancedStats.complexity_symmetry as calc
-# from app.advancedStats.models.complexity_matrix import ComplexityMatrix
-from app.advancedStats.models.fatigue import SessionFatigue
+from ..mocks.datastore import MockDatastore
+from ....app.jobs.advancedstats import get_unit_blocks
+from ....app.jobs.advancedstats.asymmetry_processor_job import AsymmetryProcessorJob
+from ....app.jobs.advancedstats.complexity_matrix_job import ComplexityMatrixJob
+from ....app.jobs.advancedstats.fatigue_processor_job import FatigueProcessorJob
+from ....app.models.session_fatigue import SessionFatigue
 
 
+# noinspection PyProtectedMember
 def test_get_cma_time_summaries():
-
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
 
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
-    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
+    session_fatigue = SessionFatigue(fatigue_events)
+
     cma_time_list = session_fatigue.cma_time_block_summary()
-    assert(len(cma_time_list) >0)
+    assert(len(cma_time_list) > 0)
 
 
+# noinspection PyProtectedMember
 def test_get_grf_time_summaries():
-
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
-    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
+
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
+    session_fatigue = SessionFatigue(fatigue_events)
+
     grf_time_list = session_fatigue.grf_time_block_summary()
-    assert(len(grf_time_list) >0)
+    assert(len(grf_time_list) > 0)
 
 
+# noinspection PyProtectedMember
 def test_get_cma_grf_summaries():
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
-    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
+
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
+    session_fatigue = SessionFatigue(fatigue_events)
+
     cma_grf_list = session_fatigue.cma_grf_summary()
     assert (len(cma_grf_list) > 0)
 
 
+# noinspection PyProtectedMember
 def test_get_cma_grf_crosstab():
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
-    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
+
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
+    session_fatigue = SessionFatigue(fatigue_events)
+
     cma_grf_list = session_fatigue.cma_grf_crosstab()
 
     fatigue_frame = pandas.DataFrame()
 
     for f in cma_grf_list:
         ab = pandas.DataFrame({
-            #'stance': [f.stance],
             'grf_level': [f.grf_level],
             'cma_level': [f.cma_level],
             'adduc_hip_neg_left_dec': [f.adduc_neg_hip_left_dec],
@@ -90,50 +110,59 @@ def test_get_cma_grf_crosstab():
         }, index=[f.stance])
         fatigue_frame = fatigue_frame.append(ab)
 
-    fatigue_frame.to_csv('~/decay/fatigue_xtab_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
-                       columns=[
-                                'grf_level',
-                                'cma_level',
-                                'adduc_hip_neg_left_dec',
-                                'adduc_hip_neg_right_dec',
-                                'adduc_hip_neg_left_inc',
-                                'adduc_hip_neg_right_inc',
-                                'adduc_hip_pos_left_dec',
-                                'adduc_hip_pos_right_dec',
-                                'adduc_hip_pos_left_inc',
-                                'adduc_hip_pos_right_inc',
-                                'flex_hip_neg_left_dec',
-                                'flex_hip_neg_right_dec',
-                                'flex_hip_neg_left_inc',
+    fatigue_frame.to_csv(
+        '~/decay/fatigue_xtab_' + athlete + '_' + date + 'v6.csv',
+        sep=',',
+        index_label='Stance',
+        columns=[
+            'grf_level',
+            'cma_level',
+            'adduc_hip_neg_left_dec',
+            'adduc_hip_neg_right_dec',
+            'adduc_hip_neg_left_inc',
+            'adduc_hip_neg_right_inc',
+            'adduc_hip_pos_left_dec',
+            'adduc_hip_pos_right_dec',
+            'adduc_hip_pos_left_inc',
+            'adduc_hip_pos_right_inc',
+            'flex_hip_neg_left_dec',
+            'flex_hip_neg_right_dec',
+            'flex_hip_neg_left_inc',
 
-                                'flex_hip_neg_right_inc',
-                                'flex_hip_pos_left_dec',
-                                'flex_hip_pos_right_dec',
+            'flex_hip_neg_right_inc',
+            'flex_hip_pos_left_dec',
+            'flex_hip_pos_right_dec',
 
-                                'flex_hip_pos_left_inc',
-                                'flex_hip_pos_right_inc',
+            'flex_hip_pos_left_inc',
+            'flex_hip_pos_right_inc',
 
-                                'adduc_rom_hip_left_dec',
-                                'adduc_rom_hip_right_dec',
-                                'adduc_rom_hip_left_inc',
+            'adduc_rom_hip_left_dec',
+            'adduc_rom_hip_right_dec',
+            'adduc_rom_hip_left_inc',
 
-                                'adduc_rom_hip_right_inc',
-                                'flex_rom_hip_left_dec',
-                                'flex_rom_hip_right_dec',
-                                'flex_rom_hip_left_inc',
-                                'flex_rom_hip_right_inc'
-                       ])
+            'adduc_rom_hip_right_inc',
+            'flex_rom_hip_left_dec',
+            'flex_rom_hip_right_dec',
+            'flex_rom_hip_left_inc',
+            'flex_rom_hip_right_inc'
+        ])
 
     assert (len(cma_grf_list) > 0)
 
 
+# noinspection PyProtectedMember
 def test_get_active_block_crosstab():
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
-    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
+
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
+    session_fatigue = SessionFatigue(fatigue_events)
+
     cma_grf_list = session_fatigue.active_block_crosstab()
 
     fatigue_frame = pandas.DataFrame()
@@ -210,35 +239,52 @@ def test_get_active_block_crosstab():
     assert (len(cma_grf_list) > 0)
 
 
+# noinspection PyProtectedMember
 def test_get_cma_summaries():
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
-    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
+
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
+    session_fatigue = SessionFatigue(fatigue_events)
+
     cma_list = session_fatigue.cma_summary()
     assert (len(cma_list) > 0)
 
 
+# noinspection PyProtectedMember
 def test_get_time_summaries():
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
-    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
+
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
+    session_fatigue = SessionFatigue(fatigue_events)
+
     time_list = session_fatigue.grf_summary()
     assert (len(time_list) > 0)
 
 
+# noinspection PyProtectedMember
 def test_get_session_summaries():
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
-    session_fatigue = SessionFatigue(athlete, date, "", fatigue_events)
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
+
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
+    session_fatigue = SessionFatigue(fatigue_events)
 
     session_list = session_fatigue.session_summary()
     decay_frame = pandas.DataFrame()
@@ -257,13 +303,17 @@ def test_get_session_summaries():
                            'attribute_name', 'attribute_label', 'orientation', 'count'])
 
 
+# noinspection PyProtectedMember
 def test_get_decay_dataframe():
-
     athlete = "Maggie"
     date = "2018-04-24"
-    processor = FatigueProcessor()
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-    fatigue_events = processor.get_fatigue_events(mc_sl_list, mc_dl_list)
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
+
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
+
+    fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_fatigue_events()
 
     decay_frame = pandas.DataFrame()
 
@@ -284,23 +334,23 @@ def test_get_decay_dataframe():
 
     decay_frame.to_csv('~/decay/outliers_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
                        columns=[
-                           'active_block', 'complexity_level', 'grf_level', 'cma_level','attribute_name', 'label',
+                           'active_block', 'complexity_level', 'grf_level', 'cma_level', 'attribute_name', 'label',
                            'orientation', 'cumulative_end_time', 'z_score', 'raw_value'])
 
 
+# noinspection PyProtectedMember
 def test_get_movement_asymmetries_kruskal():
-
     athlete = "Maggie"
     date = "2018-04-24"
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
 
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
 
-    proc = AsymmetryProcessor(athlete, date, "", mc_sl_list, mc_dl_list)
-
-    asymmetry_events = proc.get_movement_asymmetries()
+    asymmetry_events = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_movement_asymmetries()
 
     df = pandas.DataFrame()
-
     for f in asymmetry_events:
         ab = pandas.DataFrame({
             'complexity_level': [f.complexity_level],
@@ -318,23 +368,23 @@ def test_get_movement_asymmetries_kruskal():
         df = df.append(ab)
 
     df.to_csv('~/decay/kruskal_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
-                               columns=[
-                                   'complexity_level', 'grf_level', 'cma_level', 'adduc_ROM', 'adduc_motion_covered',
-                                   'flex_ROM', 'flex_motion_covered', 'adduc_ROM_hip',
-                                   'adduc_motion_covered_total_hip', 'flex_ROM_hip', 'flex_motion_covered_total_hip'])
+              columns=[
+                  'complexity_level', 'grf_level', 'cma_level', 'adduc_ROM', 'adduc_motion_covered',
+                  'flex_ROM', 'flex_motion_covered', 'adduc_ROM_hip',
+                  'adduc_motion_covered_total_hip', 'flex_ROM_hip', 'flex_motion_covered_total_hip'])
 
 
-
+# noinspection PyProtectedMember
 def test_get_loading_asymmetries():
-
     athlete = "Maggie"
     date = "2018-04-24"
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
 
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
 
-    proc = AsymmetryProcessor(athlete, date, "", mc_sl_list, mc_dl_list)
-
-    asymmetry_events = proc.get_loading_asymmetries()
+    asymmetry_events = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_movement_asymmetries()
 
     df = pandas.DataFrame()
 
@@ -346,7 +396,7 @@ def test_get_loading_asymmetries():
             'acc_grf_left': [f.total_left_sum],
             'acc_grf_right': [f.total_right_sum],
             'acc_grf_perc_asymm': [f.total_percent_asymmetry],
-            'gc_event_left': [ f.left_step_count],
+            'gc_event_left': [f.left_step_count],
             'gc_event_right': [f.right_step_count],
             'gc_event_perc_asymm': [f.step_count_percent_asymmetry],
             'gct_left': [f.ground_contact_time_left],
@@ -359,7 +409,7 @@ def test_get_loading_asymmetries():
         df = df.append(ab)
 
     df.to_csv('~/decay/loading_asymmetry_' + athlete + '_' + date + 'v7.csv', sep=',', index_label='Stance',
-                        columns=[
+              columns=[
                             'complexity_level',
                             'grf_level',
                             'cma_level',
@@ -378,16 +428,17 @@ def test_get_loading_asymmetries():
                         ])
 
 
+# noinspection PyProtectedMember
 def test_loading_asymmetry_summaries():
-
     athlete = "Maggie"
     date = "2018-04-24"
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
 
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
 
-    proc = AsymmetryProcessor(athlete, date, "", mc_sl_list, mc_dl_list)
-
-    session_asymmmetry = proc.get_session_asymmetry()
+    session_asymmmetry = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_session_asymmetry_summaries()
 
     df = pandas.DataFrame()
     for var, f in session_asymmmetry.loading_asymmetry_summaries.items():
@@ -448,22 +499,21 @@ def test_loading_asymmetry_summaries():
               ])
 
 
+# noinspection PyProtectedMember
 def test_get_movement_asymmetries():
-
     athlete = "Maggie"
     date = "2018-04-24"
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
 
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
 
-    proc = AsymmetryProcessor(athlete, date, "", mc_sl_list, mc_dl_list)
-
-    asymmetry_events = proc.get_movement_asymmetries()
+    asymmetry_events = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_movement_asymmetries()
 
     df = pandas.DataFrame()
-
     for f in asymmetry_events:
         ab = pandas.DataFrame({
-            #'complexity_level': [f.complexity_level],
             'grf_level': [f.grf_level],
             'cma_level': [f.cma_level],
             'adduc_rom_hip': [f.adduc_rom_hip],
@@ -475,28 +525,31 @@ def test_get_movement_asymmetries():
         df = df.append(ab)
 
     df.to_csv('~/decay/movement_asymmetries_' + athlete + '_' + date + 'v7.csv', sep=',', index_label='Stance',
-                        columns=[
-                            #'complexity_level',
-                            'grf_level',
-                            'cma_level',
+              columns=[
+                  'grf_level',
+                  'cma_level',
 
-                            'adduc_rom_hip',
-                            'adduc_motion_covered_total_hip',
-                            'flex_rom_hip',
-                            'flex_motion_covered_total_hip',
-                        ])
+                  'adduc_rom_hip',
+                  'adduc_motion_covered_total_hip',
+                  'flex_rom_hip',
+                  'flex_motion_covered_total_hip',
+              ])
 
+
+# noinspection PyProtectedMember
 def test_get_loading_and_movement_asymmetries():
-
     athlete = "Maggie"
     date = "2018-04-24"
+    unit_blocks = get_unit_blocks(athlete, date)
+    ds = MockDatastore(athlete, date, None)
 
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
+    cmj = ComplexityMatrixJob(ds, unit_blocks)
+    cmj.run()
 
-    proc = AsymmetryProcessor(athlete, date, "", mc_sl_list, mc_dl_list)
+    apj = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)
 
-    movement_events = proc.get_movement_asymmetries()
-    loading_events = proc.get_loading_asymmetries()
+    movement_events = apj._get_movement_asymmetries()
+    loading_events = apj._get_loading_asymmetries()
 
     df = pandas.DataFrame()
 
@@ -505,7 +558,6 @@ def test_get_loading_and_movement_asymmetries():
             if d.cma_level == f.cma_level and d.grf_level == f.grf_level and d.stance == f.stance:
 
                 ab = pandas.DataFrame({
-                    #'complexity_level': [f.complexity_level],
                     'grf_level': [f.grf_level],
                     'cma_level': [f.cma_level],
                     'acc_grf_left': [f.total_left_sum],
@@ -532,8 +584,7 @@ def test_get_loading_and_movement_asymmetries():
                 df = df.append(ab)
 
     df.to_csv('~/decay/loading_movement_asymm_' + athlete + '_' + date + 'v7.csv', sep=',', index_label='Stance',
-                        columns=[
-                            #'complexity_level',
+              columns=[
                             'grf_level',
                             'cma_level',
                             'adduc_rom_hip',
@@ -557,20 +608,3 @@ def test_get_loading_and_movement_asymmetries():
                             'rate_of_acc_grf_right',
                             'rate_of_acc_grf_perc_asymm',
                         ])
-
-
-
-
-def test_session_asymmetries():
-
-    athlete = "Maggie"
-    date = "2018-04-24"
-
-    mc_sl_list, mc_dl_list = advancedStats.logic.complexity_matrix_logic.get_complexity_matrices(athlete, date)
-
-    proc = AsymmetryProcessor(athlete, date, "", mc_sl_list, mc_dl_list)
-
-    session_asymmmetry = proc.get_session_asymmetry()
-
-    df = pandas.DataFrame()
-
