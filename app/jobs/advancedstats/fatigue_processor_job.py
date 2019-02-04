@@ -1,7 +1,6 @@
 import pandas as pd
 
 from ..job import Job
-from models.fatigue_event import FatigueEvent
 from models.session_fatigue import SessionFatigue
 
 
@@ -24,21 +23,10 @@ class FatigueProcessorJob(Job):
 
         for stance, complexity_matrix in [('Single Leg', self._complexity_matrix_single_leg), ('Double Leg', self._complexity_matrix_double_leg)]:
             for keys, mcsl in complexity_matrix.items():
-                differs = mcsl.get_decay_parameters()
-                for difs in differs:
-                    ab = FatigueEvent(mcsl.cma_level, mcsl.grf_level)
-                    ab.active_block_id = difs.active_block_id
-                    ab.complexity_level = difs.complexity_level
-                    ab.attribute_name = difs.attribute_name
-                    ab.attribute_label = difs.label
-                    ab.orientation = difs.orientation
-                    ab.cumulative_end_time = difs.end_time
-                    ab.z_score = difs.z_score
-                    ab.raw_value = difs.raw_value
-                    ab.stance = "Single Leg"
-                    ab.time_block = str(difs.time_block)
-
-                    fatigue_events.append(ab)
+                outliers = mcsl.get_decay_parameters()
+                for outlier in outliers:
+                    outlier.stance = "Single Leg"
+                    fatigue_events.append(outlier)
 
         return fatigue_events
 
