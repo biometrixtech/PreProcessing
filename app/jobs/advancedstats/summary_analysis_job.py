@@ -11,7 +11,7 @@ class SummaryAnalysisJob(UnitBlockJob):
         data = self._query_mongo_ab()
 
         self.datastore.put_data(self.name, data)
-        self.datastore.copy_to_s3(self.name, "advanced-stats", '_'.join([self._event_date, self._user_id]) + "/ab.csv")
+        self.datastore.copy_to_s3(self.name, "advanced-stats", '_'.join([self.event_date, self.user_id]) + "/ab.csv")
 
     def _query_mongo_ab(self):
         block_count = 0
@@ -54,7 +54,7 @@ class SummaryAnalysisJob(UnitBlockJob):
 
             data = data.append(pd.DataFrame(
                 {
-                    'userId': [self._user_id],
+                    'userId': [self.user_id],
                     'eventDate': [event_date],
                     'activeBlock': [obj_id],
                     'abNum': [block_count],

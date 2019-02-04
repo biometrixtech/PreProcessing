@@ -31,7 +31,7 @@ class TrainingVolumeJob(UnitBlockJob):
         }, index=["Summary"])
 
         self.datastore.put_data('sessionworkloadsummary', training_data)
-        self.datastore.copy_to_s3('sessionworkloadsummary', "advanced-stats", '_'.join([self._event_date, self._user_id]) + "/session_workload_summary.csv")
+        self.datastore.copy_to_s3('sessionworkloadsummary', "advanced-stats", '_'.join([self.event_date, self.user_id]) + "/session_workload_summary.csv")
 
     def write_intensity_bands(self, session_training_volume_data):
         intensity_df = pd.DataFrame()
@@ -58,7 +58,7 @@ class TrainingVolumeJob(UnitBlockJob):
             'right_gct_percentage', ]
 
         self.datastore.put_data('sessionintensitybands', intensity_df, columns=columns)
-        self.datastore.copy_to_s3('sessionintensitybands', "advanced-stats", '_'.join([self._event_date, self._user_id]) + "/session_intensity_bands.csv")
+        self.datastore.copy_to_s3('sessionintensitybands', "advanced-stats", '_'.join([self.event_date, self.user_id]) + "/session_intensity_bands.csv")
 
     def _calculate_training_volume(self):
         session_volume = SessionTrainingVolume()

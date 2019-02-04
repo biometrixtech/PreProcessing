@@ -26,7 +26,10 @@ class AdvancedstatsJob(Job):
         cmj.run()
 
         from .fatigue_processor_job import FatigueProcessorJob
-        FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)
+        FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
+
+        from .asymmetry_processor_job import AsymmetryProcessorJob
+        AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
 
 def get_unit_blocks(user, date):
