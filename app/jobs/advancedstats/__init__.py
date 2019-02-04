@@ -22,7 +22,11 @@ class AdvancedstatsJob(Job):
         TrainingVolumeJob(self.datastore, unit_blocks).run()
 
         from .complexity_matrix_job import ComplexityMatrixJob
-        ComplexityMatrixJob(self.datastore, unit_blocks).run()
+        cmj = ComplexityMatrixJob(self.datastore, unit_blocks)
+        cmj.run()
+
+        from .fatigue_processor_job import FatigueProcessorJob
+        FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)
 
 
 def get_unit_blocks(user, date):

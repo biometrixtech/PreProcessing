@@ -66,3 +66,11 @@ class ComplexityMatrixJob(UnitBlockJob):
 
         self._motion_complexity_double_leg = {}
         self._motion_complexity_double_leg.update(dl_comp_matrix.cells)
+
+    @property
+    def motion_complexity_single_leg(self):
+        return self._motion_complexity_single_leg
+
+    @property
+    def motion_complexity_double_leg(self):
+        return self._motion_complexity_double_leg

@@ -22,6 +22,14 @@ class Job:
     def name(self):
         return self.__class__.__name__.lower().replace('job', '')
 
+    @property
+    def event_date(self):
+        return self.datastore.get_metadatum('event_date')
+
+    @property
+    def user_id(self):
+        return self.datastore.get_metadatum('user_id')
+
     @xray_recorder.capture('app.job.run')
     def run(self):
         _logger.info('Running job {} on session {}'.format(self.name, self.datastore.session_id))
