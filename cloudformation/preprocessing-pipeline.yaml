@@ -326,10 +326,7 @@ Resources:
                                     "Memory": 2048,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "SFN_EXECUTION_NAME", "Value.$": "$.Meta.ExecutionName" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -360,10 +357,7 @@ Resources:
                                     "Memory": 4096,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "SFN_EXECUTION_NAME", "Value.$": "$.Meta.ExecutionName" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -422,9 +416,7 @@ Resources:
                                     "Memory": 1024,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -455,9 +447,7 @@ Resources:
                                     "Memory": 1024,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -488,9 +478,7 @@ Resources:
                                     "Memory": 7650,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -521,9 +509,7 @@ Resources:
                                     "Memory": 1024,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -554,9 +540,7 @@ Resources:
                                     "Memory": 1024,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -592,9 +576,7 @@ Resources:
                                     "Memory": 7650,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -625,9 +607,7 @@ Resources:
                                     "Memory": 7650,
                                     "Vcpus": 2,
                                     "Environment": [
-                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                     ]
                                 },
                                 "RetryStrategy": {
@@ -664,9 +644,7 @@ Resources:
                                                     "Memory": 256,
                                                     "Vcpus": 2,
                                                     "Environment": [
-                                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
-                                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
-                                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
                                                     ]
                                                 },
                                                 "RetryStrategy": {
