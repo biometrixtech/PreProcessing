@@ -15,11 +15,14 @@ class AdvancedstatsJob(Job):
         unit_blocks = get_unit_blocks(user_id, event_date)
 
         # Write out active blocks
-        from .summary_analysis import SummaryAnalysisJob
+        from .summary_analysis_job import SummaryAnalysisJob
         SummaryAnalysisJob(self.datastore, unit_blocks).run()
 
-        from .training_volume import TrainingVolumeJob
+        from .training_volume_job import TrainingVolumeJob
         TrainingVolumeJob(self.datastore, unit_blocks).run()
+
+        from .complexity_matrix_job import ComplexityMatrixJob
+        ComplexityMatrixJob(self.datastore, unit_blocks).run()
 
 
 def get_unit_blocks(user, date):
