@@ -609,6 +609,39 @@ Resources:
                                 }
                             ],
                             "ResultPath": "$.TaskResult",
+                            "Next": "AdvancedStats"
+                        },
+                        "AdvancedStats": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::batch:submitJob.sync",
+                            "Parameters": {
+                                "JobDefinition": "${BatchJobDefinition}",
+                                "JobName.$": "$._BatchJobNames.advancedstats",
+                                "JobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
+                                "Parameters": {
+                                    "Job": "advancedstats"
+                                },
+                                "ContainerOverrides": {
+                                    "Memory": 7650,
+                                    "Vcpus": 2,
+                                    "Environment": [
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" },
+                                        { "Name": "AWS_DEFAULT_REGION", "Value": "us-west-2" },
+                                        { "Name": "ENVIRONMENT", "Value": "dev" }
+                                    ]
+                                },
+                                "RetryStrategy": {
+                                    "Attempts": 2
+                                }
+                            },
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionFailProcessing",
+                                    "ResultPath": "$._ExceptionOutput"
+                                }
+                            ],
+                            "ResultPath": "$.TaskResult",
                             "Next": "Post"
                         },
                         "Post": {

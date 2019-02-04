@@ -103,8 +103,8 @@ Resources:
                   - { Name: "AWS_DEFAULT_REGION", Value: { Ref: "AWS::Region" } }
                   - { Name: "ECR_REGISTRY", Value: { "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com" } }
                   - { Name: "ECR_REPOSITORY", Value: { Ref: "EcrRepository" } }
-                  - { Name: "CACHE_VERSION", Value: "75139d4cae4c4f2799e90cbeac02876f3c17c1ea" }  # TODO configurable
-            TimeoutInMinutes: 30
+                  - { Name: "CACHE_VERSION", Value: "9db4315f8672dd3f7a080770d55e1f3ed68b2234" }  # TODO configurable
+            TimeoutInMinutes: 60
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-batchjob" } }
               - { Key: "Management", Value: "managed" }
