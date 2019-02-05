@@ -1,10 +1,15 @@
 *.zip
 *.pyc
-cache/pip/*
-!cache/pip/empty
 .DS_Store
 .idea/*
 .cache
+
+/app/*
+!/app/jobs
+!/app/models
+!/app/utils
+!/app/*.py
+!/app/pip_requirements
 
 tests/advancedStats/.pytest_cache/*
 tests/session2/.pytest_cache/*
@@ -18,7 +23,6 @@ apigateway/flask_lambda.py
 !apigateway/schemas
 apigateway/semver.py
 apigateway/six.py
-App/setup.cfg
 
 # Don't commit libraries for lambdas, people should rebuild them from the pip_requirements
 /lambdas/*/*/
