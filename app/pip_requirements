@@ -1,35 +1,28 @@
-## Source requirements
-boto3==1.9.38
-certifi==2018.4.16
-enum34==1.1.6
-h5py==2.7.0
-Keras==2.0.4
-pandas==0.19.2
-psycopg2==2.7.1
-pymongo==3.4.0
-s3fs==0.1.1
-scikit-learn==0.18.1
-scipy==0.18.1
-Theano==0.9.0
+# Note that these requirements are NOT used to build the application in
+# production!  See /docker/preprocessing.docker for those.  Keep this list
+# synchronised with that, so that this requirements file can be used for
+# development
 
-## The following requirements were added by pip freeze:
-backports.weakref==1.0rc1
-bleach==1.5.0
-botocore==1.12.29
-docutils==0.13.1
-funcsigs==1.0.2
-futures==3.1.1
-html5lib==0.9999999
-jmespath==0.9.3
-Markdown==2.2.0
-mock==2.0.0
-numpy==1.12.1
-pbr==3.1.1
-protobuf==3.3.0
-python-dateutil==2.6.0
-pytz==2017.2
-PyYAML==3.12
-s3transfer==0.1.10
-six==1.10.0
-virtualenv==15.1.0
-Werkzeug==0.12.2
+numpy==1.16.0
+scipy==1.2.0
+aws_xray_sdk==2.3.0
+    jsonpickle==1.1
+    wrapt==1.11.1
+boto3==1.9.2
+    botocore==1.12.82
+        docutils==0.14
+        jmespath==0.9.3
+        python-dateutil==2.7.5
+            six==1.11.0
+        urllib3==1.24.1
+    jmespath==0.9.3
+    s3transfer==0.1.13
+pymongo==3.7.2
+Keras==2.2.4
+    h5py==2.9.0
+    PyYAML==3.13
+Theano==1.0.4
+pandas==0.23.4
+    python-dateutil==2.7.5
+    pytz==2018.9
+scikit-learn==0.20.2
