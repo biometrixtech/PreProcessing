@@ -18,7 +18,12 @@ def run_session(data):
     data['time_stamp'], data['ms_elapsed'] = get_times(data['epoch_time'].values)
     # Compute euler angles, geometric interpretation of data as appropriate
     quats = data.loc[:, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']].values
-    euls = quat_to_euler(quats)
+    euls = quat_to_euler(
+        data.quat_hip_w,
+        data.quat_hip_x,
+        data.quat_hip_y,
+        data.quat_hip_z
+    )
     data['euler_hip_z'] = euls[:, 2].reshape(-1, 1)
 
     (

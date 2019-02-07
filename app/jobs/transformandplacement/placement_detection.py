@@ -17,11 +17,14 @@ def detect_placement(data):
         try:
             data_sub = data.loc[start[i]:end[i], :]
             data_sub.reset_index(inplace=True, drop=True)
-            quats_1 = data_sub.loc[:, ['quat_0_x', 'quat_0_y', 'quat_0_z', 'quat_0_w']].values.reshape(-1, 4)
-            quats_2 = data_sub.loc[:, ['quat_2_x', 'quat_2_y', 'quat_2_z', 'quat_2_w']].values.reshape(-1, 4)
 
             # prepare foot1 data
-            pitch_foot1 = qc.quat_to_euler(quats_1)[100:, 1] * 180 / np.pi
+            pitch_foot1 = qc.quat_to_euler(
+                data_sub['quat_0_w'],
+                data_sub['quat_0_x'],
+                data_sub['quat_0_y'],
+                data_sub['quat_0_z'],
+            )[100:, 1] * 180 / np.pi
             # # rotate if the placement is at too high angle creating the weird divets in pitch data
             # # TODO: This seems to work but unsure how need to make sure math works
             # if np.nanmean(pitch_foot1[0:100]) > 35:
@@ -33,7 +36,12 @@ def detect_placement(data):
                 pitch_foot1 = -pitch_foot1
 
             # prepare foot2 data
-            pitch_foot2 = qc.quat_to_euler(quats_2)[100:, 1] * 180 / np.pi
+            pitch_foot2 = qc.quat_to_euler(
+                data_sub['quat_2_w'],
+                data_sub['quat_2_x'],
+                data_sub['quat_2_y'],
+                data_sub['quat_2_z'],
+            )[100:, 1] * 180 / np.pi
             # # rotate if the placement is at too high angle creating the weird divets in pitch data
             # # TODO: This seems to work but unsure how need to make sure math works
             # if np.nanmean(pitch_foot2[0:100]) > 35:

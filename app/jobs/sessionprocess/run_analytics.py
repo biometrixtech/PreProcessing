@@ -94,17 +94,30 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
     sampl_freq = 100
 
     # Compute euler angles, geometric interpretation of data as appropriate
-    lf_quats = np.hstack([data.quat_lf_w, data.quat_lf_x, data.quat_lf_y,
-                          data.quat_lf_z]).reshape(-1, 4)
-    lf_euls = qc.quat_to_euler(lf_quats)
+    lf_quats = data.loc[:, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']].values
+    lf_euls = qc.quat_to_euler(
+        data.quat_lf_w,
+        data.quat_lf_x,
+        data.quat_lf_y,
+        data.quat_lf_z)
     data['euler_lf_z'] = lf_euls[:, 2].reshape(-1, 1)
 
-    hip_quats = np.hstack([data.quat_hip_w, data.quat_hip_x, data.quat_hip_y, data.quat_hip_z]).reshape(-1, 4)
-    hip_euls = qc.quat_to_euler(hip_quats)
+    hip_quats = data.loc[:, ['quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z']].values
+    hip_euls = qc.quat_to_euler(
+        data.quat_hip_w,
+        data.quat_hip_x,
+        data.quat_hip_y,
+        data.quat_hip_z
+    )
     data['euler_hip_z'] = hip_euls[:, 2].reshape(-1, 1)
 
-    rf_quats = np.hstack([data.quat_rf_w, data.quat_rf_x, data.quat_rf_y, data.quat_rf_z]).reshape(-1, 4)
-    rf_euls = qc.quat_to_euler(rf_quats)
+    rf_quats = data.loc[:, ['quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z']].values
+    rf_euls = qc.quat_to_euler(
+        data.quat_rf_w,
+        data.quat_rf_x,
+        data.quat_rf_y,
+        data.quat_rf_z
+    )
     data['euler_rf_z'] = rf_euls[:, 2].reshape(-1, 1)
 
     (
@@ -209,7 +222,7 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
 
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
     # isolate hip acceleration and euler angle data
-    hip_acc = np.hstack([data.acc_hip_x, data.acc_hip_y, data.acc_hip_z]).reshape(-1, 3)
+    hip_acc = data.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']].values
 
     # analyze planes of movement
     (
@@ -568,13 +581,23 @@ def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
     hip_n_transform = np.array(hip_n_transform).reshape(-1, 4)
 
     # Divide static neutral and instantaneous hip data into axial components
-    static_hip_neut = qc.quat_to_euler(hip_n_transform)
+    static_hip_neut = qc.quat_to_euler(
+        hip_n_transform[0],
+        hip_n_transform[1],
+        hip_n_transform[2],
+        hip_n_transform[3],
+    )
     neutral_hip_roll = static_hip_neut[0, 0]
     neutral_hip_pitch = static_hip_neut[0, 1]
 
     neutral_hip_roll = np.full((length, 1), neutral_hip_roll, float)
     neutral_hip_pitch = np.full((length, 1), neutral_hip_pitch, float)
-    inst_hip_yaw = qc.quat_to_euler(hip_bf_quats)[:, 2].reshape(-1, 1)
+    inst_hip_yaw = qc.quat_to_euler(
+        hip_bf_quats[:, 0],
+        hip_bf_quats[:, 1],
+        hip_bf_quats[:, 2],
+        hip_bf_quats[:, 3],
+    )[:, 2].reshape(-1, 1)
 
     # Combine select data to define neutral hip data
     hip_neutral_euls = np.hstack((neutral_hip_roll, neutral_hip_pitch,

@@ -50,9 +50,7 @@ class TransformandplacementJob(Job):
             for prefix in column_prefixes:
                 renames[prefix.format(str(old))] = prefix.format(str(new))
 
-        _logger.debug(renames)
         data = data.rename(index=str, columns=renames)
-        _logger.debug(data.columns.values.tolist())
 
         # Apply normalisation transforms
         data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'])

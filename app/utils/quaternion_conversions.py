@@ -6,7 +6,7 @@ Created on Wed Sep 28 17:42:39 2016
 """
 
 import numpy as np
-from .quaternion_operations import quat_prod, quat_norm
+from .quaternion_operations import quat_prod
 
 
 """
@@ -17,13 +17,16 @@ cosine matrices
 """
 
 
-def quat_to_euler(q):
+def quat_to_euler(w, x, y, z):
     """
-    Function that transforms quaternion into Euler angles, assuming ZYX
-    config.
+    Function that transforms quaternion into Euler angles, assuming WXYZ
+    arrangement
 
     Args:
-        q: quaternions. must be nx4 array, n>=1
+        w: quaternions w-component. must be Nx1 array
+        x: quaternions x-component
+        y: quaternions y-component
+        z: quaternions x-component
 
     Returns:
         psi: euler angle measuring rotaion about x axis (roll)
@@ -31,31 +34,34 @@ def quat_to_euler(q):
         phi: euler angle measuring rotaion about z axis (yaw)
     """
 
-    q = quat_norm(q)
+    # Normalise
+    magnitude = np.sqrt(w ** 2 + x ** 2 + y ** 2 + z ** 2)
+    w /= magnitude
+    x /= magnitude
+    y /= magnitude
+    x /= magnitude
 
     # YAW COMPONENT
-    d = 2 * q[:, 1] * q[:, 2] + 2 * q[:, 0] * q[:, 3]
-    e = 1 - 2 * q[:, 2]**2 - 2*q[:, 3]**2
+    d = 2 * x * y + 2 * w * z
+    e = 1 - 2 * y**2 - 2*z**2
     psi = np.arctan2(d, e)
 
     # PITCH COMPONENT
-    c = -q[:, 1] * q[:, 3] + q[:, 0] * q[:, 2]
+    c = -x * z + w * y
     c[c > .5] = .5
     c[c < -.5] = -.5
     theta = np.arcsin(2*c)
 
     # ROLL COMPONENT
-    a = 1 - 2 * q[:, 1]**2 - 2*q[:, 2]**2
-    b = 2 * (q[:, 2] * q[:, 3]) + 2 * q[:, 0] * q[:, 1]
+    a = 1 - 2 * x**2 - 2*y**2
+    b = 2 * (y * z) + 2 * w * x
     phi = np.arctan2(b, a)
-    
-    if any(np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) < np.array([[1e-8] * 4]), axis=1) == 4):
-        ind = np.sum(np.abs(q - np.array([[0, 0, 1, 0]])) < np.array([[1e-8] * 4]), axis=1) == 4
-        psi[ind] = 0
-        theta[ind] = np.pi
-        phi[ind] = 0
-    else:
-        pass
+
+    knockout = np.where((np.abs(w) + np.abs(x) + np.abs(y - 1) + np.abs(z)) < 1e-8)
+    if any(knockout):
+        psi[knockout] = 0
+        theta[knockout] = np.pi
+        phi[knockout] = 0
 
     return np.vstack([phi, theta, psi]).T
 
@@ -105,7 +111,12 @@ def euler_to_quat(euler_data):
 
 
 def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
-    euler_angles = quat_to_euler(quaternion)
+    euler_angles = quat_to_euler(
+        quaternion[:, 0],
+        quaternion[:, 1],
+        quaternion[:, 2],
+        quaternion[:, 3],
+    )
     if phi is not None:
         euler_angles[:, 0] = phi
     if theta is not None:

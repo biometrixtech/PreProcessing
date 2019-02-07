@@ -72,7 +72,12 @@ def detect_long_dynamic(dyn_vs_static):
 
 def drift_filter(quats):
     n = len(quats)
-    euls_org = quat_to_euler(quats)
+    euls_org = quat_to_euler(
+        quats[:, 0],
+        quats[:, 1],
+        quats[:, 2],
+        quats[:, 3],
+    )
 
     # Filtered angles
     normal_cutoff = .1 / (100/2)
@@ -90,7 +95,12 @@ def drift_filter(quats):
     avg_quat = quat_avg(comp_quat[s:e, :])
     cutoff_angle = 10. / 180 * np.pi
     if np.mean(euls_org[0:25, 0], axis=0) < cutoff_angle and np.mean(euls_org[0:25, 1], axis=0) < cutoff_angle:
-        euls_avg_quat = quat_to_euler(avg_quat)
+        euls_avg_quat = quat_to_euler(
+            avg_quat[:, 0],
+            avg_quat[:, 1],
+            avg_quat[:, 2],
+            avg_quat[:, 3],
+        )
 
         offset_correction = quat_prod(euler_to_quat(np.array([0., euls_avg_quat[0, 1], 0.]).reshape(-1, 3)),
                                       euler_to_quat(np.array([euls_avg_quat[0, 0], 0., 0.]).reshape(-1, 3)))

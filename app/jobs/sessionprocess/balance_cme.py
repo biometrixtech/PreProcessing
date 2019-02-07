@@ -107,7 +107,12 @@ def _cont_rot_cme(data, state, states, neutral):
     
     diff_quat = qo.find_rot(data, neutral)
     del data, neutral
-    diff_eul = qc.quat_to_euler(diff_quat)
+    diff_eul = qc.quat_to_euler(
+        diff_quat[:, 0],
+        diff_quat[:, 1],
+        diff_quat[:, 2],
+        diff_quat[:, 3],
+    )
     del diff_quat
     comparison = (180/np.pi)*diff_eul
     comparison[(np.in1d(state, states) == False)] = np.array([np.nan,
@@ -130,7 +135,12 @@ def _filt_rot_cme(data, state, states):
 
     """
 
-    eul = qc.quat_to_euler(data)
+    eul = qc.quat_to_euler(
+        data[:, 0],
+        data[:, 1],
+        data[:, 2],
+        data[:, 3],
+    )
     del data
     result = (180/np.pi)*eul
     result[(np.in1d(state, states) == False)] = np.array([np.nan, np.nan, np.nan])
@@ -182,12 +192,42 @@ def calculate_rot_cmes_v1(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, r
     """
 
     # divide quats into Euler angles
-    lf_eul = qc.quat_to_euler(lf_quat)
-    hip_eul = qc.quat_to_euler(hip_quat)
-    rf_eul = qc.quat_to_euler(rf_quat)
-    lf_neutral_eul = qc.quat_to_euler(lf_neutral)
-    hip_neutral_eul = qc.quat_to_euler(hip_neutral)
-    rf_neutral_eul = qc.quat_to_euler(rf_neutral)
+    lf_eul = qc.quat_to_euler(
+        lf_quat[:, 0],
+        lf_quat[:, 1],
+        lf_quat[:, 2],
+        lf_quat[:, 3],
+    )
+    hip_eul = qc.quat_to_euler(
+        hip_quat[:, 0],
+        hip_quat[:, 1],
+        hip_quat[:, 2],
+        hip_quat[:, 3],
+    )
+    rf_eul = qc.quat_to_euler(
+        rf_quat[:, 0],
+        rf_quat[:, 1],
+        rf_quat[:, 2],
+        rf_quat[:, 3],
+    )
+    lf_neutral_eul = qc.quat_to_euler(
+        lf_neutral[:, 0],
+        lf_neutral[:, 1],
+        lf_neutral[:, 2],
+        lf_neutral[:, 3],
+    )
+    hip_neutral_eul = qc.quat_to_euler(
+        hip_neutral[:, 0],
+        hip_neutral[:, 1],
+        hip_neutral[:, 2],
+        hip_neutral[:, 3],
+    )
+    rf_neutral_eul = qc.quat_to_euler(
+        rf_neutral[:, 0],
+        rf_neutral[:, 1],
+        rf_neutral[:, 2],
+        rf_neutral[:, 3],
+    )
     del lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, rf_neutral
 
     length = len(lf_eul)

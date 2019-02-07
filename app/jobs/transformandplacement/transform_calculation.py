@@ -35,7 +35,12 @@ def compute_transform_from_average(left_quaternion, hip_quaternion, right_quater
     right_body_frame_quaternion = quat_conj(quat_force_euler_angle(right_quaternion, psi=0))
 
     # The neutral quaternion is a yaw rotation of pi/2 + the neutral yaw value
-    hip_euler = quat_to_euler(hip_quaternion)
+    hip_euler = quat_to_euler(
+        hip_quaternion[:, 0],
+        hip_quaternion[:, 1],
+        hip_quaternion[:, 2],
+        hip_quaternion[:, 3],
+    )
     hip_yaw_value = hip_euler[:, 2]
     hip_neutral_euler = np.array([[0, 0, hip_yaw_value - math.pi / 2]])
     hip_neutral_quaternion = quat_conj(euler_to_quat(hip_neutral_euler))
