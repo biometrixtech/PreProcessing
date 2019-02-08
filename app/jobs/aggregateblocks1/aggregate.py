@@ -23,7 +23,7 @@ def aggregate(data, record):
     record['irregularAccel'] = np.nansum(data['irregular_accel'])
 
     # control aggregation
-    record['control'] = np.sum(data['control']*data['aZ']) / numpy.sum(data['aZ'])
+    record['control'] = np.sum(data['control'] * data['acc_hip_z']) / np.sum(data['acc_hip_z'])
     record['hipControl'] = None
     record['ankleControl'] = None
     record['controlLF'] = None
