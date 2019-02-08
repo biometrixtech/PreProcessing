@@ -113,11 +113,6 @@ Metadata:
             PublicSubnetAlphaId: { default: "Public Subnet Alpha ID" }
             VpcCidr: { default: "VPC CIDR block" }
 
-Mappings:
-    RegionAmiMappings:
-        us-east-1:      { "bastion": "ami-1d4e7a66" }
-        us-west-2:      { "bastion": "ami-8803e0f0" }
-
 Conditions:
     MultiAz: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "MultiAz" }, "false" ] } ] }
     AllowSsh: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "Keypair" }, "" ] } ] }
@@ -328,11 +323,7 @@ Resources:
             LaunchTemplateData:
                 IamInstanceProfile:
                     Name: { Ref: "Ec2InstanceStartupProfile" }
-                KeyName: { Ref: "Keypair" }
-#                SecurityGroupIds:
-#                  - { Ref: "Ec2SecurityGroup" }
-#                  - { Ref: "EfsSecurityGroup" }
-#                  - { Ref: "Ec2SecurityGroupInternalSsh" }
+                KeyName: { "Fn::If": [ "AllowSsh", { Ref: "Keypair" }, { Ref: "AWS::NoValue" } ] }
                 TagSpecifications:
                   - ResourceType: "instance"
                     Tags:
@@ -400,7 +391,7 @@ Resources:
 #                { InstanceSize: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] } }
 #             ] }
             ComputeResources:
-                Ec2KeyPair: { Ref: "Keypair" }
+                Ec2KeyPair: { "Fn::If": [ "AllowSsh", { Ref: "Keypair" }, { Ref: "AWS::NoValue" } ] }
                 InstanceRole: { Ref: "Ec2InstanceStartupProfile" }
                 InstanceTypes: { Ref: "InstanceSize" }
                 LaunchTemplate:

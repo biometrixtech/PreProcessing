@@ -1,4 +1,4 @@
 # Execute this with
 #     pip install -r ./pip_requirements -t .
-git+ssh://git@github.com/biometrixtech/fathomapi.git@0.14.1
+git+ssh://git@github.com/biometrixtech/fathomapi.git@0.15.3
 base64io==1.0.2
