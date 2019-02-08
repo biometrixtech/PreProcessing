@@ -40,7 +40,7 @@ class SessionprocessJob(Job):
             self._flag_data_quality(sdata)
 
         # Read user mass
-        mass = float(self.datastore.get_metadatum('user_mass'))
+        mass = float(self.datastore.get_metadatum('user_mass', 60))
 
         size = len(sdata)
         sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
