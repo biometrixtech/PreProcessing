@@ -21,7 +21,8 @@ class DownloadandchunkJob(Job):
     @xray_recorder.capture('app.jobs.downloadandchunk._run')
     def _run(self):
         s3_files = self.datastore.get_metadatum('s3_files', None) or self.datastore.get_metadatum('s3Files')
-        s3_files.remove('_empty')  # Placeholder list entry
+        if '_empty' in s3_files:
+            s3_files.remove('_empty')  # Placeholder list entry
         _logger.info(s3_files)
 
         if len(s3_files) == 0:
