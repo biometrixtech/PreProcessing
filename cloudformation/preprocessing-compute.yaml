@@ -386,10 +386,10 @@ Resources:
     BatchComputeEnvironment:
         Type: "AWS::Batch::ComputeEnvironment"
         Properties:
-#            ComputeEnvironmentName: { "Fn::Sub": [
-#                "preprocessing-${Environment}-compute-${InstanceSize}",
-#                { InstanceSize: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] } }
-#             ] }
+            ComputeEnvironmentName: { "Fn::Sub": [
+                "preprocessing-${Environment}-compute-${InstanceSize}",
+                { InstanceSize: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] } }
+             ] }
             ComputeResources:
                 Ec2KeyPair: { "Fn::If": [ "AllowSsh", { Ref: "Keypair" }, { Ref: "AWS::NoValue" } ] }
                 InstanceRole: { Ref: "Ec2InstanceStartupProfile" }
@@ -408,13 +408,6 @@ Resources:
                     [ { Ref: "PrivateSubnetAlphaId" }, { Ref: "PrivateSubnetBetaId" } ],
                     [ { Ref: "PrivateSubnetAlphaId" } ]
                 ]}
-#                Tags:
-#                    Name: { "Fn::Sub": "preprocessing-${Environment}-compute" }
-#                    Management: "managed"
-#                    Project: "preprocessing"
-#                    Environment: { Ref: "Environment" }
-#                    Service: "batch"
-                Type: "EC2"
             ServiceRole: { "Fn::ImportValue": "ServiceRoleBatch" }
             State: "ENABLED"
             Type: "MANAGED"
@@ -435,11 +428,10 @@ Resources:
             ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
             Code: |
                 import boto3, os
-                ecs_client = boto3.client('ecs')
-                compute_environment_name = os.environ['COMPUTE_ENVIRONMENT_ARN'].split('/')[-1]
-                cluster_names = [arn.split('/')[-1] for arn in ecs_client.list_clusters()['clusterArns']]
-                relevant_names = [name for name in cluster_names if name.startswith(compute_environment_name)]
-                physical_resource_id = relevant_names[0] if len(relevant_names) else None
+                batch_client = boto3.client('batch')
+                clusters = batch_client.describe_compute_environments()['computeEnvironments']
+                cluster = next(c for c in clusters if c['computeEnvironmentArn'] == os.environ['COMPUTE_ENVIRONMENT_ARN'])
+                physical_resource_id = cluster['ecsClusterArn']
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
