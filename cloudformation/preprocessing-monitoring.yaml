@@ -106,7 +106,7 @@ Resources:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
                     BATCH_COMPUTE_ENVIRONMENT: { Ref: "BatchComputeEnvironmentArn" }
-                    BATCH_ECS_CLUSTER: { Ref: "BatchComputeEnvironmentEcsClusterName" }
+                    BATCH_ECS_CLUSTER_ARN: { "Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${BatchComputeEnvironmentEcsClusterName}" }
                     BATCH_JOB_QUEUE: { Ref: "BatchJobQueueArn" }
                     BATCH_EFS_ID: { Ref: "EfsId" }
                     STATE_MACHINE_ARN: { Ref: "PipelineStateMachineArn" }

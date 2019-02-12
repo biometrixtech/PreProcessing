@@ -444,7 +444,7 @@ Resources:
                 batch_client = boto3.client('batch')
                 clusters = batch_client.describe_compute_environments()['computeEnvironments']
                 cluster = next(c for c in clusters if c['computeEnvironmentArn'] == os.environ['COMPUTE_ENVIRONMENT_ARN'])
-                physical_resource_id = cluster['ecsClusterArn']
+                physical_resource_id = cluster['ecsClusterArn'].split('/')[-1]
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
