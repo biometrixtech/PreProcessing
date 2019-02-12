@@ -408,6 +408,7 @@ Resources:
                     [ { Ref: "PrivateSubnetAlphaId" }, { Ref: "PrivateSubnetBetaId" } ],
                     [ { Ref: "PrivateSubnetAlphaId" } ]
                 ]}
+                Type: 'EC2'
             ServiceRole: { "Fn::ImportValue": "ServiceRoleBatch" }
             State: "ENABLED"
             Type: "MANAGED"
