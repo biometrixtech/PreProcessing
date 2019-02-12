@@ -387,8 +387,8 @@ Resources:
         Type: "AWS::Batch::ComputeEnvironment"
         Properties:
             ComputeEnvironmentName: { "Fn::Sub": [
-                "preprocessing-${Environment}-compute-${InstanceSize}",
-                { InstanceSize: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] } }
+                "preprocessing-${Environment}-compute-${VersionNumber}",
+                { VersionNumber: 'flip' }  # Change between 'flip' and 'flop' as necessary to allow re-creation
              ] }
             ComputeResources:
                 Ec2KeyPair: { "Fn::If": [ "AllowSsh", { Ref: "Keypair" }, { Ref: "AWS::NoValue" } ] }
