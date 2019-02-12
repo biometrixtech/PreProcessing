@@ -98,82 +98,10 @@ Resources:
         Type: "AWS::Lambda::Function"
         Properties:
             Code:
-                ZipFile: |
-                    import boto3, datetime, itertools, os, re
-
-                    cloudwatch_client = boto3.client('cloudwatch')
-                    batch_client = boto3.client('batch')
-                    ec2_client = boto3.client('ec2')
-                    ecs_client = boto3.client('ecs')
-                    efs_client = boto3.client('efs')
-                    sfn_client = boto3.client('stepfunctions')
-
-                    def handler(_, __):
-                        batch_desired_vcpus = batch_client.describe_compute_environments(computeEnvironments=[os.environ['BATCH_COMPUTE_ENVIRONMENT']])['computeEnvironments'][0]['computeResources']['desiredvCpus']
-                        put_metric('BatchComputeEnvironmentDesiredCpus', batch_desired_vcpus)
-
-                        try:
-                            container_instance_arns = [arn for arn in ecs_client.list_container_instances(cluster=os.environ['BATCH_ECS_CLUSTER'])['containerInstanceArns']]
-                            if len(container_instance_arns):
-                                ec2_instances = [instance['ec2InstanceId'] for instance in ecs_client.describe_container_instances(cluster=os.environ['BATCH_ECS_CLUSTER'], containerInstances=container_instance_arns)['containerInstances']]
-                                data = ec2_client.describe_instances(InstanceIds=ec2_instances, Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])['Reservations']
-                                instance_data = {'c4\.8xlarge': 36, "m4\.10xlarge": 40, '..\.32xlarge': 128, '..\.16xlarge': 64, '..\.8xlarge': 32, '..\.4xlarge': 16, '..\.2xlarge': 8, '..\.xlarge': 4, '..\.large': 2, '..\.medium': 1, }
-                                def get_cpu(t):
-                                    for r, v in instance_data.items():
-                                        if re.match(r, t):
-                                            return v
-                                batch_actual_cpus = sum([get_cpu(instance['InstanceType']) for reservation in data for instance in reservation['Instances']])
-                            else:
-                                batch_actual_cpus = 0
-                            put_metric('BatchComputeEnvironmentActualCpus', batch_actual_cpus)
-                        except:
-                            pass
-
-                        # Batch jobs by status
-                        for group, statuses in {'SCHEDULED': ['SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING'], 'RUNNING': ['RUNNING'], 'SUCCEEDED': ['SUCCEEDED'], 'FAILED': ['FAILED']}.items():
-                            group_jobs = []
-                            for status in statuses:
-                                jobs = batch_jobs_by_job(status)
-                                put_metric('BatchJobQueueCount', len(jobs), {'Status': status})
-                                group_jobs += jobs
-                            for job_name, jobs in itertools.groupby(sorted(group_jobs)):
-                                put_metric('BatchJobQueueCount', len(list(jobs)), {'Status': group, 'Job': job_name})
-
-                        # EFS filsystem size
-                        data = efs_client.describe_file_systems(FileSystemId=os.environ['BATCH_EFS_ID'])['FileSystems'][0]
-                        put_metric('BatchEfsSize', data['SizeInBytes']['Value'], unit='Bytes')
-
-                        # SFN executions
-                        executions = [ex['status'] for ex in list_sfn_executions() if ex['status'] == 'RUNNING' or (
-                                datetime.datetime.now() - ex['stopDate'].replace(tzinfo=None)).total_seconds() < 60 * 5]
-                        for status in ['RUNNING', 'SUCCEEDED', 'FAILED', 'TIMED_OUT', 'ABORTED']:
-                            put_metric('StepFunctionsExecutions', executions.count(status), {'Status': status})
-
-                    def batch_jobs_by_job(status, token=''):
-                        jobs = batch_client.list_jobs(jobQueue=os.environ['BATCH_JOB_QUEUE'], jobStatus=status, nextToken=token)
-                        return [job['jobName'].split('-')[4] for job in jobs['jobSummaryList']] + (
-                            batch_jobs_by_job(status, jobs['nextToken']) if 'nextToken' in jobs and jobs['nextToken'] else [])
-
-                    def list_sfn_executions(token=None):
-                        if token is not None:
-                            res = sfn_client.list_executions(stateMachineArn=os.environ['STATE_MACHINE_ARN'], nextToken=token)
-                        else:
-                            res = sfn_client.list_executions(stateMachineArn=os.environ['STATE_MACHINE_ARN'])
-                        return res['executions'] + (list_sfn_executions(res['nextToken']) if 'nextToken' in res and res['nextToken'] else [])
-
-                    def put_metric(metric_name, value, dimensions={}, unit='None'):
-                        dimensions = {**{'Environment': os.environ['ENVIRONMENT']}, **dimensions}
-                        cloudwatch_client.put_metric_data(
-                            Namespace='Preprocessing',
-                            MetricData=[{
-                                'MetricName': metric_name,
-                                'Dimensions': [{'Name': k, 'Value': v} for k, v in dimensions.items()],
-                                'Timestamp': datetime.datetime.utcnow(),
-                                'Value': value,
-                                'Unit': unit
-                            }]
-                        )
-
+                S3Bucket: { "Fn::ImportValue": "InfrastructureBucketName" }
+                S3Key: { "Fn::Sub": [ "lambdas/preprocessing/${TemplateVersion}/monitor.zip", {
+                    TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+                } ] }
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
