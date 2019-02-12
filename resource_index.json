@@ -23,7 +23,7 @@
             "name": "preprocessing-{ENVIRONMENT}-monitor",
             "s3_filename": "monitor.zip",
             "src": "lambdas/monitor",
-            "pip": true
+            "pip": false
         }
     ],
     "datastores": [
