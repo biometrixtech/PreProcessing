@@ -188,12 +188,9 @@ Resources:
                                     "Preprocessing",
                                     "BatchJobQueueCount",
                                     "Environment", "${Environment}",
-                                    "Status", "SUBMITTED",
+                                    "Status", "SCHEDULED",
                                     { "label": "Submitted" }
                                 ],
-                                [ ".", ".", ".", ".", ".", "PENDING", { "label": "Pending" } ],
-                                [ ".", ".", ".", ".", ".", "RUNNABLE", { "label": "Runnable" } ],
-                                [ ".", ".", ".", ".", ".", "STARTING", { "label": "Starting" } ],
                                 [ ".", ".", ".", ".", ".", "RUNNING", { "label": "Running" } ]
                             ],
                             "period": 60,
