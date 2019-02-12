@@ -114,7 +114,7 @@ def handle_session_patch(session_id):
         if (session['session_status'], request.json['session_status']) in allowed_transitions:
             session['session_status'] = request.json['session_status']
             if session['session_status'] == 'UPLOAD_COMPLETE':
-                session['upload_end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+                request.json['upload_end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         else:
             # https://app.asana.com/0/654140198477919/673983533272813
             return {'message': 'Currently at status {}, cannot change to {}'.format(session['session_status'], request.json['session_status'])}, 200
