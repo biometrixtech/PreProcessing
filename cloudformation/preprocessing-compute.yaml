@@ -383,13 +383,25 @@ Resources:
                             end script
                             --==BOUNDARY==--
 
+    FormBatchComputeEnvironmentName:
+        Type: "Custom::CfnSnippet"
+        Properties:
+            ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
+            Code: |
+                import os
+                physical_resource_id =  'preprocessing-{}-compute-{}'.format(
+                    os.environ['ENVIRONMENT'],
+                    os.environ['INSTANCE_SIZES'].replace(',', '_').replace('.', '')
+                )
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+                    INSTANCE_SIZES: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] }
+
     BatchComputeEnvironment:
         Type: "AWS::Batch::ComputeEnvironment"
         Properties:
-            ComputeEnvironmentName: { "Fn::Sub": [
-                "preprocessing-${Environment}-compute-${VersionNumber}",
-                { VersionNumber: 'flip' }  # Change between 'flip' and 'flop' as necessary to allow re-creation
-             ] }
+            ComputeEnvironmentName: { Ref: "FormBatchComputeEnvironmentName" }
             ComputeResources:
                 Ec2KeyPair: { "Fn::If": [ "AllowSsh", { Ref: "Keypair" }, { Ref: "AWS::NoValue" } ] }
                 InstanceRole: { Ref: "Ec2InstanceStartupProfile" }
