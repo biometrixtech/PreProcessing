@@ -43,6 +43,12 @@
         "updated_date": {
             "type": "string"
         },
+        "upload_end_date": {
+            "type": "string"
+        },
+        "upload_start_date": {
+            "type": "string"
+        },
         "user_id": {
             "type": "string"
         },
