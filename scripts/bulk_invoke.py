@@ -76,6 +76,9 @@ def process_session(session_id):
             else:
                 raise Exception('No s3_files key in DDB record')
 
+            if '_empty' in s3_files:
+                s3_files.remove('_empty')
+
             dest_sessions_table.put_item(
                 Item=existing_record,
                 ConditionExpression=Attr('id').not_exists()
@@ -83,7 +86,7 @@ def process_session(session_id):
         except ClientError as e:
             if 'ConditionalCheckFailed' in str(e):
                 print('    A session with id {} already exists in {}-{}'.format(session_id, args.environment, args.region), colour=Fore.RED)
-                exit(1)
+                return
             raise
 
         # Copy the S3 files
@@ -100,7 +103,8 @@ def process_session(session_id):
         update_session_status(dest_sessions_table, session_id, 'UPLOAD_IN_PROGRESS')
 
     # Finally set the status flag to completed again to start processing
-    update_session_status(dest_sessions_table, session_id, 'UPLOAD_COMPLETE')
+    if not args.copy_only:
+        update_session_status(dest_sessions_table, session_id, 'UPLOAD_COMPLETE')
 
 
 def validate_uuid5(uuid_string):
@@ -136,6 +140,10 @@ if __name__ == '__main__':
     parser.add_argument('--copy-from-region',
                         dest='copy_from_region',
                         help='Environment to copy file from')
+    parser.add_argument('--copy-only',
+                        dest='copy_only',
+                        action='store_true',
+                        help="Only copy S3 files, don't trigger jobs")
 
     args = parser.parse_args()
 
