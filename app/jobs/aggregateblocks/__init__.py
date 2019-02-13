@@ -63,7 +63,7 @@ class AggregateblocksJob(Job):
         data = self.datastore.get_data('scoring')
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
 
-        user_mass = float(self.datastore.get_metadatum('user_mass', None))
+        user_mass = float(self.datastore.get_metadatum('user_mass', 60))
 
         data.active[data.stance == 0] = 0
         active_ind = np.array([k == 1 for k in data['active']])

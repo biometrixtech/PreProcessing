@@ -18,6 +18,12 @@
             "s3_filename": "sessions_stream.zip",
             "src": "lambdas/sessions_stream",
             "pip": true
+        },
+        {
+            "name": "preprocessing-{ENVIRONMENT}-monitor",
+            "s3_filename": "monitor.zip",
+            "src": "lambdas/monitor",
+            "pip": false
         }
     ],
     "datastores": [

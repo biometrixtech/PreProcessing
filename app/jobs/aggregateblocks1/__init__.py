@@ -20,7 +20,7 @@ class Aggregateblocks1Job(Job):
         data = self.datastore.get_data('scoring1')
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
 
-        user_mass = float(self.datastore.get_metadatum('user_mass', None))
+        user_mass = float(self.datastore.get_metadatum('user_mass', 60))
 
         active_ind = np.array([k == 1 for k in data['active']])
         data['total_accel'] = data['total_accel'].fillna(value=np.nan) * active_ind

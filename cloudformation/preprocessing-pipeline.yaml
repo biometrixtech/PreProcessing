@@ -306,8 +306,7 @@ Resources:
                                 },
                                 "AttributeUpdates": {
                                     "session_status": { "Action": "PUT", "Value": { "S": "PROCESSING_IN_PROGRESS" } }
-                                },
-                                "ReturnValues": "ALL_NEW"
+                                }
                             },
                             "ResultPath": "$.ReadDatabase",
                             "Next": "DownloadAndChunk"
@@ -381,7 +380,8 @@ Resources:
                                 "TableName": "preprocessing-${Environment}-ingest-sessions",
                                 "Key": {
                                     "id": { "S.$": "$.SourceEvent.SessionId" }
-                                }
+                                },
+                                "ProjectionExpression": "id, sensors"
                             },
                             "ResultPath": "$.ReadDatabase",
                             "Next": "SensorChoice"
