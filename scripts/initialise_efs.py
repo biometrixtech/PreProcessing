@@ -69,6 +69,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Initialise a newly-created EFS filesystem')
     parser.add_argument('--region', '-r',
                         type=str,
+                        default='us-west-2',
                         help='AWS Region')
     parser.add_argument('--environment', '-e',
                         type=str,
@@ -92,14 +93,14 @@ if __name__ == '__main__':
         )
         commands = ['apk update && apk upgrade musl && apk add aws-cli']
         models = [
-            'grf_model_v2_0.h5',
-            'grf_model_left_v2_1.h5',
-            'grf_model_right_v2_1.h5',
-            'scaler_model_v2_0.pkl',
-            'scaler_model_single_v2_1.pkl',
+            ('grf_model_v2_0.h5', 'globalmodels'),
+            ('grf_model_left_v2_1.h5', 'globalmodels'),
+            ('grf_model_right_v2_1.h5', 'globalmodels'),
+            ('scaler_model_v2_0.pkl', 'globalscalers'),
+            ('scaler_model_single_v2_1.pkl', 'globalscalers'),
         ]
-        for model in models:
-            commands.append('aws s3 cp s3://biometrix-globalmodels/{env}/{model} /net/efs/globalmodels/{model}'.format(env=args.environment, model=model))
+        for model, directory in models:
+            commands.append('aws s3 cp s3://biometrix-globalmodels/{env}/{model} /net/efs/{directory}/{model}'.format(env=args.environment, model=model, directory=directory))
         install_arn = register_job_definition('maintenance-downloadmodels', commands)
     print('Running job {}'.format(initialise_arn))
 

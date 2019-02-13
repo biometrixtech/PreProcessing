@@ -66,8 +66,19 @@ def process_session(session_id):
             existing_record = get_dynamodb(source_sessions_table, session_id)
             existing_record['session_status'] = 'UPLOAD_IN_PROGRESS'
             existing_record['updated_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-            s3_files = existing_record['s3_files']
-            del existing_record['s3_files']
+
+            if 's3_files' in existing_record:
+                s3_files = existing_record.get('s3_files')
+                del existing_record['s3_files']
+            elif 's3Files' in existing_record:
+                s3_files = existing_record['s3Files']
+                del existing_record['s3Files']
+            else:
+                raise Exception('No s3_files key in DDB record')
+
+            if '_empty' in s3_files:
+                s3_files.remove('_empty')
+
             dest_sessions_table.put_item(
                 Item=existing_record,
                 ConditionExpression=Attr('id').not_exists()
@@ -75,14 +86,14 @@ def process_session(session_id):
         except ClientError as e:
             if 'ConditionalCheckFailed' in str(e):
                 print('    A session with id {} already exists in {}-{}'.format(session_id, args.environment, args.region), colour=Fore.RED)
-                exit(1)
+                return
             raise
 
         # Copy the S3 files
         source_bucket = boto3.resource('s3').Bucket('biometrix-preprocessing-{}-{}'.format(source_environment, source_region))
         dest_bucket = boto3.resource('s3').Bucket('biometrix-preprocessing-{}-{}'.format(args.environment, args.region))
         count = 1
-        for s3_file in s3_files:
+        for s3_file in sorted(s3_files):
             print('    Copying {}/{} ({})'.format(count, len(s3_files), s3_file))
             dest_bucket.copy({'Bucket': source_bucket.name, 'Key': s3_file}, s3_file)
             count += 1
@@ -92,7 +103,8 @@ def process_session(session_id):
         update_session_status(dest_sessions_table, session_id, 'UPLOAD_IN_PROGRESS')
 
     # Finally set the status flag to completed again to start processing
-    update_session_status(dest_sessions_table, session_id, 'UPLOAD_COMPLETE')
+    if not args.copy_only:
+        update_session_status(dest_sessions_table, session_id, 'UPLOAD_COMPLETE')
 
 
 def validate_uuid5(uuid_string):
@@ -100,8 +112,10 @@ def validate_uuid5(uuid_string):
         val = UUID(uuid_string, version=5)
         # If the uuid_string is a valid hex code, but an invalid uuid4, the UUID.__init__
         # will convert it to a valid uuid4. This is bad for validation purposes.
-        if val.hex == uuid_string.replace('-', ''):
+        if str(val.hex) == str(uuid_string.replace('-', '')):
             return uuid_string
+        print(len(val.hex), len(uuid_string.replace('-', '')))
+        for i in range(len(val.hex)): print(val.hex[i], uuid_string.replace('-', '')[i], val.hex[i] == uuid_string.replace('-', '')[i])
     except ValueError:
         # If it's a value error, then the string is not a valid hex code for a UUID.
         pass
@@ -112,7 +126,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Invoke a test file')
     parser.add_argument('sessions',
                         nargs='+',
-                        type=validate_uuid5,
+                        # type=validate_uuid5,
                         help='The session(s) to run')
     parser.add_argument('--region', '-r',
                         help='AWS Region',
@@ -126,6 +140,10 @@ if __name__ == '__main__':
     parser.add_argument('--copy-from-region',
                         dest='copy_from_region',
                         help='Environment to copy file from')
+    parser.add_argument('--copy-only',
+                        dest='copy_only',
+                        action='store_true',
+                        help="Only copy S3 files, don't trigger jobs")
 
     args = parser.parse_args()
 

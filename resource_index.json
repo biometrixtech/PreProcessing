@@ -18,10 +18,17 @@
             "s3_filename": "sessions_stream.zip",
             "src": "lambdas/sessions_stream",
             "pip": true
+        },
+        {
+            "name": "preprocessing-{ENVIRONMENT}-monitor",
+            "s3_filename": "monitor.zip",
+            "src": "lambdas/monitor",
+            "pip": false
         }
     ],
     "datastores": [
         { "type": "dynamodb.table", "name": "preprocessing-{ENVIRONMENT}-ingest-sessions" },
-        { "type": "s3.bucket", "name": "biometrix-preprocessing-{ENVIRONMENT}-{REGION}" }
+        { "type": "s3.bucket", "name": "biometrix-preprocessing-{ENVIRONMENT}-{REGION}" },
+        { "type": "s3.bucket", "name": "biometrix-preprocessing-{ENVIRONMENT}-{REGION}-advanced-stats" }
     ]
 }

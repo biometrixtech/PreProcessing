@@ -1,11 +1,18 @@
 *.zip
 *.pyc
-cache/pip/*
-!cache/pip/empty
 .DS_Store
 .idea/*
 .cache
 
+/app/*
+!/app/jobs
+!/app/models
+!/app/utils
+!/app/*.py
+!/app/pip_requirements
+
+tests/advancedStats/.pytest_cache/*
+tests/session2/.pytest_cache/*
 apigateway/*
 !apigateway/routes
 !apigateway/*.py

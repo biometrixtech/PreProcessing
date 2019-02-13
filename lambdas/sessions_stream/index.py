@@ -4,7 +4,6 @@ import decimal
 import json
 import os
 import time
-import urllib.request
 
 from fathomapi.comms.service import Service
 
@@ -19,6 +18,7 @@ def handler(event, _):
 
         new_object = load_obj(record['dynamodb'].get('NewImage', {}))
         old_object = load_obj(record['dynamodb'].get('OldImage', {}))
+
         changes = {k: (old_object.get(k, None), new_object.get(k, None)) for k, _ in
                    set(new_object.items()).symmetric_difference(set(old_object.items()))}
 
@@ -72,11 +72,14 @@ def load_obj(record):
             'S': lambda x: x,
             'N': lambda x: float(x),
             'SS': lambda x: frozenset(x),
-            'L': lambda x: tuple(x),
+            'L': lambda x: tuple(load_obj(x)),
             'NULL': lambda x: None,
         }[t](v)
 
-    return {attr_name: cast(*list(v.items())[0]) for attr_name, v in record.items()}
+    if isinstance(record, dict):
+        return {attr_name: cast(*list(v.items())[0]) for attr_name, v in record.items()}
+    elif isinstance(record, list):
+        return [cast(*list(v.items())[0]) for v in record]
 
 
 def update_dynamodb(session_id, updates):
@@ -89,3 +92,68 @@ def update_dynamodb(session_id, updates):
         UpdateExpression=update_expression,
         ExpressionAttributeValues=values,
     )
+
+
+if __name__ == '__main__':
+    print('Running')
+    data_in = {
+        "Records": [
+            {
+                "eventID": "a04a08498323203e66237c7d0eee86ec",
+                "eventName": "INSERT",
+                "eventVersion": "1.1",
+                "eventSource": "aws:dynamodb",
+                "awsRegion": "us-west-2",
+                "dynamodb": {
+                    "ApproximateCreationDateTime": 1549646155,
+                    "Keys": {
+                        "id": {
+                            "S": "4a5713d1-61b0-4936-911b-f247496b7f06"
+                        }
+                    },
+                    "NewImage": {
+                        "trainingGroupIds": {
+                            "L": [
+                                {
+                                    "S": "073ab1da-0fb3-458b-8479-f046b55b7375"
+                                }
+                            ]
+                        },
+                        "teamId": {
+                            "S": "ac827039-cecc-4e7c-881b-71de423ffb42"
+                        },
+                        "sessionStatus": {
+                            "S": "PROCESSING_COMPLETE"
+                        },
+                        "id": {
+                            "S": "4a5713d1-61b0-4936-911b-f247496b7f06"
+                        },
+                        "updatedDate": {
+                            "S": "2018-04-16T21:10:45Z"
+                        },
+                        "updated_date": {
+                            "S": "2019-02-08T17:15:53Z"
+                        },
+                        "session_status": {
+                            "S": "UPLOAD_IN_PROGRESS"
+                        },
+                        "userId": {
+                            "S": "cc72e186-16a8-42ca-9151-61f78fbc312d"
+                        },
+                        "version": {
+                            "S": "2.3"
+                        },
+                        "eventDate": {
+                            "S": "2018-03-21T19:07:11z"
+                        }
+                    },
+                    "SequenceNumber": "1747524900000000000580872130",
+                    "SizeBytes": 382,
+                    "StreamViewType": "NEW_AND_OLD_IMAGES"
+                },
+                "eventSourceARN": "arn:aws:dynamodb:us-west-2:887689817172:table/preprocessing-dev-ingest-sessions/stream/2018-02-06T16:36:26.162"
+            }
+        ]
+    }
+
+    handler(data_in, None)

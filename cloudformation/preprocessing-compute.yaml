@@ -113,11 +113,6 @@ Metadata:
             PublicSubnetAlphaId: { default: "Public Subnet Alpha ID" }
             VpcCidr: { default: "VPC CIDR block" }
 
-Mappings:
-    RegionAmiMappings:
-        us-east-1:      { "bastion": "ami-1d4e7a66" }
-        us-west-2:      { "bastion": "ami-8803e0f0" }
-
 Conditions:
     MultiAz: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "MultiAz" }, "false" ] } ] }
     AllowSsh: { "Fn::Not": [ { "Fn::Equals": [ { Ref: "Keypair" }, "" ] } ] }
@@ -234,6 +229,18 @@ Resources:
                     Action: "sts:AssumeRole"
             ManagedPolicyArns:
               - "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+            Policies:
+              - PolicyName: "default"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "ecs:StartTask"
+                          - "iam:PassRole"
+                        Effect: "Allow"
+                        Resource:
+                          - { Ref: "XRayTaskDefinition" }
+                          - { "Fn::Sub": [ "arn:aws:iam::${AWS::AccountId}:role/${ServiceRoleEcsTasks}", { ServiceRoleEcsTasks: { "Fn::ImportValue": 'ServiceRoleEcsTasks' } } ] }
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-compute-ec2-${AWS::Region}" }
 
     Ec2InstanceStartupProfile:
@@ -276,17 +283,132 @@ Resources:
     ##  BATCH
     ##########################################################################################################
 
+    XRayLogGroup:
+        Type: "AWS::Logs::LogGroup"
+        Properties:
+            LogGroupName: { "Fn::Sub": "preprocessing/${Environment}/compute-xray" }
+            RetentionInDays: 14
+
+    XRayTaskDefinition:
+        Type: "AWS::ECS::TaskDefinition"
+        Properties:
+            Cpu: 256
+            ContainerDefinitions:
+              - Cpu: 256
+                Environment:
+                  - { Name: "AWS_DEFAULT_REGION", Value: { Ref: "AWS::Region" } }
+                Image: "melonsoftware/aws-xray-daemon:3.0"
+                LogConfiguration:
+                    LogDriver: "awslogs"
+                    Options:
+                        awslogs-group: { Ref: "XRayLogGroup" }
+                        awslogs-region: { Ref: "AWS::Region" }
+                        awslogs-stream-prefix: "xray"
+                Memory: 512
+                Name: { "Fn::Sub": "preprocessing-${Environment}-compute-xray" }
+                PortMappings:
+                 - ContainerPort: 2000
+                   HostPort: 2000
+                   Protocol: "udp"
+            ExecutionRoleArn: { "Fn::ImportValue": 'ServiceRoleEcsTasks' }
+            Family: { "Fn::Sub": "preprocessing-${Environment}-compute-xray" }
+            Memory: 512
+            NetworkMode: "host"
+            TaskRoleArn: { Ref: "AWS::NoValue" }
+
+    LaunchTemplate:
+        Type: "AWS::EC2::LaunchTemplate"
+        Properties:
+            LaunchTemplateName: { "Fn::Sub": "preprocessing-${Environment}-compute" }
+            LaunchTemplateData:
+                IamInstanceProfile:
+                    Name: { Ref: "Ec2InstanceStartupProfile" }
+                KeyName: { "Fn::If": [ "AllowSsh", { Ref: "Keypair" }, { Ref: "AWS::NoValue" } ] }
+                TagSpecifications:
+                  - ResourceType: "instance"
+                    Tags:
+                      - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-compute" } }
+                      - { Key: "Management", Value: "managed" }
+                      - { Key: "Project", Value: "preprocessing" }
+                      - { Key: "Environment", Value: { Ref: "Environment" } }
+                      - { Key: "Service", Value: "batch" }
+                  - ResourceType: "volume"
+                    Tags:
+                      - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-compute" } }
+                      - { Key: "Management", Value: "managed" }
+                      - { Key: "Project", Value: "preprocessing" }
+                      - { Key: "Environment", Value: { Ref: "Environment" } }
+                      - { Key: "Service", Value: "batch" }
+                UserData:
+                    "Fn::Base64":
+                        "Fn::Sub": |
+                            MIME-Version: 1.0
+                            Content-Type: multipart/mixed; boundary="==BOUNDARY=="
+
+                            --==BOUNDARY==
+                            Content-Type: text/cloud-config; charset="us-ascii"
+
+                            packages:
+                              - amazon-efs-utils
+                              - aws-cli
+                              - jq
+
+                            runcmd:
+                              - mkdir -p /net/efs
+                              - echo "${EfsFileSystem}:/ /net/efs efs tls,_netdev" >> /etc/fstab
+                              - mount -a -t efs defaults
+
+                            --==BOUNDARY==
+                            Content-Type: text/upstart-job; charset="us-ascii"
+
+                            description "Amazon EC2 Container Service (start task on instance boot)"
+                            author "Amazon Web Services"
+                            start on started ecs
+
+                            script
+                                exec 2>>/var/log/ecs/ecs-start-task.log
+                                set -x
+                                until curl -s http://localhost:51678/v1/metadata
+                                do
+                                    sleep 1
+                                done
+
+                                # Grab the container instance ARN and AWS region from instance metadata
+                                instance_arn=$(curl -s http://localhost:51678/v1/metadata | jq -r '. | .ContainerInstanceArn' | awk -F/ '{print $NF}' )
+                                cluster=$(curl -s http://localhost:51678/v1/metadata | jq -r '. | .Cluster' | awk -F/ '{print $NF}' )
+                                region=$(curl -s http://localhost:51678/v1/metadata | jq -r '. | .ContainerInstanceArn' | awk -F: '{print $4}')
+
+                                # Run the AWS CLI start-task command to start your task on this container instance
+                                aws ecs start-task --cluster $cluster --task-definition ${XRayTaskDefinition} --container-instances $instance_arn --started-by $instance_arn --region $region
+                            end script
+                            --==BOUNDARY==--
+
+    FormBatchComputeEnvironmentName:
+        Type: "Custom::CfnSnippet"
+        Properties:
+            ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
+            Code: |
+                import os
+                physical_resource_id =  'preprocessing-{}-compute-{}'.format(
+                    os.environ['ENVIRONMENT'],
+                    os.environ['INSTANCE_SIZES'].replace(',', '_').replace('.', '')
+                )
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: "Environment" }
+                    INSTANCE_SIZES: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] }
+
     BatchComputeEnvironment:
         Type: "AWS::Batch::ComputeEnvironment"
         Properties:
-            ComputeEnvironmentName: { "Fn::Sub": [
-                "preprocessing-${Environment}-compute-${InstanceSize}",
-                { InstanceSize: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] } }
-             ] }
+            ComputeEnvironmentName: { Ref: "FormBatchComputeEnvironmentName" }
             ComputeResources:
-                Ec2KeyPair: { Ref: "Keypair" }
+                Ec2KeyPair: { "Fn::If": [ "AllowSsh", { Ref: "Keypair" }, { Ref: "AWS::NoValue" } ] }
                 InstanceRole: { Ref: "Ec2InstanceStartupProfile" }
                 InstanceTypes: { Ref: "InstanceSize" }
+                LaunchTemplate:
+                    LaunchTemplateId: { Ref: "LaunchTemplate" }
+                    Version: { "Fn::GetAtt": [ "LaunchTemplate", "LatestVersionNumber" ] }
                 MaxvCpus: 16
                 MinvCpus: 0
                 SecurityGroupIds:
@@ -298,13 +420,7 @@ Resources:
                     [ { Ref: "PrivateSubnetAlphaId" }, { Ref: "PrivateSubnetBetaId" } ],
                     [ { Ref: "PrivateSubnetAlphaId" } ]
                 ]}
-                Tags:
-                    Name: { "Fn::Sub": "preprocessing-${Environment}-compute" }
-                    Management: "managed"
-                    Project: "preprocessing"
-                    Environment: { Ref: "Environment" }
-                    Service: "batch"
-                Type: "EC2"
+                Type: 'EC2'
             ServiceRole: { "Fn::ImportValue": "ServiceRoleBatch" }
             State: "ENABLED"
             Type: "MANAGED"
@@ -325,11 +441,10 @@ Resources:
             ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
             Code: |
                 import boto3, os
-                ecs_client = boto3.client('ecs')
-                compute_environment_name = os.environ['COMPUTE_ENVIRONMENT_ARN'].split('/')[-1]
-                cluster_names = [arn.split('/')[-1] for arn in ecs_client.list_clusters()['clusterArns']]
-                relevant_names = [name for name in cluster_names if name.startswith(compute_environment_name)]
-                physical_resource_id = relevant_names[0] if len(relevant_names) else None
+                batch_client = boto3.client('batch')
+                clusters = batch_client.describe_compute_environments()['computeEnvironments']
+                cluster = next(c for c in clusters if c['computeEnvironmentArn'] == os.environ['COMPUTE_ENVIRONMENT_ARN'])
+                physical_resource_id = cluster['ecsClusterArn'].split('/')[-1]
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
@@ -372,7 +487,7 @@ Resources:
     BastionInstance:
         Type: "AWS::EC2::Instance"
         Properties:
-            ImageId: { "Fn::FindInMap": [ "RegionAmiMappings", { Ref: "AWS::Region" }, "bastion" ] }
+            ImageId: { Ref: "Ami" }
             InstanceInitiatedShutdownBehavior: "stop"
             InstanceType: "t2.nano"
             KeyName: { Ref: "Keypair" }

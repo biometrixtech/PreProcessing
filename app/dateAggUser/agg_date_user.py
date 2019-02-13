@@ -14,7 +14,7 @@ def script_handler(input_data):
     print("Definitely running")
 
     try:
-        mongo_database = get_mongo_database('SESSION')
+        mongo_database = get_mongo_database()
         mongo_collection_session = mongo_database[os.environ['MONGO_COLLECTION_SESSION']]
         mongo_collection_date = mongo_database[os.environ['MONGO_COLLECTION_DATE']]
 

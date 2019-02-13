@@ -1,25 +1,70 @@
-FROM python:2.7
+FROM alpine:3.8
 
 # Set up users and directories
 USER root
-RUN mkdir /net /net/efs
+RUN [ -d /net ] || mkdir /net /net/efs
 WORKDIR /opt/biometrix/preprocessing
 
 # Install packages
-RUN apt-get update && apt-get install -y \
-    nfs-common \
-    python-pip \
-  && apt-get clean
+#RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+#    && echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+RUN apk update \
+    && apk add --no-cache --virtual .runtime-deps \
+        # Provides the non-busybox version of `split` and `csplit` which have more functionality
+        coreutils \
+        # Python, obviously
+        python3 py3-pip \
+        # Needed for operation of scipy
+        freetype libgcc libpng libgfortran libstdc++ musl openblas tcl tk \
+#
+    # General build dependencies, will remove later
+    && apk add --no-cache --virtual .build-deps \
+        # For general building
+        build-base \
+        python3-dev \
+        gfortran \
+        # For scipy
+        freetype-dev \
+        openblas-dev \
+        pkgconfig \
+#
+    # For building h5py
+    && apk add --no-cache --virtual .build-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5-dev \
+    # For operation of Keras
+    && apk add --no-cache --virtual .runtime-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/community/ hdf5 \
+#
+    && python3 -m pip install --upgrade --no-cache-dir --compile pip \
+    && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
+       pip install --no-cache-dir --compile --global-option=build_ext \
+        numpy==1.16.0 \
+        scipy==1.2.0 \
+        aws_xray_sdk==2.3.0 \
+            jsonpickle==1.1 \
+            wrapt==1.11.1 \
+        boto3==1.9.2 \
+            botocore==1.12.82 \
+                docutils==0.14 \
+                jmespath==0.9.3 \
+                python-dateutil==2.7.5 \
+                    six==1.11.0 \
+                urllib3==1.24.1 \
+            jmespath==0.9.3 \
+            s3transfer==0.1.13 \
+        pymongo==3.7.2 \
+        Keras==2.2.4 \
+            h5py==2.9.0 \
+            PyYAML==3.13 \
+        Theano==1.0.4 \
+        pandas==0.23.4 \
+            python-dateutil==2.7.5 \
+            pytz==2018.9 \
+        scikit-learn==0.20.2 \
+#
+    # Remove build dependencies, and clean up stuff
+    && apk del .build-deps && rm -rf /root/.cache
 
 # Set up entrypoint
-COPY ./docker/entrypoint.sh .
-RUN chmod a+x /opt/biometrix/preprocessing/entrypoint.sh
-ENTRYPOINT ["/opt/biometrix/preprocessing/entrypoint.sh"]
-
-# Install python dependencies
-COPY cache/pip /root/.cache/pip
-COPY app/pip_requirements .
-RUN pip install -r pip_requirements
+ENTRYPOINT ["/opt/biometrix/preprocessing/batch_entrypoint.py"]
 
 # Copy application code
 COPY ./app .

@@ -72,12 +72,8 @@ def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
 
     # Get balance/movement phase and start and end of movement phase for both
     # right and left feet
-    ph, lf_sm, lf_em, rf_sm, rf_em = _body_phase(raz=ra_magn,
+    lf_ph, rf_ph, lf_sm, lf_em, rf_sm, rf_em = _body_phase(raz=ra_magn,
                                                  laz=la_magn, hz=hz)
-#    del laz_body, raz_body
-    lf_ph = list(ph)
-    rf_ph = list(ph)
-    del ph
 
     lf_imp = _impact_detect(start_move=lf_sm, end_move=lf_em, 
                             az=laz, pitch=pitch_lf, hz=hz)  # starting and ending
@@ -93,9 +89,9 @@ def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
                          # left foot data
         for i, j in zip(lf_imp[:, 0], lf_imp[:, 1]):
             if j==len(lf_ph):
-                lf_ph[i:j] = [phase_id.lf_imp.value]*int(j-i)
+                lf_ph[i:j] = [phase_id.impact.value]*int(j-i)
             else:
-                lf_ph[i:j+1] = [phase_id.lf_imp.value]*int(j-i+1) # decide impact
+                lf_ph[i:j+1] = [phase_id.impact.value]*int(j-i+1) # decide impact
                                                       # phase for the left foot
 
     del lf_imp  # no use in further computation
@@ -104,13 +100,11 @@ def combine_phase(laz, raz, la_magn, ra_magn, pitch_lf, pitch_rf, hz):
                          # right foot data
         for x, y in zip(rf_imp[:, 0], rf_imp[:, 1]):
             if y == len(rf_ph):
-                rf_ph[x:y] = [phase_id.rf_imp.value]*int(y-x)
+                rf_ph[x:y] = [phase_id.impact.value]*int(y-x)
             else:
-                rf_ph[x:y+1] = [phase_id.rf_imp.value]*int(y-x+1) # decide impact
+                rf_ph[x:y+1] = [phase_id.impact.value]*int(y-x+1) # decide impact
                                                      # phase for the right foot
     del rf_imp  # no use in further computation
-
-    lf_ph, rf_ph = _final_phases(rf_ph, lf_ph)
 
     #Insert previous value for phase where data needed to predict was missing
     if missing_data:
@@ -162,12 +156,12 @@ def _body_phase(raz, laz, hz):
 
     l = _phase_detect(acc=laz, hz=hz)  # run phase detect on left foot
 
-    # Determing start and end of movement phase for right foot
+    # Determing start and end of movement phase for left foot
     l_ch = np.ediff1d(l, to_begin=0)
     sm_l = np.where(l_ch==1)[0]
     em_l = np.where(l_ch==-1)[0]
 
-    # if data ends with movement, assign final point as end of movementß
+    # if data ends with movement, assign final point as end of movement
     if len(sm_l) != len(em_l):
         em_l = np.append(em_l, len(laz))
 
@@ -189,18 +183,8 @@ def _body_phase(raz, laz, hz):
     for j in sm_l:
         l[j:j+tf_win] = [0]*len(l[j:j+tf_win])
 
-    phase = []  # store body phase decisions
-    for i in range(len(r)):
-        if r[i] == 0 and l[i] == 0:  # decide in balance phase
-            phase.append(phase_id.rflf_ground.value)  # append to list
-        elif r[i] == 1 and l[i] == 0:  # decide left foot on the ground
-            phase.append(phase_id.lf_ground.value)  # append to list
-        elif r[i] == 0 and l[i] == 1:  # decide right foot on the ground
-            phase.append(phase_id.rf_ground.value)  # append to list
-        elif r[i] == 1 and l[i] == 1:  # decide both feet off ground
-            phase.append(phase_id.rflf_offground.value)  # append to list
-        
-    return np.array(phase), sm_l, em_l, sm_r, em_r
+
+    return np.array(l), np.array(r), sm_l, em_l, sm_r, em_r
 
 
 def _phase_detect(acc, hz):
@@ -309,6 +293,7 @@ def _impact_detect(start_move, end_move, az, pitch, hz):
                     drop_win = min([drop_win, len(az[i+k+m+2:])]) # make sure that drop_win is contained within end of movement phase
                     diff = [az[i+k+m+1]]*drop_win - az[i+k+m+2:i+k+m+2+drop_win]
                     if any(diff>=drop_thresh) and acc[k+m+1] > pos_thresh:
+                    # if acc[k+m+1] > pos_thresh:
                         start_imp_ind = i + k + m - 1
                         # if impact is detected, first check if it's end of movement phase
                         end_imp_ind = start_imp_ind + imp_len
@@ -326,9 +311,9 @@ def _impact_detect(start_move, end_move, az, pitch, hz):
                                 if acc[k + m + t] >= ct.pos_thres_takeoff:
                                     if np.any(acc[k + m + t + 1: k + m + t + win - 1] <= acc[k+m+t] - ct.jump_thres_takeoff):
                                         end_imp_ind = start_imp_ind + t + 3
-                                        if np.any(acc[k+m+t] - acc[k+m+t-1] >= 2 * 9.80665):
+                                        if np.any(acc[k+m+t] - acc[k+m+t-1] >= 2 * 9.80665): #we've potentially hit another impact
                                             end_imp_ind = start_imp_ind + int(t/2)
-                                        elif len(np.where(acc[k+m+int(t/2):k+m+t] <= - 9.80665)[0]) > 0:
+                                        elif len(np.where(acc[k+m+int(t/2):k+m+t] <= - 9.80665)[0]) > 0: # we've potentially hit another impact
                                             for l in np.where(acc[k+m+int(t/2):k+m+t] <= - 9.80665)[0]:
                                                 if np.any(acc[k+m+int(t/2)+l+1:k+m+int(t/2)+l+win] > acc[k+m+int(t/2)+l] + jump_thresh):
                                                     end_imp_ind = start_imp_ind + int(t/2)
@@ -363,7 +348,7 @@ def _impact_detect(start_move, end_move, az, pitch, hz):
                             if max_imp:
                                 k = end_imp_ind - i + 1
                             else:
-                                k = end_imp_ind - i + 6 # TODO can't have impact start within the minimum threshold for air time
+                                k = end_imp_ind - i + 4 # TODO can't have impact start within the minimum threshold for air time
                                 
                     else:
                         k += 1
@@ -456,7 +441,7 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
 
     # if grf is non-zero for too short time, probably fasle positive/error in grf estimation
     for r, l in zip(ranges, length):
-        if l < 8:
+        if l < 6:
             grf_ind[r[0]:r[1]] = 0
             grf[r[0]:r[1]] = 0
 
@@ -465,22 +450,21 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
     phase_lf[grf_ind == 0] = 1
     phase_rf[grf_ind == 0] = 1
 
-
     # detect peaks
-    mph = 1.2 * mass * 9.807
-    peaks = detect_peaks(grf, mph=mph, mpd=6, show=False)
+    mph = 1.4 * mass * 9.807
+    peaks = detect_peaks(grf, mph=mph, mpd=12, show=False)
     contact_lengths = []
     for _range in ranges:
         # check if there's any peaks over certain height during the ground contact phase
         if np.any(np.logical_and(peaks > _range[0], peaks < _range[1])):
-            #TODO: Potential to use presense of multiple peaks within a range to identify multiple
+            #TODO: Potential to use presence of multiple peaks within a range to identify multiple
             # impacts within the range
             # get all the peaks within the range
 #            peaks_in_range = peaks[np.where(np.logical_and(peaks>_range[0], peaks<_range[1]))[0]]
             # iterate
 #            for peak in peaks_in_range:
 
-            # limiting length to < 40. This is to limit us to either single impacts or double
+            # limiting length to < 50. This is to limit us to either single impacts or double
             # impacts where both R and L impacts are close enough
             # TODO: Need another case with better handling of double impacts where one follows another
             length_contact = _range[1] - _range[0]
@@ -507,7 +491,6 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                         phase_rf[_range[0]:_range[1]] = 2
                         phase_lf[_range[0]:_range[1]] = 1
 
-
                     # case 1c only left impact detected by single leg grf
                     # assign the whole range to left as impact and air for right (treat as false positive)
                     elif left_impact_grf:
@@ -516,6 +499,7 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                     # case 1d: No impact detected by single leg grf
                     else:
                         pass
+
                 # case 2: only right foot impact detected by phase detection
                 elif right_impact:
                     # case 2a: both impact detected by single leg grf
@@ -537,6 +521,7 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                     # case 2d: right impact not detected by single leg grf, treat as false positive
                     else:
                         phase_rf[_range[0]:_range[1]] = 1
+
                 # case 3: only left foot impact detected by phase detection
                 elif left_impact:
                     # case 3a: both impact detected by single leg grf
@@ -548,6 +533,7 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                             _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range)
                         else:
                             phase_lf[_range[0]:_range[1]] = 2
+
                     # case 3b: left impact detected, adjust boundaries
                     elif left_impact_grf:
                         phase_lf[_range[0]:_range[1]] = 2
@@ -558,8 +544,6 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
                     # case 3d: left impact not detected by single leg grf, treat as false positive
                     else:
                         phase_lf[_range[0]:_range[1]] = 1
-
-
                 # case 4: No impacts detected by phase detection
                 else:
                     # case 4a: both impact detected by grf
@@ -584,34 +568,22 @@ def update_phase_grf(grf, grf_lf, grf_rf, phase_lf, phase_rf, mass):
     ranges, length = _zero_runs(phase_lf, 1)
     for r, l in zip(ranges, length):
         if l <= 4:
-#            phase_lf[r[0]:r[1]] = 2
-            phase_lf[r[0]:r[1]] = phase_lf[r[0] - 1]
+            phase_lf[r[0]:r[1]] = 2
 
     ranges, length = _zero_runs(phase_lf, 2)
     for r, l in zip(ranges, length):
         if l <= 4:
             phase_lf[r[0]:r[1]] = 1
 
-    ranges, length = _zero_runs(phase_lf, 0)
-    for r, l in zip(ranges, length):
-        if l <= 2:
-            phase_lf[r[0]:r[1]] = phase_lf[r[0] - 1]
-
     ranges, length = _zero_runs(phase_rf, 1)
     for r, l in zip(ranges, length):
         if l <= 4:
-#            phase_rf[r[0]:r[1]] = 2
-            phase_rf[r[0]:r[1]] = phase_rf[r[0] - 1]
+            phase_rf[r[0]:r[1]] = 2
 
     ranges, length = _zero_runs(phase_rf, 2)
     for r, l in zip(ranges, length):
         if l <= 4:
             phase_rf[r[0]:r[1]] = 1
-
-    ranges, length = _zero_runs(phase_rf, 0)
-    for r, l in zip(ranges, length):
-        if l <= 2:
-            phase_rf[r[0]:r[1]] = phase_rf[r[0] - 1]
 
     phase_lf = _detect_takeoff(phase_lf)
     phase_rf = _detect_takeoff(phase_rf)
@@ -644,16 +616,15 @@ def _detect_takeoff(phase):
 
     return phase
 
-
 def _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range):
     # for left foot
     ground_lf = np.where(grf_lf == 1)[0]
     ground_lf = ground_lf[ground_lf >= _range[0]]
     ground_lf = ground_lf[ground_lf <= _range[1]]
     ground_lf_diff = np.ediff1d(ground_lf)
-
     if len(ground_lf_diff) >= 1: # check to see if it was a small false positive
         lf_ranges, length_lf = _zero_runs(ground_lf_diff, 1)
+            
         if np.any(length_lf >= 5): # look to see if any contacts >= 50ms present
             lf_ranges = lf_ranges[np.where(length_lf >= 5)[0], :]
             if len(lf_ranges) == 2:
@@ -686,8 +657,6 @@ def _assign_right_left(grf_lf, grf_rf, phase_lf, phase_rf, _range):
     ground_rf = ground_rf[ground_rf >= _range[0]]
     ground_rf = ground_rf[ground_rf <= _range[1]]
     ground_rf_diff = np.ediff1d(ground_rf)
-
-
     if len(ground_rf_diff) >= 1: # check to see if it was a small false positive
         rf_ranges, length_rf = _zero_runs(ground_rf_diff, 1)
             
