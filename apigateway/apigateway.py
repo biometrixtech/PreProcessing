@@ -3,6 +3,8 @@ from fathomapi.api.flask_app import app
 
 from routes.session import app as session_routes
 app.register_blueprint(session_routes, url_prefix='/session')
+from routes.status import app as status_routes
+app.register_blueprint(status_routes, url_prefix='/status')
 
 
 def handler(event, context):
