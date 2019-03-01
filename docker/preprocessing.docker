@@ -16,12 +16,13 @@ RUN apk update \
         python3 py3-pip \
         # Needed for operation of scipy
         freetype libgcc libpng libgfortran libstdc++ musl openblas tcl tk \
+        # Dramaticaly improves the performance of Theano/Keras
+        python3-dev g++ \
 #
     # General build dependencies, will remove later
     && apk add --no-cache --virtual .build-deps \
         # For general building
         build-base \
-        python3-dev \
         gfortran \
         # For scipy
         freetype-dev \
