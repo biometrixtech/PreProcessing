@@ -47,7 +47,7 @@ def prepare_data(data_in, scaler_model, user_mass, is_single_leg=False):
     data['euler_hip_x'] = np.array(data_in.euler_hip_x)
     data['euler_hip_y'] = np.array(data_in.euler_hip_y)
     data['euler_hip_z'] = np.array(data_in.euler_hip_z)
-    data['mass'] = np.zeros(len(data_in)) * user_mass
+    data['mass'] = np.ones(len(data_in)) * user_mass / 1000
 
     # create dummy variables for phase
     data.phase_lf = data.phase_lf.astype(float)
