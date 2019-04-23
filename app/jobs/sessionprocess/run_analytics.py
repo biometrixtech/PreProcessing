@@ -24,7 +24,7 @@ from .detect_takeoff_phase_intervals import detect_start_end_takeoff_phase
 from .extract_geometry import extract_geometry
 from .impact_cme import sync_time, landing_pattern, continuous_values
 from .movement_attributes import plane_analysis, run_stance_analysis
-from .phase_detection import combine_phase, update_phase_grf
+from .phase_detection import combine_phase
 from .prep_grf_data import prepare_data
 from .rate_of_force_absorption import detect_rate_of_force_absorption
 from .rate_of_force_production import detect_rate_of_force_production
@@ -144,72 +144,20 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
         data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
         data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
 
-    # PHASE DETECTION
-    data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, data.euler_lf_y, data.euler_rf_y, sampl_freq)
-    logger.info('DONE WITH PHASE DETECTION!')
-
-    # prepare data for grf prediction
-    weight = mass * 9.807  # convert mass from kg to N
-    grf_data, nan_row = prepare_data(data, sc, mass)
-
-    grf_data_sl, nan_row_sl = prepare_data(data, sc_single_leg, mass, is_single_leg=True)
+        # prepare data for grf prediction
+    weight = mass * 9.807 / 1000  # convert mass from kg to N
+    grf_data, nan_row = prepare_data(data, sc, weight)
 
     # predict grf
     with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_predict'):
-        grf = grf_fit.predict(grf_data).reshape(-1,)
+        grf_result = grf_fit.predict(grf_data).reshape(-1, 3)
+    data['grf'], data['grf_lf'], data['grf_rf'], lf_grf_ind, rf_grf_ind = cleanup_grf(grf_result, weight, len(data), nan_row)
 
-    # predict left grf (binary 0(air) or 1(ground))
-    with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_lf_predict'):
-        grf_lf = grf_fit_left.predict(grf_data_sl).reshape(-1,)
-        sl_grf_cutoff = .5
-        grf_lf[grf_lf <= sl_grf_cutoff] = 0
-        grf_lf[grf_lf > sl_grf_cutoff] = 1
-
-    # predict right grf (binary 0(air) or 1(ground))
-    with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_rf_predict'):
-        grf_rf = grf_fit_right.predict(grf_data_sl).reshape(-1,)
-        grf_rf[grf_rf <= sl_grf_cutoff] = 0
-        grf_rf[grf_rf > sl_grf_cutoff] = 1
-
-    # pass predicted data through low-pass filter
-    grf = _filter_data(grf, cutoff=18)
-
-    # set grf value below certain threshold to 0
-    grf[grf <= .0002*weight] = 0
-    # grf[grf <= .1] = 0
-    # fill in nans for rows with missing predictors
-    length = len(data)
-    grf_temp = np.ones(length)
-    grf_lf_temp = np.ones(length)
-    grf_rf_temp = np.ones(length)
-    grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
-    grf_lf_temp[np.array(list(set(range(length)) - set(nan_row_sl)))] = grf_lf
-    grf_rf_temp[np.array(list(set(range(length)) - set(nan_row_sl)))] = grf_rf
-    # Insert nan for grf where data needed to predict was missing
-    if len(nan_row) != 0:
-        for i in nan_row:
-            grf_temp[i] = np.nan
-
-    # for right and left grf indicator, in case of missing predictors, assign previous value
-    if len(nan_row_sl) != 0:
-        for i in nan_row_sl:
-            grf_lf_temp[i] = grf_lf_temp[i - 1]
-            grf_rf_temp[i] = grf_rf_temp[i - 1]
-
-    data['grf'] = grf_temp * 1000
-    data['grf_lf'] = grf_lf_temp
-    data['grf_rf'] = grf_rf_temp
-
-    del grf_data, nan_row, grf_fit, grf, grf_temp, grf_lf, grf_rf, grf_lf_temp, grf_rf_temp
+    del grf_data, nan_row, grf_fit
     logger.info('DONE WITH GRF PREDICTION!')
 
-    (
-        data['grf'],
-        data['phase_lf'],
-        data['phase_rf']
-    ) = update_phase_grf(data.grf, data.grf_lf, data.grf_rf, data.phase_lf, data.phase_rf, mass)
-
-    logger.info('DONE UPDATING PHASE WITH GRF')
+    data['phase_lf'], data['phase_rf'] = combine_phases(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
+    logger.info('DONE WITH PHASE DETECTION!')
 
     # DETECT IMPACT PHASE INTERVALS
     (
@@ -386,8 +334,8 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
     length = len(data.acc_lf_x)
     data['loading_lf'] = np.array([np.nan]*length).reshape(-1, 1)
     data['loading_rf'] = np.array([np.nan]*length).reshape(-1, 1)
-    data['grf_lf'] = np.array([np.nan]*length).reshape(-1, 1)
-    data['grf_rf'] = np.array([np.nan]*length).reshape(-1, 1)
+    # data['grf_lf'] = np.array([np.nan]*length).reshape(-1, 1)
+    # data['grf_rf'] = np.array([np.nan]*length).reshape(-1, 1)
     scoring_data = data.loc[:, _output_columns]
     # scoring_data = pd.DataFrame(data={'obs_index': data.obs_index.values.reshape(-1,),
     #                                   'time_stamp': data.time_stamp.values.reshape(-1,),
@@ -519,7 +467,7 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
 
 
 @xray_recorder.capture('app.jobs.sessionprocess._get_ranges')
-def _get_ranges(col_data, value):
+def _get_ranges(col_data, value, return_length=False):
     """
     For a given categorical data, determine start and end index for the given value
     start: index where it first occurs
@@ -555,7 +503,11 @@ def _get_ranges(col_data, value):
     # determine the number of consecutive NaNs
     ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
 
-    return ranges
+    if return_length:
+        length = ranges[:, 1] - ranges[:, 0]
+        return ranges, length
+    else:
+        return ranges
 
 
 @xray_recorder.capture('app.jobs.sessionprocess._filter_data')
@@ -616,35 +568,55 @@ def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
     return lf_neutral, hip_neutral, rf_neutral
 
 
-@xray_recorder.capture('app.jobs.sessionprocess._zero_runs')
-def _zero_runs(col_dat, static):
-    """
-    Determine the start and end of each impact.
+@xray_recorder.capture('app.jobs.sessionprocess.cleanup_grf')
+def cleanup_grf(grf_result, weight, length, nan_row):
+    left_grf = grf_result[:, 0]
+    right_grf = grf_result[:, 1]
+    grf = grf_result[:, 2]
 
-    Args:
-        col_dat: array, algorithm indicator
-        static: int, indicator for static algorithm
-    Returns:
-        ranges: 2d array, start and end of each static algorithm use
-        length: length of
-    """
+    grf = _filter_data(grf, cutoff=18)
+    left_grf = _filter_data(left_grf, cutoff=18)
+    right_grf = _filter_data(right_grf, cutoff=18)
 
-    # Determine where column data is the relevant impact phase value
-    isnan = np.array(np.array(col_dat == static).astype(int)).reshape(-1, 1)
+    # set grf value below certain threshold to 0
+    grf[grf <= .1*weight] = 0
+    left_grf[left_grf <= .05 * weight] = 0
+    right_grf[right_grf <= .05 * weight] = 0
 
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
 
-    # Mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-    del isnan  # not used in further computations
+    # fill in nans for rows with missing predictors
+    grf_temp = np.ones(length)
+    grf_lf_temp = np.ones(length)
+    grf_rf_temp = np.ones(length)
+    grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
+    grf_lf_temp[np.array(list(set(range(length)) - set(nan_row)))] = left_grf
+    grf_rf_temp[np.array(list(set(range(length)) - set(nan_row)))] = right_grf
+    # Insert nan for grf where data needed to predict was missing
+    if len(nan_row) != 0:
+        for i in nan_row:
+            grf_temp[i] = grf_temp[i - 1]
+            grf_lf_temp[i] = grf_lf_temp[i - 1]
+            grf_rf_temp[i] = grf_rf_temp[i - 1]
 
-    # Determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-    length = ranges[:, 1] - ranges[:, 0]
+    # lf_grf = copy.copy(grf_lf_temp)
+    lf_ind = np.zeros(len(grf_lf_temp))
+    lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
 
-    return ranges, length
+    # rf_grf = copy.copy(grf_rf_temp)
+    rf_ind = np.zeros(len(grf_rf_temp))
+    rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
+
+    lf_ranges, lf_ranges_length = _get_ranges(lf_ind, 1, True)
+    for r, l in zip(lf_ranges, lf_ranges_length):
+        if l < 8:
+            grf_lf_temp[r[0]: r[1]] = 0
+    lf_ind = np.zeros(len(grf_lf_temp))
+    lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
+    rf_ranges, rf_ranges_length = _get_ranges(rf_ind, 1, True)
+    for r, l in zip(rf_ranges, rf_ranges_length):
+        if l < 8:
+            grf_rf_temp[r[0]: r[1]] = 0
+    rf_ind = np.zeros(len(grf_rf_temp))
+    rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
+
+    return grf_temp * 1000, grf_lf_temp * 1000, grf_rf_temp * 1000, lf_ind, rf_ind
