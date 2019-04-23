@@ -23,10 +23,10 @@ class SessionprocessJob(Job):
         # GRF
         # load model
         grf_fit = _load_model(os.environ['MS_MODEL'])
-        grf_fit_lf = _load_model(os.environ['LF_MS_MODEL'])
-        grf_fit_rf = _load_model(os.environ['RF_MS_MODEL'])
+        # grf_fit_lf = _load_model(os.environ['LF_MS_MODEL'])
+        # grf_fit_rf = _load_model(os.environ['RF_MS_MODEL'])
         sc = _load_scaler(os.environ['MS_SCALER'])
-        sc_single_leg = _load_scaler(os.environ['SL_MS_SCALER'])
+        # sc_single_leg = _load_scaler(os.environ['SL_MS_SCALER'])
 
         _logger.info("LOADING DATA")
         part_number = 0  # TODO chunking
@@ -49,7 +49,7 @@ class SessionprocessJob(Job):
         file_version = self.datastore.get_metadatum('version')
         hip_n_transform = self.datastore.get_metadatum('hip_n_transform', None)
  
-        output_data_batch = run_session(sdata, file_version, mass, grf_fit, grf_fit_lf, grf_fit_rf, sc, sc_single_leg, hip_n_transform)
+        output_data_batch = run_session(sdata, file_version, mass, grf_fit, sc, hip_n_transform)
 
         # Output data
         output_data_batch = output_data_batch.replace('None', '')

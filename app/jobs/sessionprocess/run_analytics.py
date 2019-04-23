@@ -71,7 +71,7 @@ _output_columns = [
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.run_session')
-def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, sc, sc_single_leg, hip_n_transform):
+def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     """Creates object attributes according to session analysis process.
 
     Args:
@@ -156,7 +156,7 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
     del grf_data, nan_row, grf_fit
     logger.info('DONE WITH GRF PREDICTION!')
 
-    data['phase_lf'], data['phase_rf'] = combine_phases(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
+    data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
     logger.info('DONE WITH PHASE DETECTION!')
 
     # DETECT IMPACT PHASE INTERVALS
@@ -582,7 +582,6 @@ def cleanup_grf(grf_result, weight, length, nan_row):
     grf[grf <= .1*weight] = 0
     left_grf[left_grf <= .05 * weight] = 0
     right_grf[right_grf <= .05 * weight] = 0
-
 
     # fill in nans for rows with missing predictors
     grf_temp = np.ones(length)
