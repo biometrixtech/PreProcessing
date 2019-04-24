@@ -27,7 +27,7 @@ def handle_get_upload_status(principal_id=None):
         item['event_date'] = session['event_date']
         item['upload_status'] = 'UPLOAD_NOT_COMPLETE' if session['session_status'] in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS'] else 'UPLOAD_COMPLETE'
         try:
-            item['duration'] = (parse_datetime(session['end_date']) - parse_datetime(session['event_date'])).seconds / 60
+            item['duration'] = round((parse_datetime(session['end_date']) - parse_datetime(session['event_date'])).seconds / 60, 2)
         except:
             item['duration'] = None
         ret.append(item)

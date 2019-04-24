@@ -81,10 +81,7 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
         file_version: file format and type version (matching accessory sensor dev)
         mass: user's mass in kg
         grf_fit: keras fitted model for grf prediction
-        grf_fit_left: keras fitted model for grf prediction
-        grf_fit_right: keras fitted model for grf prediction
         sc: scaler model to scale data
-        sc_single_leg: scaler model to scale data
         hip_n_transform: array of neutral hip transformation (used for cme computation in v1 data)
 
     Returns:
@@ -156,7 +153,7 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     del grf_data, nan_row, grf_fit
     logger.info('DONE WITH GRF PREDICTION!')
 
-    data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
+    data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
     logger.info('DONE WITH PHASE DETECTION!')
 
     # DETECT IMPACT PHASE INTERVALS
