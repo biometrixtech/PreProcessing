@@ -8,6 +8,8 @@ from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import copy
 
+from utils import get_ranges
+
 
 @xray_recorder.capture('app.jobs.sessionprocess.movement_attributes.plane_analysis')
 def plane_analysis(hip_acc, hip_eul, ms_elapsed):
@@ -353,11 +355,11 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
     left_stat_balance[hacc > _acc_thresh] = 0
     right_stat_balance[hacc > _acc_thresh] = 0
 
-    ranges, length = _zero_runs(left_stat_balance, 0)
+    ranges, length = get_ranges(left_stat_balance, 0, True)
     for r, l in zip(ranges, length):
         if l < _dyn_win:
             left_stat_balance[r[0]:r[1]] = 1
-    ranges, length = _zero_runs(right_stat_balance, 0)
+    ranges, length = get_ranges(right_stat_balance, 0, True)
     for r, l in zip(ranges, length):
         if l < _dyn_win:
             right_stat_balance[r[0]:r[1]] = 1
@@ -388,7 +390,7 @@ def sort_phases(lf_ph, rf_ph, not_standing, hz, hacc):
 
     double_stat_balance[hacc > _acc_thresh] = 0
 
-    ranges, length = _zero_runs(double_stat_balance, 0)
+    ranges, length = get_ranges(double_stat_balance, 0, True)
     for r, l in zip(ranges, length):
         if l < _dyn_win:
             double_stat_balance[r[0]:r[1]] = 1
@@ -531,40 +533,6 @@ def _num_runs(arr, num):
     ranges = np.where(absdiff == 1)[0].reshape(-1, 2)
 
     return ranges
-
-
-@xray_recorder.capture('app.jobs.sessionprocess.movement_attributes._zero_runs')
-def _zero_runs(col_dat, static):
-    """
-    Determine the start and end of each impact.
-
-    Args:
-        col_dat: array, algorithm indicator
-        static: int, indicator for static algorithm
-    Returns:
-        ranges: 2d array, start and end of each static algorithm use
-        length: length of
-    """
-
-    # determine where column data is the relevant impact phase value
-    isnan = np.array(np.array(col_dat == static).astype(int)).reshape(-1, 1)
-
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-    del isnan  # not used in further computations
-
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-    length = ranges[:, 1] - ranges[:, 0]
-
-    return ranges, length
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.movement_attributes.total_accel')

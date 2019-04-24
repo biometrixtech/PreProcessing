@@ -12,7 +12,6 @@ Input data called from 'biometrix-blockcontainer'
 Output data collected in BlockEvent Table.
 """
 from aws_xray_sdk.core import xray_recorder
-from scipy.signal import butter, filtfilt
 import copy
 import logging
 import numpy as np
@@ -31,6 +30,7 @@ from .rate_of_force_production import detect_rate_of_force_production
 from .run_relative_cme import run_relative_cmes
 from .unit_blocks import define_unit_blocks
 import utils.quaternion_conversions as qc
+from utils import filter_data, get_ranges
 
 logger = logging.getLogger()
 
@@ -88,7 +88,7 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
         result: string signifying success or failure.
         Note: In case of completion for local run, returns movement table.
     """
-    sampl_freq = 100
+    sampl_freq = 97.5
 
     # Compute euler angles, geometric interpretation of data as appropriate
     lf_quats = data.loc[:, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']].values
@@ -366,7 +366,7 @@ def update_stance(data):
     for left_step in range_lf:
         left_phase = np.unique(data.phase_lf[left_step[0]:left_step[1]].values)
         if np.all(left_phase == np.array([2., 3.])):
-            left_takeoff = _get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
+            left_takeoff = get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
             if len(left_takeoff) > 0:  # has takeoff as part of ground contact
                 left_takeoff = left_takeoff[0]
                 if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2:  # impact-->takeoff not ground-->takeoff
@@ -402,7 +402,7 @@ def update_stance(data):
     for right_step in range_rf:
         right_phase = np.unique(data.phase_rf[right_step[0]:right_step[1]].values)
         if np.all(right_phase == np.array([2., 3.])):
-            right_takeoff = _get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
+            right_takeoff = get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
             if len(right_takeoff) > 0:  # has takeoff as part of ground contact
                 right_takeoff = right_takeoff[0]
                 if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2:  # impact-->takeoff not ground-->takeoff
@@ -451,7 +451,7 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     _phase[np.array([i == 0 for i in active])] = 1
 
     # get index ranges for ground contacts
-    ranges = _get_ranges(_phase, 0)
+    ranges = get_ranges(_phase, 0)
     length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
 
     length_index = np.where((length >= min_gc) & (length <= max_gc))
@@ -461,64 +461,6 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     length = length[(length >= min_gc) & (length <= max_gc)]
 
     return length, ranges
-
-
-@xray_recorder.capture('app.jobs.sessionprocess._get_ranges')
-def _get_ranges(col_data, value, return_length=False):
-    """
-    For a given categorical data, determine start and end index for the given value
-    start: index where it first occurs
-    end: index after the last occurence
-
-    Args:
-        col_data
-        value: int, value to get ranges for
-    Returns:
-        ranges: 2d array, start and end index for each occurance of value
-    """
-
-    # determine where column data is the relevant value
-    is_value = np.array(np.array(col_data == value).astype(int)).reshape(-1, 1)
-
-    # if data starts with given value, range starts with index 0
-    if is_value[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from the given value
-    absdiff = np.abs(np.ediff1d(is_value, to_begin=t_b))
-
-    # handle the closing edge
-    # if the data ends with the given value, if it was the only point, ignore the range,
-    # else assign the last index as end of range
-    if is_value[-1] == 1:
-        if absdiff[-1] == 0:
-            absdiff[-1] = 1
-        else:
-            absdiff[-1] = 0
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    if return_length:
-        length = ranges[:, 1] - ranges[:, 0]
-        return ranges, length
-    else:
-        return ranges
-
-
-@xray_recorder.capture('app.jobs.sessionprocess._filter_data')
-def _filter_data(x, cutoff=12, fs=100, order=4):
-    """
-    Forward-backward lowpass butterworth filter
-    defaults:
-        cutoff freq: 12hz
-        sampling rage: 100hz
-        order: 4"""
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff/nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    return filtfilt(b, a, x, axis=0)
 
 
 @xray_recorder.capture('app.jobs.sessionprocess._calculate_hip_neutral')
@@ -571,9 +513,9 @@ def cleanup_grf(grf_result, weight, length, nan_row):
     right_grf = grf_result[:, 1]
     grf = grf_result[:, 2]
 
-    grf = _filter_data(grf, cutoff=18)
-    left_grf = _filter_data(left_grf, cutoff=18)
-    right_grf = _filter_data(right_grf, cutoff=18)
+    grf = filter_data(grf, filt='low', highcut=18)
+    left_grf = filter_data(left_grf, filt='low', highcut=18)
+    right_grf = filter_data(right_grf, filt='low', highcut=18)
 
     # set grf value below certain threshold to 0
     grf[grf <= .1*weight] = 0
@@ -602,13 +544,13 @@ def cleanup_grf(grf_result, weight, length, nan_row):
     rf_ind = np.zeros(len(grf_rf_temp))
     rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
 
-    lf_ranges, lf_ranges_length = _get_ranges(lf_ind, 1, True)
+    lf_ranges, lf_ranges_length = get_ranges(lf_ind, 1, True)
     for r, l in zip(lf_ranges, lf_ranges_length):
         if l < 8:
             grf_lf_temp[r[0]: r[1]] = 0
     lf_ind = np.zeros(len(grf_lf_temp))
     lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
-    rf_ranges, rf_ranges_length = _get_ranges(rf_ind, 1, True)
+    rf_ranges, rf_ranges_length = get_ranges(rf_ind, 1, True)
     for r, l in zip(rf_ranges, rf_ranges_length):
         if l < 8:
             grf_rf_temp[r[0]: r[1]] = 0

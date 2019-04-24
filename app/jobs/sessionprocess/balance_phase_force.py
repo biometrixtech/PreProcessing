@@ -6,6 +6,7 @@ Created on Fri Dec 08 19:59:10 2017
 """
 from aws_xray_sdk.core import xray_recorder
 import numpy as np
+from utils import get_ranges
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.balance_phase_force.calculate_balance_phase_force')
@@ -21,7 +22,7 @@ def calculate_balance_phase_force(data):
     accel_mag[~balance] = np.nan
 
     # start and end indices of impact phase for left and right foot
-    range_bal = _zero_runs(col_dat=stance, bal_value=1)
+    range_bal = get_ranges(col_data=stance, value=1)
     
     # declaring variable to store the start and end of impact phase
     bal_start_stop = np.zeros(len(stance))*np.nan
@@ -49,35 +50,3 @@ def calculate_balance_phase_force(data):
     magn_grf[magn_grf < 30] = 0
 
     return magn_grf
-
-
-@xray_recorder.capture('app.jobs.sessionprocess.balance_phase_force._zero_runs')
-def _zero_runs(col_dat, bal_value):
-    """
-    Determine the start and end of each impact.
-    
-    Args:
-        col_dat: array, right/left foot phase
-        bal_value: int, indicator for balance phase (both feet combined)
-    Returns:
-        ranges: 2d array, start and end of each impact for right/left foot
-    """
-
-    # determine where column data is the relevant impact phase value
-    isnan = np.array(np.array(col_dat == bal_value).astype(int)).reshape(-1, 1)
-    
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-    del isnan  # not used in further computations
-
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges
