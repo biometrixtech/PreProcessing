@@ -141,6 +141,11 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
         data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
         data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
 
+        lf_euls = data.loc[:, ['euler_lf_x', 'euler_lf_y', 'euler_lf_z']].values
+        hip_euls = data.loc[:, ['euler_hip_x', 'euler_hip_y', 'euler_hip_z']].values
+        rf_euls = data.loc[:, ['euler_rf_x', 'euler_rf_y', 'euler_rf_z']].values
+
+
         # prepare data for grf prediction
     weight = mass * 9.807 / 1000  # convert mass from kg to N
     grf_data, nan_row = prepare_data(data, sc, weight)
@@ -215,7 +220,6 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     lf_quat = np.hstack([data.quat_lf_w, data.quat_lf_x, data.quat_lf_y, data.quat_lf_z])
     hip_quat = np.hstack([data.quat_hip_w, data.quat_hip_x, data.quat_hip_y, data.quat_hip_z])
     rf_quat = np.hstack([data.quat_rf_w, data.quat_rf_x, data.quat_rf_y, data.quat_rf_z])
-
     # calculate movement attributes
     if file_version == '1.0':
         # special code to rerun v1 data to gather older cmes
