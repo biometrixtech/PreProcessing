@@ -51,7 +51,7 @@ _output_columns = [
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
     'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
-    'corrupt_lf', 'corrupt_hip', 'corrupt_rf',
+    # 'corrupt_lf', 'corrupt_hip', 'corrupt_rf',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     'adduc_range_of_motion_lf',
     'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
@@ -335,19 +335,7 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     length = len(data.acc_lf_x)
     data['loading_lf'] = np.array([np.nan]*length).reshape(-1, 1)
     data['loading_rf'] = np.array([np.nan]*length).reshape(-1, 1)
-    # data['grf_lf'] = np.array([np.nan]*length).reshape(-1, 1)
-    # data['grf_rf'] = np.array([np.nan]*length).reshape(-1, 1)
     scoring_data = data.loc[:, _output_columns]
-    # scoring_data = pd.DataFrame(data={'obs_index': data.obs_index.values.reshape(-1,),
-    #                                   'time_stamp': data.time_stamp.values.reshape(-1,),
-    #                                   'epoch_time': data.epoch_time.values.reshape(-1,),
-    #                                   'ms_elapsed': data.ms_elapsed.values.reshape(-1,)})
-    # for var in _output_columns[4:]:
-    #     frame = pd.DataFrame(data={var: data[var].reshape(-1, )}, index=scoring_data.index)
-    #     frames = [scoring_data, frame]
-    #     scoring_data = pd.concat(frames, axis=1)
-    #     del frame, frames, data.__dict__[var]
-    # del data
 
     logger.info("Table Created")
 
@@ -533,6 +521,7 @@ def cleanup_grf(grf_result, weight, length, nan_row):
     grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
     grf_lf_temp[np.array(list(set(range(length)) - set(nan_row)))] = left_grf
     grf_rf_temp[np.array(list(set(range(length)) - set(nan_row)))] = right_grf
+
     # Insert nan for grf where data needed to predict was missing
     if len(nan_row) != 0:
         for i in nan_row:
@@ -540,11 +529,9 @@ def cleanup_grf(grf_result, weight, length, nan_row):
             grf_lf_temp[i] = grf_lf_temp[i - 1]
             grf_rf_temp[i] = grf_rf_temp[i - 1]
 
-    # lf_grf = copy.copy(grf_lf_temp)
     lf_ind = np.zeros(len(grf_lf_temp))
     lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
 
-    # rf_grf = copy.copy(grf_rf_temp)
     rf_ind = np.zeros(len(grf_rf_temp))
     rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
 
