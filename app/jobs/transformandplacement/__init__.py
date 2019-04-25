@@ -3,11 +3,12 @@ import boto3
 import copy
 import logging
 import os
+import pickle
 
 from ..job import Job
 from .apply_data_transformations import apply_data_transformations
 from .exceptions import PlacementDetectionException
-from .placement_detection import detect_placement, shift_accel
+from .placement_detection import detect_placement, shift_accel, predict_placement
 from .sensor_use_detection import detect_single_sensor, detect_data_truncation
 from .transform_calculation import compute_transform
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
@@ -68,7 +69,10 @@ class TransformandplacementJob(Job):
             sensors = 3
             data_sub = copy.copy(data.loc[:2000])
             shift_accel(data_sub)
-            placement = detect_placement(data_sub)
+            # placement = detect_placement(data_sub)
+            condition_list = _load_model(os.environ['PLACEMENT_MODEL'])
+            placement, left_condition, right_condition = predict_placement(data_sub, condition_list)
+            _logger.info(placement, left_condition, right_condition)
 
             # if placement passed, check to see if any sensor fell down or data missing for
             # any of the sensors
@@ -98,7 +102,6 @@ class TransformandplacementJob(Job):
             # to single sensor processing
             sensors = 1
             # detect the single sensor being used
-            # placement = detect_single_sensor(data)
             placement = [0, 1, 2]
             truncation_index, single_sensor = detect_data_truncation(data, placement, sensors)
 
@@ -118,3 +121,12 @@ class TransformandplacementJob(Job):
                 'sensors': sensors,
                 'truncation_index': truncation_index,
             }
+
+
+@xray_recorder.capture('app.jobs.transformandplacement._load_model')
+def _load_model(model):
+    path = os.path.join('/net/efs/globalmodels', model)
+    # path = os.path.join(model)
+    _logger.info("Loading model from {}".format(path))
+    with open(path, 'rb') as f:
+        return pickle.load(f, encoding='latin1')

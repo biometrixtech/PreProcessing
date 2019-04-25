@@ -6,6 +6,7 @@ from scipy.stats import skew
 import utils.quaternion_conversions as qc
 import utils.quaternion_operations as qo
 from .exceptions import PlacementDetectionException
+from .column_vector import MatchProbability
 
 
 def detect_placement(data):
@@ -133,17 +134,23 @@ def detect_activity(data):
 def shift_accel(data):
     """Adjust acceleration so that all axes are centered around 0
     """
+    data.loc[:, 'acc_0_x_original'] = data.acc_0_x.values
     data.loc[:, 'acc_0_y_original'] = data.acc_0_y.values
+    data.loc[:, 'acc_0_z_original'] = data.acc_0_z.values
     data.acc_0_x = data.acc_0_x - np.nanmean(data.acc_0_x[0:100])
     data.acc_0_y = data.acc_0_y - np.nanmean(data.acc_0_y[0:100])
     data.acc_0_z = data.acc_0_z - np.nanmean(data.acc_0_z[0:100])
 
+    data.loc[:, 'acc_1_x_original'] = data.acc_1_x.values
     data.loc[:, 'acc_1_y_original'] = data.acc_1_y.values
+    data.loc[:, 'acc_1_z_original'] = data.acc_1_z.values
     data.acc_1_x = data.acc_1_x - np.nanmean(data.acc_1_x[0:100])
     data.acc_1_y = data.acc_1_y - np.nanmean(data.acc_1_y[0:100])
     data.acc_1_z = data.acc_1_z - np.nanmean(data.acc_1_z[0:100])
 
+    data.loc[:, 'acc_2_x_original'] = data.acc_2_x.values
     data.loc[:, 'acc_2_y_original'] = data.acc_2_y.values
+    data.loc[:, 'acc_2_z_original'] = data.acc_2_z.values
     data.acc_2_x = data.acc_2_x - np.nanmean(data.acc_2_x[0:100])
     data.acc_2_y = data.acc_2_y - np.nanmean(data.acc_2_y[0:100])
     data.acc_2_z = data.acc_2_z - np.nanmean(data.acc_2_z[0:100])
@@ -174,3 +181,47 @@ def is_foot1_left(pitch_foot1, pitch_foot2):
         return False  # foot2 is left, foot1 is right
     else:
         raise PlacementDetectionException('Could not detect left vs right from skew values 1={}, 2={}'.format(skew1, skew2))
+
+
+def get_eulers(data):
+    euls_0 = qc.quat_to_euler(
+                    data['quat_0_w'],
+                    data['quat_0_x'],
+                    data['quat_0_y'],
+                    data['quat_0_z'],)
+    data['euler_0_x'] = euls_0[:, 0].reshape(-1, 1)
+    data['euler_0_y'] = euls_0[:, 1].reshape(-1, 1)
+
+    euls_2 = qc.quat_to_euler(
+                    data['quat_2_w'],
+                    data['quat_2_x'],
+                    data['quat_2_y'],
+                    data['quat_2_z'],)
+    data['euler_2_x'] = euls_2[:, 0].reshape(-1, 1)
+    data['euler_2_y'] = euls_2[:, 1].reshape(-1, 1)
+
+
+def predict_placement(data, condition_list):
+    get_eulers(data)
+
+    ax0_list = list(data.acc_0_x_original)
+    ay0_list = list(data.acc_0_y_original)
+    az0_list = list(data.acc_0_z_original)
+    ax2_list = list(data.acc_2_x_original)
+    ay2_list = list(data.acc_2_y_original)
+    az2_list = list(data.acc_2_z_original)
+    ex0_list = list(data.euler_0_x)
+    ey0_list = list(data.euler_0_y)
+    ex2_list = list(data.euler_2_x)
+    ey2_list = list(data.euler_2_y)
+
+    mp = MatchProbability(condition_list)
+
+    mp.calc_rankings(ax0_list, ay0_list, az0_list, ex0_list, ey0_list, ax2_list, ay2_list, az2_list, ex2_list, ey2_list)
+    for condition, ranking in mp.condition_ranking.items():
+        if ranking.rank == 0:
+            result = condition.split("_")
+            placement = [int(i) for i in result[2]]
+            left_condition = result[0].upper()
+            right_condition = result[1].upper()
+            return placement, left_condition, right_condition
