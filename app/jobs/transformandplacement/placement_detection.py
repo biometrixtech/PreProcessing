@@ -222,6 +222,4 @@ def predict_placement(data, condition_list):
         if ranking.rank == 0:
             result = condition.split("_")
             placement = [int(i) for i in result[2]]
-            left_condition = result[0].upper()
-            right_condition = result[1].upper()
-            return placement, left_condition, right_condition
+            return placement, {'left': result[0].upper(), 'right': result[1].upper()}

@@ -34,6 +34,7 @@ class TransformandplacementJob(Job):
                 'hip_neutral_yaw': [1, 0, 0, 0],
                 'sensors': 3,
                 'truncation_index': None,
+                'sensor_position': {'left': 'v1', 'right': 'v1'}
             }
         else:
             ret = self.execute(data)
@@ -71,8 +72,7 @@ class TransformandplacementJob(Job):
             shift_accel(data_sub)
             # placement = detect_placement(data_sub)
             condition_list = _load_model(os.environ['PLACEMENT_MODEL'])
-            placement, left_condition, right_condition = predict_placement(data_sub, condition_list)
-            _logger.info(placement, left_condition, right_condition)
+            placement, sensor_position = predict_placement(data_sub, condition_list)
 
             # if placement passed, check to see if any sensor fell down or data missing for
             # any of the sensors
@@ -94,6 +94,7 @@ class TransformandplacementJob(Job):
                 'hip_neutral_yaw': body_frame_transforms[3],
                 'sensors': sensors,
                 'truncation_index': truncation_index,
+                'sensor_position': sensor_position,
             }
 
         except PlacementDetectionException as err:
@@ -120,6 +121,7 @@ class TransformandplacementJob(Job):
                 'hip_neutral_yaw': body_frame_transforms[3],
                 'sensors': sensors,
                 'truncation_index': truncation_index,
+                'sensor_position': {'left': 'single_sensor', 'right': 'single_sensor'}
             }
 
 
