@@ -51,7 +51,7 @@ def compute_transform_from_average(left_quaternion, hip_quaternion, right_quater
             hip_neutral_quaternion.tolist()[0])
 
 
-def detect_still(data, file_name, sensors=3, hip=1):
+def detect_still(data, sensors=3, hip=1):
     """Detect part of data with activity for placement detection
     """
     acc_mag_0 = np.sqrt(data.acc_0_x ** 2 + data.acc_0_y ** 2 + data.acc_0_z ** 2)
@@ -59,7 +59,7 @@ def detect_still(data, file_name, sensors=3, hip=1):
     acc_mag_2 = np.sqrt(data.acc_2_x ** 2 + data.acc_2_y ** 2 + data.acc_2_z ** 2)
     if sensors == 3:
         total_acc_mag = acc_mag_0 + acc_mag_1 + acc_mag_2
-    elif sensors == 1:
+    else:
         total_acc_mag = acc_mag_0 if hip == 0 else acc_mag_1 if hip == 1 else acc_mag_2
     acc_mag_sd = total_acc_mag.rolling(50).std(center=True)
     min_acc_mag_sd = np.min(acc_mag_sd)

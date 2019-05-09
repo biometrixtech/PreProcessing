@@ -71,10 +71,14 @@ class TransformandplacementJob(Job):
             sensors = 3
             data_sub = copy.copy(data.loc[:2000])
             shift_accel(data_sub)
-            # placement = detect_placement(data_sub)
+            try:
+                placement_old = detect_placement(data_sub)
+            except:
+                placement_old = 'old placement error'
             condition_list = _load_model(os.environ['PLACEMENT_MODEL'])
             condition_list = [Condition.json_deserialise(cn) for cn in condition_list]
             placement, sensor_position = predict_placement(data_sub, condition_list)
+            _logger.info({'placement_old': placement_old, 'placement': placement})
 
             # if placement passed, check to see if any sensor fell down or data missing for
             # any of the sensors
@@ -130,7 +134,6 @@ class TransformandplacementJob(Job):
 @xray_recorder.capture('app.jobs.transformandplacement._load_model')
 def _load_model(model):
     path = os.path.join('/net/efs/globalmodels', model)
-    # path = os.path.join(model)
     _logger.info("Loading model from {}".format(path))
     with open(path, 'rb') as f:
         return pickle.load(f, encoding='latin1')
