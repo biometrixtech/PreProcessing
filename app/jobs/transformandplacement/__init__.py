@@ -75,8 +75,7 @@ class TransformandplacementJob(Job):
                 placement_old = detect_placement(data_sub)
             except:
                 placement_old = 'old placement error'
-            condition_list = _load_model(os.environ['PLACEMENT_MODEL'])
-            condition_list = [Condition.json_deserialise(cn) for cn in condition_list]
+            condition_list = [Condition.json_deserialise(cn) for cn in _load_model(os.environ['PLACEMENT_MODEL'])]
             placement, sensor_position = predict_placement(data_sub, condition_list)
             _logger.info({'placement_old': placement_old, 'placement': placement})
 
