@@ -8,6 +8,15 @@ class Threshold(object):
         self.min = min_value
         self.max = max_value
 
+    def json_serialise(self):
+        return {'label': self.label,
+                'min': self.min,
+                'max': self.max}
+
+    @classmethod
+    def json_deserialise(cls, input_dict):
+        return cls(input_dict['label'], input_dict['min'], input_dict['max'])
+
 
 class PiVector(object):
     def __init__(self):
@@ -37,6 +46,21 @@ class PiVector(object):
         self.categories[Threshold('21', pi / float(1.25), pi / float(1.15))] = Category()
         self.categories[Threshold('22', pi / float(1.15), pi / float(1.10))] = Category()
         self.categories[Threshold('23', pi / float(1.10), pi)] = Category()
+
+    def json_serialise(self):
+        return {
+            'sum': self.sum,
+            'categories': {frozenset(key.json_serialise().items()): frozenset(value.json_serialise().items()) for key, value in self.categories.items()}
+        }
+
+    @classmethod
+    def json_deserialise(cls, input_dict):
+        column_vector = cls()
+        column_vector.categories = {}
+        column_vector.sum = input_dict['sum']
+        for key, value in input_dict['categories'].items():
+            column_vector.categories[Threshold.json_deserialise(dict(key))] = Category.json_deserialise(dict(value))
+        return column_vector
 
     def add(self, value_list):
 
@@ -107,6 +131,25 @@ class ColumnVector(object):
         self.categories[Threshold('18', 9.0, 15.0)] = Category()
         self.categories[Threshold('19', 15.0, None)] = Category()
 
+    def json_serialise(self):
+        return {
+            'sum': self.sum,
+            # 'raw_values': self.raw_values,
+            'categories': {frozenset(key.json_serialise().items()): frozenset(value.json_serialise().items()) for key, value in self.categories.items()}
+        }
+
+    @classmethod
+    def json_deserialise(cls, input_dict):
+        column_vector = cls()
+        column_vector.categories = {}
+        column_vector.sum = input_dict['sum']
+        # column_vector.raw_values = input_dict['raw_values']
+        for key, value in input_dict['categories'].items():
+            threshold = Threshold.json_deserialise(dict(key))
+            category = Category.json_deserialise(dict(value))
+            column_vector.categories[threshold] = category
+        return column_vector
+
     def add(self, value_list):
 
         for v in value_list:
@@ -156,6 +199,20 @@ class Category(object):
         self.count = 0.0
         self.percentage = 0.0
 
+    def json_serialise(self):
+        return {
+            'label': self.label,
+            'count': self.count,
+            'percentage': self.percentage
+        }
+
+    @classmethod
+    def json_deserialise(cls, input_dict):
+        category = cls(input_dict['label'])
+        category.count = input_dict['count']
+        category.percentage = input_dict['percentage']
+        return category
+
 
 class Condition(object):
     def __init__(self, label, group_0, group_1, is_group_0_left):
@@ -173,6 +230,40 @@ class Condition(object):
         self.az_1 = ColumnVector()
         self.ex_1 = PiVector()
         self.ey_1 = PiVector()
+
+    def json_serialise(self):
+        return {
+            'label': self.label,
+            'group_0': self.group_0,
+            'group_1': self.group_1,
+            'is_group_0_left': self.is_group_0_left,
+            'ax_0': self.ax_0.json_serialise(),
+            'ay_0': self.ay_0.json_serialise(),
+            'az_0': self.az_0.json_serialise(),
+            'ex_0': self.ex_0.json_serialise(),
+            'ey_0': self.ey_0.json_serialise(),
+            'ax_1': self.ax_1.json_serialise(),
+            'ay_1': self.ay_1.json_serialise(),
+            'az_1': self.az_1.json_serialise(),
+            'ex_1': self.ex_1.json_serialise(),
+            'ey_1': self.ey_1.json_serialise()
+        }
+
+    @classmethod
+    def json_deserialise(cls, input_dict):
+        condition = cls(input_dict['label'], input_dict['group_0'], input_dict['group_1'], input_dict['is_group_0_left'])
+        condition.ax_0 = ColumnVector.json_deserialise(input_dict['ax_0'])
+        condition.ay_0 = ColumnVector.json_deserialise(input_dict['ay_0'])
+        condition.az_0 = ColumnVector.json_deserialise(input_dict['az_0'])
+        condition.ex_0 = PiVector.json_deserialise(input_dict['ex_0'])
+        condition.ey_0 = PiVector.json_deserialise(input_dict['ey_0'])
+        condition.ax_1 = ColumnVector.json_deserialise(input_dict['ax_1'])
+        condition.ay_1 = ColumnVector.json_deserialise(input_dict['ay_1'])
+        condition.az_1 = ColumnVector.json_deserialise(input_dict['az_1'])
+        condition.ex_1 = PiVector.json_deserialise(input_dict['ex_1'])
+        condition.ey_1 = PiVector.json_deserialise(input_dict['ey_1'])
+
+        return condition
 
     def total_sum(self):
 

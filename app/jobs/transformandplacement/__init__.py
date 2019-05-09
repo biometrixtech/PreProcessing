@@ -9,6 +9,7 @@ from ..job import Job
 from .apply_data_transformations import apply_data_transformations
 from .exceptions import PlacementDetectionException
 from .placement_detection import detect_placement, shift_accel, predict_placement
+from .column_vector import Condition
 from .sensor_use_detection import detect_single_sensor, detect_data_truncation
 from .transform_calculation import compute_transform
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
@@ -72,6 +73,7 @@ class TransformandplacementJob(Job):
             shift_accel(data_sub)
             # placement = detect_placement(data_sub)
             condition_list = _load_model(os.environ['PLACEMENT_MODEL'])
+            condition_list = [Condition.json_deserialise(cn) for cn in condition_list]
             placement, sensor_position = predict_placement(data_sub, condition_list)
 
             # if placement passed, check to see if any sensor fell down or data missing for
