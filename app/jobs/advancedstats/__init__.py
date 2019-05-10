@@ -14,22 +14,23 @@ class AdvancedstatsJob(Job):
         event_date = self.datastore.get_metadatum('event_date')
         unit_blocks = get_unit_blocks(user_id, event_date)
 
-        # Write out active blocks
-        from .summary_analysis_job import SummaryAnalysisJob
-        SummaryAnalysisJob(self.datastore, unit_blocks).run()
+        if len(unit_blocks) > 0:
+            # Write out active blocks
+            from .summary_analysis_job import SummaryAnalysisJob
+            SummaryAnalysisJob(self.datastore, unit_blocks).run()
 
-        from .training_volume_job import TrainingVolumeJob
-        TrainingVolumeJob(self.datastore, unit_blocks).run()
+            from .training_volume_job import TrainingVolumeJob
+            TrainingVolumeJob(self.datastore, unit_blocks).run()
 
-        from .complexity_matrix_job import ComplexityMatrixJob
-        cmj = ComplexityMatrixJob(self.datastore, unit_blocks)
-        cmj.run()
+            from .complexity_matrix_job import ComplexityMatrixJob
+            cmj = ComplexityMatrixJob(self.datastore, unit_blocks)
+            cmj.run()
 
-        from .fatigue_processor_job import FatigueProcessorJob
-        FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
+            from .fatigue_processor_job import FatigueProcessorJob
+            FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
-        from .asymmetry_processor_job import AsymmetryProcessorJob
-        AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
+            from .asymmetry_processor_job import AsymmetryProcessorJob
+            AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
 
 def get_unit_blocks(user, date):
