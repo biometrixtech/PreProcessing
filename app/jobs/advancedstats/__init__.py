@@ -4,7 +4,7 @@ import logging
 from ..job import Job
 from config import get_mongo_collection
 # import requests
-# import json
+import json
 import boto3
 
 _logger = logging.getLogger()
