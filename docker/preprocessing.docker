@@ -37,6 +37,7 @@ RUN apk update \
     && python3 -m pip install --upgrade --no-cache-dir --compile pip \
     && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
        pip install --no-cache-dir --compile --global-option=build_ext \
+        git+ssh://git@github.com/biometrixtech/fathomapi.git@0.18.2 \
         numpy==1.16.0 \
         scipy==1.2.0 \
         aws_xray_sdk==2.3.0 \
