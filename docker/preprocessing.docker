@@ -28,6 +28,7 @@ RUN apk update \
         freetype-dev \
         openblas-dev \
         pkgconfig \
+        git \
 #
     # For building h5py
     && apk add --no-cache --virtual .build-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5-dev \
