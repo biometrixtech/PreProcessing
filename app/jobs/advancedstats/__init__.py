@@ -1,4 +1,3 @@
-# from fathomapi.comms.service import Service
 from pymongo import ASCENDING
 import logging
 
