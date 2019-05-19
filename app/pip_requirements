@@ -3,6 +3,7 @@
 # synchronised with that, so that this requirements file can be used for
 # development
 
+git+ssh://git@github.com/biometrixtech/fathomapi.git@0.18.2
 numpy==1.16.0
 scipy==1.2.0
 aws_xray_sdk==2.3.0
