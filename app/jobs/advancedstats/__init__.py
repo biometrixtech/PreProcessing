@@ -1,9 +1,12 @@
-from fathomapi.comms.service import Service
+# from fathomapi.comms.service import Service
 from pymongo import ASCENDING
 import logging
 
 from ..job import Job
 from config import get_mongo_collection
+import requests
+import json
+import boto3
 
 _logger = logging.getLogger()
 
@@ -35,13 +38,17 @@ class AdvancedstatsJob(Job):
             AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
     def _write_session_to_plans(self, user_id, event_date):
-        plans_service = Service('plans', '4_0')
+        _service_token = invoke_lambda_sync('users-dev-apigateway-serviceauth', '2_0')['token']
+        # plans_service = Service('plans', '4_0')
         body = {'user_id': user_id,
                 'event_date': event_date+'T10:00:00Z',
                 'sessions': [{'event_date': event_date+'T10:00:00Z'}]}
-        plans_service.call_apigateway_async(method='POST',
-                                            endpoint='/session/three_sensor_data',
-                                            body=body)
+        headers = {'Content-Type': 'application/json',
+                   'Authorization': _service_token}
+        requests.post(url='https://apis.dev.fathomai.com/plans/4_0/session/three_sensor_data',
+                      body=body,
+                      headers=headers)
+
 
 def get_unit_blocks(user, date):
     """
@@ -58,5 +65,14 @@ def get_unit_blocks(user, date):
         {'unitBlocks': 1, '_id': 1, 'timeStart': 1, 'timeEnd': 1}).sort('unitBlocks.timeStart', direction=ASCENDING)
     )
     return unit_blocks
+
+
+def invoke_lambda_sync(function_name, version, payload=None):
+    _lambda_client = boto3.client('lambda')
+    res = _lambda_client.invoke(
+        FunctionName=f'{function_name}:{version}',
+        Payload=json.dumps(payload or {}),
+    )
+    return json.loads(res['Payload'].read().decode('utf-8'))
 
 

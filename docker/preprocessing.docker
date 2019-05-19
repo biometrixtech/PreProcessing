@@ -28,7 +28,6 @@ RUN apk update \
         freetype-dev \
         openblas-dev \
         pkgconfig \
-        git \
 #
     # For building h5py
     && apk add --no-cache --virtual .build-deps --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ hdf5-dev \
@@ -38,7 +37,6 @@ RUN apk update \
     && python3 -m pip install --upgrade --no-cache-dir --compile pip \
     && CFLAGS="-g0 -s -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
        pip install --no-cache-dir --compile --global-option=build_ext \
-        git+https://github.com/biometrixtech/fathomapi.git@0.18.2 \
         numpy==1.16.0 \
         scipy==1.2.0 \
         aws_xray_sdk==2.3.0 \
@@ -62,6 +60,8 @@ RUN apk update \
             python-dateutil==2.7.5 \
             pytz==2018.9 \
         scikit-learn==0.20.2 \
+        requests==2.21.0 \
+        json \
 #
     # Remove build dependencies, and clean up stuff
     && apk del .build-deps && rm -rf /root/.cache
