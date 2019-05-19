@@ -60,8 +60,6 @@ RUN apk update \
             python-dateutil==2.7.5 \
             pytz==2018.9 \
         scikit-learn==0.20.2 \
-        requests==2.21.0 \
-        python-jose==3.0.1 \
 #
     # Remove build dependencies, and clean up stuff
     && apk del .build-deps && rm -rf /root/.cache
