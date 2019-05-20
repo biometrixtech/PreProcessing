@@ -37,20 +37,20 @@ class AdvancedstatsJob(Job):
             AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
     def _write_session_to_plans(self, user_id, event_date):
-        _service_token = invoke_lambda_sync('users-dev-apigateway-serviceauth', '2_0')
-        print(_service_token)
-        print(type(_service_token))
-        print(_service_token['token'])
+        _service_token = invoke_lambda_sync('users-dev-apigateway-serviceauth', '2_0')['token']
+        # print(_service_token)
+        # print(type(_service_token))
+        # print(_service_token['token'])
         # ['token']
         # # plans_service = Service('plans', '4_0')
-        # body = {'user_id': user_id,
-        #         'event_date': event_date+'T10:00:00Z',
-        #         'sessions': [{'event_date': event_date+'T10:00:00Z'}]}
-        # headers = {'Content-Type': 'application/json',
-        #            'Authorization': _service_token}
-        # requests.post(url='https://apis.dev.fathomai.com/plans/4_0/session/three_sensor_data',
-        #               body=body,
-        #               headers=headers)
+        body = {'user_id': user_id,
+                'event_date': event_date+'T10:00:00Z',
+                'sessions': [{'event_date': event_date+'T10:00:00Z'}]}
+        headers = {'Content-Type': 'application/json',
+                   'Authorization': _service_token}
+        requests.post(url='https://apis.dev.fathomai.com/plans/4_0/session/three_sensor_data',
+                      body=body,
+                      headers=headers)
 
 
 def get_unit_blocks(user, date):
