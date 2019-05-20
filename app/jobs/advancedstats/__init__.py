@@ -44,8 +44,8 @@ class AdvancedstatsJob(Job):
         # ['token']
         # # plans_service = Service('plans', '4_0')
         body = {'user_id': user_id,
-                'event_date': event_date+'T10:00:00Z',
-                'sessions': [{'event_date': event_date+'T10:00:00Z'}]}
+                'event_date': event_date,
+                'sessions': [{'event_date': event_date}]}
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
         requests.post(url='https://apis.dev.fathomai.com/plans/4_0/session/three_sensor_data',
