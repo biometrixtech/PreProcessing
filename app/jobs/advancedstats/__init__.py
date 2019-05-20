@@ -49,7 +49,7 @@ class AdvancedstatsJob(Job):
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
         requests.post(url='https://apis.dev.fathomai.com/plans/4_0/session/three_sensor_data',
-                      body=body,
+                      data=body,
                       headers=headers)
 
 
