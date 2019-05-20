@@ -3,7 +3,7 @@ import logging
 
 from ..job import Job
 from config import get_mongo_collection
-# import requests
+import requests
 import json
 import boto3
 
@@ -37,7 +37,11 @@ class AdvancedstatsJob(Job):
             AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
     def _write_session_to_plans(self, user_id, event_date):
-        _service_token = invoke_lambda_sync('users-dev-apigateway-serviceauth', '2_0')['token']
+        _service_token = invoke_lambda_sync('users-dev-apigateway-serviceauth', '2_0')
+        print(_service_token)
+        print(type(_service_token))
+        print(_service_token['token'])
+        # ['token']
         # # plans_service = Service('plans', '4_0')
         # body = {'user_id': user_id,
         #         'event_date': event_date+'T10:00:00Z',
@@ -72,8 +76,4 @@ def invoke_lambda_sync(function_name, version, payload=None):
         FunctionName=f'{function_name}:{version}',
         Payload=json.dumps(payload or {}),
     )
-    print(res)
-    return res
-    # return json.loads(res['Payload'].read().decode('utf-8'))
-
-
+    return json.loads(res['Payload'].read())
