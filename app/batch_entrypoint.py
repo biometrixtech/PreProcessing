@@ -16,7 +16,7 @@ from config import load_parameters
 from datastore import Datastore
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
 
@@ -40,7 +40,8 @@ def main(script):
 
     elif script == 'transformandplacement':
         load_parameters([
-            'PLACEMENT_MODEL'
+            'PLACEMENT_MODEL',
+            'CHUNK_SIZE',
          ], 'models')
         from jobs.transformandplacement import TransformandplacementJob
         TransformandplacementJob(datastore).run()
