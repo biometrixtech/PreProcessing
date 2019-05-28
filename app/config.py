@@ -6,6 +6,9 @@ import boto3
 from botocore.exceptions import ClientError
 
 
+client = boto3.client('secretsmanager')
+
+
 @xray_recorder.capture('app.config.get_mongo_config')
 def get_mongo_config():
     keys = ['host', 'replicaset', 'user', 'password', 'database']
@@ -37,7 +40,6 @@ def get_mongo_collection(collection, collection_override=None):
 
 @xray_recorder.capture('app.config.get_secret')
 def get_secret(secret_name):
-    client = boto3.client('secretsmanager')
     try:
         secret_name = '/'.join(['preprocessing', os.environ['ENVIRONMENT'], secret_name])
         get_secret_value_response = client.get_secret_value(SecretId=secret_name)

@@ -61,7 +61,7 @@ class TransformandplacementJob(Job):
         # ms_elapsed and datetime
         data['time_stamp'], data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(data.epoch_time)
 
-        self.datastore.put_data('transformandplacement', data, chunk_size=os.environ['CHUNK_SIZE'])
+        self.datastore.put_data('transformandplacement', data, chunk_size=int(os.environ['CHUNK_SIZE']))
 
     def execute(self, all_data):
         data = all_data.loc[:2000000]
