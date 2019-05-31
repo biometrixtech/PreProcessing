@@ -158,7 +158,7 @@ class Datastore:
             shutil.copyfile(tmp_filename, output_filename)
             chunk_count = 1
 
-        self.put_metadatum(f'{source_job}.chunk_count', chunk_count)
+        self.put_metadatum(f'{source_job}_chunk_count', chunk_count)
 
     @xray_recorder.capture('app.datastore.delete_data')
     def delete_data(self):

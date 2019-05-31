@@ -256,6 +256,24 @@ Resources:
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
 
+    LambdaIntCast:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: |
+                    def handler(value, _):
+                        return int(value)
+            Handler: "index.handler"
+            Runtime: "python3.7"
+            Timeout: "5"
+            Role: { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-intcast" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-intcast" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
     ##########################################################################################################
     ##  SNS
     ##########################################################################################################
@@ -405,7 +423,7 @@ Resources:
                                 {
                                   "Variable": "$.ReadDatabase.Item.sensors.N",
                                   "StringEquals": "3",
-                                  "Next": "SessionProcess"
+                                  "Next": "ReadDatabase1"
                                 }
                             ],
                             "Default": "ExceptionFailProcessing"
@@ -503,6 +521,26 @@ Resources:
                             "ResultPath": "$.TaskResult",
                             "Next": "Post"
                         },
+                        "ReadDatabase1": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::dynamodb:getItem",
+                            "Parameters": {
+                                "TableName": "preprocessing-${Environment}-ingest-sessions",
+                                "Key": {
+                                    "id": { "S.$": "$.SourceEvent.SessionId" }
+                                },
+                                "ProjectionExpression": "id, transformandplacement_chunk_count"
+                            },
+                            "ResultPath": "$.ReadDatabase",
+                            "Next": "CastInt"
+                        },
+                        "CastInt": {
+                            "Type": "Task",
+                            "Resource": "${LambdaIntCast.Arn}",
+                            "InputPath": "$.ReadDatabase.Item.transformandplacement_chunk_count.N",
+                            "ResultPath": "$.ReadDatabase.Item.transformandplacement_chunk_count",
+                            "Next": "SessionProcess"
+                        },
                         "SessionProcess": {
                             "Type": "Task",
                             "Resource": "arn:aws:states:::batch:submitJob.sync",
@@ -512,6 +550,9 @@ Resources:
                                 "JobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
                                 "Parameters": {
                                     "Job": "sessionprocess"
+                                },
+                                "ArrayProperties": {
+                                    "Size": 10
                                 },
                                 "ContainerOverrides": {
                                     "Memory": 4096,
