@@ -29,7 +29,7 @@ class SessionprocessJob(Job):
         # sc_single_leg = _load_scaler(os.environ['SL_MS_SCALER'])
 
         _logger.info("LOADING DATA")
-        part_number = 0  # TODO chunking
+        part_number = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
         sdata = self.datastore.get_data(('transformandplacement', part_number))
         _logger.info("DATA LOADED!")
 
