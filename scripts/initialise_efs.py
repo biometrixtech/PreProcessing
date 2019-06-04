@@ -96,6 +96,7 @@ if __name__ == '__main__':
             ('grf_model_v3_0.h5', 'globalmodels'),
             ('grf_model_left_v2_1.h5', 'globalmodels'),
             ('grf_model_right_v2_1.h5', 'globalmodels'),
+            ('placement_model_v1_0.pkl', 'globalmodels'),
             ('scaler_model_v3_0.pkl', 'globalscalers'),
             ('scaler_model_single_v2_1.pkl', 'globalscalers'),
         ]

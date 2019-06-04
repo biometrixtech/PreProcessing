@@ -9,7 +9,8 @@ from __future__ import division
 from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import pandas as pd
-from scipy.signal import butter, filtfilt
+
+from utils import filter_data
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.prep_grf_data.prepare_data')
@@ -98,21 +99,8 @@ def prepare_data(data_in, scaler_model, user_mass):
     # filtering has to be done after subsetting for nan
     x1 = x[:, 0:len(predictors) - 1]
     x2 = x[:, len(predictors) - 1:]
-    x1 = _filter_data(x1, cutoff=6, order=4)
+    x1 = filter_data(x1, filt='low', fs=97.5, highcut=6, order=4)
     x = np.append(x1, x2, 1)
     # scale the data
     x = scaler_model.transform(x)
     return x, nan_row
-
-
-@xray_recorder.capture('app.jobs.sessionprocess.prep_grf_data._filter_data')
-def _filter_data(x, cutoff=6, fs=97.5, order=4):
-    """forward-backward lowpass butterworth filter
-    defaults:
-        cutoff freq: 12hz
-        sampling rage: 100hz
-        order: 4"""
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff / nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    return filtfilt(b, a, x, axis=0)

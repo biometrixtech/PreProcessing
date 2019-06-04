@@ -39,6 +39,9 @@ def main(script):
         DownloadandchunkJob(datastore).run()
 
     elif script == 'transformandplacement':
+        load_parameters([
+            'PLACEMENT_MODEL'
+         ], 'models')
         from jobs.transformandplacement import TransformandplacementJob
         TransformandplacementJob(datastore).run()
 

@@ -16,9 +16,9 @@ def calculate_rot_cmes(lf_eul, hip_eul, rf_eul, phase_lf, phase_rf):
     Calculates the offset of an athlete from a "neutral" position.
 
     Args:
-        lf_quat: instantaneous left foot quaternions in body frame
-        hip_quat: instantaneous hip quaternions in body frame
-        rf_quat: instantaneous right foot quaternions in body frame
+        lf_eul: instantaneous left foot eulers in body frame
+        hip_eul: instantaneous hip eulers in body frame
+        rf_eul: instantaneous right foot eulers in body frame
         phase_lf: left foot phase
         phase_rf: right foot phase
 
@@ -31,8 +31,6 @@ def calculate_rot_cmes(lf_eul, hip_eul, rf_eul, phase_lf, phase_rf):
             neutral when on ground
         foot_position_rf: difference in right foot forward direction from
             neutral when on ground
-        hip_rot: lateral rotation of hips from adjusted inertial frame,
-            currently just a placeholder
     """
 
     length = len(lf_eul)
@@ -52,8 +50,6 @@ def calculate_rot_cmes(lf_eul, hip_eul, rf_eul, phase_lf, phase_rf):
 
     # contralateral hip drop
     # hip roll
-#    hip_rot_lf = _filt_rot_CME(hip_roll, phase_lf, [0, 1, 4, 6])
-#    hip_rot_rf = _filt_rot_CME(hip_roll, phase_rf, [0, 2, 5, 7])
     hip_rot_lf = _filt_rot_cme(hip_roll, phase_lf, [0, 2, 3])
     hip_rot_rf = _filt_rot_cme(hip_roll, phase_rf, [0, 2, 3])
     contra_hip_drop_lf = hip_rot_lf.reshape(-1, 3)[:, 0]
@@ -63,8 +59,6 @@ def calculate_rot_cmes(lf_eul, hip_eul, rf_eul, phase_lf, phase_rf):
 
     # ankle roll
     # foot roll
-#    roll_lf = _filt_rot_CME(lf_roll, phase_lf, [0, 1, 4, 6])
-#    roll_rf = _filt_rot_CME(rf_roll, phase_rf, [0, 2, 5, 7])
     roll_lf = _filt_rot_cme(lf_roll, phase_lf, [0, 2, 3])
     roll_rf = _filt_rot_cme(rf_roll, phase_rf, [0, 2, 3])
     ankle_rot_lf = roll_lf.reshape(-1, 3)[:, 0]
@@ -74,8 +68,6 @@ def calculate_rot_cmes(lf_eul, hip_eul, rf_eul, phase_lf, phase_rf):
   
     # foot position
     # foot yaw
-#    yaw_lf = _cont_rot_CME(lf_yaw, phase_lf, [0, 1, 4, 6], hip_yaw)
-#    yaw_rf = _cont_rot_CME(rf_yaw, phase_rf, [0, 2, 5, 7], hip_yaw)
     yaw_lf = _cont_rot_cme(lf_yaw, phase_lf, [0, 2, 3], hip_yaw)
     yaw_rf = _cont_rot_cme(rf_yaw, phase_rf, [0, 2, 3], hip_yaw)
     foot_position_lf = yaw_lf.reshape(-1, 3)[:, 2]
