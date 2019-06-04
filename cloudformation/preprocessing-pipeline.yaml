@@ -584,7 +584,7 @@ Resources:
                                     "Job": "scoring"
                                 },
                                 "ContainerOverrides": {
-                                    "Memory": 1024,
+                                    "Memory": 4096,
                                     "Vcpus": 2,
                                     "Environment": [
                                         { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
