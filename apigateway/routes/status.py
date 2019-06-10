@@ -23,6 +23,8 @@ def handle_get_upload_status(principal_id=None):
 
     days = request.json.get('days', 14)
     current_time = datetime.datetime.now()
+    # temp for testing
+    user_id = 'chris'
     sessions = list(Session.get_many(user_id=user_id,
                                      index='user_id-event_date'))
     sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - datetime.timedelta(days=days))]
@@ -51,22 +53,25 @@ def _get_accessory(accessory_id):
         accessory_service = Service('hardware', HARDWARE_API_VERSION)
         response = accessory_service.call_apigateway_sync(method='GET',
                                                           endpoint=f'/accessory/{accessory_id}')
-        accessory = {}
-        accessory['last_sync_date'] = response['accessory'].get('last_sync_date', None)
-        accessory['battery_level'] = response['accessory'].get('battery_level', None)
-        accessory['firmware_version'] = response['accessory'].get('firmware_version', None)
-        if accessory['firmware_version'] == response['latest_firmware'].get('accessory_version', None):
-            accessory['firmware_up_to_date'] = True
-        else:
-            accessory['firmware_up_to_date'] = False
-    else:
-        # TODO handle this case properly
-        accessory = {
-            "last_sync_date": None,
-            "battery_level": None,
-            "firmware_version": None,
-            "firmware_up_to_date": False
-        }
+        print(response)
+        if 'accessory' in response:
+            accessory = {}
+            accessory['last_sync_date'] = response['accessory'].get('last_sync_date', None)
+            accessory['battery_level'] = response['accessory'].get('battery_level', None)
+            accessory['firmware_version'] = response['accessory'].get('firmware_version', None)
+            if accessory['firmware_version'] == response['latest_firmware'].get('accessory_version', None):
+                accessory['firmware_up_to_date'] = True
+            else:
+                accessory['firmware_up_to_date'] = False
+            return accessory
+    # if no accessory_id is provided or accessory_id is not found
+    # TODO handle this case properly
+    accessory = {
+        "last_sync_date": None,
+        "battery_level": None,
+        "firmware_version": None,
+        "firmware_up_to_date": False
+    }
     return accessory
 
 
