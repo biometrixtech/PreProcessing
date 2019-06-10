@@ -82,7 +82,7 @@ def _get_cleaned_session(session, minutes_offset):
         item['upload_end_date'] = format_datetime(upload_end_date)
     else:
         item['upload_end_date'] = None
-    session_status = session('session_status', None)
+    session_status = session.get('session_status', None)
     if session_status in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS']:
         item['status'] = 0
     elif session_status in ['PROCESSING_COMPLETE']:
