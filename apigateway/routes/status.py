@@ -22,7 +22,7 @@ def handle_get_upload_status(principal_id=None):
     accessory = _get_accessory(accessory_id)
 
     days = request.json.get('days', 14)
-    current_time = datetime.datetime.now() + datetime.timedelta(_get_offset())
+    current_time = datetime.datetime.now() + datetime.timedelta(minutes=_get_offset())
     # temp for testing
     user_id = 'chris' 
     sessions = list(Session.get_many(user_id=user_id,
