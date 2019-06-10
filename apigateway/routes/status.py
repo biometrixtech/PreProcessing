@@ -73,10 +73,14 @@ def _get_accessory(accessory_id):
 def _get_cleaned_session(session, minutes_offset):
     item = {}
     event_date = parse_datetime(session['event_date']) - datetime.timedelta(minutes=minutes_offset)
-    end_date = parse_datetime(session['end_date']) - datetime.timedelta(minutes=minutes_offset)
-
     item['event_date'] = format_datetime(event_date)
-    item['end_date'] = format_datetime(end_date)
+    if session.get('end_date', None) is not None:
+        end_date = parse_datetime(session['end_date']) - datetime.timedelta(minutes=minutes_offset)
+        item['end_date'] = format_datetime(end_date)
+    else:
+        end_date = None
+        item['end_date'] = end_date
+
     if session.get('upload_end_date', None) is not None:
         upload_end_date = parse_datetime(session['upload_end_date']) - datetime.timedelta(minutes=minutes_offset)
         item['upload_end_date'] = format_datetime(upload_end_date)
@@ -89,8 +93,8 @@ def _get_cleaned_session(session, minutes_offset):
         item['status'] = 1
     else:
         item['status'] = 2
-    try:
+    if end_date is not None:
         item['duration'] = round((end_date - event_date).seconds / 60, 2)
-    except:
+    else:
         item['duration'] = None
     return item
