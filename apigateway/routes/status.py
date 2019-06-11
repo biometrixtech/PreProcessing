@@ -5,6 +5,7 @@ from fathomapi.comms.service import Service
 from fathomapi.utils.decorators import require
 from fathomapi.utils.xray import xray_recorder
 from fathomapi.utils.formatters import format_datetime, parse_datetime
+from fathomapi.utils.exceptions import InvalidSchemaException
 from models.session import Session
 
 
@@ -31,6 +32,7 @@ def handle_get_upload_status(principal_id=None):
     for session in sessions:
         cleaned_session = _get_cleaned_session(session)
         cleaned_sessions_list.append(cleaned_session)
+    # cleaned_sessions_list = [session for session in cleaned_sessions_list if session['event_date'] is not None]
     return {"sessions": cleaned_sessions_list, "accessory": accessory}
 
 
@@ -75,7 +77,7 @@ def _get_cleaned_session(session):
         item['status'] = 1
     else:
         item['status'] = 2
-    if item['end_date'] is not None:
+    if item['end_date'] is not None and item['event_date'] is not None:
         item['duration'] = round((parse_datetime(item['end_date']) - parse_datetime(item['event_date'])).seconds / 60, 2)
     else:
         item['duration'] = None
@@ -85,8 +87,11 @@ def _get_cleaned_session(session):
 def _get_local_time(utc_time_string):
     offset = _get_offset()
     if utc_time_string is not None:
-        local_time = parse_datetime(utc_time_string) + datetime.timedelta(minutes=offset)
-        return format_datetime(local_time)
+        try:
+            local_time = parse_datetime(utc_time_string) + datetime.timedelta(minutes=offset)
+            return format_datetime(local_time)
+        except InvalidSchemaException:
+            return None
     else:
         return utc_time_string
 
