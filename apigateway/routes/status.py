@@ -5,7 +5,6 @@ from fathomapi.comms.service import Service
 from fathomapi.utils.decorators import require
 from fathomapi.utils.xray import xray_recorder
 from fathomapi.utils.formatters import format_datetime, parse_datetime
-
 from models.session import Session
 
 
@@ -23,10 +22,11 @@ def handle_get_upload_status(principal_id=None):
 
     days = request.json.get('days', 14)
     current_time = datetime.datetime.now() + datetime.timedelta(minutes=_get_offset())
-    # temp for testing
-    user_id = 'chris' 
+    # Get all sessions for the user
+    user_id = 'f65b0d85-798d-426a-a192-795d148b9be1'
     sessions = list(Session.get_many(user_id=user_id,
                                      index='user_id-event_date'))
+    # subset out the relevant ones 
     sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - datetime.timedelta(days=days))]
     cleaned_sessions_list = []
     for session in sessions:
@@ -41,8 +41,7 @@ def _get_accessory(accessory_id):
         accessory_service = Service('hardware', HARDWARE_API_VERSION)
         response = accessory_service.call_apigateway_sync(method='GET',
                                                           endpoint=f'/accessory/{accessory_id}')
-        print(response)
-        if 'accessory' in response:
+        if 'accessory' in response:  # if accessory_id was found
             accessory = dict()
             accessory['last_sync_date'] = response['accessory'].get('last_sync_date', None)
             accessory['battery_level'] = response['accessory'].get('battery_level', None)
