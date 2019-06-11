@@ -44,7 +44,7 @@ def _get_accessory(accessory_id):
                                                           endpoint=f'/accessory/{accessory_id}')
         if 'accessory' in response:  # if accessory_id was found
             accessory = dict()
-            accessory['last_sync_date'] = response['accessory'].get('last_sync_date', None)
+            accessory['last_sync_date'] = _get_local_time(response['accessory'].get('last_sync_date', None))
             accessory['battery_level'] = response['accessory'].get('battery_level', None)
             accessory['firmware_version'] = response['accessory'].get('firmware_version', None)
             if accessory['firmware_version'] == response['latest_firmware'].get('accessory_version', None):
