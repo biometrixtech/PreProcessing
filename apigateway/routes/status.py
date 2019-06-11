@@ -23,19 +23,10 @@ def handle_get_upload_status(principal_id=None):
     days = request.json.get('days', 14)
     current_time = datetime.datetime.now()
     # Get all sessions for the user
-    user_id = 'f65b0d85-798d-426a-a192-795d148b9be1'
-    start = format_datetime(current_time - datetime.timedelta(days=days))
-    end = format_datetime(current_time)
-    print(start, end)
-    sessions = list(Session.get_many(index='user_id-event_date',
-                                     key=user_id,
-                                     start=start,
-                                     end=end))
-    print(sessions)
-    sessions = [session.get() for session in sessions]
-    print(sessions)
-    # subset out the relevant ones 
-    # sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - datetime.timedelta(days=days))]
+    sessions = list(Session.get_many(user_id=user_id,
+                                     index='user_id-event_date'))
+    # subset to get relevant dates
+    sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - datetime.timedelta(days=days))]
     cleaned_sessions_list = []
     for session in sessions:
         cleaned_session = _get_cleaned_session(session)
