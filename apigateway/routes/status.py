@@ -47,7 +47,8 @@ def _get_accessory(accessory_id):
             accessory['last_sync_date'] = _get_local_time(response['accessory'].get('last_sync_date', None))
             accessory['battery_level'] = response['accessory'].get('battery_level', None)
             accessory['firmware_version'] = response['accessory'].get('firmware_version', None)
-            if accessory['firmware_version'] == response['latest_firmware'].get('accessory_version', None):
+            latest_firmware = response['latest_firmware'].get('accessory_version', None)
+            if latest_firmware is not None and accessory['firmware_version'] == latest_firmware.split('-')[0]:
                 accessory['firmware_up_to_date'] = True
             else:
                 accessory['firmware_up_to_date'] = False
