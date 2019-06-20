@@ -22,7 +22,7 @@ from .detect_impact_phase_intervals import detect_start_end_impact_phase
 from .detect_takeoff_phase_intervals import detect_start_end_takeoff_phase
 from .extract_geometry import extract_geometry
 from .impact_cme import sync_time, landing_pattern, continuous_values
-from .movement_attributes import plane_analysis, run_stance_analysis
+from .movement_attributes import plane_analysis, run_stance_analysis, total_accel
 from .phase_detection import combine_phase
 from .prep_grf_data import prepare_data
 from .rate_of_force_absorption import detect_rate_of_force_absorption
@@ -161,58 +161,65 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
     logger.info('DONE WITH PHASE DETECTION!')
 
-    # DETECT IMPACT PHASE INTERVALS
-    (
-        data['impact_phase_lf'],
-        data['impact_phase_rf'],
-        lf_imp_range,
-        rf_imp_range
-    ) = detect_start_end_impact_phase(lph=data.phase_lf, rph=data.phase_rf)
-    logger.info('DONE WITH DETECTING IMPACT PHASE INTERVALS')
+    # Deprecated
+    # # DETECT IMPACT PHASE INTERVALS
+    # (
+    #     data['impact_phase_lf'],
+    #     data['impact_phase_rf'],
+    #     lf_imp_range,
+    #     rf_imp_range
+    # ) = detect_start_end_impact_phase(lph=data.phase_lf, rph=data.phase_rf)
+    # logger.info('DONE WITH DETECTING IMPACT PHASE INTERVALS')
 
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
     # isolate hip acceleration and euler angle data
     hip_acc = data.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']].values
 
-    # analyze planes of movement
-    (
-        data['lat'],
-        data['vert'],
-        data['horz'],
-        data['rot'],
-        data['lat_binary'],
-        data['vert_binary'],
-        data['horz_binary'],
-        data['rot_binary'],
-        data['stationary_binary'],
-        data['total_accel']
-    ) = plane_analysis(hip_acc, hip_euls, data.ms_elapsed.values.reshape(-1, 1))
+    # # analyze planes of movement
+    # (
+    #     data['lat'],
+    #     data['vert'],
+    #     data['horz'],
+    #     data['rot'],
+    #     data['lat_binary'],
+    #     data['vert_binary'],
+    #     data['horz_binary'],
+    #     data['rot_binary'],
+    #     data['stationary_binary'],
+    #     data['total_accel']
+    # ) = plane_analysis(hip_acc, hip_euls, data.ms_elapsed.values.reshape(-1, 1))
+
+    # calculate total acceleration
+    len_hip_acc = len(hip_acc)
+    accel_mag = total_accel(hip_acc).reshape((len_hip_acc, 1))
+    data['total_accel'] = accel_mag.reshape(-1, 1)
 
     # analyze stance
     data['stance'] = run_stance_analysis(data)
     del hip_acc
     logger.info('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
 
-    # Enumerate plane and stance
-    plane = np.array([0]*len(data.rot)).reshape(-1, 1)
-
-    # Enumerate plane
-    plane[data.rot_binary == 1] = 1
-    plane[data.lat_binary == 1] = 2
-    plane[data.vert_binary == 1] = 3
-    plane[data.horz_binary == 1] = 4
-    plane[(data.rot_binary == 1) & (data.lat_binary == 1)] = 5
-    plane[(data.rot_binary == 1) & (data.vert_binary == 1)] = 6
-    plane[(data.rot_binary == 1) & (data.horz_binary == 1)] = 7
-    plane[(data.lat_binary == 1) & (data.vert_binary == 1)] = 8
-    plane[(data.lat_binary == 1) & (data.horz_binary == 1)] = 9
-    plane[(data.vert_binary == 1) & (data.horz_binary == 1)] = 10
-    plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1)] = 11
-    plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.horz_binary == 1)] = 12
-    plane[(data.rot_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 13
-    plane[(data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 14
-    plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 15
-    data['plane'] = plane
+    # DEPRECATED
+    # # Enumerate plane and stance
+    # plane = np.array([0]*len(data.rot)).reshape(-1, 1)
+    #
+    # # Enumerate plane
+    # plane[data.rot_binary == 1] = 1
+    # plane[data.lat_binary == 1] = 2
+    # plane[data.vert_binary == 1] = 3
+    # plane[data.horz_binary == 1] = 4
+    # plane[(data.rot_binary == 1) & (data.lat_binary == 1)] = 5
+    # plane[(data.rot_binary == 1) & (data.vert_binary == 1)] = 6
+    # plane[(data.rot_binary == 1) & (data.horz_binary == 1)] = 7
+    # plane[(data.lat_binary == 1) & (data.vert_binary == 1)] = 8
+    # plane[(data.lat_binary == 1) & (data.horz_binary == 1)] = 9
+    # plane[(data.vert_binary == 1) & (data.horz_binary == 1)] = 10
+    # plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1)] = 11
+    # plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.horz_binary == 1)] = 12
+    # plane[(data.rot_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 13
+    # plane[(data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 14
+    # plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 15
+    # data['plane'] = plane
 
     # MOVEMENT QUALITY FEATURES
 
