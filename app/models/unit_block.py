@@ -45,8 +45,8 @@ class UnitBlock(object):
         self.total_grf_avg = mongo_unit_block.get('totalGRFAvg')
         self.accumulated_grf = accumulated_grf+self.total_grf
 
-        self.optimal_grf = mongo_unit_block.get('optimalGRF')
-        self.irregular_grf = mongo_unit_block.get('irregularGRF')
+        #self.optimal_grf = mongo_unit_block.get('optimalGRF')
+        #self.irregular_grf = mongo_unit_block.get('irregularGRF')
         self.LF_grf = mongo_unit_block.get('LFgRF')
         self.RF_grf = mongo_unit_block.get('RFgRF')
         self.left_grf = mongo_unit_block.get('leftGRF')
@@ -56,7 +56,7 @@ class UnitBlock(object):
         self.perc_right_grf = mongo_unit_block.get('percRightGRF')
         self.perc_LR_grf_diff = mongo_unit_block.get('percLRGRFDiff')
         self.total_accel = mongo_unit_block.get('totalAccel')
-        self.irregular_accel = mongo_unit_block.get('irregularAccel')
+        #self.irregular_accel = mongo_unit_block.get('irregularAccel')
         self.total_accel_avg = mongo_unit_block.get('totalAccelAvg')
 
         self.peak_grf_contact_duration_lf = mongo_unit_block.get('peakGrfContactDurationLF')

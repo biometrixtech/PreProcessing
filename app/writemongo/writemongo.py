@@ -254,8 +254,8 @@ def script_handler(working_directory, file_name, input_data):
             rf_grf = numpy.sum(data_30['rf_grf'])
             if rf_grf == 0:
                 rf_grf = 1e-6
-            const_grf = numpy.nansum(data_30['const_grf'])
-            dest_grf = numpy.nansum(data_30['dest_grf'])
+            #const_grf = numpy.nansum(data_30['const_grf'])
+            #dest_grf = numpy.nansum(data_30['dest_grf'])
 
             # control aggregation
             control = numpy.sum(data_30['control']*data_30['total_grf']) / total_grf
@@ -315,8 +315,8 @@ def script_handler(working_directory, file_name, input_data):
             record_out_agg['totalGRF'] = total_grf
             record_out_agg['LFgRF'] = lf_grf
             record_out_agg['RFgRF'] = rf_grf
-            record_out_agg['optimalGRF'] = const_grf
-            record_out_agg['irregularGRF'] = dest_grf
+            #record_out_agg['optimalGRF'] = const_grf
+            #record_out_agg['irregularGRF'] = dest_grf
             record_out_agg['control'] = control
             record_out_agg['hipControl'] = hip_control
             record_out_agg['ankleControl'] = ankle_control

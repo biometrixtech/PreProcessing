@@ -216,113 +216,115 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
 
     # MOVEMENT QUALITY FEATURES
 
+    ### DEPRECATED
     # isolate bf quaternions
-    lf_quat = np.hstack([data.quat_lf_w, data.quat_lf_x, data.quat_lf_y, data.quat_lf_z])
-    hip_quat = np.hstack([data.quat_hip_w, data.quat_hip_x, data.quat_hip_y, data.quat_hip_z])
-    rf_quat = np.hstack([data.quat_rf_w, data.quat_rf_x, data.quat_rf_y, data.quat_rf_z])
-    # calculate movement attributes
-    if file_version == '1.0':
-        # special code to rerun v1 data to gather older cmes
-        # isolate neutral quaternions
-        lf_neutral, hip_neutral, rf_neutral = _calculate_hip_neutral(hip_quat, hip_n_transform)
+    # lf_quat = np.hstack([data.quat_lf_w, data.quat_lf_x, data.quat_lf_y, data.quat_lf_z])
+    # hip_quat = np.hstack([data.quat_hip_w, data.quat_hip_x, data.quat_hip_y, data.quat_hip_z])
+    # rf_quat = np.hstack([data.quat_rf_w, data.quat_rf_x, data.quat_rf_y, data.quat_rf_z])
 
-        # calculate movement attributes
-        (
-            data['contra_hip_drop_lf'],
-            data['contra_hip_drop_rf'],
-            data['ankle_rot_lf'],
-            data['ankle_rot_rf'],
-            data['foot_position_lf'],
-            data['foot_position_rf']
-        ) = calculate_rot_cmes_v1(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, rf_neutral, data.phase_lf, data.phase_rf)
-        del lf_quat, hip_quat, rf_quat
-        del lf_neutral, hip_neutral, rf_neutral
-    else:
-        (
-            data['contra_hip_drop_lf'],
-            data['contra_hip_drop_rf'],
-            data['ankle_rot_lf'],
-            data['ankle_rot_rf'],
-            data['foot_position_lf'],
-            data['foot_position_rf']
-        ) = calculate_rot_cmes(lf_euls, hip_euls, rf_euls, data.phase_lf, data.phase_rf)
-        del lf_quat, hip_quat, rf_quat
+    # # calculate movement attributes
+    # if file_version == '1.0':
+    #     # special code to rerun v1 data to gather older cmes
+    #     # isolate neutral quaternions
+    #     lf_neutral, hip_neutral, rf_neutral = _calculate_hip_neutral(hip_quat, hip_n_transform)
+    #
+    #     # calculate movement attributes
+    #     (
+    #         data['contra_hip_drop_lf'],
+    #         data['contra_hip_drop_rf'],
+    #         data['ankle_rot_lf'],
+    #         data['ankle_rot_rf'],
+    #         data['foot_position_lf'],
+    #         data['foot_position_rf']
+    #     ) = calculate_rot_cmes_v1(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, rf_neutral, data.phase_lf, data.phase_rf)
+    #     del lf_quat, hip_quat, rf_quat
+    #     del lf_neutral, hip_neutral, rf_neutral
+    # else:
+    #     (
+    #         data['contra_hip_drop_lf'],
+    #         data['contra_hip_drop_rf'],
+    #         data['ankle_rot_lf'],
+    #         data['ankle_rot_rf'],
+    #         data['foot_position_lf'],
+    #         data['foot_position_rf']
+    #     ) = calculate_rot_cmes(lf_euls, hip_euls, rf_euls, data.phase_lf, data.phase_rf)
+    #     del lf_quat, hip_quat, rf_quat
 
     # new relative CMEs
     data = run_relative_cmes(data)
-    logger.info('DONE WITH BALANCE CME!')
+    logger.info('DONE WITH RELATIVE CME!')
 
-    # IMPACT CME
-    # define dictionary for msElapsed
+    # # IMPACT CME
+    # # define dictionary for msElapsed
+    #
+    # # landing time attributes
+    # n_landtime, ltime_index, lf_rf_imp_indicator = sync_time(rf_imp_range[:, 0], lf_imp_range[:, 0], float(sampl_freq))
+    #
+    # # landing pattern attributes
+    # if len(n_landtime) != 0:
+    #     n_landpattern = landing_pattern(data.euler_rf_y, data.euler_lf_y, ltime_index, lf_rf_imp_indicator, sampl_freq, n_landtime)
+    #     land_time, land_pattern = continuous_values(n_landpattern, n_landtime, len(data.acc_lf_x), ltime_index)
+    #     data['land_time'] = land_time.reshape(-1, 1)
+    #     data['land_pattern_rf'] = land_pattern[:, 0].reshape(-1, 1)
+    #     data['land_pattern_lf'] = land_pattern[:, 1].reshape(-1, 1)
+    #     del n_landpattern, land_time, land_pattern
+    # else:
+    #     data['land_time'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
+    #     data['land_pattern_lf'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
+    #     data['land_pattern_rf'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
+    # del n_landtime, ltime_index, lf_rf_imp_indicator
+    # logger.info('DONE WITH IMPACT CME!')
 
-    # landing time attributes
-    n_landtime, ltime_index, lf_rf_imp_indicator = sync_time(rf_imp_range[:, 0], lf_imp_range[:, 0], float(sampl_freq))
+    # # RATE OF FORCE ABSORPTION
+    # # DETECT IMPACT PHASE INTERVALS AGAIN AFTER IMPACTS ARE DIVIDED INTO IMPACT AND TAKEOFFS
+    # (
+    #     data.impact_phase_lf,
+    #     data.impact_phase_rf,
+    #     lf_imp_range,
+    #     rf_imp_range
+    # ) = detect_start_end_impact_phase(
+    #     lph=data.phase_lf.values.reshape(-1, 1),
+    #     rph=data.phase_rf.values.reshape(-1, 1)
+    # )
+    #
+    # rofa_lf, rofa_rf = detect_rate_of_force_absorption(
+    #     lf_imp=lf_imp_range,
+    #     rf_imp=rf_imp_range,
+    #     grf=data.grf.values.reshape(-1, 1),
+    #     phase_lf=data.phase_lf,
+    #     phase_rf=data.phase_rf,
+    #     stance=data.stance,
+    #     hz=sampl_freq
+    # )
+    # # rofa is normalized for user weight
+    # data['rate_force_absorption_lf'] = rofa_lf / weight
+    # data['rate_force_absorption_rf'] = rofa_rf / weight
+    #
+    # logger.info('DONE WITH RATE OF FORCE ABSORPTION!')
 
-    # landing pattern attributes
-    if len(n_landtime) != 0:
-        n_landpattern = landing_pattern(data.euler_rf_y, data.euler_lf_y, ltime_index, lf_rf_imp_indicator, sampl_freq, n_landtime)
-        land_time, land_pattern = continuous_values(n_landpattern, n_landtime, len(data.acc_lf_x), ltime_index)
-        data['land_time'] = land_time.reshape(-1, 1)
-        data['land_pattern_rf'] = land_pattern[:, 0].reshape(-1, 1)
-        data['land_pattern_lf'] = land_pattern[:, 1].reshape(-1, 1)
-        del n_landpattern, land_time, land_pattern
-    else:
-        data['land_time'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
-        data['land_pattern_lf'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
-        data['land_pattern_rf'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
-    del n_landtime, ltime_index, lf_rf_imp_indicator
-    logger.info('DONE WITH IMPACT CME!')
-
-    # RATE OF FORCE ABSORPTION
-    # DETECT IMPACT PHASE INTERVALS AGAIN AFTER IMPACTS ARE DIVIDED INTO IMPACT AND TAKEOFFS
-    (
-        data.impact_phase_lf,
-        data.impact_phase_rf,
-        lf_imp_range,
-        rf_imp_range
-    ) = detect_start_end_impact_phase(
-        lph=data.phase_lf.values.reshape(-1, 1),
-        rph=data.phase_rf.values.reshape(-1, 1)
-    )
-
-    rofa_lf, rofa_rf = detect_rate_of_force_absorption(
-        lf_imp=lf_imp_range,
-        rf_imp=rf_imp_range,
-        grf=data.grf.values.reshape(-1, 1),
-        phase_lf=data.phase_lf,
-        phase_rf=data.phase_rf,
-        stance=data.stance,
-        hz=sampl_freq
-    )
-    # rofa is normalized for user weight
-    data['rate_force_absorption_lf'] = rofa_lf / weight
-    data['rate_force_absorption_rf'] = rofa_rf / weight
-
-    logger.info('DONE WITH RATE OF FORCE ABSORPTION!')
-
-    # RATE OF FORCE PRODUCTION
-    # DETECT TAKEOFF PHASE INTERVALS
-    (
-        data['takeoff_phase_lf,'],
-        data['takeoff_phase_rf'],
-        lf_takeoff_range,
-        rf_takeoff_range
-    ) = detect_start_end_takeoff_phase(lph=data.phase_lf.values.reshape(-1, 1),
-                                       rph=data.phase_rf.values.reshape(-1, 1))
-
-    rofp_lf, rofp_rf = detect_rate_of_force_production(
-        lf_takeoff=lf_takeoff_range,
-        rf_takeoff=rf_takeoff_range,
-        grf=data.grf.values.reshape(-1, 1),
-        phase_lf=data.phase_lf,
-        phase_rf=data.phase_rf,
-        stance=data.stance,
-        hz=sampl_freq
-    )
-    # rofp is normalized for user weight
-    data['rate_force_production_lf'] = rofp_lf / weight
-    data['rate_force_production_rf'] = rofp_rf / weight
-    logger.info('DONE WITH RATE OF FORCE PRODUCTION!')
+    # # RATE OF FORCE PRODUCTION
+    # # DETECT TAKEOFF PHASE INTERVALS
+    # (
+    #     data['takeoff_phase_lf,'],
+    #     data['takeoff_phase_rf'],
+    #     lf_takeoff_range,
+    #     rf_takeoff_range
+    # ) = detect_start_end_takeoff_phase(lph=data.phase_lf.values.reshape(-1, 1),
+    #                                    rph=data.phase_rf.values.reshape(-1, 1))
+    #
+    # rofp_lf, rofp_rf = detect_rate_of_force_production(
+    #     lf_takeoff=lf_takeoff_range,
+    #     rf_takeoff=rf_takeoff_range,
+    #     grf=data.grf.values.reshape(-1, 1),
+    #     phase_lf=data.phase_lf,
+    #     phase_rf=data.phase_rf,
+    #     stance=data.stance,
+    #     hz=sampl_freq
+    # )
+    # # rofp is normalized for user weight
+    # data['rate_force_production_lf'] = rofp_lf / weight
+    # data['rate_force_production_rf'] = rofp_rf / weight
+    # logger.info('DONE WITH RATE OF FORCE PRODUCTION!')
 
     # MAGNITUDE OF GRF DURING BALANCE PHASE
     data['grf_bal_phase'] = calculate_balance_phase_force(data) / weight

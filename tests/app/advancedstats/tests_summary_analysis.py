@@ -1,6 +1,6 @@
 import pandas
 
-from ..mocks.datastore import MockDatastore
+from tests.app.writemongo.datastore import MockDatastore
 from ....app.jobs.advancedstats import get_unit_blocks
 from ....app.jobs.advancedstats.summary_analysis_job import SummaryAnalysisJob
 from ....app.jobs.advancedstats.training_volume_job import TrainingVolumeJob

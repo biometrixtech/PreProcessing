@@ -1,4 +1,4 @@
-from ....app.datastore import Datastore
+from datastore import Datastore
 
 
 class MockDatastore(Datastore):

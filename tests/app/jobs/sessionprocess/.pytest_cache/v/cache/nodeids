@@ -1,0 +1,10 @@
+[
+  "test_run_relative_cme.py::test_run_relative_CMEs",
+  "test_run_relative_cme.py::test_drift_agnostic_CMES",
+  "test_run_relative_cme.py::test_driftless_CMS",
+  "test_run_relative_cme.py::test_norm_range_of_motion",
+  "test_run_relative_cme.py::test_norm_motion_covered",
+  "test_run_relative_cme.py::test_rough_contact_duration",
+  "test_run_relative_cme.py::test_detect_long_dynamic",
+  "test_run_relative_cme.py::test_remove_filtered_ends"
+]

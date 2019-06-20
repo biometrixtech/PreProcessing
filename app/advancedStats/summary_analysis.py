@@ -146,8 +146,8 @@ def query_mongo_ab(col, user, date, output_path):
                     #'ankleSymmetry':[b.get('ankleSymmetry')],
                     'totalGRF':[b.get('totalGRF')],
                     'totalGRFAvg':[b.get('totalGRFAvg')],
-                    'optimalGRF':[b.get('optimalGRF')],
-                    'irregularGRF':[b.get('irregularGRF')],
+                    #'optimalGRF':[b.get('optimalGRF')],
+                    #'irregularGRF':[b.get('irregularGRF')],
                     'LFgRF':[b.get('LFgRF')],
                     'RFgRF':[b.get('RFgRF')],
                     'leftGRF':[b.get('leftGRF')],
@@ -158,7 +158,7 @@ def query_mongo_ab(col, user, date, output_path):
                     'percLRGRFDiff':[b.get('percLRGRFDiff')],          
                     'totalAccel':[b.get('totalAccel')],
                     #'totalAccelAvg':[b.get('totalAccelAvg')],
-                    'irregularAccel':[b.get('irregularAccel')]                          
+                    #'irregularAccel':[b.get('irregularAccel')]
                     }) 
    
             if cnt==0:
@@ -201,8 +201,8 @@ def query_mongo_ab(col, user, date, output_path):
                     #'ankleSymmetry',
                     'totalGRF',
                     'totalGRFAvg',
-                    'optimalGRF',
-                    'irregularGRF',
+                    #'optimalGRF',
+                    #'irregularGRF',
                     'LFgRF',
                     'RFgRF',
                     'leftGRF',
@@ -211,9 +211,9 @@ def query_mongo_ab(col, user, date, output_path):
                     'percLeftGRF',
                     'percRightGRF',
                     'percLRGRFDiff',          
-                    'totalAccel',
+                    'totalAccel'
                     #'totalAccelAvg',
-                    'irregularAccel'
+                    #'irregularAccel'
                     ])   
             else:
                 ab.to_csv(output_path+'ab-'+user+'_'+eventDate+'.csv',sep=',',mode='a',header=False,columns=['userId',
@@ -255,8 +255,8 @@ def query_mongo_ab(col, user, date, output_path):
                     #'ankleSymmetry',
                     'totalGRF',
                     'totalGRFAvg',
-                    'optimalGRF',
-                    'irregularGRF',
+                    #'optimalGRF',
+                    #'irregularGRF',
                     'LFgRF',
                     'RFgRF',
                     'leftGRF',
@@ -265,9 +265,10 @@ def query_mongo_ab(col, user, date, output_path):
                     'percLeftGRF',
                     'percRightGRF',
                     'percLRGRFDiff',          
-                    'totalAccel',
+                    'totalAccel'])
                     #'totalAccelAvg',
-                    'irregularAccel'])
+                    #'irregularAccel']
+
             cnt=cnt+1
 
 
@@ -391,8 +392,8 @@ def query_mongo_ub(collection, user, date, output_path):
                             'ankleSymmetry':[ubData.get('ankleSymmetry')],
                             'totalGRF':[ubData.get('totalGRF')],
                             'totalGRFAvg':[ubData.get('totalGRFAvg')],
-                            'optimalGRF':[ubData.get('optimalGRF')],
-                            'irregularGRF':[ubData.get('irregularGRF')],
+                            #'optimalGRF':[ubData.get('optimalGRF')],
+                            #'irregularGRF':[ubData.get('irregularGRF')],
                             'LFgRF':[ubData.get('LFgRF')],
                             'RFgRF':[ubData.get('RFgRF')],
                             'leftGRF':[ubData.get('leftGRF')],
@@ -403,7 +404,7 @@ def query_mongo_ub(collection, user, date, output_path):
                             'percLRGRFDiff':[ubData.get('percLRGRFDiff')],          
                             'totalAccel':[ubData.get('totalAccel')],
                             'totalAccelAvg':[ubData.get('totalAccelAvg')],
-                            'irregularAccel':[ubData.get('irregularAccel')],
+                            #'irregularAccel':[ubData.get('irregularAccel')],
                             'peakGrfContactDurationLF5':[ubData.get('peakGrfContactDurationLF5')],
                             'peakGrfContactDurationLF':[ubData.get('peakGrfContactDurationLF')],
                             'peakGrfContactDurationLF95':[ubData.get('peakGrfContactDurationLF95')],
@@ -454,8 +455,8 @@ def query_mongo_ub(collection, user, date, output_path):
                             'ankleSymmetry',
                             'totalGRF',
                             'totalGRFAvg',
-                            'optimalGRF',
-                            'irregularGRF',
+                            #'optimalGRF',
+                            #'irregularGRF',
                             'LFgRF',
                             'RFgRF',
                             'leftGRF',
@@ -466,7 +467,7 @@ def query_mongo_ub(collection, user, date, output_path):
                             'percLRGRFDiff',          
                             'totalAccel',
                             'totalAccelAvg',
-                            'irregularAccel',
+                            #'irregularAccel',
                             'peakGrfContactDurationLF',
                             'peakGrfContactDurationLF5',
                             'peakGrfContactDurationLF95',
@@ -516,8 +517,8 @@ def query_mongo_ub(collection, user, date, output_path):
                             'ankleSymmetry',
                             'totalGRF',
                             'totalGRFAvg',
-                            'optimalGRF',
-                            'irregularGRF',
+                            #'optimalGRF',
+                            #'irregularGRF',
                             'LFgRF',
                             'RFgRF',
                             'leftGRF',
@@ -528,7 +529,7 @@ def query_mongo_ub(collection, user, date, output_path):
                             'percLRGRFDiff',          
                             'totalAccel',
                             'totalAccelAvg',
-                            'irregularAccel',
+                            #'irregularAccel',
                             'peakGrfContactDurationLF',
                             'peakGrfContactDurationLF5',
                             'peakGrfContactDurationLF95',
