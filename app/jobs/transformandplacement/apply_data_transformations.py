@@ -114,7 +114,7 @@ def drift_filter(quats):
     return quat_filt
 
 
-def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
+def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform, sensor_position):
     """
     Use the body frame transforms and the hip neutral transform calculated
     during calibration to convert the data in the raw sensor frame to
@@ -156,10 +156,9 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bf_left = quat_prod(q_sensor_left, q_bftransform_left)
     q_bf_right = quat_prod(q_sensor_right, q_bftransform_right)
 
-    # Rotate right and left foot by 90º
-    yaw_90_pos = make_quaternion_array([sqrt(2)/2, 0, 0, sqrt(2)/2], row_count)
-    q_bf_left = quat_prod(q_bf_left, yaw_90_pos)
-    q_bf_right = quat_prod(q_bf_right, yaw_90_pos)
+    # Rotate right and left foot by relevant angles based on their position on foot
+    q_bf_left = apply_position_based_fixes(q_bf_left, sensor_position['left'], 'left')
+    q_bf_right = apply_position_based_fixes(q_bf_right, sensor_position['right'], 'right')
 
     # insert transformed values for ankle sensors into dataframe
     sdata.loc[:, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']] = q_bf_left
@@ -227,9 +226,8 @@ def apply_data_transformations(sdata, bf_transforms, hip_neutral_transform):
     q_bf_yaw_right = quat_force_euler_angle(q_bf_right, phi=0, theta=0)
 
     # After filtering trasnformed quaternions, reverse transformation to get filtered raw quats
-    q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_90_pos))
-    q_bf_right = quat_prod(q_bf_right, quat_conj(yaw_90_pos))
-    # q_bf_left = quat_prod(q_bf_left, quat_conj(yaw_180))
+    q_bf_left = apply_position_based_fixes(q_bf_left, sensor_position['left'], 'left', True)
+    q_bf_right = apply_position_based_fixes(q_bf_right, sensor_position['right'], 'right', True)
     q_sensor_left = quat_prod(q_bf_left, quat_conj(q_bftransform_left))
     q_sensor_right = quat_prod(q_bf_right, quat_conj(q_bftransform_right))
     q_sensor_hip = quat_multi_prod(quat_conj(q_neutraltransform_hip),
@@ -274,3 +272,63 @@ def apply_acceleration_normalisation(sdata):
     sdata.acc_hip_z -= 9.80665
     sdata.acc_rf_z -= 9.80665
     return sdata
+
+
+def apply_position_based_fixes(data, case, foot, reverse=False):
+    """case based transformation fix for each foot"""
+
+    if case == 'ACE':
+        if foot == 'left':
+            error_angle = -105 / 180. * np.pi
+        else:
+            error_angle = -75 / 180. * np.pi
+
+    elif case == 'ADE':
+        if foot == 'left':
+            error_angle = 75 / 180. * np.pi
+        else:
+            error_angle = 105 / 180. * np.pi
+
+    elif case == 'BCE':
+        if foot == 'left':
+            error_angle = 75 / 180. * np.pi
+        else:
+            error_angle = 105 / 180. * np.pi
+
+    elif case == 'BDE':
+        if foot == 'left':
+            error_angle = -105 / 180. * np.pi
+        else:
+            error_angle = -75 / 180. * np.pi
+
+    elif case == 'ACF':
+        if foot == 'left':
+            error_angle = -22.5 / 180. * np.pi
+        else:
+            error_angle = -157.5 / 180. * np.pi
+    elif case == 'ADF':
+        if foot == 'left':
+            error_angle = 157.5 / 180. * np.pi
+        else:
+            error_angle = 22.5 / 180. * np.pi
+    elif case == 'BCF':
+        if foot == 'left':
+            error_angle = 157.5 / 180. * np.pi
+        else:
+            error_angle = 22.5 / 180. * np.pi
+
+    elif case == 'BDF':
+        if foot == 'left':
+            error_angle = -22.5 / 180. * np.pi
+        else:
+            error_angle = -157.5 / 180. * np.pi
+    else:
+        error_angle = 90 / 180. * np.pi
+
+    error = make_quaternion_array(euler_to_quat(np.array([0, 0, error_angle]).reshape(1, -1))[0].tolist(), len(data))
+
+    if not reverse:
+        data = quat_prod(data, quat_conj(error))
+    else:
+        data = quat_prod(data, error)
+    return data

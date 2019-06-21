@@ -12,7 +12,6 @@ Input data called from 'biometrix-blockcontainer'
 Output data collected in BlockEvent Table.
 """
 from aws_xray_sdk.core import xray_recorder
-from scipy.signal import butter, filtfilt
 import copy
 import logging
 import numpy as np
@@ -24,13 +23,14 @@ from .detect_takeoff_phase_intervals import detect_start_end_takeoff_phase
 from .extract_geometry import extract_geometry
 from .impact_cme import sync_time, landing_pattern, continuous_values
 from .movement_attributes import plane_analysis, run_stance_analysis
-from .phase_detection import combine_phase, update_phase_grf
+from .phase_detection import combine_phase
 from .prep_grf_data import prepare_data
 from .rate_of_force_absorption import detect_rate_of_force_absorption
 from .rate_of_force_production import detect_rate_of_force_production
 from .run_relative_cme import run_relative_cmes
 from .unit_blocks import define_unit_blocks
 import utils.quaternion_conversions as qc
+from utils import filter_data, get_ranges
 
 logger = logging.getLogger()
 
@@ -51,7 +51,7 @@ _output_columns = [
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
     'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
-    'corrupt_lf', 'corrupt_hip', 'corrupt_rf',
+    # 'corrupt_lf', 'corrupt_hip', 'corrupt_rf',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     'adduc_range_of_motion_lf',
     'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
@@ -71,7 +71,7 @@ _output_columns = [
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.run_session')
-def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, sc, sc_single_leg, hip_n_transform):
+def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     """Creates object attributes according to session analysis process.
 
     Args:
@@ -81,17 +81,14 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
         file_version: file format and type version (matching accessory sensor dev)
         mass: user's mass in kg
         grf_fit: keras fitted model for grf prediction
-        grf_fit_left: keras fitted model for grf prediction
-        grf_fit_right: keras fitted model for grf prediction
         sc: scaler model to scale data
-        sc_single_leg: scaler model to scale data
         hip_n_transform: array of neutral hip transformation (used for cme computation in v1 data)
 
     Returns:
         result: string signifying success or failure.
         Note: In case of completion for local run, returns movement table.
     """
-    sampl_freq = 100
+    sampl_freq = 97.5
 
     # Compute euler angles, geometric interpretation of data as appropriate
     lf_quats = data.loc[:, ['quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z']].values
@@ -144,72 +141,25 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
         data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
         data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
 
-    # PHASE DETECTION
-    data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, data.acc_lf_z, data.acc_rf_z, data.euler_lf_y, data.euler_rf_y, sampl_freq)
-    logger.info('DONE WITH PHASE DETECTION!')
+        lf_euls = data.loc[:, ['euler_lf_x', 'euler_lf_y', 'euler_lf_z']].values
+        hip_euls = data.loc[:, ['euler_hip_x', 'euler_hip_y', 'euler_hip_z']].values
+        rf_euls = data.loc[:, ['euler_rf_x', 'euler_rf_y', 'euler_rf_z']].values
 
-    # prepare data for grf prediction
-    weight = mass * 9.807  # convert mass from kg to N
-    grf_data, nan_row = prepare_data(data, sc, mass)
 
-    grf_data_sl, nan_row_sl = prepare_data(data, sc_single_leg, mass, is_single_leg=True)
+        # prepare data for grf prediction
+    weight = mass * 9.807 / 1000  # convert mass from kg to N
+    grf_data, nan_row = prepare_data(data, sc, weight)
 
     # predict grf
     with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_predict'):
-        grf = grf_fit.predict(grf_data).reshape(-1,)
+        grf_result = grf_fit.predict(grf_data).reshape(-1, 3)
+    data['grf'], data['grf_lf'], data['grf_rf'], lf_grf_ind, rf_grf_ind = cleanup_grf(grf_result, weight, len(data), nan_row)
 
-    # predict left grf (binary 0(air) or 1(ground))
-    with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_lf_predict'):
-        grf_lf = grf_fit_left.predict(grf_data_sl).reshape(-1,)
-        sl_grf_cutoff = .5
-        grf_lf[grf_lf <= sl_grf_cutoff] = 0
-        grf_lf[grf_lf > sl_grf_cutoff] = 1
-
-    # predict right grf (binary 0(air) or 1(ground))
-    with xray_recorder.in_subsegment('app.jobs.sessionprocess.run_session.grf_rf_predict'):
-        grf_rf = grf_fit_right.predict(grf_data_sl).reshape(-1,)
-        grf_rf[grf_rf <= sl_grf_cutoff] = 0
-        grf_rf[grf_rf > sl_grf_cutoff] = 1
-
-    # pass predicted data through low-pass filter
-    grf = _filter_data(grf, cutoff=18)
-
-    # set grf value below certain threshold to 0
-    grf[grf <= .0002*weight] = 0
-    # grf[grf <= .1] = 0
-    # fill in nans for rows with missing predictors
-    length = len(data)
-    grf_temp = np.ones(length)
-    grf_lf_temp = np.ones(length)
-    grf_rf_temp = np.ones(length)
-    grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
-    grf_lf_temp[np.array(list(set(range(length)) - set(nan_row_sl)))] = grf_lf
-    grf_rf_temp[np.array(list(set(range(length)) - set(nan_row_sl)))] = grf_rf
-    # Insert nan for grf where data needed to predict was missing
-    if len(nan_row) != 0:
-        for i in nan_row:
-            grf_temp[i] = np.nan
-
-    # for right and left grf indicator, in case of missing predictors, assign previous value
-    if len(nan_row_sl) != 0:
-        for i in nan_row_sl:
-            grf_lf_temp[i] = grf_lf_temp[i - 1]
-            grf_rf_temp[i] = grf_rf_temp[i - 1]
-
-    data['grf'] = grf_temp * 1000
-    data['grf_lf'] = grf_lf_temp
-    data['grf_rf'] = grf_rf_temp
-
-    del grf_data, nan_row, grf_fit, grf, grf_temp, grf_lf, grf_rf, grf_lf_temp, grf_rf_temp
+    del grf_data, nan_row, grf_fit
     logger.info('DONE WITH GRF PREDICTION!')
 
-    (
-        data['grf'],
-        data['phase_lf'],
-        data['phase_rf']
-    ) = update_phase_grf(data.grf, data.grf_lf, data.grf_rf, data.phase_lf, data.phase_rf, mass)
-
-    logger.info('DONE UPDATING PHASE WITH GRF')
+    data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
+    logger.info('DONE WITH PHASE DETECTION!')
 
     # DETECT IMPACT PHASE INTERVALS
     (
@@ -270,7 +220,6 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
     lf_quat = np.hstack([data.quat_lf_w, data.quat_lf_x, data.quat_lf_y, data.quat_lf_z])
     hip_quat = np.hstack([data.quat_hip_w, data.quat_hip_x, data.quat_hip_y, data.quat_hip_z])
     rf_quat = np.hstack([data.quat_rf_w, data.quat_rf_x, data.quat_rf_y, data.quat_rf_z])
-
     # calculate movement attributes
     if file_version == '1.0':
         # special code to rerun v1 data to gather older cmes
@@ -386,19 +335,7 @@ def run_session(data, file_version, mass, grf_fit, grf_fit_left, grf_fit_right, 
     length = len(data.acc_lf_x)
     data['loading_lf'] = np.array([np.nan]*length).reshape(-1, 1)
     data['loading_rf'] = np.array([np.nan]*length).reshape(-1, 1)
-    data['grf_lf'] = np.array([np.nan]*length).reshape(-1, 1)
-    data['grf_rf'] = np.array([np.nan]*length).reshape(-1, 1)
     scoring_data = data.loc[:, _output_columns]
-    # scoring_data = pd.DataFrame(data={'obs_index': data.obs_index.values.reshape(-1,),
-    #                                   'time_stamp': data.time_stamp.values.reshape(-1,),
-    #                                   'epoch_time': data.epoch_time.values.reshape(-1,),
-    #                                   'ms_elapsed': data.ms_elapsed.values.reshape(-1,)})
-    # for var in _output_columns[4:]:
-    #     frame = pd.DataFrame(data={var: data[var].reshape(-1, )}, index=scoring_data.index)
-    #     frames = [scoring_data, frame]
-    #     scoring_data = pd.concat(frames, axis=1)
-    #     del frame, frames, data.__dict__[var]
-    # del data
 
     logger.info("Table Created")
 
@@ -421,7 +358,7 @@ def update_stance(data):
     for left_step in range_lf:
         left_phase = np.unique(data.phase_lf[left_step[0]:left_step[1]].values)
         if np.all(left_phase == np.array([2., 3.])):
-            left_takeoff = _get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
+            left_takeoff = get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
             if len(left_takeoff) > 0:  # has takeoff as part of ground contact
                 left_takeoff = left_takeoff[0]
                 if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2:  # impact-->takeoff not ground-->takeoff
@@ -457,7 +394,7 @@ def update_stance(data):
     for right_step in range_rf:
         right_phase = np.unique(data.phase_rf[right_step[0]:right_step[1]].values)
         if np.all(right_phase == np.array([2., 3.])):
-            right_takeoff = _get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
+            right_takeoff = get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
             if len(right_takeoff) > 0:  # has takeoff as part of ground contact
                 right_takeoff = right_takeoff[0]
                 if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2:  # impact-->takeoff not ground-->takeoff
@@ -506,7 +443,7 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     _phase[np.array([i == 0 for i in active])] = 1
 
     # get index ranges for ground contacts
-    ranges = _get_ranges(_phase, 0)
+    ranges = get_ranges(_phase, 0)
     length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
 
     length_index = np.where((length >= min_gc) & (length <= max_gc))
@@ -516,60 +453,6 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     length = length[(length >= min_gc) & (length <= max_gc)]
 
     return length, ranges
-
-
-@xray_recorder.capture('app.jobs.sessionprocess._get_ranges')
-def _get_ranges(col_data, value):
-    """
-    For a given categorical data, determine start and end index for the given value
-    start: index where it first occurs
-    end: index after the last occurence
-
-    Args:
-        col_data
-        value: int, value to get ranges for
-    Returns:
-        ranges: 2d array, start and end index for each occurance of value
-    """
-
-    # determine where column data is the relevant value
-    is_value = np.array(np.array(col_data == value).astype(int)).reshape(-1, 1)
-
-    # if data starts with given value, range starts with index 0
-    if is_value[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from the given value
-    absdiff = np.abs(np.ediff1d(is_value, to_begin=t_b))
-
-    # handle the closing edge
-    # if the data ends with the given value, if it was the only point, ignore the range,
-    # else assign the last index as end of range
-    if is_value[-1] == 1:
-        if absdiff[-1] == 0:
-            absdiff[-1] = 1
-        else:
-            absdiff[-1] = 0
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges
-
-
-@xray_recorder.capture('app.jobs.sessionprocess._filter_data')
-def _filter_data(x, cutoff=12, fs=100, order=4):
-    """
-    Forward-backward lowpass butterworth filter
-    defaults:
-        cutoff freq: 12hz
-        sampling rage: 100hz
-        order: 4"""
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff/nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    return filtfilt(b, a, x, axis=0)
 
 
 @xray_recorder.capture('app.jobs.sessionprocess._calculate_hip_neutral')
@@ -616,35 +499,53 @@ def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
     return lf_neutral, hip_neutral, rf_neutral
 
 
-@xray_recorder.capture('app.jobs.sessionprocess._zero_runs')
-def _zero_runs(col_dat, static):
-    """
-    Determine the start and end of each impact.
+@xray_recorder.capture('app.jobs.sessionprocess.cleanup_grf')
+def cleanup_grf(grf_result, weight, length, nan_row):
+    left_grf = grf_result[:, 0]
+    right_grf = grf_result[:, 1]
+    grf = grf_result[:, 2]
 
-    Args:
-        col_dat: array, algorithm indicator
-        static: int, indicator for static algorithm
-    Returns:
-        ranges: 2d array, start and end of each static algorithm use
-        length: length of
-    """
+    grf = filter_data(grf, filt='low', highcut=18)
+    left_grf = filter_data(left_grf, filt='low', highcut=18)
+    right_grf = filter_data(right_grf, filt='low', highcut=18)
 
-    # Determine where column data is the relevant impact phase value
-    isnan = np.array(np.array(col_dat == static).astype(int)).reshape(-1, 1)
+    # set grf value below certain threshold to 0
+    grf[grf <= .1*weight] = 0
+    left_grf[left_grf <= .05 * weight] = 0
+    right_grf[right_grf <= .05 * weight] = 0
 
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
+    # fill in nans for rows with missing predictors
+    grf_temp = np.ones(length)
+    grf_lf_temp = np.ones(length)
+    grf_rf_temp = np.ones(length)
+    grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
+    grf_lf_temp[np.array(list(set(range(length)) - set(nan_row)))] = left_grf
+    grf_rf_temp[np.array(list(set(range(length)) - set(nan_row)))] = right_grf
 
-    # Mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-    del isnan  # not used in further computations
+    # Insert nan for grf where data needed to predict was missing
+    if len(nan_row) != 0:
+        for i in nan_row:
+            grf_temp[i] = grf_temp[i - 1]
+            grf_lf_temp[i] = grf_lf_temp[i - 1]
+            grf_rf_temp[i] = grf_rf_temp[i - 1]
 
-    # Determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-    length = ranges[:, 1] - ranges[:, 0]
+    lf_ind = np.zeros(len(grf_lf_temp))
+    lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
 
-    return ranges, length
+    rf_ind = np.zeros(len(grf_rf_temp))
+    rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
+
+    lf_ranges, lf_ranges_length = get_ranges(lf_ind, 1, True)
+    for r, l in zip(lf_ranges, lf_ranges_length):
+        if l < 8:
+            grf_lf_temp[r[0]: r[1]] = 0
+    lf_ind = np.zeros(len(grf_lf_temp))
+    lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
+    rf_ranges, rf_ranges_length = get_ranges(rf_ind, 1, True)
+    for r, l in zip(rf_ranges, rf_ranges_length):
+        if l < 8:
+            grf_rf_temp[r[0]: r[1]] = 0
+    rf_ind = np.zeros(len(grf_rf_temp))
+    rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
+
+    return grf_temp * 1000, grf_lf_temp * 1000, grf_rf_temp * 1000, lf_ind, rf_ind

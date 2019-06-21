@@ -7,7 +7,8 @@ Created on Tue Nov 28 15:16:08 2017
 from aws_xray_sdk.core import xray_recorder
 import numpy as np
 import copy
-from scipy.signal import butter, filtfilt
+
+from utils import get_ranges
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes.run_relative_cmes')
@@ -113,21 +114,21 @@ def run_relative_cmes(data):
     frcontact_duration = np.empty(len(length)).reshape(-1, 1) * np.nan
 
     # filter data
-    l0ranges = _get_ranges(lphase, 0)
-    l2ranges = _get_ranges(lphase, 2)
-    l3ranges = _get_ranges(lphase, 3)
+    l0ranges = get_ranges(lphase, 0)
+    l2ranges = get_ranges(lphase, 2)
+    l3ranges = get_ranges(lphase, 3)
 
-    hl0ranges = _get_ranges(lphase, 0)
-    hl2ranges = _get_ranges(lphase, 2)
-    hl3ranges = _get_ranges(lphase, 3)
+    hl0ranges = get_ranges(lphase, 0)
+    hl2ranges = get_ranges(lphase, 2)
+    hl3ranges = get_ranges(lphase, 3)
 
-    hr0ranges = _get_ranges(rphase, 0)
-    hr2ranges = _get_ranges(rphase, 2)
-    hr3ranges = _get_ranges(rphase, 3)
+    hr0ranges = get_ranges(rphase, 0)
+    hr2ranges = get_ranges(rphase, 2)
+    hr3ranges = get_ranges(rphase, 3)
 
-    r0ranges = _get_ranges(rphase, 0)
-    r2ranges = _get_ranges(rphase, 2)
-    r3ranges = _get_ranges(rphase, 3)
+    r0ranges = get_ranges(rphase, 0)
+    r2ranges = get_ranges(rphase, 2)
+    r3ranges = get_ranges(rphase, 3)
 
     ranges = {'l0ranges': l0ranges,
               'l2ranges': l2ranges,
@@ -450,7 +451,7 @@ def _rough_contact_duration(stance):
 
     # use the mask to define contact phases, then find contact boundary indices
     contact[inv_mask == False] = 1
-    cont_ind = _get_ranges(contact, 1)
+    cont_ind = get_ranges(contact, 1)
 
     # where there is contact, report the duration of the contact
     for i in range(int(cont_ind.shape[0])):
@@ -477,72 +478,16 @@ def _detect_long_dynamic(dyn_vs_static):
     """
     min_length = 10 * 100
     bad_switch_len = 30
-    range_static, length_static = _get_ranges(dyn_vs_static, 0, ret_length=True)
+    range_static, length_static = get_ranges(dyn_vs_static, 0, True)
     short_static = np.where(length_static <= bad_switch_len)[0]
     short_static_range = range_static[short_static, :]
     if len(short_static_range) > 0:
         for i, j in zip(short_static_range[:, 0], short_static_range[:, 1]):
             dyn_vs_static[i:j] = 8
-    range_dyn, length_dyn = _get_ranges(dyn_vs_static, 8, ret_length=True)
+    range_dyn, length_dyn = get_ranges(dyn_vs_static, 8, True)
     long_dynamic = np.where(length_dyn >= min_length)[0]
     long_dyn_range = range_dyn[long_dynamic, :]
     return long_dyn_range
-
-
-# @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._get_ranges')
-def _get_ranges(col_data, value, ret_length=False):
-    """
-    Function that determines the beginning and end indices of stretches of
-    of the same value in an array.
-
-    Args:
-        col_data: array to be analyzed for runs of a value
-        value: number to searched for in the array col_data
-
-    Returns:
-        ranges: nx2 np.array, with each row containing start and stop + 1
-            indices of runs of the value num
-
-    Example:
-    >> col_data = np.array([1, 1, 2, 3, 2, 0, 0, 1, 3, 1, 1, 1, 6])
-    >> _get_ranges(col_data, 1)
-    Out:
-    array([[ 0,  2],
-           [ 7,  8],
-           [ 9, 12]], dtype=int64)
-    >> _get_ranges(col_data, 0)
-    Out:
-    array([[5, 7]], dtype=int64)s: 2d array, start and end index for each occurance of value
-    """
-
-    # determine where column data is the relevant value
-    is_value = np.array(np.array(col_data == value).astype(int)).reshape(-1, 1)
-
-    # if data starts with given value, range starts with index 0
-    if is_value[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from the given value
-    absdiff = np.abs(np.ediff1d(is_value, to_begin=t_b))
-
-    # handle the closing edge
-    # if the data ends with the given value, if it was the only point, ignore the range,
-    # else assign the last index as end of range
-    if is_value[-1] == 1:
-        if absdiff[-1] == 0:
-            absdiff[-1] = 1
-        else:
-            absdiff[-1] = 0
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    if ret_length:
-        length = ranges[:, 1] - ranges[:, 0]
-        return ranges, length
-    else:
-        return ranges
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._remove_filtered_ends')

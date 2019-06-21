@@ -7,6 +7,8 @@ Created on Tue Feb  7 16:14:03 2017
 from aws_xray_sdk.core import xray_recorder
 import numpy as np
 
+from utils import get_ranges
+
 
 @xray_recorder.capture('app.jobs.sessionprocess.detect_takeoff_phase_intervals.detect_start_end_takeoff_phase')
 def detect_start_end_takeoff_phase(lph, rph):
@@ -27,8 +29,8 @@ def detect_start_end_takeoff_phase(lph, rph):
     """
     
     # start and end indices of impact phase for left and right foot
-    rf_range_takeoff = _zero_runs(col_dat=rph, takeoff_value=3)
-    lf_range_takeoff = _zero_runs(col_dat=lph, takeoff_value=3)
+    rf_range_takeoff = get_ranges(col_data=rph, value=3)
+    lf_range_takeoff = get_ranges(col_data=lph, value=3)
     
     # declaring variable to store the start and end of impact phase
     lf_takeoff_start_stop = np.zeros(len(lph))*np.nan
@@ -42,34 +44,3 @@ def detect_start_end_takeoff_phase(lph, rph):
     
     return lf_takeoff_start_stop.reshape(-1, 1), rf_takeoff_start_stop.reshape(-1, 1), lf_range_takeoff, rf_range_takeoff
 
-
-@xray_recorder.capture('app.jobs.sessionprocess.detect_takeoff_phase_intervals._zero_runs')
-def _zero_runs(col_dat, takeoff_value):
-    """
-    Determine the start and end of each impact.
-    
-    Args:
-        col_dat: array, right/left foot phase
-        takeoff_value: int, indicator for right/left foot impact phase
-    Returns:
-        ranges: 2d array, start and end of each impact for right/left foot
-    """
-
-    # determine where column data is the relevant impact phase value
-    isnan = np.array(np.array(col_dat == takeoff_value).astype(int)).reshape(-1, 1)
-    
-    if isnan[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from NaN
-    absdiff = np.abs(np.ediff1d(isnan, to_begin=t_b))
-    if isnan[-1] == 1:
-        absdiff = np.concatenate([absdiff, [1]], 0)
-    del isnan  # not used in further computations
-
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges

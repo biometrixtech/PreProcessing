@@ -3,11 +3,13 @@ import boto3
 import copy
 import logging
 import os
+import pickle
 
 from ..job import Job
 from .apply_data_transformations import apply_data_transformations
 from .exceptions import PlacementDetectionException
-from .placement_detection import detect_placement, shift_accel
+from .placement_detection import detect_placement, shift_accel, predict_placement
+from .column_vector import Condition
 from .sensor_use_detection import detect_single_sensor, detect_data_truncation
 from .transform_calculation import compute_transform
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
@@ -33,6 +35,7 @@ class TransformandplacementJob(Job):
                 'hip_neutral_yaw': [1, 0, 0, 0],
                 'sensors': 3,
                 'truncation_index': None,
+                'sensor_position': {'left': 'v1', 'right': 'v1'}
             }
         else:
             ret = self.execute(data)
@@ -53,12 +56,12 @@ class TransformandplacementJob(Job):
         data = data.rename(index=str, columns=renames)
 
         # Apply normalisation transforms
-        data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'])
+        data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'], ret['sensor_position'])
 
         # ms_elapsed and datetime
         data['time_stamp'], data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(data.epoch_time)
 
-        self.datastore.put_data('transformandplacement', data, chunk_size=100000)
+        self.datastore.put_data('transformandplacement', data, chunk_size=int(os.environ['CHUNK_SIZE']))
 
     def execute(self, all_data):
         data = all_data.loc[:2000000]
@@ -68,7 +71,13 @@ class TransformandplacementJob(Job):
             sensors = 3
             data_sub = copy.copy(data.loc[:2000])
             shift_accel(data_sub)
-            placement = detect_placement(data_sub)
+            try:
+                placement_old = detect_placement(data_sub)
+            except:
+                placement_old = 'old placement error'
+            condition_list = [Condition.json_deserialise(cn) for cn in _load_model(os.environ['PLACEMENT_MODEL'])]
+            placement, sensor_position = predict_placement(data_sub, condition_list)
+            _logger.info({'placement_old': placement_old, 'placement': placement})
 
             # if placement passed, check to see if any sensor fell down or data missing for
             # any of the sensors
@@ -90,6 +99,7 @@ class TransformandplacementJob(Job):
                 'hip_neutral_yaw': body_frame_transforms[3],
                 'sensors': sensors,
                 'truncation_index': truncation_index,
+                'sensor_position': sensor_position,
             }
 
         except PlacementDetectionException as err:
@@ -98,7 +108,6 @@ class TransformandplacementJob(Job):
             # to single sensor processing
             sensors = 1
             # detect the single sensor being used
-            # placement = detect_single_sensor(data)
             placement = [0, 1, 2]
             truncation_index, single_sensor = detect_data_truncation(data, placement, sensors)
 
@@ -117,4 +126,13 @@ class TransformandplacementJob(Job):
                 'hip_neutral_yaw': body_frame_transforms[3],
                 'sensors': sensors,
                 'truncation_index': truncation_index,
+                'sensor_position': {'left': 'single_sensor', 'right': 'single_sensor'}
             }
+
+
+@xray_recorder.capture('app.jobs.transformandplacement._load_model')
+def _load_model(model):
+    path = os.path.join('/net/efs/globalmodels', model)
+    _logger.info("Loading model from {}".format(path))
+    with open(path, 'rb') as f:
+        return pickle.load(f, encoding='latin1')

@@ -51,48 +51,20 @@ def compute_transform_from_average(left_quaternion, hip_quaternion, right_quater
             hip_neutral_quaternion.tolist()[0])
 
 
-def detect_still(data, sensors, hip):
+def detect_still(data, sensors=3, hip=1):
     """Detect part of data with activity for placement detection
     """
-    thresh = 5.  # threshold to detect balance phase
-    bal_win = 125  # sampling window to determine balance phase
     acc_mag_0 = np.sqrt(data.acc_0_x ** 2 + data.acc_0_y ** 2 + data.acc_0_z ** 2)
     acc_mag_1 = np.sqrt(data.acc_1_x ** 2 + data.acc_1_y ** 2 + data.acc_1_z ** 2)
     acc_mag_2 = np.sqrt(data.acc_2_x ** 2 + data.acc_2_y ** 2 + data.acc_2_z ** 2)
     if sensors == 3:
         total_acc_mag = acc_mag_0 + acc_mag_1 + acc_mag_2
-    elif sensors == 1:
+    else:
         total_acc_mag = acc_mag_0 if hip == 0 else acc_mag_1 if hip == 1 else acc_mag_2
-        thresh = 4.
+    acc_mag_sd = total_acc_mag.rolling(50).std(center=True)
+    min_acc_mag_sd = np.min(acc_mag_sd)
+    if min_acc_mag_sd > .5:
+        print('Possibly not still')
+    min_sd_loc = np.where(acc_mag_sd==min_acc_mag_sd)[0][0]
 
-    dummy_balphase = []  # dummy variable to store indexes of balance phase
-
-    abs_acc = total_acc_mag.values.reshape(-1, 1)  # creating an array of absolute acceleration values
-    len_acc = len(total_acc_mag)  # length of acceleration value
-
-    for i in range(len_acc - bal_win + 1):
-        # check if all the points within bal_win of current point are within
-        # movement threshold
-        if len(np.where(abs_acc[i:i + bal_win] <= thresh)[0]) == bal_win:
-            dummy_balphase += range(i, i + bal_win)
-
-    if len(dummy_balphase) == 0:
-        raise Exception('Could not identify a long enough still window')
-
-    # determine the unique indexes in the dummy list
-    start_bal = np.unique(dummy_balphase)
-    start_bal = np.sort(start_bal)
-    still = np.zeros(len(data))
-    still[start_bal] = 1
-    change = np.ediff1d(still, to_begin=still[0])
-    start = np.where(change == 1)[0]
-    end = np.where(change == -1)[0]
-
-    # if data ends with movement, assign final point as end of movement
-    if len(start) != len(end):
-        end = np.append(end, len(data))
-
-    for i in range(len(end)):
-        end[i] = min([end[i], start[i] + 300])
-        if end[i] - start[i] >= 125:
-            return start[i], end[i]  # return the first section of data where we have enough points
+    return min_sd_loc - 25, min_sd_loc + 25
