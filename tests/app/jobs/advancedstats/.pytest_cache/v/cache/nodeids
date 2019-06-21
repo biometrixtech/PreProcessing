@@ -1,0 +1,5 @@
+[
+  "tests_summary_analysis.py::test_get_active_blocks",
+  "tests_summary_analysis.py::test_get_intensity_matrix",
+  "tests_summary_analysis.py::test_get_intensity_bands"
+]

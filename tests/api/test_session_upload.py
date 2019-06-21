@@ -1,4 +1,4 @@
-from base_test import BaseTest
+from .base_test import BaseTest
 import boto3
 import time
 from boto3.dynamodb.conditions import Key, Attr
