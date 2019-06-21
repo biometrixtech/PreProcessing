@@ -1,4 +1,13 @@
 [
+  "test_extract_geometry.py::test_extract_geometry",
+  "test_movement_attributes.py::test_sort_phases",
+  "test_movement_attributes.py::test_num_runs",
+  "test_movement_attributes.py::test_total_accel",
+  "test_movement_attributes.py::test_enumerate_stance",
+  "test_phase_detection.py::test_combine_phase",
+  "test_phase_detection.py::test_body_phase",
+  "test_phase_detection.py::test_phase_detect",
+  "test_phase_detection.py::test_impact_detect",
   "test_run_relative_cme.py::test_run_relative_CMEs",
   "test_run_relative_cme.py::test_drift_agnostic_CMES",
   "test_run_relative_cme.py::test_driftless_CMS",
