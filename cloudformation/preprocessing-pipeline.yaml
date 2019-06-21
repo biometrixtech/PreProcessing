@@ -92,6 +92,7 @@ Resources:
                           - "dynamodb:UpdateItem"
                         Effect: "Allow"
                         Resource: { "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/preprocessing-${Environment}-ingest-*" }
+
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-lambda-${AWS::Region}" }
 
     BatchExecutionRole:
@@ -152,6 +153,13 @@ Resources:
                           - "secretsmanager:GetSecretValue"
                         Effect: "Allow"
                         Resource: { "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:preprocessing/${Environment}/*" }
+
+                      - Action:
+                          - "lambda:InvokeFunction"
+                        Effect: "Allow"
+                        Resource:
+                          - { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:users-${Environment}-apigateway-serviceauth" }
+                          - { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:users-${Environment}-apigateway-serviceauth:2_0" }
 
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-execute-${AWS::Region}" }
 
@@ -244,6 +252,24 @@ Resources:
             FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-batchjobnames" }
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-batchjobnames" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "preprocessing" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+
+    LambdaArrayProperties:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: |
+                    def handler(value, _):
+                        return {"Size": int(value)} if int(value) > 1 else {}
+            Handler: "index.handler"
+            Runtime: "python3.7"
+            Timeout: "5"
+            Role: { "Fn::GetAtt" : [ "LambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-pipeline-arrayproperties" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-pipeline-arrayproperties" } }
               - { Key: "Management", Value: "managed" }
               - { Key: "Project", Value: "preprocessing" }
               - { Key: "Environment", Value: { Ref: "Environment" } }
@@ -397,7 +423,7 @@ Resources:
                                 {
                                   "Variable": "$.ReadDatabase.Item.sensors.N",
                                   "StringEquals": "3",
-                                  "Next": "SessionProcess"
+                                  "Next": "ReadDatabase1"
                                 }
                             ],
                             "Default": "ExceptionFailProcessing"
@@ -495,6 +521,26 @@ Resources:
                             "ResultPath": "$.TaskResult",
                             "Next": "Post"
                         },
+                        "ReadDatabase1": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::dynamodb:getItem",
+                            "Parameters": {
+                                "TableName": "preprocessing-${Environment}-ingest-sessions",
+                                "Key": {
+                                    "id": { "S.$": "$.SourceEvent.SessionId" }
+                                },
+                                "ProjectionExpression": "id, transformandplacement_chunk_count"
+                            },
+                            "ResultPath": "$.ReadDatabase",
+                            "Next": "BuildArrayProperties"
+                        },
+                        "BuildArrayProperties": {
+                            "Type": "Task",
+                            "Resource": "${LambdaArrayProperties.Arn}",
+                            "InputPath": "$.ReadDatabase.Item.transformandplacement_chunk_count.N",
+                            "ResultPath": "$.ArrayProperties",
+                            "Next": "SessionProcess"
+                        },
                         "SessionProcess": {
                             "Type": "Task",
                             "Resource": "arn:aws:states:::batch:submitJob.sync",
@@ -505,8 +551,9 @@ Resources:
                                 "Parameters": {
                                     "Job": "sessionprocess"
                                 },
+                                "ArrayProperties.$": "$.ArrayProperties",
                                 "ContainerOverrides": {
-                                    "Memory": 1024,
+                                    "Memory": 4096,
                                     "Vcpus": 2,
                                     "Environment": [
                                         { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
@@ -537,7 +584,7 @@ Resources:
                                     "Job": "scoring"
                                 },
                                 "ContainerOverrides": {
-                                    "Memory": 1024,
+                                    "Memory": 4096,
                                     "Vcpus": 2,
                                     "Environment": [
                                         { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }

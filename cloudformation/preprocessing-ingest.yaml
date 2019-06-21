@@ -203,6 +203,7 @@ Resources:
                             session_event_updates.add("s3_files", {s3_key})
                             session_event_updates.set("updated_date", now_time)
                             session_event_updates.set("version", version)
+                            session_event_updates.set_if_not_exists("upload_start_date", upload_time)
                             session_event_updates.set("session_status", 'UPLOAD_IN_PROGRESS')
 
                             if part == 'complete' or version == '1.0':
@@ -230,6 +231,10 @@ Resources:
 
                         def set(self, field, value):
                             self._set.add("{field} = :{field}".format(field=field))
+                            self._parameters[':' + field] = value
+
+                        def set_if_not_exists(self, field, value):
+                            self._set.add("{field} = if_not_exists({field}, :{field})".format(field=field))
                             self._parameters[':' + field] = value
 
                         def add(self, field, value):

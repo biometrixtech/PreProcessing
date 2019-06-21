@@ -200,3 +200,44 @@ If the request was not successful, the Service __may__ respond with:
 
 * `400 Bad Request`, with a `Status` header equal to `NoData`, if the Service has not received any data uploads for this session.
 
+
+### Status
+
+#### Athlete Get
+
+This endpoint can be called to get upload status of the files belonging to the user
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/status/athlete`.
+
+##### Request
+Query has optional query param
+* `days` which is number of days back to return sessions for (default to 30 if not passed)
+
+```
+GET /preprocessing/1_1/status/athlete?days=30 HTTP/1.1
+Host: api.env.fathomai.com
+Content-Type: application/json
+Authorization: eyJraWQ...ajBc4VQ
+
+```
+
+##### Responses
+ 
+ If the query was successful, the Service __will__ respond with HTTP Status `200 Ok`, with a body with the following syntax:
+ 
+```
+{
+    "sessions": [session]
+}
+```
+where `session` will have the following schema:
+```
+{
+    "duration": number,
+    "event_date": Datetime,
+    "upload_status": string
+}
+```
+* `upload_status` __should__ be either `UPLOAD_COMPLETE` or `UPLOAD_NOT_COMPELTE`

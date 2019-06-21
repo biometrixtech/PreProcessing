@@ -55,7 +55,7 @@ class Datastore:
         for key, value in data.items():
             upsert.set(key, value)
 
-        _logger.debug(json.dumps({
+        _logger.info(json.dumps({
             'UpdateExpression': upsert.update_expression,
             'ExpressionAttributeNames': upsert.parameter_names,
             'ExpressionAttributeValues': upsert.parameter_values,
@@ -122,15 +122,15 @@ class Datastore:
         if isinstance(data, str):
             # In this case, the `data` is actually the temporary filename
             tmp_filename = data
-            _logger.debug('Data already saved in temporary file {}'.format(tmp_filename))
+            _logger.info('Data already saved in temporary file {}'.format(tmp_filename))
 
         else:
             # Data is a pandas DataFrame object
             tmp_filename = self.get_temporary_filename()
-            _logger.debug('Saving dataset (size {}) to {}'.format(data.shape, tmp_filename))
+            _logger.info('Saving dataset (size {}) to {}'.format(data.shape, tmp_filename))
             with open(tmp_filename, 'w') as tmp_file:
                 data.to_csv(tmp_file, index=False, na_rep='', columns=columns)
-            _logger.debug('Filesize of {} is {}'.format(tmp_filename, os.path.getsize(tmp_filename)))
+            _logger.info('Filesize of {} is {}'.format(tmp_filename, os.path.getsize(tmp_filename)))
 
         # Now move the file into the correct location
         if chunk_size > 0:
@@ -145,7 +145,7 @@ class Datastore:
                 raise NotImplementedError()
             else:
                 # TODO
-                chunk_by_line(tmp_filename, output_dir, chunk_size)
+                chunk_count = len(chunk_by_line(tmp_filename, output_dir, chunk_size))
 
         else:
             if part_number is not None:
@@ -154,8 +154,11 @@ class Datastore:
             else:
                 _mkdir(self.working_directory)
                 output_filename = os.path.join(self.working_directory, source_job)
-            _logger.debug('Copying {} to {}'.format(tmp_filename, output_filename))
+            _logger.info('Copying {} to {}'.format(tmp_filename, output_filename))
             shutil.copyfile(tmp_filename, output_filename)
+            chunk_count = 1
+
+        self.put_metadatum(f'{source_job}_chunk_count', chunk_count)
 
     @xray_recorder.capture('app.datastore.delete_data')
     def delete_data(self):
@@ -200,7 +203,7 @@ class Datastore:
         csv_data = []
         count = 0
         for filename in glob.glob(os.path.join(self.working_directory, source_job, '[0-9]*')):
-            _logger.debug('Reading {}'.format(filename))
+            _logger.info('Reading {}'.format(filename))
             with open(filename, 'r') as f:
                 lines = f.readlines()
                 if count == 0:

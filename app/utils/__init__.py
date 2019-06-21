@@ -1,6 +1,7 @@
 from decimal import Decimal as _Decimal
 import datetime as _datetime
 import numpy as np
+from scipy.signal import butter, filtfilt
 
 
 def format_datetime(date_input):
@@ -56,3 +57,65 @@ def json_serialise(obj):
     if isinstance(obj, bytes):
         return obj.decode('utf-8')
     raise TypeError("Type {} is not serializable".format(type(obj).__name__))
+
+
+def filter_data(x, filt='band', lowcut=0.1, highcut=40, fs=97.5, order=4):
+    """forward-backward bandpass butterworth filter
+    defaults:
+        lowcut freq: 0.1
+        hicut freq: 20
+        sampling rage: 100hz
+        order: 4"""
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    if filt == 'low':
+        b, a = butter(order, high, btype='low', analog=False)
+    elif filt == 'band':
+        b, a = butter(order, [low, high], btype='band', analog=False)
+    return filtfilt(b, a, x, axis=0)
+
+
+def get_ranges(col_data, value, return_length=False):
+    """
+    For a given categorical data, determine start and end index for the given value
+    start: index where it first occurs
+    end: index after the last occurrence
+
+    Args:
+        col_data
+        value: int, value to get ranges for
+        return_length: boolean, return the length each range
+    Returns:
+        ranges: 2d array, start and end index for each occurrence of value
+        length: array, length of each range
+    """
+
+    # determine where column data is the relevant value
+    is_value = np.array(np.array(col_data == value).astype(int)).reshape(-1, 1)
+
+    # if data starts with given value, range starts with index 0
+    if is_value[0] == 1:
+        t_b = 1
+    else:
+        t_b = 0
+
+    # mark where column data changes to and from the given value
+    absdiff = np.abs(np.ediff1d(is_value, to_begin=t_b))
+
+    # handle the closing edge
+    # if the data ends with the given value, if it was the only point, ignore the range,
+    # else assign the last index as end of range
+    if is_value[-1] == 1:
+        if absdiff[-1] == 0:
+            absdiff[-1] = 1
+        else:
+            absdiff[-1] = 0
+    # get the ranges where values begin and end
+    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
+
+    if return_length:
+        length = ranges[:, 1] - ranges[:, 0]
+        return ranges, length
+    else:
+        return ranges
