@@ -1,6 +1,7 @@
 {
   "test_extract_geometry.py::test_extract_geometry": true,
   "test_movement_attributes.py::test_sort_phases": true,
+  "test_phase_detection.py::test_lateral_hip_acceleration": true,
   "test_phase_detection.py::test_phase_detect": true,
   "test_run_relative_cme.py::test_run_relative_CMEs": true
 }
