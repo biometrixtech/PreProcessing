@@ -142,22 +142,6 @@ def _phase_detect(acc_z):
     return phase
 
 
-def _lateral_hip_acceleration_detect(acc_y):
-    """detect movement vs balance phase
-    """
-
-    acc_mag_sd = pd.Series(acc_y).rolling(50).std(center=True)
-    min_sd = -2
-    max_sd = 2
-    pos = np.where(acc_mag_sd >= max_sd)[0]
-    neg = np.where(acc_mag_sd <= min_sd)[0]
-    lateral_acceleration = np.zeros(len(acc_y)).astype(int)
-    lateral_acceleration[neg] = 1
-    lateral_acceleration[pos] = 2
-
-    return lateral_acceleration
-
-
 @xray_recorder.capture('app.jobs.sessionprocess.phase_detection._impact_detect')
 def _impact_detect(phase, start_move, end_move, grf):
     """

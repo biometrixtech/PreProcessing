@@ -3,10 +3,10 @@ xray_recorder.configure(sampling=False)
 xray_recorder.begin_segment(name="test")
 import numpy as np
 import pandas as pd
-import numpy.polynomial.polynomial as poly
 import os
 from app.utils.detect_peaks import detect_peaks
-
+import matplotlib.pyplot as plt
+import utils.quaternion_conversions as qc
 # Use theano backend for keras
 os.environ['KERAS_BACKEND'] = 'theano'
 
@@ -19,6 +19,23 @@ def test_combine_phase():
 
 def test_body_phase():
     pass
+
+
+def plot_accel(left, right, hip):
+    left.reset_index(drop=True, inplace=True)
+    right.reset_index(drop=True, inplace=True)
+    hip.reset_index(drop=True, inplace=True)
+
+    s = 0
+    e = len(left)
+
+    plt.figure()
+    plt.subplot(311)
+    plt.plot(left[s:e])
+    plt.plot(right[s:e])
+    plt.plot(hip[s:e])
+    plt.legend()
+
 
 
 def test_phase_detect():
@@ -56,93 +73,143 @@ def test_impact_detect():
 
 def test_lateral_hip_acceleration():
     path = '../../../../testdata/calibration/'
-    test_file2 = 'capture28_calibration.csv'
-    test_data2 = pd.read_csv(path + test_file2)#, sep='\t', lineterminator='\r')
-    hip_accel_data = test_data2["acc_hip_y"][800:1600]
-    left_accel_data = test_data2["acc_lf_z"][800:1600]
-    right_accel_data = test_data2["acc_rf_z"][800:1600]
-    # conversion_factor = 9.807 / 1000
-    # hip_accel_data *= conversion_factor
-    # left_accel_data *= conversion_factor
-    # right_accel_data *= conversion_factor
+    correct_list = []
+    error_list = []
+    help_list = []
+    zero_list = []
+    file_nums = [1, 3, 5, 7, 9, 11, 13, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
+    file_starts = [920, 860, 900, 860, 840, 900, 890, 840, 840, 850, 890, 900, 790, 870, 820, 870, 880, 900]
+    file_ends = [1710, 1500, 1475, 1530, 1510, 1500, 1523, 1500, 1470, 1475, 1500, 1500, 1630, 1580, 1550, 1510, 1560, 1640]
+    index_num = 0
+    for file_num in file_nums:
 
-    left_turning_points = []
-    right_turning_points = []
-    left_maximum = 0
-    right_maximum = 0
-    left_max_found = False
-    right_max_found = True
-    left_crossing_zero = []
-    right_crossing_zero = []
+        test_file2 = 'capture'+str(file_num)+'_calibration.csv'
+        test_data2 = pd.read_csv(path + test_file2)
+        hip_accel_data = test_data2["acc_hip_y"][file_starts[index_num]:file_ends[index_num]]
+        sensor_0_accel_data = test_data2["acc_lf_z"][file_starts[index_num]:file_ends[index_num]]
+        sensor_2_accel_data = test_data2["acc_rf_z"][file_starts[index_num]:file_ends[index_num]]
+        lf_euls = qc.quat_to_euler(
+            test_data2["quat_lf_w"][file_starts[index_num]:file_ends[index_num]],
+            test_data2["quat_lf_x"][file_starts[index_num]:file_ends[index_num]],
+            test_data2["quat_lf_y"][file_starts[index_num]:file_ends[index_num]],
+            test_data2["quat_lf_z"][file_starts[index_num]:file_ends[index_num]])
+        sensor_0_euler_y_degrees = pd.Series(lf_euls[:, 1] * 180/ np.pi)
+        rf_euls = qc.quat_to_euler(
+            test_data2["quat_rf_w"][file_starts[index_num]:file_ends[index_num]],
+            test_data2["quat_rf_x"][file_starts[index_num]:file_ends[index_num]],
+            test_data2["quat_rf_y"][file_starts[index_num]:file_ends[index_num]],
+            test_data2["quat_rf_z"][file_starts[index_num]:file_ends[index_num]])
+        sensor_2_euler_y_degrees = pd.Series(rf_euls[:, 1] * 180 / np.pi)
+        #if file_num in [3, 13, 16, 32]:
+        #    plot_accel(sensor_0_accel_data, sensor_2_accel_data, hip_accel_data)
+        trough_mpd = 1
+        trough_mph = 20
+        trough_edge = 'rising'
+        trough_thresh = 0
+        sensor_0_peaks = detect_peaks(sensor_0_euler_y_degrees,mph=trough_mph, mpd=trough_mpd,threshold=trough_thresh,edge=trough_edge,kpsh=False,valley=False)
+        sensor_2_peaks = detect_peaks(sensor_2_euler_y_degrees,mph=trough_mph, mpd=trough_mpd, threshold=trough_thresh, edge=trough_edge, kpsh=False, valley=False)
+        troughs = []
+        for lf in sensor_0_peaks:
+            troughs.append(("L", lf))  # we'll be using the same point in time with a diff data series
 
-    left_troughs = detect_peaks(left_accel_data,mpd=80,threshold=3,edge='both',kpsh=False,valley=True)
-    right_troughs = detect_peaks(right_accel_data, mpd=80, threshold=3, edge='both', kpsh=False, valley=True)
+        for rf in sensor_2_peaks:
+            troughs.append(("R", rf))  # we'll be using the same point in time with a diff data series
 
-    troughs = []
-    for lf in left_troughs:
-        troughs.append(("L", lf))
+        troughs = sorted(troughs, key=lambda x: x[1])
 
-    for rf in right_troughs:
-        troughs.append(("R", rf))
+        crossing_zero = []
 
-    troughs = sorted(troughs, key=lambda x: x[1])
+        crossing_zero = sorted(crossing_zero, key=lambda x: x[1])
+        zero_cross = crossing_zero
 
-    crossing_zero = []
+        # if file_num in [3, 13, 16, 32]:
+        #     i = 9
+        #     pass
 
-    # for l in range(4, len(left_accel_data) -4):
-    #     if (left_accel_data.values[l] > 0 and left_accel_data.values[l + 1] > 0  and left_accel_data.values[l + 2] > 0
-    #             and left_accel_data.values[l + 3] > 0 and left_accel_data.values[l - 1] <= 0 and left_accel_data.values[l - 2] < 0 and left_accel_data.values[l - 3] < 0):
-    #         #left_crossing_zero.append(l)
-    #         crossing_zero.append(("L", l))
-    # for r in range(4, len(right_accel_data) -4):
-    #     if (right_accel_data.values[r] > 0 and right_accel_data.values[r + 1] > 0  and right_accel_data.values[r + 2] > 0
-    #             and right_accel_data.values[r + 3] > 0 and right_accel_data.values[r - 1] <= 0 and right_accel_data.values[r - 2] < 0 and right_accel_data.values[r - 3] < 0):
-    #         #right_crossing_zero.append(r)
-    #         crossing_zero.append(("R", r))
+        for p in range(0, len(troughs)):
+            if troughs[p][0] == "L":
+                if p == len(troughs) - 1:
+                    sensor_0_accel_short_data = sensor_0_accel_data.values[troughs[p][1]:]
 
-    # split code
-    crossing_zero = sorted(crossing_zero, key=lambda x: x[1])
-    crossing_zero_final = []
-    zero_cross = crossing_zero
+                else:
+                    sensor_0_accel_short_data = sensor_0_accel_data.values[troughs[p][1]:troughs[p+1][1]]
 
-    last_added = ""
-    for p in range(0, len(troughs)):
-        if troughs[p][0] == "L":
-            if p == len(troughs) - 1:
-                left_accel_short_data = left_accel_data.values[troughs[p][1]:]
+                zero_crossings = np.where(np.diff(np.sign(sensor_0_accel_short_data)))[0]
+                if len(zero_crossings) > 0:
+                    crossing_zero.append(("L", zero_crossings[0]+1 + troughs[p][1]))
 
             else:
-                left_accel_short_data = left_accel_data.values[troughs[p][1]:troughs[p+1][1]]
+                if p == len(troughs) - 1:
 
-            for l in range(4, len(left_accel_short_data) - 4):
-                if (left_accel_short_data[l] > 0 and left_accel_short_data[l + 1] > 0 and left_accel_short_data[
-                    l + 2] > 0
-                        and left_accel_short_data[l + 3] > 0 and left_accel_short_data[l - 1] <= 0 and
-                        left_accel_short_data[l - 2] < 0 and left_accel_short_data[l - 3] < 0):
-                    # left_crossing_zero.append(l)
-                    crossing_zero.append(("L", l+troughs[p][1]))
+                    sensor_2_accel_short_data = sensor_2_accel_data.values[troughs[p][1]:]
+                else:
+
+                    sensor_2_accel_short_data = sensor_2_accel_data.values[troughs[p][1]:troughs[p + 1][1]]
+
+                zero_crossings = np.where(np.diff(np.sign(sensor_2_accel_short_data)))[0]
+                if len(zero_crossings) > 0:
+                    crossing_zero.append(("R", zero_crossings[0]+1 + troughs[p][1]))
+
+        sensor_dict = {}
+        sensor_dict["LT"] = 0
+        sensor_dict["LP"] = 0
+        sensor_dict["RT"] = 0
+        sensor_dict["RP"] = 0
+
+        for c in range(0, len(crossing_zero) - 1):
+
+            if c < len(crossing_zero) - 1:
+                window_data = hip_accel_data[crossing_zero[c][1]:crossing_zero[c + 1][1]]
+            else:
+                window_data = hip_accel_data[crossing_zero[c][1]:]
+
+            window_results = []
+            mpd = 1
+            mph = 5.0
+            thresh = 0
+            edge = None  # has no impact on detection
+
+            if crossing_zero[c][0] == "L":
+                left_window_troughs = detect_peaks(window_data.values, mph=mph, mpd=mpd, threshold=thresh, edge=edge, kpsh=False, valley=True)
+                for lf in left_window_troughs:
+                    window_results.append(("L", "T", lf))
+                left_window_peaks = detect_peaks(window_data.values, mph=mph, mpd=mpd, threshold=thresh, edge=edge, kpsh=False, valley=False)
+                for lf in left_window_peaks:
+                    window_results.append(("L", "P", lf))
+            else:
+                right_window_troughs = detect_peaks(window_data.values, mph=mph,mpd=mpd, threshold=thresh, edge=edge, kpsh=False, valley=True)
+                for rf in right_window_troughs:
+                    window_results.append(("R", "T", rf))
+                right_window_peaks = detect_peaks(window_data.values, mph=mph,mpd=mpd, threshold=thresh, edge=edge, kpsh=False, valley=False)
+                for rf in right_window_peaks:
+                    window_results.append(("R", "P", rf))
+
+            window_results = sorted(window_results, key=lambda x: x[2])
+
+            if len(window_results) > 0:
+                if window_results[0][0] == "L" and window_results[0][1] == "T":
+                    sensor_dict["LT"] += 1
+                elif window_results[0][0] == "L" and window_results[0][1] == "P":
+                    sensor_dict["LP"] += 1
+                elif window_results[0][0] == "R" and window_results[0][1] == "T":
+                    sensor_dict["RT"] += 1
+                elif window_results[0][0] == "R" and window_results[0][1] == "P":
+                    sensor_dict["RP"] += 1
+
+        left_side = sensor_dict["LT"] + sensor_dict["RP"]
+        right_side = sensor_dict["LP"] + sensor_dict["RT"]
+
+        if right_side > left_side:
+            error_list.append(file_num)
+        elif left_side == 0:
+            zero_list.append(file_num)
         else:
-            if p == len(troughs) - 1:
+            correct_list.append(file_num)
 
-                right_accel_short_data = right_accel_data.values[troughs[p][1]:]
-            else:
+        if left_side - right_side == 1:
+            help_list.append(file_num)
+        index_num += 1
 
-                right_accel_short_data = right_accel_data.values[troughs[p][1]:troughs[p + 1][1]]
-
-            for r in range(4, len(right_accel_short_data) - 4):
-                if (right_accel_short_data[r] > 0 and right_accel_short_data[r + 1] > 0 and right_accel_short_data[
-                    r + 2] > 0
-                        and right_accel_short_data[r + 3] > 0 and right_accel_short_data[r - 1] <= 0 and
-                        right_accel_short_data[r - 2] < 0 and right_accel_short_data[r - 3] < 0):
-                    # right_crossing_zero.append(r)
-                    crossing_zero.append(("R", r+troughs[p][1]))
-
-        #zero_cross = list(z for z in zero_cross if z[1] > troughs[p][1])
-        #if troughs[p][0] == zero_cross[0][0]: ##both are left or right
-        #    crossing_zero_final.append((troughs[p][0], zero_cross[0][1]))
-     #       last_added = troughs[p][0]
-
-    hip_accel = phd._lateral_hip_acceleration_detect(hip_accel_data)
     i=0
 
 
