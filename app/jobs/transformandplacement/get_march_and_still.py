@@ -29,6 +29,8 @@ def _detect_march_and_still_ankle(data, sensor):
         start_still += start_march - 75
         end_still += start_march - 75
         return start_still, end_still, start_march, end_march
+    else:
+        raise ValueError(f'Could not detect march for sensor{sensor}')
 
 
 def _detect_march(static):
