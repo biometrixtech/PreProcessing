@@ -14,60 +14,60 @@ _output_columns = [
     'time_stamp',
     'epoch_time',
     'ms_elapsed',
-    'session_duration',
+    # 'session_duration',
     'active',
-    'loading_lf',
-    'loading_rf',
+    # 'loading_lf',
+    # 'loading_rf',
     'phase_lf',
     'phase_rf',
-    'impact_phase_lf',
-    'impact_phase_rf',
+    # 'impact_phase_lf',
+    # 'impact_phase_rf',
     'grf',
     'grf_lf',
     'grf_rf',
-    'const_grf',
-    'dest_grf',
-    'destr_multiplier',
-    'session_grf_elapsed',
-    'symmetry',
-    'symmetry_l',
-    'symmetry_r',
-    'hip_symmetry',
-    'hip_symmetry_l',
-    'hip_symmetry_r',
-    'ankle_symmetry',
-    'ankle_symmetry_l',
-    'ankle_symmetry_r',
-    'consistency',
-    'hip_consistency',
-    'ankle_consistency',
-    'consistency_lf',
-    'consistency_rf',
-    'control',
-    'hip_control',
-    'ankle_control',
-    'control_lf',
-    'control_rf',
-    'contra_hip_drop_lf',
-    'contra_hip_drop_rf',
-    'ankle_rot_lf',
-    'ankle_rot_rf',
-    'foot_position_lf',
-    'foot_position_rf',
-    'land_pattern_lf',
-    'land_pattern_rf',
-    'land_time',
-    'rate_force_absorption_lf',
-    'rate_force_absorption_rf',
-    'rate_force_production_lf',
-    'rate_force_production_rf',
+    # 'const_grf',
+    # 'dest_grf',
+    # 'destr_multiplier',
+    # 'session_grf_elapsed',
+    # 'symmetry',
+    # 'symmetry_l',
+    # 'symmetry_r',
+    # 'hip_symmetry',
+    # 'hip_symmetry_l',
+    # 'hip_symmetry_r',
+    # 'ankle_symmetry',
+    # 'ankle_symmetry_l',
+    # 'ankle_symmetry_r',
+    # 'consistency',
+    # 'hip_consistency',
+    # 'ankle_consistency',
+    # 'consistency_lf',
+    # 'consistency_rf',
+    # 'control',
+    # 'hip_control',
+    # 'ankle_control',
+    # 'control_lf',
+    # 'control_rf',
+    # 'contra_hip_drop_lf',
+    # 'contra_hip_drop_rf',
+    # 'ankle_rot_lf',
+    # 'ankle_rot_rf',
+    # 'foot_position_lf',
+    # 'foot_position_rf',
+    # 'land_pattern_lf',
+    # 'land_pattern_rf',
+    # 'land_time',
+    # 'rate_force_absorption_lf',
+    # 'rate_force_absorption_rf',
+    # 'rate_force_production_lf',
+    # 'rate_force_production_rf',
     'total_accel',
     'stance',
-    'plane',
-    'rot',
-    'lat',
-    'vert',
-    'horz',
+    # 'plane',
+    # 'rot',
+    # 'lat',
+    # 'vert',
+    # 'horz',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     'adduc_range_of_motion_lf',
     'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
@@ -107,7 +107,7 @@ class ScoringJob(Job):
         _logger.info('DONE WITH CONTROL SCORES!')
 
         grf_scale = 1000000
-        data = score(data, grf_scale)
+        # data = score(data, grf_scale)
         _logger.info("DONE WITH SCORING!")
 
         accel_scale = 100000
@@ -118,12 +118,12 @@ class ScoringJob(Job):
         data = data.round(6)
 
         # Add nans for future variables
-        data['symmetry_l'] = np.nan
-        data['symmetry_r'] = np.nan
-        data['hip_symmetry_l'] = np.nan
-        data['hip_symmetry_r'] = np.nan
-        data['ankle_symmetry_l'] = np.nan
-        data['ankle_symmetry_r'] = np.nan
+        # data['symmetry_l'] = np.nan
+        # data['symmetry_r'] = np.nan
+        # data['hip_symmetry_l'] = np.nan
+        # data['hip_symmetry_r'] = np.nan
+        # data['ankle_symmetry_l'] = np.nan
+        # data['ankle_symmetry_r'] = np.nan
 
         # TODO replace computing boundaries for twoMin by active blocks
 

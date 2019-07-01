@@ -36,17 +36,20 @@ logger = logging.getLogger()
 
 _output_columns = [
     'obs_index', 'time_stamp', 'epoch_time', 'ms_elapsed',
-    'loading_lf', 'loading_rf',
+    # 'loading_lf', 'loading_rf',
     'active',
-    'phase_lf',  'phase_rf', 'impact_phase_lf', 'impact_phase_rf',
+    'phase_lf',  'phase_rf',
+    # 'impact_phase_lf', 'impact_phase_rf',
     'grf', 'grf_lf', 'grf_rf', 'grf_bal_phase',
-    'contra_hip_drop_lf', 'contra_hip_drop_rf',
-    'ankle_rot_lf', 'ankle_rot_rf',
-    'foot_position_lf', 'foot_position_rf',
-    'land_pattern_lf', 'land_pattern_rf', 'land_time',
-    'rate_force_absorption_lf', 'rate_force_absorption_rf',
-    'rate_force_production_lf', 'rate_force_production_rf', 'total_accel',
-    'stance', 'plane', 'rot', 'lat', 'vert', 'horz',
+    # 'contra_hip_drop_lf', 'contra_hip_drop_rf',
+    # 'ankle_rot_lf', 'ankle_rot_rf',
+    # 'foot_position_lf', 'foot_position_rf',
+    # 'land_pattern_lf', 'land_pattern_rf', 'land_time',
+    # 'rate_force_absorption_lf', 'rate_force_absorption_rf',
+    # 'rate_force_production_lf', 'rate_force_production_rf',
+    'total_accel',
+    'stance',
+    # 'plane', 'rot', 'lat', 'vert', 'horz',
     'euler_lf_x', 'euler_lf_y', 'euler_hip_x', 'euler_hip_y', 'euler_rf_x', 'euler_rf_y',
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
@@ -342,8 +345,8 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
 
     # combine into data table
     length = len(data.acc_lf_x)
-    data['loading_lf'] = np.array([np.nan]*length).reshape(-1, 1)
-    data['loading_rf'] = np.array([np.nan]*length).reshape(-1, 1)
+    # data['loading_lf'] = np.array([np.nan]*length).reshape(-1, 1)
+    # data['loading_rf'] = np.array([np.nan]*length).reshape(-1, 1)
     scoring_data = data.loc[:, _output_columns]
 
     logger.info("Table Created")
