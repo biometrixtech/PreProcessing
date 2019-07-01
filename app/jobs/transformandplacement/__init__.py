@@ -87,16 +87,22 @@ class TransformandplacementJob(Job):
                 _logger.info('single Sensor')
                 sensors = 1
 
-            body_frame_transforms = compute_transform(data_sub, placement, sensors)
+            body_frame_transforms = compute_transform(data_sub)
 
             return {
-                'placement': placement,
+                # 'placement': placement,
                 'body_frame_transforms': {
                     'left': body_frame_transforms[0],
                     'hip': body_frame_transforms[1],
                     'right': body_frame_transforms[2],
                 },
                 'hip_neutral_yaw': body_frame_transforms[3],
+                'start_march_0': body_frame_transforms[4],
+                'end_march_0': body_frame_transforms[5],
+                'start_march_1': body_frame_transforms[6],
+                'end_march_1': body_frame_transforms[7],
+                'start_march_2': body_frame_transforms[8],
+                'end_march_2': body_frame_transforms[9]
                 'sensors': sensors,
                 'truncation_index': truncation_index,
                 'sensor_position': sensor_position,
@@ -114,7 +120,7 @@ class TransformandplacementJob(Job):
             # get transformation values
             data_sub = copy.copy(data.loc[0:2000, :])
             shift_accel(data_sub)
-            body_frame_transforms = compute_transform(data_sub, placement, sensors)
+            body_frame_transforms = compute_transform(data_sub)
 
             return {
                 'placement': placement,
