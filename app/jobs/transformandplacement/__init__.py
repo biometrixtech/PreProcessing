@@ -12,6 +12,7 @@ from .placement_detection import detect_placement, shift_accel, predict_placemen
 from .column_vector import Condition
 from .sensor_use_detection import detect_single_sensor, detect_data_truncation
 from .transform_calculation import compute_transform
+from .get_march_and_still import detect_march_and_still
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
 
 _logger = logging.getLogger(__name__)
@@ -87,7 +88,16 @@ class TransformandplacementJob(Job):
                 _logger.info('single Sensor')
                 sensors = 1
 
-            body_frame_transforms = compute_transform(data_sub)
+            march_still_indices = detect_march_and_still(data_sub)
+
+            body_frame_transforms = compute_transform(data_sub,
+                                                      march_still_indices[2],
+                                                      march_still_indices[3],
+                                                      march_still_indices[6],
+                                                      march_still_indices[7],
+                                                      march_still_indices[10],
+                                                      march_still_indices[11]
+                                                      )
 
             return {
                 # 'placement': placement,
@@ -97,12 +107,12 @@ class TransformandplacementJob(Job):
                     'right': body_frame_transforms[2],
                 },
                 'hip_neutral_yaw': body_frame_transforms[3],
-                'start_march_0': body_frame_transforms[4],
-                'end_march_0': body_frame_transforms[5],
-                'start_march_1': body_frame_transforms[6],
-                'end_march_1': body_frame_transforms[7],
-                'start_march_2': body_frame_transforms[8],
-                'end_march_2': body_frame_transforms[9]
+                'start_march_0': march_still_indices[0],
+                'end_march_0': march_still_indices[1],
+                'start_march_1': march_still_indices[4],
+                'end_march_1': march_still_indices[5],
+                'start_march_2': march_still_indices[8],
+                'end_march_2': march_still_indices[9],
                 'sensors': sensors,
                 'truncation_index': truncation_index,
                 'sensor_position': sensor_position,

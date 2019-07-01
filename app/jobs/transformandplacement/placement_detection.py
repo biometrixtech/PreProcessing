@@ -223,3 +223,134 @@ def predict_placement(data, condition_list):
             result = condition.split("_")
             placement = [int(i) for i in result[2]]
             return placement, {'left': result[0].upper(), 'right': result[1].upper()}
+
+
+def detect_placement_lateral_hip(data):
+    correct_list = []
+    error_list = []
+    help_list = []
+    zero_list = []
+    file_starts = 800
+    file_ends = 1400
+    index_num = 0
+    
+    hip_accel_data = data["acc_1_y"][file_starts:file_ends]
+    sensor_0_accel_data = data["acc_lf_z"][file_starts:file_ends]
+    sensor_2_accel_data = data["acc_rf_z"][file_starts:file_ends]
+    lf_euls = qc.quat_to_euler(
+        data["quat_lf_w"][file_starts:file_ends],
+        data["quat_lf_x"][file_starts:file_ends],
+        data["quat_lf_y"][file_starts:file_ends],
+        data["quat_lf_z"][file_starts:file_ends])
+    sensor_0_euler_y_degrees = pd.Series(lf_euls[:, 1] * 180/ np.pi)
+    rf_euls = qc.quat_to_euler(
+        data["quat_rf_w"][file_starts:file_ends],
+        data["quat_rf_x"][file_starts:file_ends],
+        data["quat_rf_y"][file_starts:file_ends],
+        data["quat_rf_z"][file_starts:file_ends])
+    sensor_2_euler_y_degrees = pd.Series(rf_euls[:, 1] * 180 / np.pi)
+
+    trough_mpd = 1
+    trough_mph = 20
+    trough_edge = 'rising'
+    trough_thresh = 0
+    sensor_0_peaks = detect_peaks(sensor_0_euler_y_degrees,mph=trough_mph, mpd=trough_mpd,threshold=trough_thresh,edge=trough_edge,kpsh=False,valley=False)
+    sensor_2_peaks = detect_peaks(sensor_2_euler_y_degrees,mph=trough_mph, mpd=trough_mpd, threshold=trough_thresh, edge=trough_edge, kpsh=False, valley=False)
+    troughs = []
+    for lf in sensor_0_peaks:
+        troughs.append(("L", lf))  # we'll be using the same point in time with a diff data series
+
+    for rf in sensor_2_peaks:
+        troughs.append(("R", rf))  # we'll be using the same point in time with a diff data series
+
+    troughs = sorted(troughs, key=lambda x: x[1])
+
+    crossing_zero = []
+
+    crossing_zero = sorted(crossing_zero, key=lambda x: x[1])
+    zero_cross = crossing_zero
+
+    for p in range(0, len(troughs)):
+        if troughs[p][0] == "L":
+            if p == len(troughs) - 1:
+                sensor_0_accel_short_data = sensor_0_accel_data.values[troughs[p][1]:]
+
+            else:
+                sensor_0_accel_short_data = sensor_0_accel_data.values[troughs[p][1]:troughs[p+1][1]]
+
+            zero_crossings = np.where(np.diff(np.sign(sensor_0_accel_short_data)))[0]
+            if len(zero_crossings) > 0:
+                crossing_zero.append(("L", zero_crossings[0]+1 + troughs[p][1]))
+
+        else:
+            if p == len(troughs) - 1:
+
+                sensor_2_accel_short_data = sensor_2_accel_data.values[troughs[p][1]:]
+            else:
+
+                sensor_2_accel_short_data = sensor_2_accel_data.values[troughs[p][1]:troughs[p + 1][1]]
+
+            zero_crossings = np.where(np.diff(np.sign(sensor_2_accel_short_data)))[0]
+            if len(zero_crossings) > 0:
+                crossing_zero.append(("R", zero_crossings[0]+1 + troughs[p][1]))
+
+    sensor_dict = {}
+    sensor_dict["LT"] = 0
+    sensor_dict["LP"] = 0
+    sensor_dict["RT"] = 0
+    sensor_dict["RP"] = 0
+
+    for c in range(0, len(crossing_zero) - 1):
+
+        if c < len(crossing_zero) - 1:
+            window_data = hip_accel_data[crossing_zero[c][1]:crossing_zero[c + 1][1]]
+        else:
+            window_data = hip_accel_data[crossing_zero[c][1]:]
+
+        window_results = []
+        mpd = 1
+        mph = 5.0
+        thresh = 0
+        edge = None  # has no impact on detection
+
+        if crossing_zero[c][0] == "L":
+            left_window_troughs = detect_peaks(window_data.values, mph=mph, mpd=mpd, threshold=thresh, edge=edge, kpsh=False, valley=True)
+            for lf in left_window_troughs:
+                window_results.append(("L", "T", lf))
+            left_window_peaks = detect_peaks(window_data.values, mph=mph, mpd=mpd, threshold=thresh, edge=edge, kpsh=False, valley=False)
+            for lf in left_window_peaks:
+                window_results.append(("L", "P", lf))
+        else:
+            right_window_troughs = detect_peaks(window_data.values, mph=mph,mpd=mpd, threshold=thresh, edge=edge, kpsh=False, valley=True)
+            for rf in right_window_troughs:
+                window_results.append(("R", "T", rf))
+            right_window_peaks = detect_peaks(window_data.values, mph=mph,mpd=mpd, threshold=thresh, edge=edge, kpsh=False, valley=False)
+            for rf in right_window_peaks:
+                window_results.append(("R", "P", rf))
+
+        window_results = sorted(window_results, key=lambda x: x[2])
+
+        if len(window_results) > 0:
+            if window_results[0][0] == "L" and window_results[0][1] == "T":
+                sensor_dict["LT"] += 1
+            elif window_results[0][0] == "L" and window_results[0][1] == "P":
+                sensor_dict["LP"] += 1
+            elif window_results[0][0] == "R" and window_results[0][1] == "T":
+                sensor_dict["RT"] += 1
+            elif window_results[0][0] == "R" and window_results[0][1] == "P":
+                sensor_dict["RP"] += 1
+
+    left_side = sensor_dict["LT"] + sensor_dict["RP"]
+    right_side = sensor_dict["LP"] + sensor_dict["RT"]
+
+    if right_side > left_side:
+        error_list.append(file_num)
+    elif left_side == 0:
+        zero_list.append(file_num)
+    else:
+        correct_list.append(file_num)
+
+    if left_side - right_side == 1:
+        help_list.append(file_num)
+    index_num += 1
+    i=0
