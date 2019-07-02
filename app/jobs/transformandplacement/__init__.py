@@ -100,7 +100,7 @@ class TransformandplacementJob(Job):
                                                       )
 
             return {
-                # 'placement': placement,
+                'placement': placement,
                 'body_frame_transforms': {
                     'left': body_frame_transforms[0],
                     'hip': body_frame_transforms[1],
