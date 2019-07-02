@@ -54,7 +54,7 @@ def aggregate(data, record, mass, agg_level):
     # accel aggregation
     record['totalAccel'] = np.nansum(data['total_accel'])
     record['totalAccelAvg'] = _peak_accel(data['total_accel'].values)
-    record['irregularAccel'] = np.nansum(data['irregular_accel'])
+    # record['irregularAccel'] = np.nansum(data['irregular_accel'])
 
     # if record['totalGRF'] == 0:
     #     # control aggregation

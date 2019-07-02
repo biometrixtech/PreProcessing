@@ -80,28 +80,28 @@ class AggregateblocksJob(Job):
         data['lf_only_grf'] = data['grf'].fillna(value=np.nan) * lf_ground
         data['rf_only_grf'] = data['grf'].fillna(value=np.nan) * rf_ground
 
-        data['const_grf'] = data['const_grf'].fillna(value=np.nan) * total_ind
-        data['dest_grf'] = data['dest_grf'].fillna(value=np.nan) * total_ind
-        data['perc_optimal'] = pd.DataFrame(data['const_grf'] / (data['const_grf'] + data['dest_grf']))
+        # data['const_grf'] = data['const_grf'].fillna(value=np.nan) * total_ind
+        # data['dest_grf'] = data['dest_grf'].fillna(value=np.nan) * total_ind
+        # data['perc_optimal'] = pd.DataFrame(data['const_grf'] / (data['const_grf'] + data['dest_grf']))
 
         # accel
         data['total_accel'] = data['total_accel'] * active_ind
-        data['irregular_accel'] = data['total_accel'] * data['destr_multiplier']
+        # data['irregular_accel'] = data['total_accel'] * data['destr_multiplier']
 
         # scores
-        data['symmetry'] = data['symmetry'] * total_ind
-        data['hip_symmetry'] = data['hip_symmetry'] * total_ind
-        data['ankle_symmetry'] = data['ankle_symmetry'] * total_ind
-        data['consistency'] = data['consistency'] * total_ind
-        data['hip_consistency'] = data['hip_consistency'] * total_ind
-        data['ankle_consistency'] = data['ankle_consistency'] * total_ind
-        data['consistency_lf'] = data['consistency_lf'] * lf_ind
-        data['consistency_rf'] = data['consistency_rf'] * rf_ind
-        data['control'] = data['control'] * total_ind
-        data['hip_control'] = data['hip_control'] * total_ind
-        data['ankle_control'] = data['ankle_control'] * total_ind
-        data['control_lf'] = data['control_lf'] * lf_ind
-        data['control_rf'] = data['control_rf'] * rf_ind
+        # data['symmetry'] = data['symmetry'] * total_ind
+        # data['hip_symmetry'] = data['hip_symmetry'] * total_ind
+        # data['ankle_symmetry'] = data['ankle_symmetry'] * total_ind
+        # data['consistency'] = data['consistency'] * total_ind
+        # data['hip_consistency'] = data['hip_consistency'] * total_ind
+        # data['ankle_consistency'] = data['ankle_consistency'] * total_ind
+        # data['consistency_lf'] = data['consistency_lf'] * lf_ind
+        # data['consistency_rf'] = data['consistency_rf'] * rf_ind
+        # data['control'] = data['control'] * total_ind
+        # data['hip_control'] = data['hip_control'] * total_ind
+        # data['ankle_control'] = data['ankle_control'] * total_ind
+        # data['control_lf'] = data['control_lf'] * lf_ind
+        # data['control_rf'] = data['control_rf'] * rf_ind
 
         # segment data into blocks
         active_blocks = define_blocks(data['active'].values)
