@@ -85,6 +85,9 @@ def test_lateral_hip_acceleration():
 
         test_file2 = 'capture'+str(file_num)+'_calibration.csv'
         test_data2 = pd.read_csv(path + test_file2)
+        test_data2.columns = ['epoch_time', 'quat_0_w', 'quat_0_x', 'quat_0_y', 'quat_0_z', 'acc_0_x', 'acc_0_y',
+                              'acc_0_z', 'quat_1_w', 'quat_1_x', 'quat_1_y', 'quat_1_z', 'acc_1_x', 'acc_1_y',
+                              'acc_1_z', 'quat_2_w', 'quat_2_x', 'quat_2_y', 'quat_2_z', 'acc_2_x', 'acc_2_y', 'acc_2_z']
         placement = get_placement(test_data2, file_starts[index_num], file_ends[index_num])
 
         if placement == [2, 1, 0]:
@@ -102,20 +105,20 @@ def test_lateral_hip_acceleration():
 
 
 def get_placement(data, window_start, window_end):
-    hip_accel_data = data["acc_hip_y"][window_start:window_end]
-    sensor_0_accel_data = data["acc_lf_z"][window_start:window_end]
-    sensor_2_accel_data = data["acc_rf_z"][window_start:window_end]
+    hip_accel_data = data["acc_1_y"][window_start:window_end]
+    sensor_0_accel_data = data["acc_0_z"][window_start:window_end]
+    sensor_2_accel_data = data["acc_2_z"][window_start:window_end]
     lf_euls = qc.quat_to_euler(
-        data["quat_lf_w"][window_start:window_end],
-        data["quat_lf_x"][window_start:window_end],
-        data["quat_lf_y"][window_start:window_end],
-        data["quat_lf_z"][window_start:window_end])
+        data["quat_0_w"][window_start:window_end],
+        data["quat_0_x"][window_start:window_end],
+        data["quat_0_y"][window_start:window_end],
+        data["quat_0_z"][window_start:window_end])
     sensor_0_euler_y_degrees = pd.Series(lf_euls[:, 1] * 180 / np.pi)
     rf_euls = qc.quat_to_euler(
-        data["quat_rf_w"][window_start:window_end],
-        data["quat_rf_x"][window_start:window_end],
-        data["quat_rf_y"][window_start:window_end],
-        data["quat_rf_z"][window_start:window_end])
+        data["quat_2_w"][window_start:window_end],
+        data["quat_2_x"][window_start:window_end],
+        data["quat_2_y"][window_start:window_end],
+        data["quat_2_z"][window_start:window_end])
     sensor_2_euler_y_degrees = pd.Series(rf_euls[:, 1] * 180 / np.pi)
 
     trough_mpd = 1
