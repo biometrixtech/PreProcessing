@@ -49,14 +49,14 @@ def test_match_221e():
 
     data = np.asanyarray(data)
     # Creating pandas dataframe from numpy array
-    df = pd.DataFrame({'epoch_time': data[:, 0], 'static_l': data[:, 1], 'acc_lf_x': data[:, 2],
-                            'acc_lf_y': data[:, 3], 'acc_lf_z': data[:, 4], 'quat_lf_w': data[:, 5],
-                            'quat_lf_x': data[:, 6], 'quat_lf_y': data[:, 7], 'quat_lf_z': data[:, 8],
-                            'static_h': data[:, 9], 'acc_hip_x': data[:, 10], 'acc_hip_y': data[:, 11],'acc_hip_z': data[:, 12],
-                            'quat_hip_w': data[:, 13],'quat_hip_x': data[:, 14], 'quat_hip_y': data[:, 15], 'quat_hip_z': data[:, 16],
-                            'static_r': data[:, 17], 'acc_rf_x': data[:, 18], 'acc_rf_y': data[:, 19],
-                            'acc_rf_z': data[:, 20], 'quat_rf_w': data[:, 21], 'quat_rf_x': data[:, 22],
-                            'quat_rf_y': data[:, 23], 'quat_rf_z': data[:, 24]})
+    df = pd.DataFrame({'epoch_time': data[:, 0], 'static_0': data[:, 1], 'acc_0_x': data[:, 2],
+                            'acc_0_y': data[:, 3], 'acc_0_z': data[:, 4], 'quat_0_w': data[:, 5],
+                            'quat_0_x': data[:, 6], 'quat_0_y': data[:, 7], 'quat_0_z': data[:, 8],
+                            'static_1': data[:, 9], 'acc_1_x': data[:, 10], 'acc_1_y': data[:, 11],'acc_1_z': data[:, 12],
+                            'quat_1_w': data[:, 13],'quat_1_x': data[:, 14], 'quat_1_y': data[:, 15], 'quat_1_z': data[:, 16],
+                            'static_2': data[:, 17], 'acc_2_x': data[:, 18], 'acc_2_y': data[:, 19],
+                            'acc_2_z': data[:, 20], 'quat_2_w': data[:, 21], 'quat_2_x': data[:, 22],
+                            'quat_2_y': data[:, 23], 'quat_2_z': data[:, 24]})
 
     #data.loc[start_still_0:end_still_0, ['quat_0_w', 'quat_0_x', 'quat_0_y', 'quat_0_z']].values.reshape(-1, 4)
 
@@ -75,5 +75,5 @@ def test_match_221e():
 
     dataC_observed = body_frame_tran(df, qCL, qCH, qCR)
 
-    for a in range(0, 24):
+    for a in range(0, 25):
         assert np.equal(np.round(dataC_actual[:, a], 9), np.round(dataC_observed[:, a], 9)).all()
