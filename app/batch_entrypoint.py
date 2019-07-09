@@ -46,6 +46,10 @@ def main(script):
         from jobs.transformandplacement import TransformandplacementJob
         TransformandplacementJob(datastore).run()
 
+    elif script == 'driftcorrection':
+        from jobs.driftcorrection import DriftcorrectionJob
+        DriftcorrectionJob(datastore).run()
+
     elif script == 'sessionprocess':
         load_parameters([
             'MS_MODEL',
