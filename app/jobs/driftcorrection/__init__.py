@@ -1,10 +1,10 @@
 from ..job import Job
-import numpy as np
 from jobs.driftcorrection.heading_correction import heading_correction
 from jobs.driftcorrection.heading_correction import heading_hip_finder, heading_foot_finder
 from jobs.driftcorrection.hip_drift_correction import hip_drift_correction
 from jobs.driftcorrection.foot_drift_correction import foot_drift_correction
 from jobs.driftcorrection.acceleration_correction import axl_correction
+from jobs.driftcorrection.placement import get_placement_lateral_hip
 
 
 class DriftcorrectionJob(Job):
@@ -12,7 +12,7 @@ class DriftcorrectionJob(Job):
     def __init__(self, datastore):
         super().__init__(datastore)
 
-    def _run(self):
+    def _run(self, skip_placement=False):
 
         self.data = self.datastore.get_data(('transformandplacement', '*'))
         reset_index = self.datastore.get_metadatum('reset_index', None)
@@ -64,19 +64,27 @@ class DriftcorrectionJob(Job):
 
         self.data = self.get_core_data_frame_from_ndarray(dataHC)
 
-        # op_cond_fl = self.data[f'magn_lf']
-        # axl_ref_lf = self.data.loc[:, [f'acc_lf_x', f'acc_lf_y', f'acc_lf_z']]
-        # q_ref_lf = self.data.loc[:, [f'quat_lf_w', f'quat_lf_x', f'quat_lf_y', f'quat_lf_z']]
-        #
-        # # Do transformation with `self.data`
-        # acc_corrected_lf = NotImplemented
-        #
-        # self.data.loc[:, [f'acc_lf_x_corrected', f'acc_lf_y_corrected', f'acc_lf_z_corrected']] = acc_corrected_lf
+        ret = {}
 
-        # Etc
-        #convert to pandas before placement
-        #placement goes here
-        #rename columns to match l,h,r (lines 50-57 of t&p job)
+        if not skip_placement:
+            placement_detected, weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
+
+            placement = zip(placement_detected, ['lf', 'hip', 'rf'])
+            column_prefixes = ['magn_{}', 'corrupt_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y',
+                               'quat_{}_z', 'quat_{}_w']
+            renames = {}
+            for old, new in placement:
+                for prefix in column_prefixes:
+                    renames[prefix.format(str(old))] = prefix.format(str(new))
+
+            self.data = self.data.rename(index=str, columns=renames)
+
+            ret = {
+                'placement': placement,
+                'weak_placement': weak_placement
+            }
 
         # Save the data at the end
         self.datastore.put_data('driftcorrection', self.data)
+
+        return ret
