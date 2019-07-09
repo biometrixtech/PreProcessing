@@ -1,5 +1,6 @@
 import numpy as np
-import pandas as pd
+
+from utils.quaternion_operations import hamilton_product, quat_conjugate
 
 
 def body_frame_tran(data, qC0, qCH, qC2):
@@ -30,47 +31,19 @@ def body_frame_tran(data, qC0, qCH, qC2):
     # Orientations correction: left, hip, right
     # ensure order of columns matches what's expected
 
-    output[:, 5: 9] = hamilton_product(data[:, 5: 9], quat_conj(qC0))
-    output[:,13:17] = hamilton_product(data[:,13:17], quat_conj(qCH))
-    output[:,21:25] = hamilton_product(data[:,21:25], quat_conj(qC2))
+    output[:, 5: 9] = hamilton_product(data[:, 5: 9], quat_conjugate(qC0))
+    output[:,13:17] = hamilton_product(data[:, 13:17], quat_conjugate(qCH))
+    output[:,21:25] = hamilton_product(data[:, 21:25], quat_conjugate(qC2))
 
     output[:, 5: 9] /= np.linalg.norm(output[:, 5: 9], axis=1, keepdims=True)
     output[:,13:17] /= np.linalg.norm(output[:, 13:17], axis=1, keepdims=True)
     output[:,21:25] /= np.linalg.norm(output[:, 21:25], axis=1, keepdims=True)
 
     # Accelerations correction: left, hip, right
-    output[:, 2: 5] = hamilton_product(hamilton_product(qC0, np.c_[z, data[:, 2: 5]]), quat_conj(qC0))[..., 1:]
-    output[:,10:13] = hamilton_product(hamilton_product(qCH, np.c_[z, data[:, 10:13]]), quat_conj(qCH))[..., 1:]
-    output[:,18:21] = hamilton_product(hamilton_product(qC2, np.c_[z, data[:, 18:21]]), quat_conj(qC2))[..., 1:]
+    output[:, 2: 5] = hamilton_product(hamilton_product(qC0, np.c_[z, data[:, 2: 5]]), quat_conjugate(qC0))[..., 1:]
+    output[:,10:13] = hamilton_product(hamilton_product(qCH, np.c_[z, data[:, 10:13]]), quat_conjugate(qCH))[..., 1:]
+    output[:,18:21] = hamilton_product(hamilton_product(qC2, np.c_[z, data[:, 18:21]]), quat_conjugate(qC2))[..., 1:]
 
     return output
 
 
-def hamilton_product(p, q):
-    """
-    Perform the Hamilton product between quaternions.
-
-    Parameters
-    ----------
-    p, q : array_like, list of array_like
-        Quaternions.
-
-    Returns
-    -------
-    output : numpy.ndarray
-        The Hamilton product of p and q. If the are arrays of quaternions,
-        the array of the products is returned.
-    """
-    p = np.asanyarray(p, dtype=float)
-    q = np.asanyarray(q, dtype=float)
-
-    w = p[...,0]*q[...,0] - p[...,1]*q[...,1] - p[...,2]*q[...,2] - p[...,3]*q[...,3]
-    x = p[...,0]*q[...,1] + p[...,1]*q[...,0] + p[...,2]*q[...,3] - p[...,3]*q[...,2]
-    y = p[...,0]*q[...,2] - p[...,1]*q[...,3] + p[...,2]*q[...,0] + p[...,3]*q[...,1]
-    z = p[...,0]*q[...,3] + p[...,1]*q[...,2] - p[...,2]*q[...,1] + p[...,3]*q[...,0]
-    return np.squeeze(np.stack((w, x, y, z), axis=-1))
-
-
-def quat_conj(q):
-    """Compute the conjugate of the given quaternion(s)."""
-    return np.asanyarray(q, dtype=float) * np.array((1., -1., -1., -1.))
