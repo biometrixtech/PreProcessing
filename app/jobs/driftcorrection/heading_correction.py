@@ -1,7 +1,9 @@
+import logging
 import numpy as np
 from utils.quaternion_operations import hamilton_product, quat_conjugate
 from utils.quaternion_conversions import quat_as_euler_angles, quat_from_euler_angles
-from warnings import warn as _warn
+
+_logger = logging.getLogger(__name__)
 
 
 def heading_hip_finder(q_refH, reset_index):
@@ -66,7 +68,7 @@ def heading_foot_finder(data0, data2, start_marching_phase, stop_marching_phase)
     #     start_MPh, stop_MPh = find_marching(op_condR, axlR)
 
     if np.isnan(start_marching_phase) or np.isnan(stop_marching_phase):
-        _warn("No valid marching phase interval found in either foot sensors data")
+        _logger.warning("No valid marching phase interval found in either foot sensors data")
         qH0 = np.array((1., 0., 0., 0.))
         qH2 = np.array((1., 0., 0., 0.))
     else:
@@ -129,7 +131,7 @@ def heading_calculus(q):
     std_TH = 10
 
     if np.std(yaw_result) > std_TH or np.isnan(yaw_mean):
-        _warn("Heading value not found")
+        _logger.warning("Heading value not found")
         qH = np.array((1, 0, 0, 0))
     else:
         qH = quat_from_euler_angles(yaw_mean, [0, 0, 1])
