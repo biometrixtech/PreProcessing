@@ -30,47 +30,50 @@ def heading_hip_finder(q_refH, reset_index):
     return qHH
 
 
-def heading_foot_finder(dataL, dataR):
+def heading_foot_finder(data0, data2, start_marching_phase, stop_marching_phase):
     """
-    Heading values finder for foot sensors; marching phase protocol is exploited.
+    Heading values finder for foot sensors
 
     Parameters
     ----------
-    dataL, dataR : array_like
+    data0, data2 : array_like
         Data BFT compensated left and right foot (data = [op_cond, axl, q]).
+
+    start_marching_phase, stop_marching_phase : number
+        index values of start and stopping samples of marching phase
 
     Returns
     -------
-    qHL, qHR : array_like
+    qH0, qH2 : array_like
         Heading quaternions for left foot and right foot.
     """
-    dataL = np.asanyarray(dataL)
-    dataR = np.asanyarray(dataR)
+    data0 = np.asanyarray(data0)
+    data2 = np.asanyarray(data2)
     ## Initialization
-    op_condL = dataL[:,0]
-    axlL = dataL[:,1:4]
-    q_refCL = dataL[:,4:8]
+    op_condL = data0[:, 0]
+    axlL = data0[:, 1:4]
+    q_refC0 = data0[:, 4:8]
 
-    op_condR = dataR[:,0]
-    axlR = dataR[:,1:4]
-    q_refCR = dataR[:,4:8]
+    op_condR = data2[:, 0]
+    axlR = data2[:, 1:4]
+    q_refC2 = data2[:, 4:8]
 
-    # Find MarchingPhase only with left sensor data, and with right sensor ones if it's needed
-    start_MPh, stop_MPh = find_marching(op_condL, axlL)
+    # # Find MarchingPhase only with left sensor data, and with right sensor ones if it's needed
+    # start_MPh, stop_MPh = find_marching(op_condL, axlL)
+    #
+    # if np.isnan(start_MPh) or np.isnan(stop_MPh):
+    #     # Repeat marching phase detection with right foot
+    #     start_MPh, stop_MPh = find_marching(op_condR, axlR)
 
-    if np.isnan(start_MPh) or np.isnan(stop_MPh):
-        # Repeat marching phase detection with right foot
-        start_MPh, stop_MPh = find_marching(op_condR, axlR)
-
-    if np.isnan(start_MPh) or np.isnan(stop_MPh):
+    if np.isnan(start_marching_phase) or np.isnan(stop_marching_phase):
         _warn("No valid marching phase interval found in either foot sensors data")
-        qHL = np.array((1., 0., 0., 0.))
-        qHR = np.array((1., 0., 0., 0.))
+        qH0 = np.array((1., 0., 0., 0.))
+        qH2 = np.array((1., 0., 0., 0.))
     else:
-        qHL = heading_calculus(q_refCL[start_MPh:stop_MPh,:])
-        qHR = heading_calculus(q_refCR[start_MPh:stop_MPh,:])
+        qH0 = heading_calculus(q_refC0[start_marching_phase:stop_marching_phase,:])
+        qH2 = heading_calculus(q_refC2[start_marching_phase:stop_marching_phase,:])
 
-    return qHL, qHR
+    return qH0, qH2
 
 
 def heading_calculus(q):
