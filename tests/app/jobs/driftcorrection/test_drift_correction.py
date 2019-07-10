@@ -12,7 +12,7 @@ def test_match_221e():
     dataHC = scipy.io.loadmat(f"{path}data2_Heading_corrected.mat").get("data_Heading_corrected")
     q_corr_l_actual = scipy.io.loadmat(f"{path}data2_q_corr_Left.mat").get("q_corr_Left")
     q_corr_h_actual = scipy.io.loadmat(f"{path}data2_q_corr_Hip.mat").get("q_corr_Hip")
-    a_corr_r_actual = scipy.io.loadmat(f"{path}data2_q_corr_Right.mat").get("q_corr_Right")
+    q_corr_r_actual = scipy.io.loadmat(f"{path}data2_q_corr_Right.mat").get("q_corr_Right")
 
     data = np.asanyarray(data)
 
@@ -28,6 +28,6 @@ def test_match_221e():
     decimal_percision = 7
 
     for a in range(0, 4):
-        assert np.equal(np.round(q_corr_l_actual[:, a], decimal_percision), np.round(q_corr_l[:, a], decimal_percision)).all()
-        assert np.equal(np.round(q_corr_h_actual[:, a], decimal_percision), np.round(q_corr_h[:, a], decimal_percision)).all()
-        assert np.equal(np.round(a_corr_r_actual[:, a], decimal_percision), np.round(q_corr_r[:, a], decimal_percision)).all()
+            assert np.equal(np.round(q_corr_l_actual[:, a], decimal_percision), np.round(q_corr_l[:, a], decimal_percision)).all()
+            assert np.equal(np.round(q_corr_h_actual[:, a], decimal_percision), np.round(q_corr_h[:, a], decimal_percision)).all()
+            assert np.equal(np.round(q_corr_r_actual[:, a], decimal_percision), np.round(q_corr_r[:, a], decimal_percision)).all()

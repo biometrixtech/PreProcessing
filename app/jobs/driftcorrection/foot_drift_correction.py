@@ -117,30 +117,48 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
         # Found dynamic condition window - i points to the end of the dynamic operating condition
 
         # Managing short static phases
-        op_cond_down_TH = 3
+        op_cond_down_TH = 19
         op_cond_down_count = 1
+        last_up = i - 1
         # Check if it's a long enough static
-        h = i + 1
-        while op_cond_down_count <= op_cond_down_TH and op_cond[h] == 0:
-            op_cond_down_count += 1
+        h = i
+        while h < min(i + 5*fs, n-1) and op_cond_down_count < op_cond_down_TH:
             h += 1
+            if op_cond[h] == 0:
+                op_cond_down_count += 1
+            # Save extra windows quaternion, the last static window sample
+            elif op_cond[h-1] == 0:
+                # Save the last static sample, of many statics
+                last_up = h
 
-        short_static_found = (op_cond_down_count <= op_cond_down_TH)
+        # Manage and correct quaternion in short jumps cases
+        short_static_found = (op_cond_down_count <= op_cond_down_TH and op_cond[h] == 1)
         if short_static_found:
-            # Save last uncorrect orientation in short static
-            q_tmp = _np.copy(q_refCH[h-1,:])
-            for k in range(i, h):
+            # Save the last static orientation, of many statics
+            q_tmp_last = _np.copy(q_refCH[last_up-1,:])
+            # Initialize q_d
+            q_d = _np.array((1., 0., 0., 0.))
+            for k in range(i, min(last_up, n-1)):
                 if op_cond[k] == 0:
-                    # Overwrite orientation in short static
-                    q_refCH[k,:] = q_refCH[k-1,:]
-                    last_stat = k
-            # Find delta quaternion to be applied in the remainent dynamic phase
-            q_delta_corr = hamilton_product(q_refCH[last_stat,:], quat_conjugate(q_tmp))
-            t = _np.argwhere(op_cond[h:] != 1) + h
+                    if op_cond[k+1] == 0: # Overwrite orientation
+                        q_refCH[k,:] = q_refCH[k-1,:]
+                    else:
+                        last_stat = k # Save q_tmp before overwrite orientation
+                        q_tmp = q_refCH[last_stat-1,:]
+                        # Compute q_d with any precedent q_d
+                        q_d[:] = hamilton_product(hamilton_product(q_tmp, quat_conjugate(q_refCH[last_stat,:])), q_d)
+                        q_refCH[k,:] = q_refCH[k-1,:] # Overwrite orientation
+                else:
+                    # Correct dynamics with q_d
+                    q_refCH[k,:] = hamilton_product(q_d, q_refCH[k,:])
+            # Find last delta quaternion to be applied in the remainent dynamic phase
+            q_delta_corr = hamilton_product(q_refCH[last_stat,:], quat_conjugate(q_tmp_last))
+            t = _np.argwhere(op_cond[last_up:] != 1) + last_up
             t = _np.amin(t) if t.size else n
-            q_refCH[h:t,:] = hamilton_product(q_delta_corr, q_refCH[h:t,:])
+            # Apply delta quaternion
+            q_refCH[last_up:t,:] = hamilton_product(q_delta_corr, q_refCH[last_up:t,:])
             # Overwrite q_corr
-            q_corr[h-op_cond_down_count-1:t,:] = q_refCH[h-op_cond_down_count-1:t,:]
+            q_corr[i:t,:] = q_refCH[i:t,:]
 
         if i - start_op_cond < fft_num_samples or short_static_found:
             continue

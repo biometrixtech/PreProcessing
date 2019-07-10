@@ -161,9 +161,9 @@ def test_full_job_process():
     # load test data into datastore
     data = np.asanyarray(dataC)
     job.datastore.side_loaded_data = job.get_core_data_frame_from_ndarray(data)
-    job._run()
+    job._run(run_placement=False)
 
-    decimal_precision = 4
+    decimal_precision = 3
 
     for a in range(0, 25):
         assert np.equal(np.round(job._underlying_ndarray[:, a], decimal_precision), np.round(data_out[:, a], decimal_precision)).all()
