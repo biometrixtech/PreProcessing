@@ -60,7 +60,8 @@ class TransformandplacementJob(Job):
         # ms_elapsed and datetime
         data['time_stamp'], data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(data.epoch_time)
 
-        self.datastore.put_data('transformandplacement', data, chunk_size=int(os.environ['CHUNK_SIZE']))
+        # self.datastore.put_data('transformandplacement', data, chunk_size=int(os.environ['CHUNK_SIZE']))
+        self.datastore.put_data('transformandplacement', data)
 
     def execute(self, all_data):
         data = all_data
@@ -86,7 +87,7 @@ class TransformandplacementJob(Job):
                     '1': ref_quats[1],
                     '2': ref_quats[2],
                 },
-                'hip_heading_quat': ref_quats[3],
+                'heading_quat_hip': ref_quats[3],
                 'start_march_0': str(march_still_indices[0]),
                 'end_march_0': str(march_still_indices[1]),
                 'start_march_1': str(march_still_indices[4]),
