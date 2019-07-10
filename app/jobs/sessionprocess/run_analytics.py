@@ -12,7 +12,7 @@ Input data called from 'biometrix-blockcontainer'
 Output data collected in BlockEvent Table.
 """
 from aws_xray_sdk.core import xray_recorder
-import copy
+# import copy
 import logging
 import numpy as np
 
@@ -147,7 +147,6 @@ def run_session(data, mass, grf_fit, sc):
     # lf_euls = data.loc[:, ['euler_lf_x', 'euler_lf_y', 'euler_lf_z']].values
     # hip_euls = data.loc[:, ['euler_hip_x', 'euler_hip_y', 'euler_hip_z']].values
     # rf_euls = data.loc[:, ['euler_rf_x', 'euler_rf_y', 'euler_rf_z']].values
-
 
     # prepare data for grf prediction
     weight = mass * 9.807 / 1000  # convert mass from kg to N

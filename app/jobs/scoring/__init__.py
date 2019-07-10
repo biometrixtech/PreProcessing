@@ -1,11 +1,11 @@
 from __future__ import print_function
 from aws_xray_sdk.core import xray_recorder
 import logging
-import numpy as np
+# import numpy as np
 
 from ..job import Job
-from .control_score import control_score
-from .scoring import score
+# from .control_score import control_score
+# from .scoring import score
 
 _logger = logging.getLogger()
 
@@ -97,18 +97,18 @@ class ScoringJob(Job):
             raise Exception("Insufficient data, need 30000 rows, only got {}".format(data.shape[0]))
 
         # CONTROL SCORE
-        (
-            data['control'],
-            data['hip_control'],
-            data['ankle_control'],
-            data['control_lf'],
-            data['control_rf']
-        ) = control_score(data.euler_lf_x, data.euler_hip_x, data.euler_rf_x, data.phase_lf, data.phase_rf)
-        _logger.info('DONE WITH CONTROL SCORES!')
+        # (
+        #     data['control'],
+        #     data['hip_control'],
+        #     data['ankle_control'],
+        #     data['control_lf'],
+        #     data['control_rf']
+        # ) = control_score(data.euler_lf_x, data.euler_hip_x, data.euler_rf_x, data.phase_lf, data.phase_rf)
+        # _logger.info('DONE WITH CONTROL SCORES!')
 
         grf_scale = 1000000
         # data = score(data, grf_scale)
-        _logger.info("DONE WITH SCORING!")
+        # _logger.info("DONE WITH SCORING!")
 
         accel_scale = 100000
         data['grf'] = data.grf / grf_scale

@@ -20,23 +20,10 @@ class DriftcorrectionJob(Job):
         stop_MPh = self.datastore.get_metadatum('end_march_1', None)
         qH0 = self.datastore.get_metadatum('heading_quat_0', None)
         qHH = self.datastore.get_metadatum('heading_quat_hip', None)
-        qH2 = self.datastore.get_metadatum('heading_quat_0', None)
+        qH2 = self.datastore.get_metadatum('heading_quat_2', None)
         # convert to ndarray
         # data (25 columns) has been through Body Frame Transformation
         data = self.get_ndarray()
-
-        # Sampling frequency
-        # fs = 100
-        # Set maximum length within search (MPh) from the beginning of the data (secs*Fs)
-        # nsearch = 30 * fs
-
-        ## Heading values
-        # TODO: move to transformandplacement
-        # Heading value for hip sensor
-        #qHH = heading_hip_finder(data[:nsearch, 13:17], reset_index)
-
-        # Heading values for foot sensors (with marching phase)
-        # qH0, qH2 = heading_foot_finder(data[:nsearch, 1:9], data[:nsearch, 17:25], start_MPh, stop_MPh)
 
         # Heading correction for all sensors
         dataHC = heading_correction(data, qH0, qHH, qH2)
@@ -46,9 +33,9 @@ class DriftcorrectionJob(Job):
         op_cond_2 = data[:, 17]
 
         # Drift correction: left foot, hip, right foot
-        q_corr_0 = foot_drift_correction(op_cond_0, dataHC[:, 2: 5], dataHC[:, 5: 9])
-        q_corr_h = hip_drift_correction(op_cond_h, dataHC[:, 13:17])
-        q_corr_2 = foot_drift_correction(op_cond_2, dataHC[:, 18:21], dataHC[:, 21:25])
+        q_corr_0 = foot_drift_correction(op_cond_0, axl_refCH=dataHC[:, 2: 5], q_refCH=dataHC[:, 5: 9])
+        q_corr_h = hip_drift_correction(op_cond_h, q_refCH=dataHC[:, 13:17])
+        q_corr_2 = foot_drift_correction(op_cond_2, axl_refCH=dataHC[:, 18:21], q_refCH=dataHC[:, 21:25])
 
         dataHC[:, 5: 9] = q_corr_0
         dataHC[:, 13: 17] = q_corr_h
