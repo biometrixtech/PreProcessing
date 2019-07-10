@@ -30,7 +30,7 @@ class SessionprocessJob(Job):
 
         _logger.info("LOADING DATA")
         part_number = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
-        sdata = self.datastore.get_data(('transformandplacement', part_number))
+        sdata = self.datastore.get_data(('driftcorrection', part_number))
         _logger.info("DATA LOADED!")
 
         if len(sdata) == 0:

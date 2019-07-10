@@ -397,6 +397,37 @@ Resources:
                                 }
                             ],
                             "ResultPath": "$.TaskResult",
+                            "Next": "DriftCorrection"
+                        },
+                        "DriftCorrection": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::batch:submitJob.sync",
+                            "Parameters": {
+                                "JobDefinition": "${BatchJobDefinition}",
+                                "JobName.$": "$._BatchJobNames.driftcorrection",
+                                "JobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
+                                "Parameters": {
+                                    "Job": "driftcorrection"
+                                },
+                                "ContainerOverrides": {
+                                    "Memory": 4096,
+                                    "Vcpus": 2,
+                                    "Environment": [
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
+                                    ]
+                                },
+                                "RetryStrategy": {
+                                    "Attempts": 2
+                                }
+                            },
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionFailProcessing",
+                                    "ResultPath": "$._ExceptionOutput"
+                                }
+                            ],
+                            "ResultPath": "$.TaskResult",
                             "Next": "ReadDatabase0"
                         },
                         "ReadDatabase0": {
@@ -529,7 +560,7 @@ Resources:
                                 "Key": {
                                     "id": { "S.$": "$.SourceEvent.SessionId" }
                                 },
-                                "ProjectionExpression": "id, transformandplacement_chunk_count"
+                                "ProjectionExpression": "id, driftcorrection_chunk_count"
                             },
                             "ResultPath": "$.ReadDatabase",
                             "Next": "BuildArrayProperties"
@@ -537,7 +568,7 @@ Resources:
                         "BuildArrayProperties": {
                             "Type": "Task",
                             "Resource": "${LambdaArrayProperties.Arn}",
-                            "InputPath": "$.ReadDatabase.Item.transformandplacement_chunk_count.N",
+                            "InputPath": "$.ReadDatabase.Item.driftcorrection_chunk_count.N",
                             "ResultPath": "$.ArrayProperties",
                             "Next": "SessionProcess"
                         },

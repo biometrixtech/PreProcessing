@@ -47,6 +47,9 @@ def main(script):
         TransformandplacementJob(datastore).run()
 
     elif script == 'driftcorrection':
+        load_parameters([
+            'CHUNK_SIZE',
+         ], 'models')
         from jobs.driftcorrection import DriftcorrectionJob
         DriftcorrectionJob(datastore).run()
 

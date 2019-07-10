@@ -1,6 +1,6 @@
+import os
 from ..job import Job
 from jobs.driftcorrection.heading_correction import heading_correction
-from jobs.driftcorrection.heading_correction import heading_hip_finder, heading_foot_finder
 from jobs.driftcorrection.hip_drift_correction import hip_drift_correction
 from jobs.driftcorrection.foot_drift_correction import foot_drift_correction
 from jobs.driftcorrection.acceleration_correction import axl_correction
@@ -14,20 +14,21 @@ class DriftcorrectionJob(Job):
 
     def _run(self, skip_placement=False):
 
-        self.data = self.datastore.get_data(('transformandplacement', '*'))
-        reset_index = self.datastore.get_metadatum('reset_index', None)
-        start_MPh = self.datastore.get_metadatum('start_MPh', None)
-        stop_MPh = self.datastore.get_metadatum('stop_MPh', None)
-        qHH = self.datastore.get_metadatum('qHH', None)
-
+        self.data = self.datastore.get_data('transformandplacement')
+        # reset_index = self.datastore.get_metadatum('reset_index', None)
+        start_MPh = self.datastore.get_metadatum('start_march_1', None)
+        stop_MPh = self.datastore.get_metadatum('end_march_1', None)
+        qH0 = self.datastore.get_metadatum('heading_quat_0', None)
+        qHH = self.datastore.get_metadatum('heading_quat_hip', None)
+        qH2 = self.datastore.get_metadatum('heading_quat_0', None)
         # convert to ndarray
         # data (25 columns) has been through Body Frame Transformation
         data = self.get_ndarray()
 
         # Sampling frequency
-        fs = 100
+        # fs = 100
         # Set maximum length within search (MPh) from the beginning of the data (secs*Fs)
-        nsearch = 30 * fs
+        # nsearch = 30 * fs
 
         ## Heading values
         # TODO: move to transformandplacement
@@ -35,7 +36,7 @@ class DriftcorrectionJob(Job):
         #qHH = heading_hip_finder(data[:nsearch, 13:17], reset_index)
 
         # Heading values for foot sensors (with marching phase)
-        qH0, qH2 = heading_foot_finder(data[:nsearch, 1:9], data[:nsearch, 17:25], start_MPh, stop_MPh)
+        # qH0, qH2 = heading_foot_finder(data[:nsearch, 1:9], data[:nsearch, 17:25], start_MPh, stop_MPh)
 
         # Heading correction for all sensors
         dataHC = heading_correction(data, qH0, qHH, qH2)
@@ -74,7 +75,7 @@ class DriftcorrectionJob(Job):
                                'quat_{}_z', 'quat_{}_w']
             renames = {}
             for old, new in placement:
-                for prefix in column_prefixes:
+                for prefix in column_prefixes: 
                     renames[prefix.format(str(old))] = prefix.format(str(new))
 
             self.data = self.data.rename(index=str, columns=renames)
@@ -85,6 +86,7 @@ class DriftcorrectionJob(Job):
             }
 
         # Save the data at the end
-        self.datastore.put_data('driftcorrection', self.data)
+        self.datastore.put_data('driftcorrection', self.data, chunk_size=int(os.environ['CHUNK_SIZE']))
+        self.datastore.put_metadata(ret)
 
-        return ret
+        # return ret
