@@ -1,6 +1,0 @@
-{
-  "tests_complexity_summary.py::test_get_cma_summaries": true,
-  "tests_complexity_summary.py::test_get_cma_time_summaries": true,
-  "tests_complexity_summary.py::test_get_session_summaries": true,
-  "tests_complexity_summary.py::test_get_time_summaries": true
-}

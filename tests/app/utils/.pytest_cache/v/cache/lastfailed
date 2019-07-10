@@ -1,5 +1,0 @@
-{
-  "test_filter.py": true,
-  "test_quaternion_conversions.py::test_quat_force_euler_angle": true,
-  "test_quaternion_conversions.py::test_quat_to_euler": true
-}
