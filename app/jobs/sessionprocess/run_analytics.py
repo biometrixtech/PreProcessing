@@ -40,7 +40,8 @@ _output_columns = [
     'active',
     'phase_lf',  'phase_rf',
     # 'impact_phase_lf', 'impact_phase_rf',
-    'grf', 'grf_lf', 'grf_rf', 'grf_bal_phase',
+    'grf', 'grf_lf', 'grf_rf',
+    # 'grf_bal_phase',
     # 'contra_hip_drop_lf', 'contra_hip_drop_rf',
     # 'ankle_rot_lf', 'ankle_rot_rf',
     # 'foot_position_lf', 'foot_position_rf',
@@ -129,24 +130,24 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
         flexion_rf
     ) = extract_geometry(lf_quats, hip_quats, rf_quats)
 
-    if file_version == '1.0':
-        data['euler_lf_x'] = lf_euls[:, 0].reshape(-1, 1)
-        data['euler_lf_y'] = lf_euls[:, 1].reshape(-1, 1)
-        data['euler_hip_x'] = hip_euls[:, 0].reshape(-1, 1)
-        data['euler_hip_y'] = hip_euls[:, 1].reshape(-1, 1)
-        data['euler_rf_x'] = rf_euls[:, 0].reshape(-1, 1)
-        data['euler_rf_y'] = rf_euls[:, 1].reshape(-1, 1)
-    else:
-        data['euler_lf_x'] = adduction_lf.reshape(-1, 1)
-        data['euler_lf_y'] = flexion_lf.reshape(-1, 1)
-        data['euler_hip_x'] = adduction_h.reshape(-1, 1)
-        data['euler_hip_y'] = flexion_h.reshape(-1, 1)
-        data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
-        data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
+    # if file_version == '1.0':
+    #     data['euler_lf_x'] = lf_euls[:, 0].reshape(-1, 1)
+    #     data['euler_lf_y'] = lf_euls[:, 1].reshape(-1, 1)
+    #     data['euler_hip_x'] = hip_euls[:, 0].reshape(-1, 1)
+    #     data['euler_hip_y'] = hip_euls[:, 1].reshape(-1, 1)
+    #     data['euler_rf_x'] = rf_euls[:, 0].reshape(-1, 1)
+    #     data['euler_rf_y'] = rf_euls[:, 1].reshape(-1, 1)
+    # else:
+    data['euler_lf_x'] = adduction_lf.reshape(-1, 1)
+    data['euler_lf_y'] = flexion_lf.reshape(-1, 1)
+    data['euler_hip_x'] = adduction_h.reshape(-1, 1)
+    data['euler_hip_y'] = flexion_h.reshape(-1, 1)
+    data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
+    data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
 
-        lf_euls = data.loc[:, ['euler_lf_x', 'euler_lf_y', 'euler_lf_z']].values
-        hip_euls = data.loc[:, ['euler_hip_x', 'euler_hip_y', 'euler_hip_z']].values
-        rf_euls = data.loc[:, ['euler_rf_x', 'euler_rf_y', 'euler_rf_z']].values
+    lf_euls = data.loc[:, ['euler_lf_x', 'euler_lf_y', 'euler_lf_z']].values
+    hip_euls = data.loc[:, ['euler_hip_x', 'euler_hip_y', 'euler_hip_z']].values
+    rf_euls = data.loc[:, ['euler_rf_x', 'euler_rf_y', 'euler_rf_z']].values
 
 
         # prepare data for grf prediction
@@ -337,7 +338,7 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     # logger.info('DONE WITH RATE OF FORCE PRODUCTION!')
 
     # MAGNITUDE OF GRF DURING BALANCE PHASE
-    data['grf_bal_phase'] = calculate_balance_phase_force(data) / weight
+    # data['grf_bal_phase'] = calculate_balance_phase_force(data) / weight
 
     # DEFINE UNIT ACTIVE BLOCKS
     data.total_accel[data.stance == 0] = 0
@@ -522,7 +523,7 @@ def cleanup_grf(grf_result, weight, length, nan_row):
     right_grf = filter_data(right_grf, filt='low', highcut=18)
 
     # set grf value below certain threshold to 0
-    grf[grf <= .1*weight] = 0
+    grf[grf <= .1 * weight] = 0
     left_grf[left_grf <= .05 * weight] = 0
     right_grf[right_grf <= .05 * weight] = 0
 
@@ -533,7 +534,6 @@ def cleanup_grf(grf_result, weight, length, nan_row):
     grf_temp[np.array(list(set(range(length)) - set(nan_row)))] = grf
     grf_lf_temp[np.array(list(set(range(length)) - set(nan_row)))] = left_grf
     grf_rf_temp[np.array(list(set(range(length)) - set(nan_row)))] = right_grf
-
     # Insert nan for grf where data needed to predict was missing
     if len(nan_row) != 0:
         for i in nan_row:
@@ -543,21 +543,31 @@ def cleanup_grf(grf_result, weight, length, nan_row):
 
     lf_ind = np.zeros(len(grf_lf_temp))
     lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
+    lf_ranges, lf_ranges_length = get_ranges(lf_ind, 1, True)
 
     rf_ind = np.zeros(len(grf_rf_temp))
     rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
+    rf_ranges, rf_ranges_length = get_ranges(rf_ind, 1, True)
 
-    lf_ranges, lf_ranges_length = get_ranges(lf_ind, 1, True)
     for r, l in zip(lf_ranges, lf_ranges_length):
         if l < 8:
-            grf_lf_temp[r[0]: r[1]] = 0
-    lf_ind = np.zeros(len(grf_lf_temp))
-    lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
-    rf_ranges, rf_ranges_length = get_ranges(rf_ind, 1, True)
+            lf_ind[r[0]: r[1]] = 0
+        elif l < 15 and max(grf_lf_temp[r[0]:r[1]]) < 0.25 * weight:
+            lf_ind[r[0]: r[1]] = 0
     for r, l in zip(rf_ranges, rf_ranges_length):
         if l < 8:
-            grf_rf_temp[r[0]: r[1]] = 0
-    rf_ind = np.zeros(len(grf_rf_temp))
-    rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
+            rf_ind[r[0]: r[1]] = 0
+        elif l < 15 and max(grf_rf_temp[r[0]:r[1]]) < 0.25 * weight:
+            rf_ind[r[0]: r[1]] = 0
+
+    lf_ranges, lf_ranges_length = get_ranges(lf_ind, 0, True)
+    rf_ranges, rf_ranges_length = get_ranges(rf_ind, 0, True)
+
+    for r, l in zip(lf_ranges, lf_ranges_length):
+        if l < 5:
+            lf_ind[r[0]: r[1]] = 1
+    for r, l in zip(rf_ranges, rf_ranges_length):
+        if l < 5:
+            rf_ind[r[0]: r[1]] = 1
 
     return grf_temp * 1000, grf_lf_temp * 1000, grf_rf_temp * 1000, lf_ind, rf_ind

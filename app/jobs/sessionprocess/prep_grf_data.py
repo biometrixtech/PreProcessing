@@ -21,7 +21,6 @@ def prepare_data(data_in, scaler_model, user_mass):
         data_in: pandas dataframe or RawFrame object with the acceleration, euler
         scaler_model: scaler model to scale data
         user_mass: the user's mass
-        is_single_leg: whether is single-leg
     Returns:
         X : Predictors
         Y : Reponse (only if training)
@@ -70,15 +69,18 @@ def prepare_data(data_in, scaler_model, user_mass):
 
     # Define set of predictors to use
     predictors = [
-                  'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
+                  'acc_lf_z',
                   'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
-                  'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
+                  'acc_rf_z',
+                  'euler_lf_x', 'euler_lf_y', 
+                  'euler_hip_x', 'euler_hip_y', 
+                  'euler_rf_x', 'euler_rf_y',
                   'euler_lf_x_d', 'euler_lf_y_d', 'euler_lf_z_d',
                   'euler_hip_x_d', 'euler_hip_y_d', 'euler_hip_z_d',
                   'euler_rf_x_d', 'euler_rf_y_d', 'euler_rf_z_d',
-                  'acc_lf_x_d', 'acc_lf_y_d', 'acc_lf_z_d',
+                  'acc_lf_z_d',
                   'acc_hip_x_d', 'acc_hip_y_d', 'acc_hip_z_d',
-                  'acc_rf_x_d', 'acc_rf_y_d', 'acc_rf_z_d',
+                  'acc_rf_z_d',
                   'acc_lf', 'acc_hip', 'acc_rf',
                   'acc_lf_d', 'acc_hip_d', 'acc_rf_d',
                   'mass'
