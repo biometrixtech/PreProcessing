@@ -3,6 +3,8 @@ import numpy as np
 from utils.quaternion_conversions import quat_from_euler_angles, quat_as_euler_angles
 from utils.quaternion_operations import quat_avg, hamilton_product, quat_conjugate
 
+# from numba import jit as _jit
+
 _logger = logging.getLogger(__name__)
 
 
