@@ -13,6 +13,10 @@
 
 tests/advancedStats/.pytest_cache/*
 tests/session2/.pytest_cache/*
+tests/app/jobs/driftcorrection/.pytest_cache/*
+tests/app/jobs/sessionprocess/.pytest_cache/*
+tests/app/jobs/transformandplacement/.pytest_cache/*
+tests/app/jobs/advancedstats/.pytest_cache/*
 tests/files/*
 apigateway/*
 !apigateway/routes
