@@ -13,6 +13,7 @@
 
 tests/advancedStats/.pytest_cache/*
 tests/session2/.pytest_cache/*
+tests/files/*
 apigateway/*
 !apigateway/routes
 !apigateway/*.py
