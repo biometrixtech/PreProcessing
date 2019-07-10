@@ -1,4 +1,0 @@
-{
-  "test_create_session.py::test_session_create_no_auth": true,
-  "test_create_session.py::test_validate_aws_pre": true
-}
