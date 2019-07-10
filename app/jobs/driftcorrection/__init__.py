@@ -12,7 +12,7 @@ class DriftcorrectionJob(Job):
     def __init__(self, datastore):
         super().__init__(datastore)
 
-    def _run(self, skip_placement=False):
+    def _run(self, run_placement=True):
 
         self.data = self.datastore.get_data(('transformandplacement', '*'))
         reset_index = self.datastore.get_metadatum('reset_index', None)
@@ -66,7 +66,7 @@ class DriftcorrectionJob(Job):
 
         ret = {}
 
-        if not skip_placement:
+        if run_placement:
             placement_detected, weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
 
             placement = zip(placement_detected, ['lf', 'hip', 'rf'])
