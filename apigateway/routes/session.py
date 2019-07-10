@@ -6,6 +6,7 @@ import datetime
 import io
 import json
 import re
+import time
 
 from fathomapi.api.config import Config
 from fathomapi.utils.exceptions import ApplicationException, DuplicateEntityException, InvalidSchemaException
@@ -115,6 +116,9 @@ def handle_session_patch(session_id):
             session['session_status'] = request.json['session_status']
             if session['session_status'] == 'UPLOAD_COMPLETE':
                 request.json['upload_end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+            # https://app.asana.com/0/410356542105212/1126815467611560
+            # Race condition between uploads being noted in DynamoDB (from S3 event watcher) and processing starting; hack around with a sleep
+            time.sleep(5)
         else:
             # https://app.asana.com/0/654140198477919/673983533272813
             return {'message': 'Currently at status {}, cannot change to {}'.format(session['session_status'], request.json['session_status'])}, 200
