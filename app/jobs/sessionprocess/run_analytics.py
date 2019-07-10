@@ -16,17 +16,17 @@ import copy
 import logging
 import numpy as np
 
-from .balance_cme import calculate_rot_cmes, calculate_rot_cmes_v1
-from .balance_phase_force import calculate_balance_phase_force
-from .detect_impact_phase_intervals import detect_start_end_impact_phase
-from .detect_takeoff_phase_intervals import detect_start_end_takeoff_phase
+# from .balance_cme import calculate_rot_cmes, calculate_rot_cmes_v1
+# from .balance_phase_force import calculate_balance_phase_force
+# from .detect_impact_phase_intervals import detect_start_end_impact_phase
+# from .detect_takeoff_phase_intervals import detect_start_end_takeoff_phase
 from .extract_geometry import extract_geometry
-from .impact_cme import sync_time, landing_pattern, continuous_values
-from .movement_attributes import plane_analysis, run_stance_analysis, total_accel
+# from .impact_cme import sync_time, landing_pattern, continuous_values
+from .movement_attributes import run_stance_analysis, total_accel
 from .phase_detection import combine_phase
 from .prep_grf_data import prepare_data
-from .rate_of_force_absorption import detect_rate_of_force_absorption
-from .rate_of_force_production import detect_rate_of_force_production
+# from .rate_of_force_absorption import detect_rate_of_force_absorption
+# from .rate_of_force_production import detect_rate_of_force_production
 from .run_relative_cme import run_relative_cmes
 from .unit_blocks import define_unit_blocks
 import utils.quaternion_conversions as qc
@@ -75,22 +75,21 @@ _output_columns = [
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.run_session')
-def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
+def run_session(data, mass, grf_fit, sc):
     """Creates object attributes according to session analysis process.
 
     Args:
-        data: raw data object with attributes of:
-            epoch_time, corrupt_magn, missing_type, acc_lf_x, acc_lf_y, acc_lf_z, quat_lf_x, quat_lf_y,
-            quat_lf_z, acc_hip_x, acc_hip_y, acc_hip_z, quat_hip_x, quat_hip_y, quat_hip_z, acc_rf_x, acc_rf_y, acc_rf_z, quat_rf_x, quat_rf_y, quat_rf_z
-        file_version: file format and type version (matching accessory sensor dev)
+        data: transformed data object with attributes of:
+            epoch_time,
+            static_lf, acc_lf_x, acc_lf_y, acc_lf_z, quat_lf_x, quat_lf_y, quat_lf_z,
+            static_hip, acc_hip_x, acc_hip_y, acc_hip_z, quat_hip_x, quat_hip_y, quat_hip_z,
+            static_rf, acc_rf_x, acc_rf_y, acc_rf_z, quat_rf_x, quat_rf_y, quat_rf_z
         mass: user's mass in kg
         grf_fit: keras fitted model for grf prediction
-        sc: scaler model to scale data
-        hip_n_transform: array of neutral hip transformation (used for cme computation in v1 data)
+        sc: scaler model to scale data)
 
     Returns:
-        result: string signifying success or failure.
-        Note: In case of completion for local run, returns movement table.
+        scoring_data: processed data in pandas dataframe with columms defined above in _output_columns
     """
     sampl_freq = 97.5
 
@@ -145,12 +144,12 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
     data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
 
-    lf_euls = data.loc[:, ['euler_lf_x', 'euler_lf_y', 'euler_lf_z']].values
-    hip_euls = data.loc[:, ['euler_hip_x', 'euler_hip_y', 'euler_hip_z']].values
-    rf_euls = data.loc[:, ['euler_rf_x', 'euler_rf_y', 'euler_rf_z']].values
+    # lf_euls = data.loc[:, ['euler_lf_x', 'euler_lf_y', 'euler_lf_z']].values
+    # hip_euls = data.loc[:, ['euler_hip_x', 'euler_hip_y', 'euler_hip_z']].values
+    # rf_euls = data.loc[:, ['euler_rf_x', 'euler_rf_y', 'euler_rf_z']].values
 
 
-        # prepare data for grf prediction
+    # prepare data for grf prediction
     weight = mass * 9.807 / 1000  # convert mass from kg to N
     grf_data, nan_row = prepare_data(data, sc, weight)
 
@@ -227,7 +226,7 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
 
     # MOVEMENT QUALITY FEATURES
 
-    ### DEPRECATED
+    # DEPRECATED
     # isolate bf quaternions
     # lf_quat = np.hstack([data.quat_lf_w, data.quat_lf_x, data.quat_lf_y, data.quat_lf_z])
     # hip_quat = np.hstack([data.quat_hip_w, data.quat_hip_x, data.quat_hip_y, data.quat_hip_z])
@@ -345,7 +344,7 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     data['active'] = define_unit_blocks(data.total_accel)
 
     # combine into data table
-    length = len(data.acc_lf_x)
+    # length = len(data.acc_lf_x)
     # data['loading_lf'] = np.array([np.nan]*length).reshape(-1, 1)
     # data['loading_rf'] = np.array([np.nan]*length).reshape(-1, 1)
     scoring_data = data.loc[:, _output_columns]
@@ -357,159 +356,159 @@ def run_session(data, file_version, mass, grf_fit, sc, hip_n_transform):
     return scoring_data
 
 
-@xray_recorder.capture('app.jobs.sessionprocess.update_stance')
-def update_stance(data):
-    length_lf, range_lf = _contact_duration(data.phase_lf.values,
-                                            data.active.values,
-                                            data.epoch_time.values,
-                                            ground_phases=[2, 3])
-    length_rf, range_rf = _contact_duration(data.phase_rf.values,
-                                            data.active.values,
-                                            data.epoch_time.values,
-                                            ground_phases=[2, 3])
-
-    for left_step in range_lf:
-        left_phase = np.unique(data.phase_lf[left_step[0]:left_step[1]].values)
-        if np.all(left_phase == np.array([2., 3.])):
-            left_takeoff = get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
-            if len(left_takeoff) > 0:  # has takeoff as part of ground contact
-                left_takeoff = left_takeoff[0]
-                if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2:  # impact-->takeoff not ground-->takeoff
-                    left_takeoff_start = left_step[0] + left_takeoff[0]
-                    left_end = left_step[1]
-                    right_start = range_rf[:, 0]
-                    right_step = range_rf[(left_takeoff_start <= right_start) & (right_start <= left_end)]
-                    if len(right_step) > 0:  # any right step that starts impact withing left_takeoff
-                        # make sure start of right step is impact
-                        right_step = right_step[0]
-                        if data.phase_rf[right_step[0]] == 2 and 3 in np.unique(data.phase_rf[right_step[0]:right_step[1]].values):
-                            data.loc[left_step[0]:right_step[1], 'stance'] = [6] * (right_step[1] - left_step[0] + 1)
-                    else:
-                        data.loc[left_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - left_step[0] + 1)
-        step_data = data.loc[left_step[0]:left_step[1]]
-        stance = np.unique(step_data.stance.values)
-        if len(stance) > 1:
-            if np.all(stance == np.array([2., 3.])):
-                rf_air = np.where(step_data.phase_rf.values == 1)[0]
-                if len(rf_air) <= 2:
-                    data.loc[left_step[0]:left_step[1], 'stance'] = [3.] * len(step_data)
-                else:
-                    data.loc[left_step[0]:left_step[1], 'stance'] = [7.] * len(step_data)
-            elif np.all(stance == np.array([2., 6.])):
-                continue
-            elif np.all(stance == np.array([3., 6.])):
-                continue
-            elif np.all(stance == np.array([2., 4.])):
-                data.loc[left_step[0]:left_step[1], 'stance'] = [2.] * len(step_data)
-            elif np.all(stance == np.array([3., 5.])):
-                data.loc[left_step[0]:left_step[1], 'stance'] = [3.] * len(step_data)
-
-    for right_step in range_rf:
-        right_phase = np.unique(data.phase_rf[right_step[0]:right_step[1]].values)
-        if np.all(right_phase == np.array([2., 3.])):
-            right_takeoff = get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
-            if len(right_takeoff) > 0:  # has takeoff as part of ground contact
-                right_takeoff = right_takeoff[0]
-                if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2:  # impact-->takeoff not ground-->takeoff
-                    right_takeoff_start = right_step[0] + right_takeoff[0]
-                    right_end = right_step[1]
-                    left_start = range_lf[:, 0]
-                    left_step = range_lf[(right_takeoff_start <= left_start) & (left_start <= right_end)]
-                    if len(left_step) > 0:  # any left step that starts impact withing right_takeoff
-                        # make sure start of left step is impact
-                        left_step = left_step[0]
-                        if data.phase_lf[left_step[0]] == 2 and 3 in data.phase_lf[left_step[0]:left_step[1]].values:
-                            data.loc[right_step[0]:left_step[1], 'stance'] = [6] * (left_step[1] - right_step[0] + 1)
-                    else:
-                        data.loc[right_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - right_step[0] + 1)
-        step_data = data.loc[right_step[0]:right_step[1]]
-        stance = np.unique(step_data.stance.values)
-        if len(stance) > 1:
-            if np.all(stance == np.array([2., 3.])):
-                lf_air = np.where(step_data.phase_lf.values == 1)[0]
-                if len(lf_air) <= 2:
-                    data.loc[right_step[0]:right_step[1], 'stance'] = [3.] * len(step_data)
-                else:
-                    data.loc[right_step[0]:right_step[1], 'stance'] = [7.] * len(step_data)
-            elif np.all(stance == np.array([2., 6.])):
-                continue
-            elif np.all(stance == np.array([3., 6.])):
-                continue
-            elif np.all(stance == np.array([2., 4.])):
-                data.loc[right_step[0]:right_step[1], 'stance'] = [2.] * len(step_data)
-            elif np.all(stance == np.array([3., 5.])):
-                data.loc[right_step[0]:right_step[1], 'stance'] = [3.] * len(step_data)
-
-    return data
-
-
-@xray_recorder.capture('app.jobs.sessionprocess._contact_duration')
-def _contact_duration(phase, active, epoch_time, ground_phases):
-    """compute contact duration in ms given phase data
-    """
-    min_gc = 80.
-    max_gc = 1500.
-
-    # enumerate phase such that all ground contacts are 0
-    _phase = copy.copy(phase)
-    _phase[np.array([i in ground_phases for i in _phase])] = 0
-    _phase[np.array([i == 0 for i in active])] = 1
-
-    # get index ranges for ground contacts
-    ranges = get_ranges(_phase, 0)
-    length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
-
-    length_index = np.where((length >= min_gc) & (length <= max_gc))
-    ranges = ranges[length_index]
-
-    # subset to only get the points where ground contacts are within a reasonable window
-    length = length[(length >= min_gc) & (length <= max_gc)]
-
-    return length, ranges
-
-
-@xray_recorder.capture('app.jobs.sessionprocess._calculate_hip_neutral')
-def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
-    # Transform Data into Neutral Versions, for balanceCME Calculations
-
-    # Define length, reshape transform value
-    length = len(hip_bf_quats)
-    hip_n_transform = np.array(hip_n_transform).reshape(-1, 4)
-
-    # Divide static neutral and instantaneous hip data into axial components
-    static_hip_neut = qc.quat_to_euler(
-        hip_n_transform[0],
-        hip_n_transform[1],
-        hip_n_transform[2],
-        hip_n_transform[3],
-    )
-    neutral_hip_roll = static_hip_neut[0, 0]
-    neutral_hip_pitch = static_hip_neut[0, 1]
-
-    neutral_hip_roll = np.full((length, 1), neutral_hip_roll, float)
-    neutral_hip_pitch = np.full((length, 1), neutral_hip_pitch, float)
-    inst_hip_yaw = qc.quat_to_euler(
-        hip_bf_quats[:, 0],
-        hip_bf_quats[:, 1],
-        hip_bf_quats[:, 2],
-        hip_bf_quats[:, 3],
-    )[:, 2].reshape(-1, 1)
-
-    # Combine select data to define neutral hip data
-    hip_neutral_euls = np.hstack((neutral_hip_roll, neutral_hip_pitch,
-                                  inst_hip_yaw))
-
-    # Define hip adjusted inertial frame using instantaneous hip yaw
-    hip_aif_euls = np.hstack((np.zeros((length, 2)), inst_hip_yaw))
-
-    # Convert all Euler angles to quaternions and return as relevant output
-    hip_aif = qc.euler_to_quat(hip_aif_euls)
-    hip_neutral = qc.euler_to_quat(hip_neutral_euls)
-
-    lf_neutral = hip_aif  # in perfectly neutral stance, lf bf := hip AIF
-    rf_neutral = hip_aif  # in perfectly neutral stance, rf bf := hip AIF
-
-    return lf_neutral, hip_neutral, rf_neutral
+# @xray_recorder.capture('app.jobs.sessionprocess.update_stance')
+# def update_stance(data):
+#     length_lf, range_lf = _contact_duration(data.phase_lf.values,
+#                                             data.active.values,
+#                                             data.epoch_time.values,
+#                                             ground_phases=[2, 3])
+#     length_rf, range_rf = _contact_duration(data.phase_rf.values,
+#                                             data.active.values,
+#                                             data.epoch_time.values,
+#                                             ground_phases=[2, 3])
+#
+#     for left_step in range_lf:
+#         left_phase = np.unique(data.phase_lf[left_step[0]:left_step[1]].values)
+#         if np.all(left_phase == np.array([2., 3.])):
+#             left_takeoff = get_ranges(data.phase_lf[left_step[0]:left_step[1]], 3)
+#             if len(left_takeoff) > 0:  # has takeoff as part of ground contact
+#                 left_takeoff = left_takeoff[0]
+#                 if data.phase_lf[left_step[0] + left_takeoff[0] - 1] == 2:  # impact-->takeoff not ground-->takeoff
+#                     left_takeoff_start = left_step[0] + left_takeoff[0]
+#                     left_end = left_step[1]
+#                     right_start = range_rf[:, 0]
+#                     right_step = range_rf[(left_takeoff_start <= right_start) & (right_start <= left_end)]
+#                     if len(right_step) > 0:  # any right step that starts impact withing left_takeoff
+#                         # make sure start of right step is impact
+#                         right_step = right_step[0]
+#                         if data.phase_rf[right_step[0]] == 2 and 3 in np.unique(data.phase_rf[right_step[0]:right_step[1]].values):
+#                             data.loc[left_step[0]:right_step[1], 'stance'] = [6] * (right_step[1] - left_step[0] + 1)
+#                     else:
+#                         data.loc[left_step[0]:left_step[1], 'stance'] = [2] * (left_step[1] - left_step[0] + 1)
+#         step_data = data.loc[left_step[0]:left_step[1]]
+#         stance = np.unique(step_data.stance.values)
+#         if len(stance) > 1:
+#             if np.all(stance == np.array([2., 3.])):
+#                 rf_air = np.where(step_data.phase_rf.values == 1)[0]
+#                 if len(rf_air) <= 2:
+#                     data.loc[left_step[0]:left_step[1], 'stance'] = [3.] * len(step_data)
+#                 else:
+#                     data.loc[left_step[0]:left_step[1], 'stance'] = [7.] * len(step_data)
+#             elif np.all(stance == np.array([2., 6.])):
+#                 continue
+#             elif np.all(stance == np.array([3., 6.])):
+#                 continue
+#             elif np.all(stance == np.array([2., 4.])):
+#                 data.loc[left_step[0]:left_step[1], 'stance'] = [2.] * len(step_data)
+#             elif np.all(stance == np.array([3., 5.])):
+#                 data.loc[left_step[0]:left_step[1], 'stance'] = [3.] * len(step_data)
+#
+#     for right_step in range_rf:
+#         right_phase = np.unique(data.phase_rf[right_step[0]:right_step[1]].values)
+#         if np.all(right_phase == np.array([2., 3.])):
+#             right_takeoff = get_ranges(data.phase_rf[right_step[0]:right_step[1]], 3)
+#             if len(right_takeoff) > 0:  # has takeoff as part of ground contact
+#                 right_takeoff = right_takeoff[0]
+#                 if data.phase_rf[right_step[0] + right_takeoff[0] - 1] == 2:  # impact-->takeoff not ground-->takeoff
+#                     right_takeoff_start = right_step[0] + right_takeoff[0]
+#                     right_end = right_step[1]
+#                     left_start = range_lf[:, 0]
+#                     left_step = range_lf[(right_takeoff_start <= left_start) & (left_start <= right_end)]
+#                     if len(left_step) > 0:  # any left step that starts impact withing right_takeoff
+#                         # make sure start of left step is impact
+#                         left_step = left_step[0]
+#                         if data.phase_lf[left_step[0]] == 2 and 3 in data.phase_lf[left_step[0]:left_step[1]].values:
+#                             data.loc[right_step[0]:left_step[1], 'stance'] = [6] * (left_step[1] - right_step[0] + 1)
+#                     else:
+#                         data.loc[right_step[0]:right_step[1], 'stance'] = [2] * (right_step[1] - right_step[0] + 1)
+#         step_data = data.loc[right_step[0]:right_step[1]]
+#         stance = np.unique(step_data.stance.values)
+#         if len(stance) > 1:
+#             if np.all(stance == np.array([2., 3.])):
+#                 lf_air = np.where(step_data.phase_lf.values == 1)[0]
+#                 if len(lf_air) <= 2:
+#                     data.loc[right_step[0]:right_step[1], 'stance'] = [3.] * len(step_data)
+#                 else:
+#                     data.loc[right_step[0]:right_step[1], 'stance'] = [7.] * len(step_data)
+#             elif np.all(stance == np.array([2., 6.])):
+#                 continue
+#             elif np.all(stance == np.array([3., 6.])):
+#                 continue
+#             elif np.all(stance == np.array([2., 4.])):
+#                 data.loc[right_step[0]:right_step[1], 'stance'] = [2.] * len(step_data)
+#             elif np.all(stance == np.array([3., 5.])):
+#                 data.loc[right_step[0]:right_step[1], 'stance'] = [3.] * len(step_data)
+#
+#     return data
+#
+#
+# @xray_recorder.capture('app.jobs.sessionprocess._contact_duration')
+# def _contact_duration(phase, active, epoch_time, ground_phases):
+#     """compute contact duration in ms given phase data
+#     """
+#     min_gc = 80.
+#     max_gc = 1500.
+#
+#     # enumerate phase such that all ground contacts are 0
+#     _phase = copy.copy(phase)
+#     _phase[np.array([i in ground_phases for i in _phase])] = 0
+#     _phase[np.array([i == 0 for i in active])] = 1
+#
+#     # get index ranges for ground contacts
+#     ranges = get_ranges(_phase, 0)
+#     length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
+#
+#     length_index = np.where((length >= min_gc) & (length <= max_gc))
+#     ranges = ranges[length_index]
+#
+#     # subset to only get the points where ground contacts are within a reasonable window
+#     length = length[(length >= min_gc) & (length <= max_gc)]
+#
+#     return length, ranges
+#
+#
+# @xray_recorder.capture('app.jobs.sessionprocess._calculate_hip_neutral')
+# def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
+#     # Transform Data into Neutral Versions, for balanceCME Calculations
+#
+#     # Define length, reshape transform value
+#     length = len(hip_bf_quats)
+#     hip_n_transform = np.array(hip_n_transform).reshape(-1, 4)
+#
+#     # Divide static neutral and instantaneous hip data into axial components
+#     static_hip_neut = qc.quat_to_euler(
+#         hip_n_transform[0],
+#         hip_n_transform[1],
+#         hip_n_transform[2],
+#         hip_n_transform[3],
+#     )
+#     neutral_hip_roll = static_hip_neut[0, 0]
+#     neutral_hip_pitch = static_hip_neut[0, 1]
+#
+#     neutral_hip_roll = np.full((length, 1), neutral_hip_roll, float)
+#     neutral_hip_pitch = np.full((length, 1), neutral_hip_pitch, float)
+#     inst_hip_yaw = qc.quat_to_euler(
+#         hip_bf_quats[:, 0],
+#         hip_bf_quats[:, 1],
+#         hip_bf_quats[:, 2],
+#         hip_bf_quats[:, 3],
+#     )[:, 2].reshape(-1, 1)
+#
+#     # Combine select data to define neutral hip data
+#     hip_neutral_euls = np.hstack((neutral_hip_roll, neutral_hip_pitch,
+#                                   inst_hip_yaw))
+#
+#     # Define hip adjusted inertial frame using instantaneous hip yaw
+#     hip_aif_euls = np.hstack((np.zeros((length, 2)), inst_hip_yaw))
+#
+#     # Convert all Euler angles to quaternions and return as relevant output
+#     hip_aif = qc.euler_to_quat(hip_aif_euls)
+#     hip_neutral = qc.euler_to_quat(hip_neutral_euls)
+#
+#     lf_neutral = hip_aif  # in perfectly neutral stance, lf bf := hip AIF
+#     rf_neutral = hip_aif  # in perfectly neutral stance, rf bf := hip AIF
+#
+#     return lf_neutral, hip_neutral, rf_neutral
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.cleanup_grf')
