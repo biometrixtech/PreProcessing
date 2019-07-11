@@ -72,7 +72,7 @@ class DriftcorrectionJob(Job):
             self.data = self.data.rename(index=str, columns=renames)
 
             ret = {
-                'placement': placement,
+                'placement': placement_detected,
                 'weak_placement': weak_placement
             }
 
