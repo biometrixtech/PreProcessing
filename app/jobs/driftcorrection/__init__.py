@@ -60,7 +60,7 @@ class DriftcorrectionJob(Job):
             placement_detected, weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
 
             placement = zip(placement_detected, ['lf', 'hip', 'rf'])
-            column_prefixes = ['still_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y',
+            column_prefixes = ['static_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y',
                                'quat_{}_z', 'quat_{}_w']
             renames = {}
             for old, new in placement:

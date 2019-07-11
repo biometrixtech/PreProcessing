@@ -68,6 +68,8 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
     # Data length
     n = op_cond.size
     # Band Pass filtering on Axl magnitude
+    print(type(axl_refCH))
+    print(axl_refCH)
     axl_norm_f = _np.linalg.norm(axl_refCH, axis=1)
     bl, al = _butter(1, 8, "lowpass", fs=fs)
     bh, ah = _butter(1, .5, "highpass", fs=fs)
