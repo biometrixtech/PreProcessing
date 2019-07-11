@@ -30,7 +30,7 @@ class SessionprocessJob(Job):
 
         _logger.info("LOADING DATA")
         part_number = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
-        sdata = self.datastore.get_data(('transformandplacement', part_number))
+        sdata = self.datastore.get_data(('driftcorrection', part_number))
         _logger.info("DATA LOADED!")
 
         if len(sdata) == 0:
@@ -46,10 +46,10 @@ class SessionprocessJob(Job):
         sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
         # Process the data and pass it as argument to run_session as
-        file_version = self.datastore.get_metadatum('version')
-        hip_n_transform = self.datastore.get_metadatum('hip_n_transform', None)
+        # file_version = self.datastore.get_metadatum('version')
+        # hip_n_transform = self.datastore.get_metadatum('hip_n_transform', None)
  
-        output_data_batch = run_session(sdata, file_version, mass, grf_fit, sc, hip_n_transform)
+        output_data_batch = run_session(sdata, mass, grf_fit, sc)
 
         # Output data
         output_data_batch = output_data_batch.replace('None', '')

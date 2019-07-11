@@ -2,9 +2,10 @@ import jwt
 import os
 import requests
 import unittest
+import pytest
 
 
-class BaseTest(unittest.TestCase):
+class BaseTest(object):
     host = 'https://apis.dev.fathomai.com/preprocessing'
     endpoint = None
     method = None
@@ -35,10 +36,7 @@ class BaseTest(unittest.TestCase):
         pass
 
     def test(self):
-        if self.endpoint is None:
-            # Still in the base class
-            self.skipTest('Base class')
-            return
+
         endpoint = os.path.join(self.host, self.endpoint)
 
         self.validate_aws_pre()
@@ -52,9 +50,9 @@ class BaseTest(unittest.TestCase):
         elif self.method == 'PATCH':
             res = requests.patch(endpoint, json=self.body, headers=self._get_headers())
         else:
-            self.fail('Unsupported method')
+            pytest.fail('Unsupported method')
 
-        self.assertEqual(self.expected_status, res.status_code, msg=res.json().get('message', ''))
+        assert self.expected_status == res.status_code, res.json().get('message', '')
 
         if 200 <= res.status_code < 300:
             self.validate_response(res.json(), res.headers, res.status_code)
