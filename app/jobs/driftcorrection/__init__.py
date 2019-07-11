@@ -77,7 +77,7 @@ class DriftcorrectionJob(Job):
             }
 
         # ms_elapsed and datetime
-        data['time_stamp'], data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(data.epoch_time)
+        self.data['time_stamp'], self.data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(self.data.epoch_time)
 
         # Save the data at the end
         self.datastore.put_data('driftcorrection', self.data, chunk_size=int(os.environ['CHUNK_SIZE']))
