@@ -14,7 +14,6 @@ from .sensor_use_detection import detect_single_sensor, detect_data_truncation
 from .transform_calculation import compute_transform
 from .heading_calculation import heading_foot_finder
 from .get_march_and_still import detect_march_and_still
-from .epoch_time_transform import convert_epochtime_datetime_mselapsed
 from .body_frame_transformation import body_frame_tran
 
 _logger = logging.getLogger(__name__)
@@ -57,9 +56,6 @@ class TransformandplacementJob(Job):
 
         # convert to pandas
         data = self.get_core_data_frame_from_ndarray(data)
-
-        # ms_elapsed and datetime
-        data['time_stamp'], data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(data.epoch_time)
 
         # self.datastore.put_data('transformandplacement', data, chunk_size=int(os.environ['CHUNK_SIZE']))
         self.datastore.put_data('transformandplacement', data)

@@ -2,11 +2,12 @@ import os
 import json
 import numpy as np
 from ..job import Job
-from jobs.driftcorrection.heading_correction import heading_correction
-from jobs.driftcorrection.hip_drift_correction import hip_drift_correction
-from jobs.driftcorrection.foot_drift_correction import foot_drift_correction
-from jobs.driftcorrection.acceleration_correction import axl_correction
-from jobs.driftcorrection.placement import get_placement_lateral_hip
+from .heading_correction import heading_correction
+from .hip_drift_correction import hip_drift_correction
+from .foot_drift_correction import foot_drift_correction
+from .acceleration_correction import axl_correction
+from .placement import get_placement_lateral_hip
+from .epoch_time_transform import convert_epochtime_datetime_mselapsed
 
 
 class DriftcorrectionJob(Job):
@@ -73,6 +74,9 @@ class DriftcorrectionJob(Job):
                 'placement': placement,
                 'weak_placement': weak_placement
             }
+
+        # ms_elapsed and datetime
+        data['time_stamp'], data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(data.epoch_time)
 
         # Save the data at the end
         self.datastore.put_data('driftcorrection', self.data, chunk_size=int(os.environ['CHUNK_SIZE']))
