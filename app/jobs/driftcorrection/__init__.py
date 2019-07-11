@@ -1,5 +1,6 @@
 import os
 import json
+import numpy as np
 from ..job import Job
 from jobs.driftcorrection.heading_correction import heading_correction
 from jobs.driftcorrection.hip_drift_correction import hip_drift_correction
@@ -19,9 +20,9 @@ class DriftcorrectionJob(Job):
         # reset_index = self.datastore.get_metadatum('reset_index', None)
         start_MPh = self.datastore.get_metadatum('start_march_1', None)
         stop_MPh = self.datastore.get_metadatum('end_march_1', None)
-        qH0 = json.loads(self.datastore.get_metadatum('heading_quat_0', None))
-        qHH = json.loads(self.datastore.get_metadatum('heading_quat_hip', None))
-        qH2 = json.loads(self.datastore.get_metadatum('heading_quat_2', None))
+        qH0 = np.array(json.loads(self.datastore.get_metadatum('heading_quat_0', None))).reshape(-1, 4)
+        qHH = np.array(json.loads(self.datastore.get_metadatum('heading_quat_hip', None))).reshape(-1, 4)
+        qH2 = np.array(json.loads(self.datastore.get_metadatum('heading_quat_2', None))).reshape(-1, 4)
         # convert to ndarray
         # data (25 columns) has been through Body Frame Transformation
         data = self.get_ndarray()
