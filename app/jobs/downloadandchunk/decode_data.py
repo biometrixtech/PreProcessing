@@ -43,7 +43,7 @@ def _decode_magn(magn_data, nrow):
     magn_magnitude = magn_magnitude * 32  # multiply by 32 to calculate magnitude in mGauss
 
     # corrupt_enum = magn_temp & 7
-    corrupt_enum = magn_temp  # corrupt indicator changed
+    corrupt_enum = magn_temp / 8  # corrupt indicator changed
     # return np.concatenate((magn_magnitude.reshape(-1, 1),
     #                        corrupt_enum.reshape(-1, 1)), axis=1)
     return corrupt_enum.reshape(-1, 1)
@@ -143,14 +143,14 @@ def read_file(filename):
     ), axis=1)
 
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
-    output_pd['epoch_time'] = output_pd['epoch_time']. astype(float)
+    output_pd['epoch_time'] = output_pd['epoch_time'].astype(float)
     # output_pd['corrupt'] = output_pd['corrupt']. astype(int)
     # output_pd['magn_0'] = output_pd['magn_0']. astype(int)
-    output_pd['static_0'] = output_pd['static_0']. astype(int)
+    output_pd['static_0'] = output_pd['static_0'].astype(int)
     # output_pd['magn_1'] = output_pd['magn_1']. astype(int)
     output_pd['static_1'] = output_pd['static_1']. astype(int)
     # output_pd['magn_2'] = output_pd['magn_2']. astype(int)
-    output_pd['static_2'] = output_pd['static_2']. astype(int)
+    output_pd['static_2'] = output_pd['static_2'].astype(int)
     ms_elapsed = np.ediff1d(timestamp, to_begin=10)
     pos_timestamp = ms_elapsed >= 0
     output_pd = output_pd.iloc[pos_timestamp]

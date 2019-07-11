@@ -35,7 +35,7 @@ def _detect_march_and_still_ankle(data, sensor):
 
 def _detect_march(static):
     static = _fix_short_static(static)
-    ranges, lengths = get_ranges(static, 8, True)
+    ranges, lengths = get_ranges(static, 1, True)
     for r, length in zip(ranges, lengths):
         if length >= 400:
             return r[0], min(r[1], r[0] + int(6 * 97.52))

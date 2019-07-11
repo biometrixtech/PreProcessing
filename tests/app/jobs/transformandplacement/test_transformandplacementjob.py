@@ -13,17 +13,14 @@ def convert_accel(data):
     data.acc_0_x *= conversion_factor
     data.acc_0_y *= conversion_factor
     data.acc_0_z *= conversion_factor
-    data.static_0 *= 8
 
     data.acc_1_x *= conversion_factor
     data.acc_1_y *= conversion_factor
     data.acc_1_z *= conversion_factor
-    data.static_1 *= 8
 
     data.acc_2_x *= conversion_factor
     data.acc_2_y *= conversion_factor
     data.acc_2_z *= conversion_factor
-    data.static_2 *= 8
 
 
 def test_full_job_process():
