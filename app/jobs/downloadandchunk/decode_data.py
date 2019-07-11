@@ -132,13 +132,13 @@ def read_file(filename):
         timestamp,
         # corrupt,
         _decode_magn(data[:, 7], nrows),
-        _decode_accel(data[:, 8:13], nrows) / 1000 * 9.80665,
+        _decode_accel(data[:, 8:13], nrows),  # / 1000 * 9.80665,
         _decode_quat(data[:, 13:18], nrows),
         _decode_magn(data[:, 18], nrows),
-        _decode_accel(data[:, 19:24], nrows) / 1000 * 9.80665,
+        _decode_accel(data[:, 19:24], nrows), # / 1000 * 9.80665,
         _decode_quat(data[:, 24:29], nrows),
         _decode_magn(data[:, 29], nrows),
-        _decode_accel(data[:, 30:35], nrows) / 1000 * 9.80665,
+        _decode_accel(data[:, 30:35], nrows), # / 1000 * 9.80665,
         _decode_quat(data[:, 35:40], nrows),
     ), axis=1)
 

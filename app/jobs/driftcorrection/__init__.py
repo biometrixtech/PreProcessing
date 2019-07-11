@@ -54,6 +54,7 @@ class DriftcorrectionJob(Job):
         dataHC[:, 18: 21] = axl_corr_2
 
         self.data = self.get_core_data_frame_from_ndarray(dataHC)
+        convert_accl_to_ms2(self.data)
 
         ret = {}
 
@@ -83,3 +84,18 @@ class DriftcorrectionJob(Job):
         self.datastore.put_metadata(ret)
 
         # return ret
+
+
+def convert_accl_to_ms2(data):
+    conversion_factor = 9.80665 / 1000
+    data.acc_0_x *= conversion_factor
+    data.acc_0_y *= conversion_factor
+    data.acc_0_z *= conversion_factor
+
+    data.acc_1_x *= conversion_factor
+    data.acc_1_y *= conversion_factor
+    data.acc_1_z *= conversion_factor
+
+    data.acc_2_x *= conversion_factor
+    data.acc_2_y *= conversion_factor
+    data.acc_2_z *= conversion_factor
