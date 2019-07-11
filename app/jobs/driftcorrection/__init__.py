@@ -19,8 +19,8 @@ class DriftcorrectionJob(Job):
 
         self.data = self.datastore.get_data('transformandplacement')
         # reset_index = self.datastore.get_metadatum('reset_index', None)
-        start_MPh = self.datastore.get_metadatum('start_march_1', None)
-        stop_MPh = self.datastore.get_metadatum('end_march_1', None)
+        start_MPh = int(self.datastore.get_metadatum('start_march_1', None))
+        stop_MPh = int(self.datastore.get_metadatum('end_march_1', None))
         qH0 = np.array(json.loads(self.datastore.get_metadatum('heading_quat_0', None))).reshape(-1, 4)
         qHH = np.array(json.loads(self.datastore.get_metadatum('heading_quat_hip', None))).reshape(-1, 4)
         qH2 = np.array(json.loads(self.datastore.get_metadatum('heading_quat_2', None))).reshape(-1, 4)
