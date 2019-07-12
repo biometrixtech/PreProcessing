@@ -126,7 +126,7 @@ def read_file(filename):
     nrows = data.shape[0]
 
     timestamp = _decode_timestamp(data[:, 0:5], nrows).reshape(-1, 1)
-    corrupt = data[:, 6].reshape(-1, 1)
+    # corrupt = data[:, 6].reshape(-1, 1)
 
     output = np.concatenate((
         timestamp,

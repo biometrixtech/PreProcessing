@@ -46,7 +46,7 @@ def _fix_short_static(static):
     ranges, length = get_ranges(static, 0, True)
     for r, l in zip(ranges, length):
         if l < 15:
-            static[r[0]: r[1]] = 8
+            static[r[0]: r[1]] = 1
     return static
 
 
