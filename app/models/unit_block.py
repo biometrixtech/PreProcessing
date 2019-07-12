@@ -41,9 +41,9 @@ class UnitBlock(object):
         # self.symmetry = mongo_unit_block.get('symmetry')
         # self.hip_symmetry = mongo_unit_block.get('hipSymmetry')
         # self.ankle_symmetry = mongo_unit_block.get('ankleSymmetry')
-        # self.total_grf = mongo_unit_block.get('totalGRF')
-        # self.total_grf_avg = mongo_unit_block.get('totalGRFAvg')
-        # self.accumulated_grf = accumulated_grf+self.total_grf
+        self.total_grf = mongo_unit_block.get('totalGRF')
+        self.total_grf_avg = mongo_unit_block.get('totalGRFAvg')
+        self.accumulated_grf = accumulated_grf+self.total_grf
 
         # self.optimal_grf = mongo_unit_block.get('optimalGRF')
         # self.irregular_grf = mongo_unit_block.get('irregularGRF')
