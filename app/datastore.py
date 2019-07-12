@@ -202,7 +202,7 @@ class Datastore:
         """
         csv_data = []
         count = 0
-        for filename in glob.glob(os.path.join(self.working_directory, source_job, '[0-9]*')):
+        for filename in sorted(glob.glob(os.path.join(self.working_directory, source_job, '[0-9]*'))):
             _logger.info('Reading {}'.format(filename))
             with open(filename, 'r') as f:
                 lines = f.readlines()
