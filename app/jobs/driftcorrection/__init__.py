@@ -8,6 +8,7 @@ from .foot_drift_correction import foot_drift_correction
 from .acceleration_correction import axl_correction
 from .placement import get_placement_lateral_hip
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
+from .exceptions import PlacementDetectionException
 
 
 class DriftcorrectionJob(Job):
@@ -18,7 +19,6 @@ class DriftcorrectionJob(Job):
     def _run(self, run_placement=True):
 
         self.data = self.datastore.get_data('transformandplacement')
-        # reset_index = self.datastore.get_metadatum('reset_index', None)
         start_MPh = int(self.datastore.get_metadatum('start_march_1', None))
         stop_MPh = int(self.datastore.get_metadatum('end_march_1', None))
         qH0 = np.array(json.loads(self.datastore.get_metadatum('heading_quat_0', None))).reshape(-1, 4)
@@ -56,34 +56,30 @@ class DriftcorrectionJob(Job):
         self.data = self.get_core_data_frame_from_ndarray(dataHC)
         convert_accl_to_ms2(self.data)
 
-        ret = {}
-
         if run_placement:
             placement_detected, weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
-
+            ret = {
+                'placement': placement_detected,
+                'weak_placement': weak_placement
+            }
+            self.datastore.put_metadata(ret)
+            if placement_detected == [0, 0, 0]:
+                raise PlacementDetectionException('Could not detect placement')
+            # If placement id detected correctly, rename the columns in dataframe
             placement = zip(placement_detected, ['lf', 'hip', 'rf'])
             column_prefixes = ['static_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y',
                                'quat_{}_z', 'quat_{}_w']
             renames = {}
             for old, new in placement:
-                for prefix in column_prefixes: 
+                for prefix in column_prefixes:
                     renames[prefix.format(str(old))] = prefix.format(str(new))
-
             self.data = self.data.rename(index=str, columns=renames)
 
-            ret = {
-                'placement': placement_detected,
-                'weak_placement': weak_placement
-            }
-
-        # ms_elapsed and datetime
+        # get ms_elapsed and time_stamp
         self.data['time_stamp'], self.data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(self.data.epoch_time)
 
         # Save the data at the end
         self.datastore.put_data('driftcorrection', self.data, chunk_size=int(os.environ['CHUNK_SIZE']))
-        self.datastore.put_metadata(ret)
-
-        # return ret
 
 
 def convert_accl_to_ms2(data):
