@@ -197,9 +197,11 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
         # Drift correction procedure
         if troughs_pos.size > troughs_threshold:
             # Discard any troughs which are close to the end of the dynamic window
+            print(troughs_pos)
             troughs_pos = troughs_pos[troughs_pos <= i - 200]
 
             # Discard any outliers +/- avg of the dynamic window troughs position
+            print(troughs_pos)
             _axl_troughs = axl_norm_f[troughs_pos]
             avg_troughs = _np.mean(_axl_troughs)
             troughs_pos = troughs_pos[_np.logical_and(2*avg_troughs <= _axl_troughs, _axl_troughs <= 0)]
