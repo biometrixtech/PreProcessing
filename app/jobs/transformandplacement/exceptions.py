@@ -6,7 +6,15 @@ class PlacementDetectionException(Exception):
     """
     pass
 
+
 class FileVersionNotSupportedException(Exception):
+    """
+    An exception thrown for old version of the file
+    """
+    pass
+
+
+class HeadingDetectionException(Exception):
     """
     An exception thrown for old version of the file
     """

@@ -2,6 +2,7 @@ import logging
 import numpy as np
 from utils.quaternion_conversions import quat_from_euler_angles, quat_as_euler_angles
 from utils.quaternion_operations import hamilton_product, quat_conjugate
+from .exceptions import HeadingDetectionException
 
 _logger = logging.getLogger(__name__)
 # from numba import jit as _jit
@@ -51,8 +52,14 @@ def heading_foot_finder(q_refC0, q_refC2, start_marching_phase, stop_marching_ph
     #     qH0 = np.array((1., 0., 0., 0.))
     #     qH2 = np.array((1., 0., 0., 0.))
     # else:
-    qH0 = heading_calculus(q_refC0[start_marching_phase:stop_marching_phase,:])
-    qH2 = heading_calculus(q_refC2[start_marching_phase:stop_marching_phase,:])
+    try:
+        qH0 = heading_calculus(q_refC0[start_marching_phase:stop_marching_phase,:])
+    except HeadingDetectionException:
+        raise HeadingDetectionException("Could not detect heading for sensor0")
+    try:
+        qH2 = heading_calculus(q_refC2[start_marching_phase:stop_marching_phase,:])
+    except HeadingDetectionException:
+        raise HeadingDetectionException("Could not detect heading for sensor2")
 
     return qH0, qH2
 
@@ -110,8 +117,7 @@ def heading_calculus(q):
     std_TH = 10
 
     if np.std(yaw_result) > std_TH or np.isnan(yaw_mean):
-        _logger.warning("Heading value not found")
-        qH = np.array((1, 0, 0, 0))
+        raise HeadingDetectionException()
     else:
         qH = quat_from_euler_angles(yaw_mean, [0, 0, 1])
 
