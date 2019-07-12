@@ -322,8 +322,8 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
             # Save backward points (check)
             backward_points.append(j)
 
-    all_peaks = _np.concatenate(all_peaks)
-    all_troughs = _np.concatenate(all_troughs)
-    backward_points = _np.asarray(backward_points)
+    # all_peaks = _np.concatenate(all_peaks)
+    # all_troughs = _np.concatenate(all_troughs)
+    # backward_points = _np.asarray(backward_points)
 
     return q_corr

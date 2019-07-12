@@ -12,21 +12,13 @@ Input data called from 'biometrix-blockcontainer'
 Output data collected in BlockEvent Table.
 """
 from aws_xray_sdk.core import xray_recorder
-# import copy
 import logging
 import numpy as np
 
-# from .balance_cme import calculate_rot_cmes, calculate_rot_cmes_v1
-# from .balance_phase_force import calculate_balance_phase_force
-# from .detect_impact_phase_intervals import detect_start_end_impact_phase
-# from .detect_takeoff_phase_intervals import detect_start_end_takeoff_phase
 from .extract_geometry import extract_geometry
-# from .impact_cme import sync_time, landing_pattern, continuous_values
 from .movement_attributes import run_stance_analysis, total_accel
 from .phase_detection import combine_phase
 from .prep_grf_data import prepare_data
-# from .rate_of_force_absorption import detect_rate_of_force_absorption
-# from .rate_of_force_production import detect_rate_of_force_production
 from .run_relative_cme import run_relative_cmes
 from .unit_blocks import define_unit_blocks
 import utils.quaternion_conversions as qc
@@ -35,27 +27,19 @@ from utils import filter_data, get_ranges
 logger = logging.getLogger()
 
 _output_columns = [
-    'obs_index', 'time_stamp', 'epoch_time', 'ms_elapsed',
-    # 'loading_lf', 'loading_rf',
+    'obs_index', 'static_lf', 'static_hip', 'static_rf',
+    'time_stamp', 'epoch_time', 'ms_elapsed',
     'active',
     'phase_lf',  'phase_rf',
-    # 'impact_phase_lf', 'impact_phase_rf',
     'grf', 'grf_lf', 'grf_rf',
-    # 'grf_bal_phase',
-    # 'contra_hip_drop_lf', 'contra_hip_drop_rf',
-    # 'ankle_rot_lf', 'ankle_rot_rf',
-    # 'foot_position_lf', 'foot_position_rf',
-    # 'land_pattern_lf', 'land_pattern_rf', 'land_time',
-    # 'rate_force_absorption_lf', 'rate_force_absorption_rf',
-    # 'rate_force_production_lf', 'rate_force_production_rf',
     'total_accel',
     'stance',
-    # 'plane', 'rot', 'lat', 'vert', 'horz',
-    'euler_lf_x', 'euler_lf_y', 'euler_hip_x', 'euler_hip_y', 'euler_rf_x', 'euler_rf_y',
+    'euler_lf_x', 'euler_lf_y', 'euler_lf_z',
+    'euler_hip_x', 'euler_hip_y', 'euler_hip_z',
+    'euler_rf_x', 'euler_rf_y', 'euler_rf_z',
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
     'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
-    # 'still_lf', 'still_hip', 'still_rf',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     'adduc_range_of_motion_lf',
     'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
@@ -129,14 +113,6 @@ def run_session(data, mass, grf_fit, sc):
         flexion_rf
     ) = extract_geometry(lf_quats, hip_quats, rf_quats)
 
-    # if file_version == '1.0':
-    #     data['euler_lf_x'] = lf_euls[:, 0].reshape(-1, 1)
-    #     data['euler_lf_y'] = lf_euls[:, 1].reshape(-1, 1)
-    #     data['euler_hip_x'] = hip_euls[:, 0].reshape(-1, 1)
-    #     data['euler_hip_y'] = hip_euls[:, 1].reshape(-1, 1)
-    #     data['euler_rf_x'] = rf_euls[:, 0].reshape(-1, 1)
-    #     data['euler_rf_y'] = rf_euls[:, 1].reshape(-1, 1)
-    # else:
     data['euler_lf_x'] = adduction_lf.reshape(-1, 1)
     data['euler_lf_y'] = flexion_lf.reshape(-1, 1)
     data['euler_hip_x'] = adduction_h.reshape(-1, 1)
@@ -144,9 +120,6 @@ def run_session(data, mass, grf_fit, sc):
     data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
     data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
 
-    # lf_euls = data.loc[:, ['euler_lf_x', 'euler_lf_y', 'euler_lf_z']].values
-    # hip_euls = data.loc[:, ['euler_hip_x', 'euler_hip_y', 'euler_hip_z']].values
-    # rf_euls = data.loc[:, ['euler_rf_x', 'euler_rf_y', 'euler_rf_z']].values
 
     # prepare data for grf prediction
     weight = mass * 9.807 / 1000  # convert mass from kg to N
@@ -163,33 +136,9 @@ def run_session(data, mass, grf_fit, sc):
     data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
     logger.info('DONE WITH PHASE DETECTION!')
 
-    # Deprecated
-    # # DETECT IMPACT PHASE INTERVALS
-    # (
-    #     data['impact_phase_lf'],
-    #     data['impact_phase_rf'],
-    #     lf_imp_range,
-    #     rf_imp_range
-    # ) = detect_start_end_impact_phase(lph=data.phase_lf, rph=data.phase_rf)
-    # logger.info('DONE WITH DETECTING IMPACT PHASE INTERVALS')
-
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
     # isolate hip acceleration and euler angle data
     hip_acc = data.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']].values
-
-    # # analyze planes of movement
-    # (
-    #     data['lat'],
-    #     data['vert'],
-    #     data['horz'],
-    #     data['rot'],
-    #     data['lat_binary'],
-    #     data['vert_binary'],
-    #     data['horz_binary'],
-    #     data['rot_binary'],
-    #     data['stationary_binary'],
-    #     data['total_accel']
-    # ) = plane_analysis(hip_acc, hip_euls, data.ms_elapsed.values.reshape(-1, 1))
 
     # calculate total acceleration
     len_hip_acc = len(hip_acc)
@@ -201,151 +150,16 @@ def run_session(data, mass, grf_fit, sc):
     del hip_acc
     logger.info('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
 
-    # DEPRECATED
-    # # Enumerate plane and stance
-    # plane = np.array([0]*len(data.rot)).reshape(-1, 1)
-    #
-    # # Enumerate plane
-    # plane[data.rot_binary == 1] = 1
-    # plane[data.lat_binary == 1] = 2
-    # plane[data.vert_binary == 1] = 3
-    # plane[data.horz_binary == 1] = 4
-    # plane[(data.rot_binary == 1) & (data.lat_binary == 1)] = 5
-    # plane[(data.rot_binary == 1) & (data.vert_binary == 1)] = 6
-    # plane[(data.rot_binary == 1) & (data.horz_binary == 1)] = 7
-    # plane[(data.lat_binary == 1) & (data.vert_binary == 1)] = 8
-    # plane[(data.lat_binary == 1) & (data.horz_binary == 1)] = 9
-    # plane[(data.vert_binary == 1) & (data.horz_binary == 1)] = 10
-    # plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1)] = 11
-    # plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.horz_binary == 1)] = 12
-    # plane[(data.rot_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 13
-    # plane[(data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 14
-    # plane[(data.rot_binary == 1) & (data.lat_binary == 1) & (data.vert_binary == 1) & (data.horz_binary == 1)] = 15
-    # data['plane'] = plane
-
-    # MOVEMENT QUALITY FEATURES
-
-    # DEPRECATED
-    # isolate bf quaternions
-    # lf_quat = np.hstack([data.quat_lf_w, data.quat_lf_x, data.quat_lf_y, data.quat_lf_z])
-    # hip_quat = np.hstack([data.quat_hip_w, data.quat_hip_x, data.quat_hip_y, data.quat_hip_z])
-    # rf_quat = np.hstack([data.quat_rf_w, data.quat_rf_x, data.quat_rf_y, data.quat_rf_z])
-
-    # # calculate movement attributes
-    # if file_version == '1.0':
-    #     # special code to rerun v1 data to gather older cmes
-    #     # isolate neutral quaternions
-    #     lf_neutral, hip_neutral, rf_neutral = _calculate_hip_neutral(hip_quat, hip_n_transform)
-    #
-    #     # calculate movement attributes
-    #     (
-    #         data['contra_hip_drop_lf'],
-    #         data['contra_hip_drop_rf'],
-    #         data['ankle_rot_lf'],
-    #         data['ankle_rot_rf'],
-    #         data['foot_position_lf'],
-    #         data['foot_position_rf']
-    #     ) = calculate_rot_cmes_v1(lf_quat, hip_quat, rf_quat, lf_neutral, hip_neutral, rf_neutral, data.phase_lf, data.phase_rf)
-    #     del lf_quat, hip_quat, rf_quat
-    #     del lf_neutral, hip_neutral, rf_neutral
-    # else:
-    #     (
-    #         data['contra_hip_drop_lf'],
-    #         data['contra_hip_drop_rf'],
-    #         data['ankle_rot_lf'],
-    #         data['ankle_rot_rf'],
-    #         data['foot_position_lf'],
-    #         data['foot_position_rf']
-    #     ) = calculate_rot_cmes(lf_euls, hip_euls, rf_euls, data.phase_lf, data.phase_rf)
-    #     del lf_quat, hip_quat, rf_quat
-
     # new relative CMEs
     data = run_relative_cmes(data)
     logger.info('DONE WITH RELATIVE CME!')
 
-    # # IMPACT CME
-    # # define dictionary for msElapsed
-    #
-    # # landing time attributes
-    # n_landtime, ltime_index, lf_rf_imp_indicator = sync_time(rf_imp_range[:, 0], lf_imp_range[:, 0], float(sampl_freq))
-    #
-    # # landing pattern attributes
-    # if len(n_landtime) != 0:
-    #     n_landpattern = landing_pattern(data.euler_rf_y, data.euler_lf_y, ltime_index, lf_rf_imp_indicator, sampl_freq, n_landtime)
-    #     land_time, land_pattern = continuous_values(n_landpattern, n_landtime, len(data.acc_lf_x), ltime_index)
-    #     data['land_time'] = land_time.reshape(-1, 1)
-    #     data['land_pattern_rf'] = land_pattern[:, 0].reshape(-1, 1)
-    #     data['land_pattern_lf'] = land_pattern[:, 1].reshape(-1, 1)
-    #     del n_landpattern, land_time, land_pattern
-    # else:
-    #     data['land_time'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
-    #     data['land_pattern_lf'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
-    #     data['land_pattern_rf'] = np.zeros((len(data.acc_lf_x), 1))*np.nan
-    # del n_landtime, ltime_index, lf_rf_imp_indicator
-    # logger.info('DONE WITH IMPACT CME!')
-
-    # # RATE OF FORCE ABSORPTION
-    # # DETECT IMPACT PHASE INTERVALS AGAIN AFTER IMPACTS ARE DIVIDED INTO IMPACT AND TAKEOFFS
-    # (
-    #     data.impact_phase_lf,
-    #     data.impact_phase_rf,
-    #     lf_imp_range,
-    #     rf_imp_range
-    # ) = detect_start_end_impact_phase(
-    #     lph=data.phase_lf.values.reshape(-1, 1),
-    #     rph=data.phase_rf.values.reshape(-1, 1)
-    # )
-    #
-    # rofa_lf, rofa_rf = detect_rate_of_force_absorption(
-    #     lf_imp=lf_imp_range,
-    #     rf_imp=rf_imp_range,
-    #     grf=data.grf.values.reshape(-1, 1),
-    #     phase_lf=data.phase_lf,
-    #     phase_rf=data.phase_rf,
-    #     stance=data.stance,
-    #     hz=sampl_freq
-    # )
-    # # rofa is normalized for user weight
-    # data['rate_force_absorption_lf'] = rofa_lf / weight
-    # data['rate_force_absorption_rf'] = rofa_rf / weight
-    #
-    # logger.info('DONE WITH RATE OF FORCE ABSORPTION!')
-
-    # # RATE OF FORCE PRODUCTION
-    # # DETECT TAKEOFF PHASE INTERVALS
-    # (
-    #     data['takeoff_phase_lf,'],
-    #     data['takeoff_phase_rf'],
-    #     lf_takeoff_range,
-    #     rf_takeoff_range
-    # ) = detect_start_end_takeoff_phase(lph=data.phase_lf.values.reshape(-1, 1),
-    #                                    rph=data.phase_rf.values.reshape(-1, 1))
-    #
-    # rofp_lf, rofp_rf = detect_rate_of_force_production(
-    #     lf_takeoff=lf_takeoff_range,
-    #     rf_takeoff=rf_takeoff_range,
-    #     grf=data.grf.values.reshape(-1, 1),
-    #     phase_lf=data.phase_lf,
-    #     phase_rf=data.phase_rf,
-    #     stance=data.stance,
-    #     hz=sampl_freq
-    # )
-    # # rofp is normalized for user weight
-    # data['rate_force_production_lf'] = rofp_lf / weight
-    # data['rate_force_production_rf'] = rofp_rf / weight
-    # logger.info('DONE WITH RATE OF FORCE PRODUCTION!')
-
-    # MAGNITUDE OF GRF DURING BALANCE PHASE
-    # data['grf_bal_phase'] = calculate_balance_phase_force(data) / weight
 
     # DEFINE UNIT ACTIVE BLOCKS
     data.total_accel[data.stance == 0] = 0
     data['active'] = define_unit_blocks(data.total_accel)
 
     # combine into data table
-    # length = len(data.acc_lf_x)
-    # data['loading_lf'] = np.array([np.nan]*length).reshape(-1, 1)
-    # data['loading_rf'] = np.array([np.nan]*length).reshape(-1, 1)
     scoring_data = data.loc[:, _output_columns]
 
     logger.info("Table Created")
@@ -439,75 +253,6 @@ def run_session(data, mass, grf_fit, sc):
 #                 data.loc[right_step[0]:right_step[1], 'stance'] = [3.] * len(step_data)
 #
 #     return data
-#
-#
-# @xray_recorder.capture('app.jobs.sessionprocess._contact_duration')
-# def _contact_duration(phase, active, epoch_time, ground_phases):
-#     """compute contact duration in ms given phase data
-#     """
-#     min_gc = 80.
-#     max_gc = 1500.
-#
-#     # enumerate phase such that all ground contacts are 0
-#     _phase = copy.copy(phase)
-#     _phase[np.array([i in ground_phases for i in _phase])] = 0
-#     _phase[np.array([i == 0 for i in active])] = 1
-#
-#     # get index ranges for ground contacts
-#     ranges = get_ranges(_phase, 0)
-#     length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
-#
-#     length_index = np.where((length >= min_gc) & (length <= max_gc))
-#     ranges = ranges[length_index]
-#
-#     # subset to only get the points where ground contacts are within a reasonable window
-#     length = length[(length >= min_gc) & (length <= max_gc)]
-#
-#     return length, ranges
-#
-#
-# @xray_recorder.capture('app.jobs.sessionprocess._calculate_hip_neutral')
-# def _calculate_hip_neutral(hip_bf_quats, hip_n_transform):
-#     # Transform Data into Neutral Versions, for balanceCME Calculations
-#
-#     # Define length, reshape transform value
-#     length = len(hip_bf_quats)
-#     hip_n_transform = np.array(hip_n_transform).reshape(-1, 4)
-#
-#     # Divide static neutral and instantaneous hip data into axial components
-#     static_hip_neut = qc.quat_to_euler(
-#         hip_n_transform[0],
-#         hip_n_transform[1],
-#         hip_n_transform[2],
-#         hip_n_transform[3],
-#     )
-#     neutral_hip_roll = static_hip_neut[0, 0]
-#     neutral_hip_pitch = static_hip_neut[0, 1]
-#
-#     neutral_hip_roll = np.full((length, 1), neutral_hip_roll, float)
-#     neutral_hip_pitch = np.full((length, 1), neutral_hip_pitch, float)
-#     inst_hip_yaw = qc.quat_to_euler(
-#         hip_bf_quats[:, 0],
-#         hip_bf_quats[:, 1],
-#         hip_bf_quats[:, 2],
-#         hip_bf_quats[:, 3],
-#     )[:, 2].reshape(-1, 1)
-#
-#     # Combine select data to define neutral hip data
-#     hip_neutral_euls = np.hstack((neutral_hip_roll, neutral_hip_pitch,
-#                                   inst_hip_yaw))
-#
-#     # Define hip adjusted inertial frame using instantaneous hip yaw
-#     hip_aif_euls = np.hstack((np.zeros((length, 2)), inst_hip_yaw))
-#
-#     # Convert all Euler angles to quaternions and return as relevant output
-#     hip_aif = qc.euler_to_quat(hip_aif_euls)
-#     hip_neutral = qc.euler_to_quat(hip_neutral_euls)
-#
-#     lf_neutral = hip_aif  # in perfectly neutral stance, lf bf := hip AIF
-#     rf_neutral = hip_aif  # in perfectly neutral stance, rf bf := hip AIF
-#
-#     return lf_neutral, hip_neutral, rf_neutral
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.cleanup_grf')

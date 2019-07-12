@@ -10,7 +10,7 @@ from ..job import Job
 from .run_analytics import run_session
 
 _logger = logging.getLogger(__name__)
-_s3_client = boto3.client('s3')
+# _s3_client = boto3.client('s3')
 
 
 class SessionprocessJob(Job):
@@ -23,10 +23,7 @@ class SessionprocessJob(Job):
         # GRF
         # load model
         grf_fit = _load_model(os.environ['MS_MODEL'])
-        # grf_fit_lf = _load_model(os.environ['LF_MS_MODEL'])
-        # grf_fit_rf = _load_model(os.environ['RF_MS_MODEL'])
         sc = _load_scaler(os.environ['MS_SCALER'])
-        # sc_single_leg = _load_scaler(os.environ['SL_MS_SCALER'])
 
         _logger.info("LOADING DATA")
         part_number = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
@@ -36,8 +33,8 @@ class SessionprocessJob(Job):
         if len(sdata) == 0:
             raise Exception('Sensor data is empty!')
 
-        if self.datastore.get_metadatum('version', '2.3') != '1.0':
-            self._flag_data_quality(sdata)
+        # if self.datastore.get_metadatum('version', '2.3') != '1.0':
+        #     self._flag_data_quality(sdata)
 
         # Read user mass
         mass = float(self.datastore.get_metadatum('user_mass', 60))
@@ -46,9 +43,6 @@ class SessionprocessJob(Job):
         sdata['obs_index'] = np.array(range(size)).reshape(-1, 1) + 1
 
         # Process the data and pass it as argument to run_session as
-        # file_version = self.datastore.get_metadatum('version')
-        # hip_n_transform = self.datastore.get_metadatum('hip_n_transform', None)
- 
         output_data_batch = run_session(sdata, mass, grf_fit, sc)
 
         # Output data
