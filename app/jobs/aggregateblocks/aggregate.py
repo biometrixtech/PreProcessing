@@ -32,7 +32,7 @@ def aggregate(data, record, mass, agg_level):
     # GRF aggregation
     record['duration'] = (data['epoch_time'].values[-1] - data['epoch_time'].values[0]) / 1000.
     record['totalGRF'] = np.sum(data['total_grf'])
-    record['totalGRFAvg'] = record['totalGRF'] / np.sum(data['total_ind']) / mass / 9.807
+    record['totalGRFAvg'] = record['totalGRF'] / np.sum(data['total_ind']) * 1000000. / mass / 9.807
     # record['optimalGRF'] = perc_optimal_block * record['totalGRF']
     # record['irregularGRF'] = (1. - perc_optimal_block) * record['totalGRF']
     record['LFgRF'] = np.sum(data['lf_grf'])
