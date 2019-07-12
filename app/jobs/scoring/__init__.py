@@ -77,7 +77,7 @@ class ScoringJob(Job):
         # _logger.info("DONE WITH SCORING!")
 
         accel_scale = 100000
-        data['grf'] = data.grf / grf_scale
+        # data['grf'] = data.grf / grf_scale
         data['total_accel'] = data.total_accel * data.ms_elapsed / accel_scale
 
         # Round the data to 6th decimal point
