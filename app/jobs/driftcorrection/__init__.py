@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+import logging
 from ..job import Job
 from .heading_correction import heading_correction
 from .hip_drift_correction import hip_drift_correction
@@ -10,6 +11,7 @@ from .placement import get_placement_lateral_hip
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
 from .exceptions import PlacementDetectionException
 
+_logger = logging.getLogger(__name__)
 
 class DriftcorrectionJob(Job):
 
@@ -64,7 +66,9 @@ class DriftcorrectionJob(Job):
             }
             self.datastore.put_metadata(ret)
             if placement_detected == [0, 0, 0]:
-                raise PlacementDetectionException('Could not detect placement')
+                placement_detected = [0, 1, 2]
+                _logger.info('Placement detection failed')
+                # raise PlacementDetectionException('Could not detect placement')
             # If placement id detected correctly, rename the columns in dataframe
             placement = zip(placement_detected, ['lf', 'hip', 'rf'])
             column_prefixes = ['static_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y',
