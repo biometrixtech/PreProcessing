@@ -1,5 +1,5 @@
 from aws_xray_sdk.core import xray_recorder
-from jobs.transformandplacement.placement_detection import get_placement_lateral_hip
+from jobs.driftcorrection.placement import get_placement_lateral_hip
 
 xray_recorder.configure(sampling=False)
 xray_recorder.begin_segment(name="test")

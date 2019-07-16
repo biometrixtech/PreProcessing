@@ -3,6 +3,7 @@ xray_recorder.configure(sampling=False)
 xray_recorder.begin_segment(name="test")
 
 from jobs.transformandplacement import TransformandplacementJob
+from jobs.downloadandchunk.decode_data import read_file
 from tests.app.writemongo.datastore import MockDatastore
 import numpy as np
 import scipy.io
@@ -25,8 +26,12 @@ def convert_accel(data):
 
 def test_full_job_process():
     path = '../../../files/'
-    data = scipy.io.loadmat(f"{path}data2.mat").get("data")  # raw data
-    data_out = scipy.io.loadmat(f"{path}data2C.mat").get("dataC")  # transformed data
+    # data = scipy.io.loadmat(f"{path}data2.mat").get("data")  # raw data
+    # data_out = scipy.io.loadmat(f"{path}data2C.mat").get("dataC")  # transformed data
+    data_bin_pd = read_file(f"{path}dataBin")
+    data_bin = np.asanyarray(data_bin_pd.values)
+    data = scipy.io.loadmat(f"{path}data.mat").get("data")  # raw data
+    data_out = scipy.io.loadmat(f"{path}dataC.mat").get("dataC")  # transformed data
 
     session_id = "unit_test"
     event_date = "2019-07-11"
@@ -38,6 +43,14 @@ def test_full_job_process():
     # load test data into datastore
     data = np.asanyarray(data)
     data_pd = job.get_core_data_frame_from_ndarray(data)
-    convert_accel(data_pd)
+    for a in range(1, 25):
+        assert (np.abs(data_bin[:, a] - data[:, a]) < 0.001).all()
+
     job.datastore.side_loaded_data = data_pd
     job._run()
+
+    decimal_precision = 3
+
+    for a in range(0, 25):
+        max_diff = np.max(np.abs(job._underlying_ndarray[:, a] - data_out[:, a]))
+        assert (np.abs(job._underlying_ndarray[:, a] - data_out[:, a]) < 0.02).all()

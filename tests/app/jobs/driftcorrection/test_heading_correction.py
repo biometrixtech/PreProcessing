@@ -1,5 +1,7 @@
 from jobs.driftcorrection.heading_correction import heading_correction
-from jobs.driftcorrection.heading_correction import heading_hip_finder, heading_foot_finder
+from jobs.transformandplacement.heading_calculation import heading_foot_finder
+from jobs.transformandplacement.transform_calculation import compute_transform
+from jobs.transformandplacement.get_march_and_still import detect_march_and_still
 import numpy as np
 import scipy.io
 from scipy.signal import find_peaks as _find_peaks
@@ -121,9 +123,9 @@ def test_match_221e():
 
     path = '../../../files/'
 
-    data = scipy.io.loadmat(f"{path}data2.mat").get("data")
-    dataC = scipy.io.loadmat(f"{path}data2C.mat").get("dataC")
-    dataHC_actual = scipy.io.loadmat(f"{path}data2_Heading_corrected.mat").get("data_Heading_corrected")
+    data = scipy.io.loadmat(f"{path}data.mat").get("data")
+    dataC = scipy.io.loadmat(f"{path}dataC.mat").get("dataC")
+    dataHC_actual = scipy.io.loadmat(f"{path}data_Heading_corrected.mat").get("data_Heading_corrected")
 
     #df = pd.DataFrame(data=data[1:, 1:], index=data[1:, 0], columns=data[0, 1:])
 
@@ -140,31 +142,47 @@ def test_match_221e():
 
     #data.loc[start_still_0:end_still_0, ['quat_0_w', 'quat_0_x', 'quat_0_y', 'quat_0_z']].values.reshape(-1, 4)
 
-    fs = 100 # Hz
-    # Find reset_index
-    op_cond_l = data[:, 1]
-    op_cond_h = data[:, 9]
-    op_cond_r = data[:,17]
-    op_cond = np.logical_or(op_cond_h, np.logical_or(op_cond_l, op_cond_r))
-    reset_index = find_reset(op_cond)
+    # fs = 100 # Hz
+    # # Find reset_index
+    # op_cond_l = data[:, 1]
+    # op_cond_h = data[:, 9]
+    # op_cond_r = data[:,17]
+    # op_cond = np.logical_or(op_cond_h, np.logical_or(op_cond_l, op_cond_r))
+    # reset_index = find_reset(op_cond)
+    #
+    # # Set maximum lenght whithin search (MPh) from the beginning of the data (secs*fs)
+    # nsearch = 30*fs
+    #
+    # # Find MarchingPhase only with left sensor data, and with right sensor ones if it's needed
+    # dataL = np.asanyarray(dataC[:nsearch, 1:9])
+    # op_condL = dataL[:, 0]
+    # axlL = dataL[:, 1:4]
+    # start_MPh, stop_MPh = find_marching(op_condL, axlL)
 
-    # Set maximum lenght whithin search (MPh) from the beginning of the data (secs*fs)
-    nsearch = 30*fs
-
-    # Find MarchingPhase only with left sensor data, and with right sensor ones if it's needed
-    dataL = np.asanyarray(dataC[:nsearch, 1:9])
-    op_condL = dataL[:, 0]
-    axlL = dataL[:, 1:4]
-    start_MPh, stop_MPh = find_marching(op_condL, axlL)
+    march_still_indices = detect_march_and_still(df.loc[0:2000, :])
 
     ## Heading values
     # Heading value for hip sensor
-    qHH = heading_hip_finder(data[:nsearch,13:17], reset_index)
+    _qHH = np.array(compute_transform(df.loc[0:2000, :],
+                            march_still_indices[2],
+                            march_still_indices[3],
+                            march_still_indices[6],
+                            march_still_indices[7],
+                            march_still_indices[10],
+                            march_still_indices[11]
+                          )[3]).reshape(-1,4)
     # Heading values for foot sensors (with marching phase)
+    _qHL, _qHR = heading_foot_finder(dataC[:3000, 5:9], dataC[:3000, 21:25], march_still_indices[4], march_still_indices[5])
+    # validate heading values are close
+    qHL = np.array([0.6105888416883907, 0.0, 0.0, 0.7919477674731012]).reshape(-1,4)
+    qHR = np.array([0.98869923264537, 0.0, 0.0, 0.14991273250280193]).reshape(-1,4)
+    qHH = np.array([-0.9129943863557917, -0.0, -0.0, -0.40797211973713515]).reshape(-1,4)
+    assert np.equal(np.round(_qHL, 6), np.round(qHL, 6)).all()
+    assert np.equal(np.round(_qHH, 6), np.round(qHH, 6)).all()
+    assert np.equal(np.round(_qHR, 6), np.round(qHR, 6)).all()
 
-    qHL, qHR = heading_foot_finder(dataC[:nsearch,1:9], dataC[:nsearch,17:25], start_MPh, stop_MPh)
     # Heading correction for all sensors
     dataHC_observed = heading_correction(dataC, qHL, qHH, qHR)
 
     for a in range(0, 25):
-        assert np.equal(np.round(dataHC_actual[:, a], 5), np.round(dataHC_observed[:, a], 5)).all()
+        assert np.equal(np.round(dataHC_actual[:, a], 3), np.round(dataHC_observed[:, a], 3)).all()
