@@ -30,6 +30,7 @@ class TransformandplacementJob(Job):
             raise FileVersionNotSupportedException("File version is not supported!")
         else:
             ret = self.execute(data)
+        _logger.info(ret)
         # self.datastore.put_metadata(ret)
 
         # if ret['truncation_index'] is not None:
