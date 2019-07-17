@@ -300,12 +300,12 @@ def cleanup_grf(grf_result, weight, length, nan_row):
     for r, l in zip(lf_ranges, lf_ranges_length):
         if l < 8:
             lf_ind[r[0]: r[1]] = 0
-        elif l < 15 and max(grf_lf_temp[r[0]:r[1]]) < 0.25 * weight:
+        elif l < 15 and max(grf_lf_temp[r[0]:r[1]]) < 0.5 * weight:
             lf_ind[r[0]: r[1]] = 0
     for r, l in zip(rf_ranges, rf_ranges_length):
         if l < 8:
             rf_ind[r[0]: r[1]] = 0
-        elif l < 15 and max(grf_rf_temp[r[0]:r[1]]) < 0.25 * weight:
+        elif l < 15 and max(grf_rf_temp[r[0]:r[1]]) < 0.5 * weight:
             rf_ind[r[0]: r[1]] = 0
 
     lf_ranges, lf_ranges_length = get_ranges(lf_ind, 0, True)
