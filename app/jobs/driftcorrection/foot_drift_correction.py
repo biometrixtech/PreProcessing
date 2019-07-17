@@ -330,6 +330,7 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
     # all_peaks = _np.concatenate(all_peaks)
     all_troughs = _np.concatenate(all_troughs)
     all_candidate_troughs = _np.concatenate(all_candidate_troughs)
+    all_candidate_troughs = all_candidate_troughs.astype(int)
     # backward_points = _np.asarray(backward_points)
     candidate_troughs = _np.zeros(n)
     candidate_troughs[all_candidate_troughs] = 1
