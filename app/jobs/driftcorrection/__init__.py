@@ -38,9 +38,9 @@ class DriftcorrectionJob(Job):
         op_cond_2 = data[:, 17]
 
         # Drift correction: left foot, hip, right foot
-        q_corr_0 = foot_drift_correction(op_cond_0, axl_refCH=dataHC[:, 2: 5], q_refCH=dataHC[:, 5: 9])
+        q_corr_0, candidate_troughs_0, troughs_0 = foot_drift_correction(op_cond_0, axl_refCH=dataHC[:, 2: 5], q_refCH=dataHC[:, 5: 9])
         q_corr_h = hip_drift_correction(op_cond_h, q_refCH=dataHC[:, 13:17])
-        q_corr_2 = foot_drift_correction(op_cond_2, axl_refCH=dataHC[:, 18:21], q_refCH=dataHC[:, 21:25])
+        q_corr_2, candidate_troughs_2, troughs_2 = foot_drift_correction(op_cond_2, axl_refCH=dataHC[:, 18:21], q_refCH=dataHC[:, 21:25])
 
         dataHC[:, 5: 9] = q_corr_0
         dataHC[:, 13: 17] = q_corr_h
@@ -57,6 +57,10 @@ class DriftcorrectionJob(Job):
 
         self.data = self.get_core_data_frame_from_ndarray(dataHC)
         convert_accl_to_ms2(self.data)
+        self.data['candidate_troughs_0'] = candidate_troughs_0
+        self.data['troughs_0'] = troughs_0
+        self.data['candidate_troughs_2'] = candidate_troughs_2
+        self.data['troughs_2'] = troughs_2
 
         if run_placement:
             placement_detected, weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
@@ -72,7 +76,7 @@ class DriftcorrectionJob(Job):
             # If placement id detected correctly, rename the columns in dataframe
             placement = zip(placement_detected, ['lf', 'hip', 'rf'])
             column_prefixes = ['static_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y',
-                               'quat_{}_z', 'quat_{}_w']
+                               'quat_{}_z', 'quat_{}_w', 'candidate_troughs_{}', 'troughs_{}']
             renames = {}
             for old, new in placement:
                 for prefix in column_prefixes:
@@ -81,6 +85,7 @@ class DriftcorrectionJob(Job):
 
         # get ms_elapsed and time_stamp
         self.data['time_stamp'], self.data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(self.data.epoch_time)
+        self.data.to_csv('data_out_troughs.csv', index=False)
 
         # Save the data at the end
         self.datastore.put_data('driftcorrection', self.data, chunk_size=int(os.environ['CHUNK_SIZE']))

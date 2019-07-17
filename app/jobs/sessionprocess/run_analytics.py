@@ -31,12 +31,17 @@ _output_columns = [
     'time_stamp', 'epoch_time', 'ms_elapsed',
     'active',
     'phase_lf',  'phase_rf',
+    'candidate_troughs_lf', 'troughs_lf',
+    'candidate_troughs_rf', 'troughs_rf',
     'grf', 'grf_lf', 'grf_rf',
     'total_accel',
     'stance',
     'euler_lf_x', 'euler_lf_y', 'euler_lf_z',
     'euler_hip_x', 'euler_hip_y', 'euler_hip_z',
     'euler_rf_x', 'euler_rf_y', 'euler_rf_z',
+    'quat_lf_x', 'quat_lf_y', 'quat_lf_z',
+    'quat_hip_x', 'quat_hip_y', 'quat_hip_z',
+    'quat_rf_x', 'quat_rf_y', 'quat_rf_z',
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
     'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
@@ -54,7 +59,7 @@ _output_columns = [
     'adduc_range_of_motion_rf',
     'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
     'flex_range_of_motion_rf',
-    'contact_duration_rf'
+    'contact_duration_rf',
 ]
 
 

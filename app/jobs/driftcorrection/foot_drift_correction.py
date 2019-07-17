@@ -81,6 +81,8 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
     all_peaks = []
     all_troughs = []
 
+    all_candidate_troughs = []
+
     # Frequency and amplitude of the current peak found (FFT)
     freq_peak = _np.zeros(n)
     height_peak = _np.zeros(n)
@@ -194,6 +196,8 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
             peaks_pos = _np.array(())
             troughs_pos = _np.array(())
 
+
+        all_candidate_troughs.append(troughs_pos)
         # Drift correction procedure
         if troughs_pos.size > troughs_threshold:
             # Discard any troughs which are close to the end of the dynamic window
@@ -324,7 +328,12 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
             backward_points.append(j)
 
     # all_peaks = _np.concatenate(all_peaks)
-    # all_troughs = _np.concatenate(all_troughs)
+    all_troughs = _np.concatenate(all_troughs)
+    all_candidate_troughs = _np.concatenate(all_candidate_troughs)
     # backward_points = _np.asarray(backward_points)
+    candidate_troughs = _np.zeros(n)
+    candidate_troughs[all_candidate_troughs] = 1
+    troughs = _np.zeros(n)
+    troughs[all_troughs] = 1
 
-    return q_corr
+    return q_corr, candidate_troughs, troughs
