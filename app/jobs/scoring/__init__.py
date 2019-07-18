@@ -24,6 +24,7 @@ _output_columns = [
     'phase_lf',
     'phase_rf',
     'candidate_troughs_lf', 'troughs_lf',
+    'correction_points_hip',
     'candidate_troughs_rf', 'troughs_rf',
     'grf',
     'grf_lf',

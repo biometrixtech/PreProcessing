@@ -5,7 +5,7 @@ from utils.quaternion_operations import hamilton_product, quat_conjugate
 from .exceptions import HeadingDetectionException
 
 _logger = logging.getLogger(__name__)
-# from numba import jit as _jit
+from numba import jit as _jit
 
 
 def heading_hip_finder(hip_ref_quat):
@@ -101,7 +101,6 @@ def heading_calculus(q):
     a_yaw = quat_as_euler_angles(q_yaw)
     # Discard yaw angles that are zeros
     yaw_result = a_yaw[a_yaw[:,2] != 0][:,2]
-    _logger.info(f"initial yaw result: {yaw_result}")
 
     # Search for any outliers
     m_yaw = np.median(yaw_result)
@@ -116,7 +115,6 @@ def heading_calculus(q):
 
     # Set distribution std threshold
     std_TH = 10
-    _logger.info(f"yaw result: {yaw_result}")
 
     if np.std(yaw_result) > std_TH or np.isnan(yaw_mean):
         raise HeadingDetectionException()
@@ -140,7 +138,7 @@ def heading_detection(q_delta, niter):
     return q_yaw, q_pitch
 
 
-#@_jit("f8[::1](f8[::1], intc)", nopython=True, cache=True)
+@_jit("f8[::1](f8[::1], intc)", nopython=True, cache=True)
 def _gd(q_delta, niter):
     # Bear in mind that that when q_yaw corresponds to x(1) the algorithm will fail
     x = np.array((1., 0., 1., 0.)) # Initialization of x as identity quaternions

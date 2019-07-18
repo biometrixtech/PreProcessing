@@ -39,7 +39,7 @@ class DriftcorrectionJob(Job):
 
         # Drift correction: left foot, hip, right foot
         q_corr_0, candidate_troughs_0, troughs_0 = foot_drift_correction(op_cond_0, axl_refCH=dataHC[:, 2: 5], q_refCH=dataHC[:, 5: 9])
-        q_corr_h = hip_drift_correction(op_cond_h, q_refCH=dataHC[:, 13:17])
+        q_corr_h, correction_points_h = hip_drift_correction(op_cond_h, q_refCH=dataHC[:, 13:17])
         q_corr_2, candidate_troughs_2, troughs_2 = foot_drift_correction(op_cond_2, axl_refCH=dataHC[:, 18:21], q_refCH=dataHC[:, 21:25])
 
         dataHC[:, 5: 9] = q_corr_0
@@ -59,6 +59,7 @@ class DriftcorrectionJob(Job):
         convert_accl_to_ms2(self.data)
         self.data['candidate_troughs_0'] = candidate_troughs_0
         self.data['troughs_0'] = troughs_0
+        self.data['correction_points_hip'] = correction_points_h
         self.data['candidate_troughs_2'] = candidate_troughs_2
         self.data['troughs_2'] = troughs_2
 
