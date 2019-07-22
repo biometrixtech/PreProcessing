@@ -36,6 +36,10 @@ def handler(event, _):
                 if 'training_groups' in user and len(user['training_groups']):
                     data['training_group_ids'] = set([tg['id'] for tg in user['training_groups']])
                 update_dynamodb(new_object['id'], data)
+                notification_body = {"message": "Upload started for your 3-sensor file",
+                                     "call_to_action": "VIEW_DAILY_PLAN"}
+                _notify_user(new_object['user_id'], notification_body)
+
 
         if 'accessory_id' in changes:
             print('Loading data from hardware service')
@@ -92,6 +96,13 @@ def update_dynamodb(session_id, updates):
         UpdateExpression=update_expression,
         ExpressionAttributeValues=values,
     )
+
+
+def _notify_user(user_id, body):
+    users_service = Service('users', '2_3')
+    users_service.call_apigateway_async(method='POST',
+                                        endpoint=f'/user/{user_id}/notify',
+                                        body=body)
 
 
 if __name__ == '__main__':
