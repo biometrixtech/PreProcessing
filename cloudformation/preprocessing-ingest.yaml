@@ -81,6 +81,10 @@ Resources:
                         Resource:
                           - { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:users-${Environment}-apigateway-execute" }
                           - { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:hardware-${Environment}-apigateway-execute" }
+                      - Action:
+                          - "sqs:SendMessage"
+                        Effect: "Allow"
+                        Resource: "*"
             RoleName: { "Fn::Sub": "preprocessing-${Environment}-ingest-lambda-${AWS::Region}" }
 
     ##########################################################################################################
@@ -281,6 +285,7 @@ Resources:
                     SERVICE: 'preprocessing'
                     STATE_MACHINE_ARN: { Ref: "StateMachineArn" }
                     LOG_GROUP_NAME: { "Fn::Sub": "/biometrix/preprocessing/${Environment}" }
+                    AWS_ACCOUNT_ID: { Ref: "AWS::AccountId" }
             Handler: "index.handler"
             MemorySize: "256"
             Runtime: "python3.6"
