@@ -101,6 +101,7 @@ def heading_calculus(q):
     a_yaw = quat_as_euler_angles(q_yaw)
     # Discard yaw angles that are zeros
     yaw_result = a_yaw[a_yaw[:,2] != 0][:,2]
+    _logger.info(f"initial yaw result: {yaw_result}")
 
     # Search for any outliers
     m_yaw = np.median(yaw_result)
@@ -115,6 +116,7 @@ def heading_calculus(q):
 
     # Set distribution std threshold
     std_TH = 10
+    _logger.info(f"yaw result: {yaw_result}")
 
     if np.std(yaw_result) > std_TH or np.isnan(yaw_mean):
         raise HeadingDetectionException()
