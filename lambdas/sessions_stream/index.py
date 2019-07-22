@@ -37,7 +37,7 @@ def handler(event, _):
                     data['training_group_ids'] = set([tg['id'] for tg in user['training_groups']])
                 update_dynamodb(new_object['id'], data)
                 notification_body = {"message": "Upload started for your 3-sensor file",
-                                     "call_to_action": "VIEW_DAILY_PLAN"}
+                                     "call_to_action": "VIEW_PLAN"}
                 _notify_user(new_object['user_id'], notification_body)
 
 
