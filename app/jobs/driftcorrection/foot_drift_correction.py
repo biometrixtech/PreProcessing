@@ -328,13 +328,17 @@ def foot_drift_correction(op_cond, axl_refCH, q_refCH):
             backward_points.append(j)
 
     # all_peaks = _np.concatenate(all_peaks)
-    all_troughs = _np.concatenate(all_troughs)
-    all_candidate_troughs = _np.concatenate(all_candidate_troughs)
-    all_candidate_troughs = all_candidate_troughs.astype(int)
-    # backward_points = _np.asarray(backward_points)
-    candidate_troughs = _np.zeros(n)
-    candidate_troughs[all_candidate_troughs] = 1
     troughs = _np.zeros(n)
-    troughs[all_troughs] = 1
+    candidate_troughs = _np.zeros(n)
+    if len(all_troughs) > 0:
+        all_troughs = _np.concatenate(all_troughs)
+        if len(all_troughs) > 0:
+            troughs[all_troughs] = 1
+    if len(all_candidate_troughs) > 0:
+        all_candidate_troughs = _np.concatenate(all_candidate_troughs)
+        all_candidate_troughs = all_candidate_troughs.astype(int)
+        if len(all_candidate_troughs) > 0:
+            candidate_troughs[all_candidate_troughs] = 1
+    # backward_points = _np.asarray(backward_points)
 
     return q_corr, candidate_troughs, troughs
