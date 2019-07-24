@@ -15,6 +15,7 @@ _cloudwatch_client = boto3.client('cloudwatch')
 class Job:
     def __init__(self, datastore):
         self._datastore = datastore
+        self.data = None
         self._underlying_ndarray = None
 
     @property

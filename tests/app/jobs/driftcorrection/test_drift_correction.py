@@ -21,9 +21,9 @@ def test_match_221e():
     op_cond_r = data[:,17]
 
     # Drift correction: left foot, hip, right foot
-    q_corr_l = foot_drift_correction(op_cond_l, dataHC[:, 2: 5], dataHC[:, 5: 9])
-    q_corr_h = hip_drift_correction (op_cond_h, dataHC[:,13:17])
-    q_corr_r = foot_drift_correction(op_cond_r, dataHC[:,18:21], dataHC[:,21:25])
+    q_corr_l = foot_drift_correction(op_cond_l, dataHC[:, 2: 5], dataHC[:, 5: 9])[0]
+    q_corr_h = hip_drift_correction (op_cond_h, dataHC[:,13:17])[0]
+    q_corr_r = foot_drift_correction(op_cond_r, dataHC[:,18:21], dataHC[:,21:25])[0]
 
     decimal_percision = 7
 

@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from utils.detect_peaks import detect_peaks
 import utils.quaternion_conversions as qc
-from .exceptions import PlacementDetectionException
 
 _logger = logging.getLogger(__name__)
 
@@ -45,7 +44,8 @@ def get_placement_lateral_hip(data, window_start, window_end):
         troughs = sorted(troughs, key=lambda x: x[1])
         crossing_zero = []
         crossing_zero = sorted(crossing_zero, key=lambda x: x[1])
-        zero_cross = crossing_zero
+
+        # zero_cross = crossing_zero
 
         for p in range(0, len(troughs)):
             if troughs[p][0] == "0":
@@ -129,9 +129,11 @@ def get_placement_lateral_hip(data, window_start, window_end):
             return [0, 1, 2], weak_placement
         elif side_2 > side_0:
             return [2, 1, 0], weak_placement
+        else:
+            return [0, 0, 0], weak_placement
 
     except Exception as e:
         print(e)
         _logger.error(e)
+        raise(e)
 
-    raise PlacementDetectionException('Could not detect placement using any of the movements')

@@ -10,6 +10,7 @@ def aggregate(data, record, mass, agg_level):
     """Aggregates different variables for block/unitBlocks
     """
     data.reset_index(drop=True, inplace=True)
+<<<<<<< HEAD
     # const_grf = np.nansum(data['const_grf'])
     # dest_grf = np.nansum(data['dest_grf'])
     # if const_grf == 0 and dest_grf == 0:
@@ -17,6 +18,8 @@ def aggregate(data, record, mass, agg_level):
     # else:
     #     perc_optimal_block = const_grf / (const_grf + dest_grf)
 
+=======
+>>>>>>> e77960ec25add4ddd3ca6b5b2869190733a3a623
     lf_only_grf = np.sum(data['lf_only_grf'])
     rf_only_grf = np.sum(data['rf_only_grf'])
 
@@ -54,6 +57,7 @@ def aggregate(data, record, mass, agg_level):
     # accel aggregation
     record['totalAccel'] = np.nansum(data['total_accel'])
     record['totalAccelAvg'] = _peak_accel(data['total_accel'].values)
+<<<<<<< HEAD
     # record['irregularAccel'] = np.nansum(data['irregular_accel'])
 
     # if record['totalGRF'] == 0:
@@ -146,6 +150,8 @@ def aggregate(data, record, mass, agg_level):
     # fatigue
     # record['percOptimal'] = perc_optimal_block * 100
     # record['percIrregular'] = (1 - perc_optimal_block) * 100
+=======
+>>>>>>> e77960ec25add4ddd3ca6b5b2869190733a3a623
 
     length_lf, range_lf = _contact_duration(data.phase_lf.values,
                                             data.active.values,
@@ -212,12 +218,15 @@ def _step_data(data, ranges, mass, sensor):
         step_data = data.loc[range_gc[0]:range_gc[1] - 1, :]
         if np.all(np.unique(step_data['phase_' + sensor.lower()]) == np.array([0.])):
             continue
+<<<<<<< HEAD
         # const_grf = np.nansum(step_data['const_grf'])
         # dest_grf = np.nansum(step_data['dest_grf'])
         # if const_grf == 0 and dest_grf == 0:
         #     perc_optimal_step = 1.
         # else:
         #     perc_optimal_step = const_grf / (const_grf + dest_grf)
+=======
+>>>>>>> e77960ec25add4ddd3ca6b5b2869190733a3a623
 
         contact_duration = data.epoch_time[range_gc[1] - 1] - data.epoch_time[range_gc[0]]
 
@@ -230,13 +239,17 @@ def _step_data(data, ranges, mass, sensor):
         step_record['totalGRF'] = np.sum(step_data['total_grf'])
         step_record['totalGRFAvg'] = step_record['totalGRF'] / np.sum(
             step_data['total_ind']) * 1000000. / mass / 9.807
+<<<<<<< HEAD
         # step_record['optimalGRF'] = perc_optimal_step * step_record['totalGRF']
         # step_record['irregularGRF'] = (1. - perc_optimal_step) * step_record['totalGRF']
+=======
+>>>>>>> e77960ec25add4ddd3ca6b5b2869190733a3a623
 
         # accel aggregation
         step_record['totalAccel'] = np.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
 
+<<<<<<< HEAD
         # if step_record['totalGRF'] == 0:
         #     # control aggregation
         #     step_record['control'] = None
@@ -258,6 +271,8 @@ def _step_data(data, ranges, mass, sensor):
         # step_record['percOptimal'] = perc_optimal_step * 100
         # step_record['percIrregular'] = (1 - perc_optimal_step) * 100
 
+=======
+>>>>>>> e77960ec25add4ddd3ca6b5b2869190733a3a623
         mph = 1.2
         grf_sub = data.grf[range_gc[0]:range_gc[1]].values
         norm_grf = grf_sub * 1000000. / mass / 9.807

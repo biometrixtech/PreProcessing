@@ -21,7 +21,7 @@ def detect_march_and_still(data):
 
 def _detect_march_and_still_ankle(data, sensor):
     # get march
-    start_march, end_march = _detect_march(data[f'corrupt_{sensor}'][int(8 * 97.52):int(20*97.52)])
+    start_march, end_march = _detect_march(data[f'static_{sensor}'][int(8 * 97.52):int(20*97.52)])
     if end_march != 0:
         start_march += int(8 * 97.52)
         end_march += int(8 * 97.52)
@@ -35,7 +35,7 @@ def _detect_march_and_still_ankle(data, sensor):
 
 def _detect_march(static):
     static = _fix_short_static(static)
-    ranges, lengths = get_ranges(static, 8, True)
+    ranges, lengths = get_ranges(static, 1, True)
     for r, length in zip(ranges, lengths):
         if length >= 400:
             return r[0], min(r[1], r[0] + int(6 * 97.52))
@@ -46,7 +46,7 @@ def _fix_short_static(static):
     ranges, length = get_ranges(static, 0, True)
     for r, l in zip(ranges, length):
         if l < 15:
-            static[r[0]: r[1]] = 8
+            static[r[0]: r[1]] = 1
     return static
 
 
@@ -74,7 +74,7 @@ def _detect_still(data, sensor=0):
     y_diff = max(euler_y[start:end]) - min(euler_y[start:end])
     max_diff = max(x_diff, y_diff)
 
-    still_present = data[f'corrupt_{sensor}'][start:end].values == 0
+    still_present = data[f'static_{sensor}'][start:end].values == 0
     still = sum(still_present)
     if still > 0 or max_diff < 1:
         return start, end

@@ -22,6 +22,7 @@ _input_columns = [
     'grf',
     'grf_lf',
     'grf_rf',
+<<<<<<< HEAD
     # 'const_grf',
     # 'dest_grf',
     # 'destr_multiplier',
@@ -38,6 +39,8 @@ _input_columns = [
     # 'ankle_control',
     # 'control_lf',
     # 'control_rf',
+=======
+>>>>>>> e77960ec25add4ddd3ca6b5b2869190733a3a623
     'total_accel',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     'adduc_range_of_motion_lf',
@@ -64,6 +67,7 @@ class AggregateblocksJob(Job):
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
 
         user_mass = float(self.datastore.get_metadatum('user_mass', 60))
+        data.grf /= 1000000.
 
         data.active[data.stance == 0] = 0
         active_ind = np.array([k == 1 for k in data['active']])
@@ -79,6 +83,7 @@ class AggregateblocksJob(Job):
         data['rf_grf'] = data['grf'].fillna(value=np.nan) * rf_ind
         data['lf_only_grf'] = data['grf'].fillna(value=np.nan) * lf_ground
         data['rf_only_grf'] = data['grf'].fillna(value=np.nan) * rf_ground
+<<<<<<< HEAD
 
         # data['const_grf'] = data['const_grf'].fillna(value=np.nan) * total_ind
         # data['dest_grf'] = data['dest_grf'].fillna(value=np.nan) * total_ind
@@ -102,6 +107,10 @@ class AggregateblocksJob(Job):
         # data['ankle_control'] = data['ankle_control'] * total_ind
         # data['control_lf'] = data['control_lf'] * lf_ind
         # data['control_rf'] = data['control_rf'] * rf_ind
+=======
+        # accel
+        data['total_accel'] = data['total_accel'] * active_ind
+>>>>>>> e77960ec25add4ddd3ca6b5b2869190733a3a623
 
         # segment data into blocks
         active_blocks = define_blocks(data['active'].values)

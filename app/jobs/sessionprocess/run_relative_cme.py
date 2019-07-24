@@ -156,8 +156,8 @@ def run_relative_cmes(data):
         fhcontact_duration = _drift_agnostic_cmes(fhcontact_duration, hip_right_range, stance)
 
     # get the start and end point of long dynamic alogorithm where filter is applied
-    dynamic_range_lf = _detect_long_dynamic(data.corrupt_lf)
-    dynamic_range_rf = _detect_long_dynamic(data.corrupt_rf)
+    # dynamic_range_lf = _detect_long_dynamic(data.static_lf.values)
+    # dynamic_range_rf = _detect_long_dynamic(data.static_rf.values)
 
     for i in ['0', '2', '3']:
         # get the ranges for given phase
@@ -167,10 +167,10 @@ def run_relative_cmes(data):
         hip_right_range = ranges.get('hr' + i + 'ranges')
 
         # filter out hip data potentially skewed by drift filter
-        left_range = _remove_filtered_ends(left_range, dynamic_range_lf)
-        right_range = _remove_filtered_ends(right_range, dynamic_range_rf)
-        hip_left_range = _remove_filtered_ends(hip_left_range, dynamic_range_lf)
-        hip_right_range = _remove_filtered_ends(hip_right_range, dynamic_range_rf)
+        # left_range = _remove_filtered_ends(left_range, dynamic_range_lf)
+        # right_range = _remove_filtered_ends(right_range, dynamic_range_rf)
+        # hip_left_range = _remove_filtered_ends(hip_left_range, dynamic_range_lf)
+        # hip_right_range = _remove_filtered_ends(hip_right_range, dynamic_range_rf)
 
         (
             alnorm_motion_covered_abs,
@@ -464,99 +464,99 @@ def _rough_contact_duration(stance):
     return contact / 1000.  # 1000 divisor puts in units of seconds
 
 
-@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._detect_long_dynamic')
-def _detect_long_dynamic(dyn_vs_static):
-    """
-    Determine if the data is corrupt because of drift or short switch from dynamic to static algorithm
-    Data is said to be corrupt if
-    1) There are frequent short switches from dynamic to static algorithm within
-       short period of time, currently defined as 5 switches with 4 or fewer points within 5 s
-    2) Too much drift has accumulated if the algorithm does not switch to static from dynamic for
-       extended period of time, currently defined as no static algorithm of 30 points or more for
-       more than 10 mins
+# @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._detect_long_dynamic')
+# def _detect_long_dynamic(dyn_vs_static):
+#     """
+#     Determine if the data is corrupt because of drift or short switch from dynamic to static algorithm
+#     Data is said to be corrupt if
+#     1) There are frequent short switches from dynamic to static algorithm within
+#        short period of time, currently defined as 5 switches with 4 or fewer points within 5 s
+#     2) Too much drift has accumulated if the algorithm does not switch to static from dynamic for
+#        extended period of time, currently defined as no static algorithm of 30 points or more for
+#        more than 10 mins
 
-    """
-    min_length = 10 * 100
-    bad_switch_len = 30
-    range_static, length_static = get_ranges(dyn_vs_static, 0, True)
-    short_static = np.where(length_static <= bad_switch_len)[0]
-    short_static_range = range_static[short_static, :]
-    if len(short_static_range) > 0:
-        for i, j in zip(short_static_range[:, 0], short_static_range[:, 1]):
-            dyn_vs_static[i:j] = 8
-    range_dyn, length_dyn = get_ranges(dyn_vs_static, 8, True)
-    long_dynamic = np.where(length_dyn >= min_length)[0]
-    long_dyn_range = range_dyn[long_dynamic, :]
-    return long_dyn_range
+#     """
+#     min_length = 10 * 100
+#     bad_switch_len = 30
+#     range_static, length_static = get_ranges(dyn_vs_static, 0, True)
+#     short_static = np.where(length_static <= bad_switch_len)[0]
+#     short_static_range = range_static[short_static, :]
+#     if len(short_static_range) > 0:
+#         for i, j in zip(short_static_range[:, 0], short_static_range[:, 1]):
+#             dyn_vs_static[i:j] = 8
+#     range_dyn, length_dyn = get_ranges(dyn_vs_static, 8, True)
+#     long_dynamic = np.where(length_dyn >= min_length)[0]
+#     long_dyn_range = range_dyn[long_dynamic, :]
+#     return long_dyn_range
 
 
-@xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._remove_filtered_ends')
-def _remove_filtered_ends(data_range, dyn_range):
-    """
-    Function that takes in arrays containing ranges of data corresponding
-    with a specific filtering, which is to be processed in CMEs, and ranges of
-    data for which dynamic motion has been true for a long time, which is
-    filtered against drift. Trims data around the end of filters. If the end of
-    the filter is near to the end of the data, the range is trimmed. If not, it
-    the range is split around the point, with a pad = 1 pt also removed.
+# @xray_recorder.capture('app.jobs.sessionprocess.run_relative_cmes._remove_filtered_ends')
+# def _remove_filtered_ends(data_range, dyn_range):
+#     """
+#     Function that takes in arrays containing ranges of data corresponding
+#     with a specific filtering, which is to be processed in CMEs, and ranges of
+#     data for which dynamic motion has been true for a long time, which is
+#     filtered against drift. Trims data around the end of filters. If the end of
+#     the filter is near to the end of the data, the range is trimmed. If not, it
+#     the range is split around the point, with a pad = 1 pt also removed.
 
-    Args:
-        data_range - nx2 array, where each row contains the start and end
-            indices of a data window that has met previous criteria for CME calculations
-        dyn_range - mx2 array, where each row contains the start and end
-            indices of dynamic data filtered for drift, according to the
-            function _detect_long_dynamic()
+#     Args:
+#         data_range - nx2 array, where each row contains the start and end
+#             indices of a data window that has met previous criteria for CME calculations
+#         dyn_range - mx2 array, where each row contains the start and end
+#             indices of dynamic data filtered for drift, according to the
+#             function _detect_long_dynamic()
 
-    Returns:
-        data_range - (n-p)x2 array, containing rows of the arg data_range which
-            do not represent ranges of data overlapping with p ends of
-            dyn_range rows
-    """
+#     Returns:
+#         data_range - (n-p)x2 array, containing rows of the arg data_range which
+#             do not represent ranges of data overlapping with p ends of
+#             dyn_range rows
+#     """
 
-    # set, intialize  vars
-    split_rows = np.array([])
-    del_rows = np.array([])
-    pad = 1  # pad to be removed around filter ends
+#     # set, intialize  vars
+#     split_rows = np.array([])
+#     del_rows = np.array([])
+#     pad = 1  # pad to be removed around filter ends
 
-    for j in dyn_range[:, 1]:
-        for k in range(len(data_range)):
+#     for j in dyn_range[:, 1]:
+#         for k in range(len(data_range)):
 
-            # find intersections of filter ends and data ranges
-            if j in np.arange(data_range[k, 0], data_range[k, 1]):
+#             # find intersections of filter ends and data ranges
+#             if j in np.arange(data_range[k, 0], data_range[k, 1]):
 
-                # if range very short, mark for deletion
-                if (data_range[k, 1] - data_range[k, 0]) < (2 * pad + 2):
-                    data_range[k, 0] = 0
-                    data_range[k, 1] = 0
+#                 # if range very short, mark for deletion
+#                 if (data_range[k, 1] - data_range[k, 0]) < (2 * pad + 2):
+#                     data_range[k, 0] = 0
+#                     data_range[k, 1] = 0
 
-                # if intersection at very beginning, trim the range
-                elif (j - data_range[k, 0]) < (pad + 1):
-                    data_range[k, 0] = data_range[k, 0] + 2 * pad + 1
+#                 # if intersection at very beginning, trim the range
+#                 elif (j - data_range[k, 0]) < (pad + 1):
+#                     data_range[k, 0] = data_range[k, 0] + 2 * pad + 1
 
-                # if intersection at very ending, trim the range
-                elif (data_range[k, 1] - j) < (pad + 1):
-                    data_range[k, 1] = data_range[k, 1] - (2 * pad) - 1
+#                 # if intersection at very ending, trim the range
+#                 elif (data_range[k, 1] - j) < (pad + 1):
+#                     data_range[k, 1] = data_range[k, 1] - (2 * pad) - 1
 
-                # if intersection in middle of range, mark for range splitting
-                else:
-                    split_rows = np.hstack((split_rows, np.array([j])))
+#                 # if intersection in middle of range, mark for range splitting
+#                 else:
+#                     split_rows = np.hstack((split_rows, np.array([j])))
 
-    # where intersection of filter end and data range, split range around it
-    for j in split_rows:
-        index = 0
-        while data_range[index, 1] < j:
-            index = index + 1
-        beg = data_range[index, 0]
-        data_range[index, 0] = j + pad + 1
-        data_range = np.insert(data_range, index, [beg, j - pad - 1], axis=0)
+#     # where intersection of filter end and data range, split range around it
+#     for j in split_rows:
+#         index = 0
+#         while data_range[index, 1] < j:
+#             index = index + 1
+#         beg = data_range[index, 0]
+#         data_range[index, 0] = j + pad + 1
+#         data_range = np.insert(data_range, index, [beg, j - pad - 1], axis=0)
 
-    # delete rows where an intersection occurred but range too short to trim
-    for k in range(len(data_range)):
-        if (data_range[k, 0] == 0) & (data_range[k, 1] == 0):
-            del_rows = np.hstack((del_rows, np.array([k])))
-    if len(del_rows) != 0:
-        data_range = np.delete(data_range, (list(map(int, del_rows))), axis=0)
-    else:
-        pass
+#     # delete rows where an intersection occurred but range too short to trim
+#     for k in range(len(data_range)):
+#         if (data_range[k, 0] == 0) & (data_range[k, 1] == 0):
+#             del_rows = np.hstack((del_rows, np.array([k])))
+#     if len(del_rows) != 0:
+#         data_range = np.delete(data_range, (list(map(int, del_rows))), axis=0)
+#     else:
+#         pass
 
-    return data_range
+#     return data_range
