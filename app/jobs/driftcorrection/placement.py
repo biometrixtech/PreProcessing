@@ -88,6 +88,14 @@ def get_placement_lateral_hip(data, window_start, window_end):
             thresh = 0
             edge = None  # has no impact on detection
 
+            # test code
+            min_val = min(window_data.values)
+            max_val = max(window_data.values)
+            mph_min_max = max(abs(min_val), abs(max_val), 4.4)
+            mph_test = min(mph_min_max, 5.0)
+            mph = mph_test
+            # end test code
+
             if crossing_zero[c][0] == "0":
                 window_troughs_0 = detect_peaks(window_data.values, mph=mph, mpd=mpd, threshold=thresh, edge=edge,
                                                 kpsh=False, valley=True)
@@ -121,7 +129,46 @@ def get_placement_lateral_hip(data, window_start, window_end):
         side_0 = sensor_dict["0T"] + sensor_dict["2P"]
         side_2 = sensor_dict["0P"] + sensor_dict["2T"]
 
-        if abs(side_0 - side_2) == 1 or (side_2 + side_0) <= 2:
+        # second test code
+        if side_0 == 0 and side_2 == 0:
+            for c in range(0, len(crossing_zero) - 1):
+
+                if c < len(crossing_zero) - 1:
+                    window_data = hip_accel_data[crossing_zero[c][1]:crossing_zero[c + 1][1]]
+                else:
+                    window_data = hip_accel_data[crossing_zero[c][1]:]
+
+                window_results = []
+
+                min_window_val = min(window_data.values[1:11])
+                max_window_val = max(window_data.values[1:11])
+
+                if crossing_zero[c][0] == "0":
+                    if abs(min_window_val) > abs(max_window_val):
+                        window_results.append(("0", "T", 0))
+                    else:
+                        window_results.append(("0", "P", 0))
+                else:
+                    if abs(min_window_val) > abs(max_window_val):
+                        window_results.append(("2", "T", 0))
+                    else:
+                        window_results.append(("2", "P", 0))
+
+                if len(window_results) > 0:
+                    if window_results[0][0] == "0" and window_results[0][1] == "T":
+                        sensor_dict["0T"] += 1
+                    elif window_results[0][0] == "0" and window_results[0][1] == "P":
+                        sensor_dict["0P"] += 1
+                    elif window_results[0][0] == "2" and window_results[0][1] == "T":
+                        sensor_dict["2T"] += 1
+                    elif window_results[0][0] == "2" and window_results[0][1] == "P":
+                        sensor_dict["2P"] += 1
+
+            side_0 = sensor_dict["0T"] + sensor_dict["2P"]
+            side_2 = sensor_dict["0P"] + sensor_dict["2T"]
+        # end second test code
+
+        if abs(side_0 - side_2) == 1 or (side_2 + side_0) <= 2 or (side_0 == side_2):
             weak_placement = True
 
         if side_0 > side_2:
