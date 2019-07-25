@@ -117,7 +117,7 @@ def test_lateral_hip_acceleration_2():
     help_list = []
     zero_list = []
 
-    correct = [[0, 1, 2], [0, 1, 2], [2, 1, 0], [0, 1, 2],[0, 1, 2],[0, 1, 2],[0, 1, 2],[0, 1, 2],[2, 1, 0],[2, 1, 0],[0, 1, 2],[2, 1, 0],[2, 1, 0], [2, 1, 0],[2, 1, 0],[2, 1, 0],[2, 1, 0],[2, 1, 0],[2, 1, 0], [0, 1, 2]]
+    correct = [[0, 1, 2], [0, 1, 2], [0, 1, 2], [0, 1, 2],[0, 1, 2],[0, 1, 2],[0, 1, 2],[0, 1, 2],[2, 1, 0],[2, 1, 0],[0, 1, 2],[2, 1, 0],[2, 1, 0], [2, 1, 0],[2, 1, 0],[2, 1, 0],[2, 1, 0],[2, 1, 0],[2, 1, 0], [0, 1, 2]]
     file_names = ['b6b42d70_diagnostics_v3.csv','39f243c2_diagnostics_v2.csv','7bbff8e0_diagnostics_v3.csv', '958dba09_diagnostics_v3.csv','27ab9e93_diagnostics_v2.csv',
                   'e12e7da7_diagnostics_v2.csv','b2a95b1b_diagnostics_v3.csv','f78a9e26_diagnostics_v2.csv','15868b04_diagnostics_v2.csv','b1d4e15c_diagnostics_v2.csv',
                   'b6c0489b_diagnostics_v2.csv','b390e769_diagnostics_v2.csv','f7b46970_diagnostics_v2.csv','dc2277a6_diagnostics_v2.csv','dc0c6273_diagnostics_v2.csv',
