@@ -274,7 +274,7 @@ def hip_drift_correction(op_cond, q_refCH):
             # Save backward points (check)
             backward_points.append(j)
 
-    corr_points = np.asarray(corr_points)
+    corr_points = np.asarray(corr_points).astype(int)
     # backward_points = np.asarray(backward_points)
     correction_points = np.zeros(n)
     correction_points[corr_points] = 1
