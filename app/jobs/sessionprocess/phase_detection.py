@@ -27,7 +27,7 @@ class phase_id(Enum):
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.phase_detection.combine_phase')
-def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz):
+def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz, acc_hip_z, acc_hip_x):
     """
     Combines balance, foot in the air and impact phases for left and 
     right feet.
@@ -63,15 +63,28 @@ def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz):
     la_magn = filter_data(laz, filt='low', highcut=ct.cutoff_magn, fs=hz)
     ra_magn = filter_data(raz, filt='low', highcut=ct.cutoff_magn, fs=hz)
 
+    acc_hip_z = filter_data(acc_hip_z, filt='low', highcut=6)
+    acc_hip_x = filter_data(acc_hip_x, filt='low', highcut=40)
+
     # Get balance/movement phase and start and end of movement phase for both
     # right and left foot
     lf_ph, lf_sm, lf_em = _body_phase(la_magn, hz)
     rf_ph, rf_sm, rf_em = _body_phase(ra_magn, hz)
 
-    _impact_detect(phase=lf_ph, start_move=lf_sm, end_move=lf_em, grf=grf_lf_ind)  # detect and add impacts
+    _impact_detect(phase=lf_ph,
+                   start_move=lf_sm,
+                   end_move=lf_em,
+                   grf=grf_lf_ind,
+                   acc_hip_z=acc_hip_z,
+                   acc_hip_x=acc_hip_x)  # detect and add impacts
     del lf_sm, lf_em  # no use in further computations
 
-    _impact_detect(phase=rf_ph, start_move=rf_sm, end_move=rf_em, grf=grf_rf_ind)  # detect and add impacts
+    _impact_detect(phase=rf_ph,
+                   start_move=rf_sm,
+                   end_move=rf_em,
+                   grf=grf_rf_ind,
+                   acc_hip_z=acc_hip_z,
+                   acc_hip_x=acc_hip_x)  # detect and add impacts
     del rf_sm, rf_em, raz  # no use in further computations
 
     # Insert previous value for phase where data needed to predict was missing
@@ -92,7 +105,7 @@ def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz):
 @xray_recorder.capture('app.jobs.sessionprocess.phase_detection._body_phase')
 def _body_phase(acc_z, hz):
     """
-    Combining phases of both left and right feet.
+    Get movement vs static phase.
 
     Args:
         acc_z: an array, vertical acceleration for given foot
@@ -133,8 +146,8 @@ def _body_phase(acc_z, hz):
 def _phase_detect(acc_z):
     """detect movement vs balance phase
     """
-    acc_mag_sd = pd.Series(acc_z).rolling(50).std(center=True)
-    min_sd = 2
+    acc_mag_sd = pd.Series(acc_z).rolling(100).std(center=True)
+    min_sd = 1.5
     mov = np.where(acc_mag_sd >= min_sd)[0]
     phase = np.zeros(len(acc_z)).astype(int)
     phase[mov] = 1
@@ -143,7 +156,7 @@ def _phase_detect(acc_z):
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.phase_detection._impact_detect')
-def _impact_detect(phase, start_move, end_move, grf):
+def _impact_detect(phase, start_move, end_move, grf, acc_hip_z, acc_hip_x):
     """
     Update phase with impacts and takeoffs
 
@@ -173,7 +186,26 @@ def _impact_detect(phase, start_move, end_move, grf):
                     phase[imp[0] - 1] == phase_id.air.value):  # has to be in air right before impact
                     if imp[1] == len(phase):
                         imp[1] -= 1
+                    if imp[1] - imp[0] < 50:
+                        trough_flag = None
+                        crossing_flag = None
+                        acc_hip_x_step = acc_hip_x[imp[0]:imp[1]]
+                        trough = np.where(acc_hip_x_step == min(acc_hip_x_step))[0]
+                        if len(trough) > 0:
+                            trough_flag = trough[0] + imp[0]
+                        for k in range(imp[0]+1, imp[1]-1):
+                            if acc_hip_z[k] > 0 and acc_hip_z[k-1] < 0:
+                                crossing_flag = k
+                                break
+                        if crossing_flag is not None and trough_flag is not None:
+                            imp[0] = int((crossing_flag + trough_flag) / 2)
+                        elif crossing_flag is not None and trough_flag is None:
+                            imp[0] = crossing_flag
+                        elif crossing_flag is None and trough_flag is not None:
+                            imp[0] = trough_flag
+
                     phase[imp[0]: imp[1]] = phase_id.impact.value
+
 
     _detect_takeoff(phase)
 

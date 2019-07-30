@@ -139,7 +139,13 @@ def run_session(data, mass, grf_fit, sc):
     del grf_data, nan_row, grf_fit
     logger.info('DONE WITH GRF PREDICTION!')
 
-    data['phase_lf'], data['phase_rf'] = combine_phase(data.acc_lf_z, data.acc_rf_z, lf_grf_ind, rf_grf_ind, sampl_freq)
+    data['phase_lf'], data['phase_rf'] = combine_phase(laz=data.acc_lf_z,
+                                                       raz=data.acc_rf_z,
+                                                       grf_lf_ind=lf_grf_ind,
+                                                       grf_rf_ind=rf_grf_ind,
+                                                       hz=sampl_freq,
+                                                       acc_hip_z=data.acc_hip_z.values,
+                                                       acc_hip_x=data.acc_hip_x.values)
     logger.info('DONE WITH PHASE DETECTION!')
 
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
@@ -267,14 +273,15 @@ def cleanup_grf(grf_result, weight, length, nan_row):
     right_grf = grf_result[:, 1]
     grf = grf_result[:, 2]
 
+    # filter data
     grf = filter_data(grf, filt='low', highcut=18)
     left_grf = filter_data(left_grf, filt='low', highcut=18)
     right_grf = filter_data(right_grf, filt='low', highcut=18)
 
     # set grf value below certain threshold to 0
-    grf[grf <= .1 * weight] = 0
-    left_grf[left_grf <= .05 * weight] = 0
-    right_grf[right_grf <= .05 * weight] = 0
+    grf[grf <= .2 * weight] = 0
+    left_grf[left_grf <= .1 * weight] = 0
+    right_grf[right_grf <= .1 * weight] = 0
 
     # fill in nans for rows with missing predictors
     grf_temp = np.ones(length)
@@ -290,23 +297,32 @@ def cleanup_grf(grf_result, weight, length, nan_row):
             grf_lf_temp[i] = grf_lf_temp[i - 1]
             grf_rf_temp[i] = grf_rf_temp[i - 1]
 
+    grf_ind = np.zeros(len(grf_temp))
+    grf_ind[np.where(grf_temp != 0)[0]] = 1
+    grf_ranges, grf_ranges_length = get_ranges(grf_ind, 1, True)
+    for r, l in zip(grf_ranges, grf_ranges_length):
+        if max(grf_temp[r[0]:r[1]]) < 0.5 * weight:
+            grf_temp[r[0]: r[1]] = 0
+
     lf_ind = np.zeros(len(grf_lf_temp))
-    lf_ind[np.where(grf_lf_temp != 0)[0]] = 1
-    lf_ranges, lf_ranges_length = get_ranges(lf_ind, 1, True)
+    lf_ind[np.where(grf_lf_temp  > 0.01)[0]] = 1
 
     rf_ind = np.zeros(len(grf_rf_temp))
-    rf_ind[np.where(grf_rf_temp != 0)[0]] = 1
+    rf_ind[np.where(grf_rf_temp > 0.01)[0]] = 1
+
+     # # remove false positives
+    lf_ranges, lf_ranges_length = get_ranges(lf_ind, 1, True)
     rf_ranges, rf_ranges_length = get_ranges(rf_ind, 1, True)
 
     for r, l in zip(lf_ranges, lf_ranges_length):
-        if l < 8:
+        if l < 10:
             lf_ind[r[0]: r[1]] = 0
         elif l < 15 and max(grf_lf_temp[r[0]:r[1]]) < 0.5 * weight:
             lf_ind[r[0]: r[1]] = 0
     for r, l in zip(rf_ranges, rf_ranges_length):
-        if l < 8:
+        if l < 10:
             rf_ind[r[0]: r[1]] = 0
-        elif l < 15 and max(grf_rf_temp[r[0]:r[1]]) < 0.5 * weight:
+        elif l < 15 and max(grf_rf_temp[r[0]:r[1]]) < .5 * weight:
             rf_ind[r[0]: r[1]] = 0
 
     lf_ranges, lf_ranges_length = get_ranges(lf_ind, 0, True)
