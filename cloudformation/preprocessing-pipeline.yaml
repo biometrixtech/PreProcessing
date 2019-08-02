@@ -806,6 +806,35 @@ Resources:
                         "ExceptionFailProcessing": {
                             "Type": "Parallel",
                             "Branches": [
+                              {
+                                    "StartAt": "Cleanup1",
+                                    "States": {
+                                        "Cleanup1": {
+                                            "Type": "Task",
+                                            "Resource": "arn:aws:states:::batch:submitJob.sync",
+                                            "Parameters": {
+                                                "JobDefinition": "${BatchJobDefinition}",
+                                                "JobName.$": "$._BatchJobNames.cleanup",
+                                                "JobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
+                                                "Parameters": {
+                                                    "Job": "cleanup"
+                                                },
+                                                "ContainerOverrides": {
+                                                    "Memory": 256,
+                                                    "Vcpus": 2,
+                                                    "Environment": [
+                                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.SessionId" }
+                                                    ]
+                                                },
+                                                "RetryStrategy": {
+                                                    "Attempts": 2
+                                                }
+                                            },
+                                            "ResultPath": "$.TaskResult",
+                                            "End": true
+                                        }
+                                    }
+                                },
                                 {
                                     "StartAt": "NotifyFailure1",
                                     "States": {
