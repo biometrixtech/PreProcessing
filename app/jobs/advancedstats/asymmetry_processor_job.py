@@ -117,15 +117,23 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         event = MovementAsymmetry(complexity_level, cma_level, grf_level, stance)
 
-        event.adduc_rom_hip = self._get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
-        event.adduc_motion_covered_tot_hip = self._get_steps_f_test("adduc_motion_covered_total_hip", left_steps, right_steps)
-        event.adduc_motion_covered_pos_hip = self._get_steps_f_test("adduc_motion_covered_pos_hip", left_steps, right_steps)
-        event.adduc_motion_covered_neg_hip = self._get_steps_f_test("adduc_motion_covered_neg_hip", left_steps, right_steps)
+        # event.adduc_rom_hip = self._get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
+        # event.adduc_motion_covered_tot_hip = self._get_steps_f_test("adduc_motion_covered_total_hip", left_steps, right_steps)
+        # event.adduc_motion_covered_pos_hip = self._get_steps_f_test("adduc_motion_covered_pos_hip", left_steps, right_steps)
+        # event.adduc_motion_covered_neg_hip = self._get_steps_f_test("adduc_motion_covered_neg_hip", left_steps, right_steps)
+        #
+        # event.flex_rom_hip = self._get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
+        # event.flex_motion_covered_tot_hip = self._get_steps_f_test("flex_motion_covered_total_hip", left_steps, right_steps)
+        # event.flex_motion_covered_pos_hip = self._get_steps_f_test("flex_motion_covered_pos_hip", left_steps, right_steps)
+        # event.flex_motion_covered_neg_hip = self._get_steps_f_test("flex_motion_covered_neg_hip", left_steps, right_steps)
 
-        event.flex_rom_hip = self._get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
-        event.flex_motion_covered_tot_hip = self._get_steps_f_test("flex_motion_covered_total_hip", left_steps, right_steps)
-        event.flex_motion_covered_pos_hip = self._get_steps_f_test("flex_motion_covered_pos_hip", left_steps, right_steps)
-        event.flex_motion_covered_neg_hip = self._get_steps_f_test("flex_motion_covered_neg_hip", left_steps, right_steps)
+        event.anterior_pelvic_tilt_range = self._get_steps_f_test("anterior_pelvic_tilt_range", left_steps, right_steps)
+        event.anterior_pelvic_tilt_rate = self._get_steps_f_test("anterior_pelvic_tilt_rate", left_steps, right_steps)
+
+        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRangeLF", "anteriorPelvicTiltRangeLF", "Left", active_block_list, self.left_steps))
+        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRateLF", "anteriorPelvicTiltRateLF", "Left", active_block_list, self.left_steps))
+        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRangeRF", "anteriorPelvicTiltRangeRF", "Right", active_block_list, self.right_steps))
+        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRateRF", "anteriorPelvicTiltRateRF", "Right", active_block_list, self.right_steps))
 
         return event
 

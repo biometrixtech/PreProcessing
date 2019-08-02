@@ -17,3 +17,7 @@ class MovementAsymmetry(object):
         self.flex_motion_covered_tot_hip = 0.0
         self.flex_motion_covered_pos_hip = 0.0
         self.flex_motion_covered_neg_hip = 0.0
+
+        # new vars
+        self.anterior_pelvic_tilt_range = 0.0
+        self.anterior_pelvic_tilt_rate = 0.0

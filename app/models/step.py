@@ -49,6 +49,10 @@ class Step(object):
             self.flex_motion_covered_pos_hip = 0
 
             # self.land_time = 0
+
+            # new vars
+            self.anterior_pelvic_tilt_range = 0
+            self.anterior_pelvic_tilt_rate = 0
             
         else:
             time_start = parse_datetime(mongo_step.get('startTime'))
@@ -110,6 +114,10 @@ class Step(object):
             self.flex_motion_covered_total_hip = mongo_step.get('flexMotionCoveredTotalHip')
             self.flex_motion_covered_neg_hip = mongo_step.get('flexMotionCoveredNegHip')
             self.flex_motion_covered_pos_hip = mongo_step.get('flexMotionCoveredPosHip')
+
+            # new vars
+            self.anterior_pelvic_tilt_range = mongo_step.get('anteriorPelvicTiltRange')
+            self.anterior_pelvic_tilt_rate = mongo_step.get('anteriorPelvicTiltRate')
 
             # self.land_time = mongo_step.get('landTime')
             self.stance = mongo_step.get('stance')
