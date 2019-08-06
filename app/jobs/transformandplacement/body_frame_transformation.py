@@ -45,5 +45,3 @@ def body_frame_tran(data, qC0, qCH, qC2):
     output[:,18:21] = hamilton_product(hamilton_product(qC2, np.c_[z, data[:, 18:21]]), quat_conjugate(qC2))[..., 1:]
 
     return output
-
-

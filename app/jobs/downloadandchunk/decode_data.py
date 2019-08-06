@@ -151,9 +151,9 @@ def read_file(filename):
     output_pd['static_1'] = output_pd['static_1']. astype(int)
     # output_pd['magn_2'] = output_pd['magn_2']. astype(int)
     output_pd['static_2'] = output_pd['static_2'].astype(int)
-    ms_elapsed = np.ediff1d(timestamp, to_begin=10)
-    pos_timestamp = ms_elapsed >= 0
-    output_pd = output_pd.iloc[pos_timestamp]
-    output_pd.reset_index(drop=True, inplace=True)
+    # ms_elapsed = np.ediff1d(timestamp, to_begin=10)
+    # pos_timestamp = ms_elapsed >= 0
+    # output_pd = output_pd.iloc[pos_timestamp]
+    # output_pd.reset_index(drop=True, inplace=True)
     
     return output_pd

@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from utils.quaternion_conversions import quat_from_euler_angles, quat_as_euler_angles
-from utils.quaternion_operations import hamilton_product, quat_conjugate
+from utils.quaternion_operations import hamilton_product, quat_conjugate, quat_interp
 from .exceptions import HeadingDetectionException
 
 _logger = logging.getLogger(__name__)
@@ -101,27 +101,116 @@ def heading_calculus(q):
     a_yaw = quat_as_euler_angles(q_yaw)
     # Discard yaw angles that are zeros
     yaw_result = a_yaw[a_yaw[:,2] != 0][:,2]
-    _logger.info(f"initial yaw result: {yaw_result}")
-
-    # Search for any outliers
-    m_yaw = np.median(yaw_result)
-    sel = np.logical_and(np.abs(m_yaw - a_yaw[:,2]) > 90, a_yaw[:,2] != 0)
-    q_yaw[sel] = hamilton_product([0, 0, 0, 1], q_yaw[sel])
-    q_pitch[sel] = quat_conjugate(q_pitch[sel])
-
-    a_yaw = quat_as_euler_angles(q_yaw)
-    # Discard yaw angles that are zeros
-    yaw_result = a_yaw[a_yaw[:,2] != 0][:,2]
-    yaw_mean = np.mean(yaw_result)
-
+    
+    # Initialize
+    q_test = np.zeros((yaw_result.size , 4))
+    q_test[:,0] = 1
+    q_pos = np.zeros((1 , 4))
+    q_pos[:,0] = 1
+    q_neg = np.zeros((1 , 4))
+    q_neg[:,0] = 1
+    nr_pos = 0
+    nr_neg = 0
+    # Separe positive and negative heading, to do separate statistic
+    for j in range(0, yaw_result.size):
+        q_test = quat_from_euler_angles(yaw_result[j],[0, 0, 1])
+        # Count positive and negative yaw
+        if q_test[:,0]*q_test[:,3]>0 and q_test[:,1]==0 and q_test[:,2]==0:
+            nr_pos+=1
+            q_pos = np.concatenate((q_pos, q_test),axis=0)
+        else:
+            nr_neg+=1
+            q_neg = np.concatenate((q_neg, q_test),axis=0)
+            
+    
+    ## Discard first identity quaternion
+    q_pos=q_pos[1:nr_pos+1]
+    q_neg=q_neg[1:nr_neg+1]
+    # Control two distribution spread    
     # Set distribution std threshold
     std_TH = 10
-    _logger.info(f"yaw result: {yaw_result}")
+    a_pos = quat_as_euler_angles(q_pos)
+    a_pos = a_pos[a_pos[:,2] != 0][:,2]
+    a_neg = quat_as_euler_angles(q_neg)
+    a_neg = a_neg[a_neg[:,2] != 0][:,2]
 
-    if np.std(yaw_result) > std_TH or np.isnan(yaw_mean):
-        raise HeadingDetectionException()
+    
+    # Positive
+    if a_pos.size != 0:
+        m_yaw_pos = np.median(a_pos)
+        if np.std(a_pos) < std_TH:
+            ok_pos = True
+        else:
+            # Try to give an heading value anyway cutting distribution tails, but warning
+            temp=a_pos[np.abs(a_pos-m_yaw_pos)<15]
+            if np.std(temp)<std_TH:
+                q_pos=[]
+                q_pos = quat_from_euler_angles(temp, [0, 0, 1])
+                nr_pos=temp.size
+                ok_pos = True
+                _logger.warning("Not a good heading distribution.")
+            else:
+                ok_pos = False
     else:
-        qH = quat_from_euler_angles(yaw_mean, [0, 0, 1])
+        ok_pos = False
+    
+    # Negative
+    if a_neg.size != 0:
+        m_yaw_neg = np.median(a_neg)
+        if np.std(a_neg) < std_TH:
+            ok_neg = True
+        else:
+            # Try to give an heading value anyway cutting distribution tails, but warning
+            temp=a_neg[np.abs(a_neg-m_yaw_neg)<15]
+            if np.std(temp)<std_TH:
+                q_neg=[]
+                q_neg = quat_from_euler_angles(temp, [0, 0, 1])
+                nr_neg=temp.size
+                ok_neg = True
+                _logger.warning("Not a good heading distribution.")
+            else:
+                ok_neg = False
+    else:
+        ok_neg = False
+            
+    if not ok_pos and  not ok_neg:
+        _logger.warning("Heading value not found")
+        # Worse case, no valid heading found
+        raise HeadingDetectionException()
+
+        qH = np.array((1, 0, 0, 0))
+    else:
+        # Initialize avg quaternions and weights
+        q_avg = np.array((1, 0, 0, 0))
+        q_avg_pos = np.array((1, 0, 0, 0))
+        q_avg_neg = np.array((1, 0, 0, 0))
+        w_pos=nr_pos/(nr_pos+nr_neg)
+        w_neg=nr_neg/(nr_pos+nr_neg)
+        
+        if ok_pos==True:
+            # Positive avg quaternion
+            for j in range(0, nr_pos):
+                q_temp=quat_interp([1, 0, 0, 0],q_pos[j,:],1/nr_pos)
+                q_avg_pos=hamilton_product(q_avg_pos,q_temp)
+        else:
+            q_avg_pos = np.array((1, 0, 0, 0))
+            w_pos=0
+        
+        if ok_neg==True:
+            # Positive avg quaternion
+            for j in range(0, nr_neg):
+                q_temp=quat_interp([1, 0, 0, 0],q_neg[j,:],1/nr_neg)
+                q_avg_neg=hamilton_product(q_avg_neg,q_temp)
+        else:
+            q_avg_neg = np.array((1, 0, 0, 0))
+            w_neg = 0
+        
+        ## Compute weighted average
+        q_avg=quat_interp(q_avg_pos,q_avg_neg,w_neg)
+        a_yaw = quat_as_euler_angles(q_avg)
+        # Discard yaw angles that are zeros
+        yaw_result = a_yaw[2]
+        qH = quat_from_euler_angles(yaw_result, [0, 0, 1])        
 
     return qH
 

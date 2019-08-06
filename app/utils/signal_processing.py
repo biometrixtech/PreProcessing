@@ -22,7 +22,7 @@ def mfiltfilt(b, a, x, *args, **kwargs):
     return _filtfilt(b, a, x, *args, **kwargs, padtype="odd", padlen=3*(max(len(b), len(a))-1))
 
 
-def todd_andrews_adaptive_v5(data, delta, distance, op_cond):
+def all_sensors_todd_andrews_adaptive_v6(data, delta, distance, op_cond, Foot):
     """
     This code works on acceleration filtered signal: the aim of is to collect
     troughs ONLY after the main peak.
@@ -43,9 +43,13 @@ def todd_andrews_adaptive_v5(data, delta, distance, op_cond):
     troughs_pos = []
     troughs_val = []
     peak_discarded = False
-
+    if Foot:
+        MAX=1000
+    else:
+        MAX=data.max()/2.5
+        
     # Recognize main peak of the first period subwindow
-    M = data[:3*distance].max()
+    M = data[:2*distance].max()
 
     for i in range(1, data.size):
         if not op_cond[i]:
@@ -83,18 +87,29 @@ def todd_andrews_adaptive_v5(data, delta, distance, op_cond):
                             peaks_pos.append(setp[iset])
                             peaks_val.append(setv[iset])
                     else:
-                        if (np.abs(peaks_pos[-1] - setp[0]) >= distance # Distance peaks-to-peaks (position)
-                                and np.abs(troughs_pos[-1] - setp[0]) >= 0.75*distance): # Distance troughs-to-peaks (position)
-                                # and np.abs(troughs_val[-1] - setv[0]) >= th): # Distance troughs-to-peaks (amplitude)
-                            if setv[0] > 1000:
-                                peaks_pos.append(setp[0] - 1)
-                                peaks_val.append(setv[0])
-                        # BioMx Version
+                        if Foot:
+                            if (np.abs(peaks_pos[-1] - setp[0]) >= distance # Distance peaks-to-peaks (position)
+                                    and np.abs(troughs_pos[-1] - setp[0]) >= 0.75*distance): # Distance troughs-to-peaks (position)
+                                if setv[0] > MAX:
+                                    peaks_pos.append(setp[0] - 1)
+                                    peaks_val.append(setv[0])
+                        else:
+                            if (np.abs(peaks_pos[-1] - setp[0]) >= distance): # Distance peaks-to-peaks (position)
+                                if setv[0] > MAX:
+                                    peaks_pos.append(setp[0] - 1)
+                                    peaks_val.append(setv[0])
+                            
                         # Compares the current candidate peak with the last one: discard the last one
-                        if 0.2 < (i - peaks_pos[-1]) / distance < 0.9 and setv[0] > peaks_val[-1]:
-                            peaks_pos[-1] = setp[0] - 1
-                            peaks_val[-1] = setv[0]
-                            peak_discarded = True
+                        if Foot:
+                            if 0.2 < (i - peaks_pos[-1]) / distance < 0.9 and setv[0] > peaks_val[-1]:
+                                peaks_pos[-1] = setp[0] - 1
+                                peaks_val[-1] = setv[0]
+                                peak_discarded = True
+                        else:
+                            if (i - peaks_pos[-1]) / distance < 0.9 and setv[0] > peaks_val[-1]:
+                                peaks_pos[-1] = setp[0] - 1
+                                peaks_val[-1] = setv[0]
+                                peak_discarded = True
                         # if a peak has been discarded, a control on (eventual) existing trough related to the peak discarded is carried out:
                         # if such a trough is found, it's discarded
                         if (len(peaks_pos) > 1 and len(troughs_pos) > 1 and peak_discarded
@@ -127,21 +142,37 @@ def todd_andrews_adaptive_v5(data, delta, distance, op_cond):
                 # Overthreshold - trough detection
                 if iset == 0:
                     if not troughs_pos:
-                        if setv[iset] < 0 and peaks_pos:
-                            troughs_pos.append(setp[iset])
-                            troughs_val.append(setv[iset])
+                        if Foot:
+                            if setv[iset] < 0 and peaks_pos:
+                                troughs_pos.append(setp[iset])
+                                troughs_val.append(setv[iset])
+                        else:
+                            if setv[iset] < 0 and peaks_pos and np.abs(peaks_pos[-1] - setp[0]) <= distance/2 :
+                                troughs_pos.append(setp[iset])
+                                troughs_val.append(setv[iset])
                     else:
-                        if (np.abs(troughs_pos[-1] - setp[0]) >= distance # Distance troughs-to-troughs (position)
-                                and 3 <= np.abs(peaks_pos[-1] - setp[0]) <= distance/3): # Distance peaks-to-troughs (position)
-                                # and np.abs(peaks_val[-1] - setv[0]) >= th): # Distance peaks-to-troughs (amplitude)
-                            if setv[0] < 0 and peaks_pos[-1] > troughs_pos[-1]:
-                                troughs_pos.append(setp[0] - 1)
-                                troughs_val.append(setv[0])
+                        if Foot:
+                            if (np.abs(troughs_pos[-1] - setp[0]) >= distance # Distance troughs-to-troughs (position)
+                                    and 3 <= np.abs(peaks_pos[-1] - setp[0]) <= distance/3): # Distance peaks-to-troughs (position)
+                                if setv[0] < 0 and peaks_pos[-1] > troughs_pos[-1]:
+                                    troughs_pos.append(setp[0] - 1)
+                                    troughs_val.append(setv[0])
+                        else:
+                            if (np.abs(troughs_pos[-1] - setp[0]) >= distance # Distance troughs-to-troughs (position)
+                                    and 3 <= np.abs(peaks_pos[-1] - setp[0]) <= distance/2): # Distance peaks-to-troughs (position)
+                                if setv[0] < 0 and peaks_pos[-1] > troughs_pos[-1]:
+                                    troughs_pos.append(setp[0] - 1)
+                                    troughs_val.append(setv[0])
+                            
                 iset = 0
                 setp[iset] = i
                 setv[iset] = data[i]
                 imax = i
                 direction = 1
+        
+    if Foot:
+        corr_points=troughs_pos
+    else:
+        corr_points=peaks_pos    
 
-    return np.asarray(peaks_pos) + 1, np.asarray(troughs_pos) + 1
-
+    return np.asarray(corr_points) + 1

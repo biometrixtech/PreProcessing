@@ -4,8 +4,10 @@ import numpy as np
 import logging
 from ..job import Job
 from .heading_correction import heading_correction
-from .hip_drift_correction import hip_drift_correction
-from .foot_drift_correction import foot_drift_correction
+from .correction_parameters import foot_parameters, hip_parameters
+# from .hip_drift_correction import hip_drift_correction
+# from .foot_drift_correction import foot_drift_correction
+from .sensors_drift_correction import sensors_drift_correction
 from .acceleration_correction import axl_correction
 from .placement import get_placement_lateral_hip
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
@@ -37,19 +39,19 @@ class DriftcorrectionJob(Job):
         op_cond_h = data[:, 9]
         op_cond_2 = data[:, 17]
 
-        # Drift correction: left foot, hip, right foot
-        q_corr_0, candidate_troughs_0, troughs_0 = foot_drift_correction(op_cond_0, axl_refCH=dataHC[:, 2: 5], q_refCH=dataHC[:, 5: 9])
-        q_corr_h, correction_points_h = hip_drift_correction(op_cond_h, q_refCH=dataHC[:, 13:17])
-        q_corr_2, candidate_troughs_2, troughs_2 = foot_drift_correction(op_cond_2, axl_refCH=dataHC[:, 18:21], q_refCH=dataHC[:, 21:25])
+        axl_drift_hip = np.copy(dataHC[:, 11])
+        q_corr_0, candidate_troughs_0, troughs_0 = sensors_drift_correction(op_cond_0, dataHC[:, 2: 5], dataHC[:, 5: 9], foot_parameters, Foot=True)
+        q_corr_h, candidate_correction_points_h, correction_points_h = sensors_drift_correction(op_cond_h, axl_drift_hip, dataHC[:, 13:17], hip_parameters, Foot=False)
+        q_corr_2, candidate_troughs_2, troughs_2 = sensors_drift_correction(op_cond_2, dataHC[:, 18:21], dataHC[:, 21:25], foot_parameters, Foot=True)
 
         dataHC[:, 5: 9] = q_corr_0
         dataHC[:, 13: 17] = q_corr_h
         dataHC[:, 21: 25] = q_corr_2
 
         # Acceleration correction
-        axl_corr_0 = axl_correction(q_corr_0, dataHC[:, 2: 5])
-        axl_corr_h = axl_correction(q_corr_h, dataHC[:, 10:13])
-        axl_corr_2 = axl_correction(q_corr_2, dataHC[:, 18:21])
+        axl_corr_0 = axl_correction(q_corr_0, dataHC[:, 2: 5], True)
+        axl_corr_h = axl_correction(q_corr_h, dataHC[:, 10:13], False)
+        axl_corr_2 = axl_correction(q_corr_2, dataHC[:, 18:21], True)
 
         dataHC[:, 2: 5] = axl_corr_0
         dataHC[:, 10: 13] = axl_corr_h
@@ -86,7 +88,7 @@ class DriftcorrectionJob(Job):
 
         # get ms_elapsed and time_stamp
         self.data['time_stamp'], self.data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(self.data.epoch_time)
-        self.data.to_csv('data_out_troughs.csv', index=False)
+        # self.data.to_csv('data_out_troughs.csv', index=False)
 
         # Save the data at the end
         self.datastore.put_data('driftcorrection', self.data, chunk_size=int(os.environ['CHUNK_SIZE']))

@@ -20,3 +20,7 @@ class MockDatastore(Datastore):
 
     def put_data(self, source_job, data, columns=None, chunk_size=0, is_binary=False):
         self.side_loaded_data = data
+
+    def put_metadata(self, data):
+        for key, value in data.items():
+            self._metadata[key] = value
