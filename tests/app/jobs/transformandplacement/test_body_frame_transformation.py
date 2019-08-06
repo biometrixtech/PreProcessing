@@ -82,6 +82,6 @@ def test_match_221e():
 
         dataC_observed = body_frame_tran(df, qCL, qCH, qCR)
 
-        decimal_precision = 9
+        decimal_precision = 5
         for a in range(0, 25):
             assert np.equal(np.round(dataC_actual[:, a], decimal_precision), np.round(dataC_observed[:, a], decimal_precision)).all()

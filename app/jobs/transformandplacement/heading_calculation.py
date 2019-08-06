@@ -5,7 +5,7 @@ from utils.quaternion_operations import hamilton_product, quat_conjugate, quat_i
 from .exceptions import HeadingDetectionException
 
 _logger = logging.getLogger(__name__)
-# from numba import jit as _jit
+from numba import jit as _jit
 
 
 def heading_hip_finder(hip_ref_quat):
@@ -229,7 +229,7 @@ def heading_detection(q_delta, niter):
     return q_yaw, q_pitch
 
 
-# @_jit("f8[::1](f8[::1], intc)", nopython=True, cache=True)
+@_jit("f8[::1](f8[::1], intc)", nopython=True, cache=True)
 def _gd(q_delta, niter):
     # Bear in mind that that when q_yaw corresponds to x(1) the algorithm will fail
     x = np.array((1., 0., 1., 0.)) # Initialization of x as identity quaternions
