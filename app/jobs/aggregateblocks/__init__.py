@@ -114,6 +114,7 @@ class AggregateblocksJob(Job):
             record_out['unitBlocks'] = unit_blocks
 
             query = {'sessionId': self.datastore.session_id, 'timeStart': block_start}
+            print(record_out)
             mongo_collection.replace_one(query, record_out, upsert=True)
 
             _logger.info("Wrote a bock record")
