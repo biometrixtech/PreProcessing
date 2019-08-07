@@ -4,19 +4,13 @@ import numpy as np
 import pandas as pd
 
 from utils.detect_peaks import detect_peaks
+from utils import get_ranges
 
 
 def aggregate(data, record, mass, agg_level):
     """Aggregates different variables for block/unitBlocks
     """
     data.reset_index(drop=True, inplace=True)
-    const_grf = np.nansum(data['const_grf'])
-    dest_grf = np.nansum(data['dest_grf'])
-    if const_grf == 0 and dest_grf == 0:
-        perc_optimal_block = 1.
-    else:
-        perc_optimal_block = const_grf / (const_grf + dest_grf)
-
     lf_only_grf = np.sum(data['lf_only_grf'])
     rf_only_grf = np.sum(data['rf_only_grf'])
 
@@ -35,13 +29,13 @@ def aggregate(data, record, mass, agg_level):
         perc_distr = np.abs(perc_left_grf - perc_right_grf)
 
         # update perc_optimal to take into account grf distribution
-        perc_optimal_block = (2. * perc_optimal_block + (1. - perc_distr / 100.) ** 2) / 3.
+        # perc_optimal_block = (2. * perc_optimal_block + (1. - perc_distr / 100.) ** 2) / 3.
     # GRF aggregation
     record['duration'] = (data['epoch_time'].values[-1] - data['epoch_time'].values[0]) / 1000.
     record['totalGRF'] = np.sum(data['total_grf'])
     record['totalGRFAvg'] = record['totalGRF'] / np.sum(data['total_ind']) * 1000000. / mass / 9.807
-    record['optimalGRF'] = perc_optimal_block * record['totalGRF']
-    record['irregularGRF'] = (1. - perc_optimal_block) * record['totalGRF']
+    # record['optimalGRF'] = perc_optimal_block * record['totalGRF']
+    # record['irregularGRF'] = (1. - perc_optimal_block) * record['totalGRF']
     record['LFgRF'] = np.sum(data['lf_grf'])
     record['RFgRF'] = np.sum(data['rf_grf'])
     record['leftGRF'] = np.sum(data['lf_only_grf'])
@@ -54,98 +48,6 @@ def aggregate(data, record, mass, agg_level):
     # accel aggregation
     record['totalAccel'] = np.nansum(data['total_accel'])
     record['totalAccelAvg'] = _peak_accel(data['total_accel'].values)
-    record['irregularAccel'] = np.nansum(data['irregular_accel'])
-
-    if record['totalGRF'] == 0:
-        # control aggregation
-        record['control'] = None
-        record['hipControl'] = None
-        record['ankleControl'] = None
-        try:
-            record['controlLF'] = np.sum(data['control_lf'] * data['lf_grf']) / record['LFgRF']
-        except ZeroDivisionError:
-            record['controlLF'] = None
-        try:
-            record['controlRF'] = np.sum(data['control_rf'] * data['rf_grf']) / record['RFgRF']
-        except ZeroDivisionError:
-            record['controlRF'] = None
-
-        # symmetry aggregation
-        record['symmetry'] = None
-        record['hipSymmetry'] = None
-        record['ankleSymmetry'] = None
-
-        # consistency aggregation
-        record['consistency'] = None
-        record['hipConsistency'] = None
-        record['ankleConsistency'] = None
-        try:
-            record['consistencyLF'] = np.sum(data['consistency_lf']) / record['LFgRF']
-        except ZeroDivisionError:
-            record['consistencyLF'] = None
-        try:
-            record['consistencyRF'] = np.sum(data['consistency_rf']) / record['RFgRF']
-        except ZeroDivisionError:
-            record['consistencyRF'] = None
-    else:
-        # control aggregation
-        record['control'] = np.sum(data['control'] * data['total_grf']) / record['totalGRF']
-        record['hipControl'] = np.sum(data['hip_control'] * data['total_grf']) / record['totalGRF']
-        record['ankleControl'] = np.sum(data['ankle_control'] * data['total_grf']) / record['totalGRF']
-        try:
-            record['controlLF'] = np.sum(data['control_lf'] * data['lf_grf']) / record['LFgRF']
-        except ZeroDivisionError:
-            record['controlLF'] = None
-        try:
-            record['controlRF'] = np.sum(data['control_rf'] * data['rf_grf']) / record['RFgRF']
-        except ZeroDivisionError:
-            record['controlRF'] = None
-
-        # symmetry aggregation
-        record['symmetry'] = np.sum(data['symmetry']) / record['totalGRF']
-        record['hipSymmetry'] = np.sum(data['hip_symmetry']) / record['totalGRF']
-        record['ankleSymmetry'] = np.sum(data['ankle_symmetry']) / record['totalGRF']
-
-        # consistency aggregation
-        record['consistency'] = np.sum(data['consistency']) / record['totalGRF']
-        record['hipConsistency'] = np.sum(data['hip_consistency']) / record['totalGRF']
-        record['ankleConsistency'] = np.sum(data['ankle_consistency']) / record['totalGRF']
-        try:
-            record['consistencyLF'] = np.sum(data['consistency_lf']) / record['LFgRF']
-        except ZeroDivisionError:
-            record['consistencyLF'] = None
-        try:
-            record['consistencyRF'] = np.sum(data['consistency_rf']) / record['RFgRF']
-        except ZeroDivisionError:
-            record['consistencyRF'] = None
-
-    # enforce validity of scores
-    scor_cols = ['symmetry',
-                 'hipSymmetry',
-                 'ankleSymmetry',
-                 'consistency',
-                 'hipConsistency',
-                 'ankleConsistency',
-                 'consistencyLF',
-                 'consistencyRF',
-                 'control',
-                 'hipControl',
-                 'ankleControl',
-                 'controlLF',
-                 'controlRF']
-    for key in scor_cols:
-        value = record[key]
-        try:
-            if np.isnan(value):
-                record[key] = None
-            elif value >= 100:
-                record[key] = 100
-        except TypeError:
-            pass
-
-    # fatigue
-    record['percOptimal'] = perc_optimal_block * 100
-    record['percIrregular'] = (1 - perc_optimal_block) * 100
 
     length_lf, range_lf = _contact_duration(data.phase_lf.values,
                                             data.active.values,
@@ -207,19 +109,14 @@ def _step_data(data, ranges, mass, sensor):
     """
 
     steps = []
+    # counter = 0
     for range_gc in ranges:
         step_record = OrderedDict()
         step_data = data.loc[range_gc[0]:range_gc[1] - 1, :]
-        if np.all(np.unique(step_data['phase_' + sensor.lower()]) == np.array([0.])):
-            continue
-        const_grf = np.nansum(step_data['const_grf'])
-        dest_grf = np.nansum(step_data['dest_grf'])
-        if const_grf == 0 and dest_grf == 0:
-            perc_optimal_step = 1.
-        else:
-            perc_optimal_step = const_grf / (const_grf + dest_grf)
+        # if np.all(np.unique(step_data['phase_' + sensor.lower()]) == np.array([0.])):
+        #     continue
 
-        contact_duration = data.epoch_time[range_gc[1] - 1] - data.epoch_time[range_gc[0]]
+        contact_duration = float(data.epoch_time[range_gc[1] - 1] - data.epoch_time[range_gc[0]])
 
         step_start = str(pd.to_datetime(data.epoch_time[range_gc[0]], unit='ms'))
 
@@ -230,33 +127,10 @@ def _step_data(data, ranges, mass, sensor):
         step_record['totalGRF'] = np.sum(step_data['total_grf'])
         step_record['totalGRFAvg'] = step_record['totalGRF'] / np.sum(
             step_data['total_ind']) * 1000000. / mass / 9.807
-        step_record['optimalGRF'] = perc_optimal_step * step_record['totalGRF']
-        step_record['irregularGRF'] = (1. - perc_optimal_step) * step_record['totalGRF']
 
         # accel aggregation
         step_record['totalAccel'] = np.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
-
-        if step_record['totalGRF'] == 0:
-            # control aggregation
-            step_record['control'] = None
-            step_record['hipControl'] = None
-            step_record['ankleControl'] = None
-            step_record['control' + sensor] = None
-
-        else:
-            # control aggregation
-            step_record['control'] = np.sum(step_data['control'] * step_data['total_grf']) / step_record['totalGRF']
-            step_record['hipControl'] = np.sum(step_data['hip_control'] * step_data['total_grf']) / step_record[
-                'totalGRF']
-            step_record['ankleControl'] = np.sum(step_data['ankle_control'] * step_data['total_grf']) / step_record[
-                'totalGRF']
-            step_record['control' + sensor] = np.sum(
-                step_data['control_' + sensor.lower()] * step_data['total_grf']) / step_record['totalGRF']
-
-        # fatigue
-        step_record['percOptimal'] = perc_optimal_step * 100
-        step_record['percIrregular'] = (1 - perc_optimal_step) * 100
 
         mph = 1.2
         grf_sub = data.grf[range_gc[0]:range_gc[1]].values
@@ -285,6 +159,11 @@ def _step_data(data, ranges, mass, sensor):
             step_record['peakGrfContactDuration' + sensor] = None
             step_record['peakGrfImpactDuration' + sensor] = None
             step_record['peakGrfPercImpactDuration' + sensor] = None
+
+
+        apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
+        step_record['anteriorPelvicTiltRange'] = apt_range
+        step_record['anteriorPelvicTiltRate'] = apt_rate
 
         adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
         adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
@@ -347,7 +226,28 @@ def _step_data(data, ranges, mass, sensor):
             elif np.all(stance == np.array([3., 5.])):
                 step_record['stance'] = [3.] * len(step_data)
         steps.append(step_record)
+
     return steps
+
+
+def get_apt_cme(euler_hip_y, euler_hip_y_diff):
+    half = int(len(euler_hip_y) / 2)
+    max_index = np.where(euler_hip_y[half:] == max(euler_hip_y[half:]))[0][0] + half
+    euler_y_step_diff = euler_hip_y_diff[:max_index]
+    if len(euler_y_step_diff) == 0:
+        return None, None
+    minima = np.where(euler_y_step_diff == min(euler_y_step_diff))[0][0]
+    min_index = np.where(euler_hip_y[minima:max_index] == min(euler_hip_y[minima:max_index]))[0][0] + minima
+    range_euler_y = (euler_hip_y[max_index] - euler_hip_y[min_index]) * 180 / np.pi
+    if range_euler_y < 0:
+        print('max lower than min')
+        return None, None
+    duration = max_index - min_index
+    if duration <= 0:
+        print('max index before min')
+        return None, None
+    range_rate = range_euler_y / duration * 100
+    return range_euler_y, range_rate
 
 
 def _contact_duration_peak_grf(grf, ranges, epoch_time):
@@ -388,8 +288,8 @@ def _contact_duration_peak_grf(grf, ranges, epoch_time):
 def _contact_duration(phase, active, epoch_time, ground_phases):
     """compute contact duration in ms given phase data
     """
-    min_gc = 80.
-    max_gc = 1500.
+    min_gc = 10
+    max_gc = 60
 
     # enumerate phase such that all ground contacts are 0
     _phase = copy.copy(phase)
@@ -397,55 +297,15 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     _phase[np.array([i == 0 for i in active])] = 1
 
     # get index ranges for ground contacts
-    ranges = _get_ranges(_phase, 0)
-    length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
+    ranges, lengths = get_ranges(_phase, 0, True)
 
-    length_index = np.where((length >= min_gc) & (length <= max_gc))
+    length_index = np.where((lengths >= min_gc) & (lengths <= max_gc))
     ranges = ranges[length_index]
 
     # subset to only get the points where ground contacts are within a reasonable window
-    length = length[(length >= min_gc) & (length <= max_gc)]
+    lengths = lengths[(lengths >= min_gc) & (lengths <= max_gc)]
 
-    return length, ranges
-
-
-def _get_ranges(col_data, value):
-    """
-    For a given categorical data, determine start and end index for the given value
-    start: index where it first occurs
-    end: index after the last occurence
-
-    Args:
-        col_data
-        value: int, value to get ranges for
-    Returns:
-        ranges: 2d array, start and end index for each occurance of value
-    """
-
-    # determine where column data is the relevant value
-    is_value = np.array(np.array(col_data == value).astype(int)).reshape(-1, 1)
-
-    # if data starts with given value, range starts with index 0
-    if is_value[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from the given value
-    absdiff = np.abs(np.ediff1d(is_value, to_begin=t_b))
-
-    # handle the closing edge
-    # if the data ends with the given value, if it was the only point, ignore the range,
-    # else assign the last index as end of range
-    if is_value[-1] == 1:
-        if absdiff[-1] == 0:
-            absdiff[-1] = 1
-        else:
-            absdiff[-1] = 0
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges
+    return lengths * 10., ranges
 
 
 def _peak_grf(grf, phase_lf, phase_rf):

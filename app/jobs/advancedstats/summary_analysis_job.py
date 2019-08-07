@@ -73,8 +73,8 @@ class SummaryAnalysisJob(UnitBlockJob):
                     'percOptimal': [block.get('percOptimal')],
                     'totalGRF': [block.get('totalGRF')],
                     'totalGRFAvg': [block.get('totalGRFAvg')],
-                    'optimalGRF': [block.get('optimalGRF')],
-                    'irregularGRF': [block.get('irregularGRF')],
+                    #'optimalGRF': [block.get('optimalGRF')],
+                    #'irregularGRF': [block.get('irregularGRF')],
                     'LFgRF': [block.get('LFgRF')],
                     'RFgRF': [block.get('RFgRF')],
                     'leftGRF': [block.get('leftGRF')],
@@ -83,8 +83,8 @@ class SummaryAnalysisJob(UnitBlockJob):
                     'percLeftGRF': [block.get('percLeftGRF')],
                     'percRightGRF': [block.get('percRightGRF')],
                     'percLRGRFDiff': [block.get('percLRGRFDiff')],
-                    'totalAccel': [block.get('totalAccel')],
-                    'irregularAccel': [block.get('irregularAccel')]
+                    'totalAccel': [block.get('totalAccel')]
+                    #'irregularAccel': [block.get('irregularAccel')]
                 }))
 
             return data
