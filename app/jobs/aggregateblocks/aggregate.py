@@ -304,10 +304,8 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
 
     # subset to only get the points where ground contacts are within a reasonable window
     lengths = lengths[(lengths >= min_gc) & (lengths <= max_gc)]
-    # print(f"mean: {np.mean(lengths)}, median: {np.median(lengths)}")
-    # print(len(lengths))
 
-    return lengths, ranges
+    return lengths * 10., ranges
 
 
 def _peak_grf(grf, phase_lf, phase_rf):
