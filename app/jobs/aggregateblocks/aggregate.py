@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from utils.detect_peaks import detect_peaks
+from utils import get_ranges
 
 
 def aggregate(data, record, mass, agg_level):
@@ -108,13 +109,14 @@ def _step_data(data, ranges, mass, sensor):
     """
 
     steps = []
+    # counter = 0
     for range_gc in ranges:
         step_record = OrderedDict()
         step_data = data.loc[range_gc[0]:range_gc[1] - 1, :]
-        if np.all(np.unique(step_data['phase_' + sensor.lower()]) == np.array([0.])):
-            continue
+        # if np.all(np.unique(step_data['phase_' + sensor.lower()]) == np.array([0.])):
+        #     continue
 
-        contact_duration = data.epoch_time[range_gc[1] - 1] - data.epoch_time[range_gc[0]]
+        contact_duration = float(data.epoch_time[range_gc[1] - 1] - data.epoch_time[range_gc[0]])
 
         step_start = str(pd.to_datetime(data.epoch_time[range_gc[0]], unit='ms'))
 
@@ -157,6 +159,11 @@ def _step_data(data, ranges, mass, sensor):
             step_record['peakGrfContactDuration' + sensor] = None
             step_record['peakGrfImpactDuration' + sensor] = None
             step_record['peakGrfPercImpactDuration' + sensor] = None
+
+
+        apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
+        step_record['anteriorPelvicTiltRange'] = apt_range
+        step_record['anteriorPelvicTiltRate'] = apt_rate
 
         adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
         adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
@@ -219,7 +226,28 @@ def _step_data(data, ranges, mass, sensor):
             elif np.all(stance == np.array([3., 5.])):
                 step_record['stance'] = [3.] * len(step_data)
         steps.append(step_record)
+
     return steps
+
+
+def get_apt_cme(euler_hip_y, euler_hip_y_diff):
+    half = int(len(euler_hip_y) / 2)
+    max_index = np.where(euler_hip_y[half:] == max(euler_hip_y[half:]))[0][0] + half
+    euler_y_step_diff = euler_hip_y_diff[:max_index]
+    if len(euler_y_step_diff) == 0:
+        return None, None
+    minima = np.where(euler_y_step_diff == min(euler_y_step_diff))[0][0]
+    min_index = np.where(euler_hip_y[minima:max_index] == min(euler_hip_y[minima:max_index]))[0][0] + minima
+    range_euler_y = (euler_hip_y[max_index] - euler_hip_y[min_index]) * 180 / np.pi
+    if range_euler_y < 0:
+        print('max lower than min')
+        return None, None
+    duration = max_index - min_index
+    if duration <= 0:
+        print('max index before min')
+        return None, None
+    range_rate = range_euler_y / duration * 100
+    return range_euler_y, range_rate
 
 
 def _contact_duration_peak_grf(grf, ranges, epoch_time):
@@ -260,8 +288,8 @@ def _contact_duration_peak_grf(grf, ranges, epoch_time):
 def _contact_duration(phase, active, epoch_time, ground_phases):
     """compute contact duration in ms given phase data
     """
-    min_gc = 80.
-    max_gc = 1500.
+    min_gc = 10
+    max_gc = 150
 
     # enumerate phase such that all ground contacts are 0
     _phase = copy.copy(phase)
@@ -269,55 +297,17 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     _phase[np.array([i == 0 for i in active])] = 1
 
     # get index ranges for ground contacts
-    ranges = _get_ranges(_phase, 0)
-    length = epoch_time[ranges[:, 1]] - epoch_time[ranges[:, 0]]
+    ranges, lengths = get_ranges(_phase, 0, True)
 
-    length_index = np.where((length >= min_gc) & (length <= max_gc))
+    length_index = np.where((lengths >= min_gc) & (lengths <= max_gc))
     ranges = ranges[length_index]
 
     # subset to only get the points where ground contacts are within a reasonable window
-    length = length[(length >= min_gc) & (length <= max_gc)]
+    lengths = lengths[(lengths >= min_gc) & (lengths <= max_gc)]
+    # print(f"mean: {np.mean(lengths)}, median: {np.median(lengths)}")
+    # print(len(lengths))
 
-    return length, ranges
-
-
-def _get_ranges(col_data, value):
-    """
-    For a given categorical data, determine start and end index for the given value
-    start: index where it first occurs
-    end: index after the last occurence
-
-    Args:
-        col_data
-        value: int, value to get ranges for
-    Returns:
-        ranges: 2d array, start and end index for each occurance of value
-    """
-
-    # determine where column data is the relevant value
-    is_value = np.array(np.array(col_data == value).astype(int)).reshape(-1, 1)
-
-    # if data starts with given value, range starts with index 0
-    if is_value[0] == 1:
-        t_b = 1
-    else:
-        t_b = 0
-
-    # mark where column data changes to and from the given value
-    absdiff = np.abs(np.ediff1d(is_value, to_begin=t_b))
-
-    # handle the closing edge
-    # if the data ends with the given value, if it was the only point, ignore the range,
-    # else assign the last index as end of range
-    if is_value[-1] == 1:
-        if absdiff[-1] == 0:
-            absdiff[-1] = 1
-        else:
-            absdiff[-1] = 0
-    # determine the number of consecutive NaNs
-    ranges = np.where(absdiff == 1)[0].reshape((-1, 2))
-
-    return ranges
+    return lengths, ranges
 
 
 def _peak_grf(grf, phase_lf, phase_rf):

@@ -188,15 +188,15 @@ def _impact_detect(phase, start_move, end_move, grf, acc_hip_z, acc_hip_x, acc_h
             for imp, length in zip(ranges, lengths):
                 imp += i
                 if (imp[0] != i and  # can't impact from start
-                        #                    length >= imp_len and  # make sure impact is of enough length
+                        # length >= imp_len and  # make sure impact is of enough length
                         phase[imp[0] - 1] == PhaseId.air.value):  # has to be in air right before impact
                     if imp[1] == len(phase):
                         imp[1] -= 1
-                    if imp[1] - imp[0] < 50:
+                    if imp[1] - imp[0] < 50:  # not correcting for walking
                         acc_hip_z_step = acc_hip_z[imp[0]:imp[1]]
                         acc_hip_x_step = acc_hip_x[imp[0]:imp[1]]
                         _update_impact_start_jog(imp, acc_hip_z_step, acc_hip_x_step)
-                        acc_hip_step = acc_hip[imp[0]:imp[1] + 5]
+                        acc_hip_step = acc_hip[imp[0]:imp[1] + 5] # look for a few steps beyond end of the impact detected
                         _update_impact_end_jog(imp, acc_hip_step)
                     if imp[1] - imp[0] > imp_len:
                         phase[imp[0]: imp[1]] = PhaseId.impact.value
