@@ -5,7 +5,7 @@ from jobs.driftcorrection.correction_parameters import foot_parameters, hip_para
 
 
 def test_match_221e():
-    for i in [2, 3, 4]:
+    for i in [2, 3, 4, 6]:
         path = f'../../../files/data{i}/'
 
         data = scipy.io.loadmat(f"{path}data.mat").get("data")
@@ -26,9 +26,9 @@ def test_match_221e():
         q_corr_h, candidate_correction_points_h, correction_points_h = sensors_drift_correction(op_cond_h, axl_drift_hip, dataHC[:, 13:17], hip_parameters, Foot=False)
         q_corr_r, candidate_troughs_2, troughs_2 = sensors_drift_correction(op_cond_r, dataHC[:, 18:21], dataHC[:, 21:25], foot_parameters, Foot=True)
 
-        decimal_percision = 4
+        precision = 10**-4
 
         for a in range(0, 4):
-                assert np.equal(np.round(q_corr_l_actual[:, a], decimal_percision), np.round(q_corr_l[:, a], decimal_percision)).all()
-                assert np.equal(np.round(q_corr_h_actual[:, a], decimal_percision), np.round(q_corr_h[:, a], decimal_percision)).all()
-                assert np.equal(np.round(q_corr_r_actual[:, a], decimal_percision), np.round(q_corr_r[:, a], decimal_percision)).all()
+                assert (np.abs(q_corr_l_actual[:, a] - q_corr_l[:, a]) < precision).all()
+                assert (np.abs(q_corr_h_actual[:, a] - q_corr_h[:, a]) < precision).all()
+                assert (np.abs(q_corr_r_actual[:, a] - q_corr_r[:, a]) < precision).all()

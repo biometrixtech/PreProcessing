@@ -4,7 +4,7 @@ import scipy.io
 
 
 def test_match_221e():
-    for i in [2, 3, 4]:
+    for i in [2, 3, 4, 6]:
         path = f'../../../files/data{i}/'
         dataC = scipy.io.loadmat(f"{path}dataC.mat").get("dataC")
         dataHC_actual = scipy.io.loadmat(f"{path}data_Heading_corrected.mat").get("data_Heading_corrected")
@@ -15,6 +15,6 @@ def test_match_221e():
         # Heading correction for all sensors
         dataHC_observed = heading_correction(dataC, qH0, qHH, qH2)
 
-        decimal_percision = 4
+        precision = 10**-4
         for a in range(0, 25):
-            assert np.equal(np.round(dataHC_actual[:, a], decimal_percision), np.round(dataHC_observed[:, a], decimal_percision)).all()
+            assert (np.abs(dataHC_actual[:, a] - dataHC_observed[:, a]) < precision).all()

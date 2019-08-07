@@ -4,7 +4,7 @@ from jobs.driftcorrection.acceleration_correction import axl_correction
 
 
 def test_match_221e():
-    for i in [2, 3, 4]:
+    for i in [2, 3, 4, 6]:
         path = f'../../../files/data{i}/'
 
         dataHC = scipy.io.loadmat(f"{path}data_Heading_corrected.mat").get("data_Heading_corrected")
@@ -20,9 +20,9 @@ def test_match_221e():
         axl_corr_h = axl_correction(q_corr_h, dataHC[:,10:13], False)
         axl_corr_r = axl_correction(q_corr_r, dataHC[:,18:21], True)
 
-        decimal_percision = 4
+        precision = 10**-4
 
         for a in range(0, 3):
-            assert np.equal(np.round(axl_corr_l_actual[:, a], decimal_percision), np.round(axl_corr_l[:, a], decimal_percision)).all()
-            assert np.equal(np.round(axl_corr_h_actual[:, a], decimal_percision), np.round(axl_corr_h[:, a], decimal_percision)).all()
-            assert np.equal(np.round(axl_corr_r_actual[:, a], decimal_percision), np.round(axl_corr_r[:, a], decimal_percision)).all()
+            assert (np.abs(axl_corr_l_actual[:, a] - axl_corr_l[:, a]) < precision).all()
+            assert (np.abs(axl_corr_h_actual[:, a] - axl_corr_h[:, a]) < precision).all()
+            assert (np.abs(axl_corr_r_actual[:, a] - axl_corr_r[:, a]) < precision).all()

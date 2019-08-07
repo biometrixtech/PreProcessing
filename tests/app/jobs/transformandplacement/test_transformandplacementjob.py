@@ -10,7 +10,7 @@ import scipy.io
 
 
 def test_full_job_process():
-    for i in [2, 3, 4]:
+    for i in [2, 3, 4, 6]:
         path = f'../../../files/data{i}/'
         data = scipy.io.loadmat(f"{path}data.mat").get("data")  # raw data
         # data_bin_pd = read_file(f"{path}dataBin")

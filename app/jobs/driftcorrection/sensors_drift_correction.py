@@ -5,7 +5,7 @@ import numpy as np
 from scipy.signal import butter as _butter, find_peaks as _find_peaks
 
 from utils.quaternion_operations import hamilton_product, quat_conjugate, quat_interp
-from utils.quaternion_conversions import quat_as_euler_angles
+from utils.quaternion_conversions import quat_as_euler_angles, quat_from_euler_angles
 from utils.signal_processing import mfiltfilt, myfft, all_sensors_todd_andrews_adaptive_v6
 
 
@@ -122,18 +122,18 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
     all_corr_points = []
     all_candidate_corr_points = []
 
+    # Backward correction points
+    backward_points = []
+
     # Frequency and amplitude of the current peak found (FFT)
     freq_peak = np.zeros(n)
     height_peak = np.zeros(n)
     # Marker changing rhythm
     marker_fft = np.zeros(n)
-    # Backward correction points
-    backward_points = []
 
     # Quaternion initialization
     # Corrected quaternion (eventually overwrited in different sections)
     q_corr = np.copy(q_refCH)
-    q_refCH2 = np.copy(q_refCH)
     # Orientation jumps between two consecutive troughs
     q_delta = np.zeros((n, 4))
     q_delta[:,0] = 1
@@ -141,14 +141,18 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
 
     # Initialization
     short_static_found = False
+    jumplastsample = True
 
     # Iteration through the dataset - i is the index pointing at the end of a dynamic condition window
     for i in range(1, n):
         # Search for the beginning of an operating condition
-        if op_cond[i-1] == 0 and op_cond[i] == 1 and not short_static_found:
+        if op_cond[i - 1] == 0 and op_cond[i] == 1 and not short_static_found:
             start_op_cond = i
 
-        if op_cond[i-1] != 1 or op_cond[i] != 0:
+        if i == n - 1 and i - start_op_cond > fft_num_samples:
+            jumplastsample = False
+
+        if (op_cond[i - 1] != 1 or op_cond[i] != 0) and jumplastsample:
             continue
         # Found dynamic condition window - i points to the end of the dynamic operating condition
 
@@ -196,7 +200,7 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
             # Overwrite q_corr
             q_corr[i:t,:] = q_refCH[i:t,:]
 
-        if i - start_op_cond < fft_num_samples or short_static_found:
+        if (i - start_op_cond < fft_num_samples or short_static_found) and jumplastsample:
             continue
         # Found dynamic condition window - i points to the end of the dynamic operating condition
         # Reset current operating condition peaks/troughs
@@ -346,7 +350,11 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
             
             # Correct remaining part of the signal on the basis of the last corrected trough
             if corr_point_pos.size != 0:
-                j = np.arange(corr_point_pos[-1] + 1, i)
+                if i==n-1:
+                    stop=i+1
+                else:
+                    stop=i
+                j = np.arange(corr_point_pos[-1] + 1, stop)
                 q_corr[j,:] = hamilton_product(
                         q_corr[j[0]-1,:],
                         hamilton_product(quat_conjugate(q_refCH[j[0]-1,:]), q_refCH[j,:]))
@@ -354,6 +362,77 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
             # All peaks/troughs store
             all_corr_points.append(corr_point_pos)
 
+        # Backward offset compensation
+        # Search for the first N samples of static within the next 5 secs
+        static_threshold = 20
+        static_counter = 0
+        q_odd = []
+        q_even = [q_corr[i - 1, :]]
+        for j in range(i, min(i + 5 * fs, n)):
+            if static_counter >= static_threshold:
+                break
+            if op_cond[j] == 0:
+                static_counter += 1
+                if static_counter >= static_threshold:
+                    q_odd.append(q_refCH[j, :])
+            if j > i:
+                # Save extra windows quaternion, the last static window sample
+                if op_cond[j - 1] == 0 and op_cond[j] == 1:
+                    q_odd.append(q_refCH[j - 1, :])
+                # Save extra windows quaternion, at the end of new dyn phase, main dynamic phase included
+                if op_cond[j - 1] == 1 and op_cond[j] == 0:
+                    q_even.append(q_refCH[j - 1, :])
+
+        q_odd = np.asarray(q_odd)
+        q_even = np.asarray(q_even)
+
+        if static_counter >= static_threshold:
+            # Compute the actual quaternion at the end of the main dynamic window
+            q0_c = np.array((1., 0., 0., 0.))
+            for h in range(q_odd.shape[0] - 1, 0, -1):
+                q0_c[:] = hamilton_product(
+                        hamilton_product(q0_c, q_odd[h, :]),
+                        quat_conjugate(q_even[h, :]))
+
+            q0_c[:] = hamilton_product(q0_c, q_odd[0, :])
+
+            # Compute the differential quaternion to compensate for within the main dynamic window
+            a_stat = quat_as_euler_angles(q0_c)
+            q_stat = hamilton_product(
+                    quat_from_euler_angles(a_stat[1], [0, 1, 0]),
+                    quat_from_euler_angles(a_stat[0], [1, 0, 0]))
+            # Dynamic
+            a_dyn = quat_as_euler_angles(q_even[0, :])
+            q_dyn = hamilton_product(
+                    quat_from_euler_angles(a_dyn[1], [0, 1, 0]),
+                    quat_from_euler_angles(a_dyn[0], [1, 0, 0]))
+            # Dynamic to static index
+            q_ds = hamilton_product(quat_conjugate(q_stat), q_dyn)
+            # Beginning of the compensation process
+            if corr_point_pos.size > corr_point_threshold:
+                # If enough correction points are found, apply backward from the last one to the static
+                start_index = corr_point_pos[-1]
+            else:
+                # If there're no correction points (<corr_point_threshold) apply backward on all the dynamic phase
+                start_index = start_op_cond
+
+            # Offset compensation process
+            h = np.arange(start_index, i)
+            q_ds_step = quat_interp([1, 0, 0, 0], q_ds, (h - start_index + 1) / (i - start_index - 1))
+            q_corr[h, :] = hamilton_product(q_corr[h, :], quat_conjugate(q_ds_step))
+
+            # Manage and correct quaternion from dyn_index+1 to stat_index=j
+            for h in range(i, j):
+                if op_cond[h] == 0:
+                    q_corr[h, :] = q_corr[h - 1, :]
+                    last_stat = h
+                else:
+                    q_corr[h, :] = hamilton_product(
+                            hamilton_product(q_corr[last_stat, :], quat_conjugate(q_refCH[last_stat, :])),
+                            q_refCH[h, :])
+
+            # Save backward points (check)
+            backward_points.append(j)
     # all_corr_points= np.concatenate(all_corr_points)
 
     corr_points = np.zeros(n)
