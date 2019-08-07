@@ -40,7 +40,7 @@ _output_columns = [
     'euler_lf_x', 'euler_lf_y', 'euler_lf_z',
     'euler_hip_x', 'euler_hip_y', 'euler_hip_z',
     'euler_rf_x', 'euler_rf_y', 'euler_rf_z',
-    'quat_lf_w','quat_lf_x', 'quat_lf_y', 'quat_lf_z',
+    'quat_lf_w', 'quat_lf_x', 'quat_lf_y', 'quat_lf_z',
     'quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z',
     'quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z',
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
@@ -126,7 +126,6 @@ def run_session(data, mass, grf_fit, sc):
     data['euler_rf_x'] = adduction_rf.reshape(-1, 1)
     data['euler_rf_y'] = flexion_rf.reshape(-1, 1)
 
-
     # prepare data for grf prediction
     weight = mass * 9.807 / 1000  # convert mass from kg to N
     grf_data, nan_row = prepare_data(data, sc, weight)
@@ -139,24 +138,22 @@ def run_session(data, mass, grf_fit, sc):
     del grf_data, nan_row, grf_fit
     logger.info('DONE WITH GRF PREDICTION!')
 
+    # calculate total acceleration
+    hip_acc = data.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']].values
+    len_hip_acc = len(hip_acc)
+    accel_mag = total_accel(hip_acc).reshape((len_hip_acc, 1))
+    data['total_accel'] = accel_mag.reshape(-1, 1)
     data['phase_lf'], data['phase_rf'] = combine_phase(laz=data.acc_lf_z,
                                                        raz=data.acc_rf_z,
                                                        grf_lf_ind=lf_grf_ind,
                                                        grf_rf_ind=rf_grf_ind,
                                                        hz=sampl_freq,
-                                                       acc_hip_z=data.acc_hip_z.values,
-                                                       acc_hip_x=data.acc_hip_x.values)
+                                                       acc_hip_z=data.acc_hip_z.values.reshape(-1,),
+                                                       acc_hip_x=data.acc_hip_x.values.reshape(-1,),
+                                                       total_accel=accel_mag)
     logger.info('DONE WITH PHASE DETECTION!')
 
     # MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES
-    # isolate hip acceleration and euler angle data
-    hip_acc = data.loc[:, ['acc_hip_x', 'acc_hip_y', 'acc_hip_z']].values
-
-    # calculate total acceleration
-    len_hip_acc = len(hip_acc)
-    accel_mag = total_accel(hip_acc).reshape((len_hip_acc, 1))
-    data['total_accel'] = accel_mag.reshape(-1, 1)
-
     # analyze stance
     data['stance'] = run_stance_analysis(data)
     del hip_acc
@@ -165,7 +162,6 @@ def run_session(data, mass, grf_fit, sc):
     # new relative CMEs
     data = run_relative_cmes(data)
     logger.info('DONE WITH RELATIVE CME!')
-
 
     # DEFINE UNIT ACTIVE BLOCKS
     data.total_accel[data.stance == 0] = 0
@@ -305,12 +301,12 @@ def cleanup_grf(grf_result, weight, length, nan_row):
             grf_temp[r[0]: r[1]] = 0
 
     lf_ind = np.zeros(len(grf_lf_temp))
-    lf_ind[np.where(grf_lf_temp  > 0.01)[0]] = 1
+    lf_ind[np.where(grf_lf_temp > 0.01)[0]] = 1
 
     rf_ind = np.zeros(len(grf_rf_temp))
     rf_ind[np.where(grf_rf_temp > 0.01)[0]] = 1
 
-     # # remove false positives
+    # remove false positives
     lf_ranges, lf_ranges_length = get_ranges(lf_ind, 1, True)
     rf_ranges, rf_ranges_length = get_ranges(rf_ind, 1, True)
 

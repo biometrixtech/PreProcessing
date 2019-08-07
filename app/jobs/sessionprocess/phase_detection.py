@@ -16,7 +16,7 @@ from utils import filter_data, get_ranges
 logger = logging.getLogger()
 
 
-class phase_id(Enum):
+class PhaseId(Enum):
     """
     ID values for phase
     """
@@ -27,25 +27,28 @@ class phase_id(Enum):
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.phase_detection.combine_phase')
-def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz, acc_hip_z, acc_hip_x):
+def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz, acc_hip_z, acc_hip_x, total_accel):
     """
-    Combines balance, foot in the air and impact phases for left and 
+    Combines balance, foot in the air and impact phases for left and
     right feet.
-    
+
     Args:
-        laz: an array, left foot vertical acceleration
-        raz: an array, right foot vertical acceleration
+        laz: left foot vertical acceleration
+        raz: right foot vertical acceleration
         grf_lf_ind: indicator for non-zero grf for left foot
         grf_rf_ind: indicator for non-zero grf for right foot
         hz: an int, sampling rate
-        
+        acc_hip_z: hip vertical acceleration
+        acc_hip_x: hip x acceleration
+        total_accel: total center of mass acceleration
+
     Returns:
         phase_lf: an array, different phases of left foot
         phase_rf: an array, different phases of right foot
     """
     # reshape for faster computation
-    laz = laz.values.reshape(-1,)
-    raz = raz.values.reshape(-1,)
+    laz = laz.values.reshape(-1, )
+    raz = raz.values.reshape(-1, )
 
     # Check and mark rows with missing data
     length = len(laz)
@@ -56,8 +59,8 @@ def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz, acc_hip_z, acc_hip_x):
     if missing_data:
         nan_row = np.where(np.isnan(laz) | np.isnan(raz))[0]
         finite_row = np.array(list(set(range(length)) - set(nan_row)))
-        laz = np.delete(laz, nan_row,)
-        raz = np.delete(raz, nan_row,)
+        laz = np.delete(laz, nan_row, )
+        raz = np.delete(raz, nan_row, )
 
     # Filter through low-pass filter
     la_magn = filter_data(laz, filt='low', highcut=ct.cutoff_magn, fs=hz)
@@ -65,6 +68,7 @@ def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz, acc_hip_z, acc_hip_x):
 
     acc_hip_z = filter_data(acc_hip_z, filt='low', highcut=6)
     acc_hip_x = filter_data(acc_hip_x, filt='low', highcut=40)
+    acc_hip = filter_data(total_accel, filt='low', highcut=15)
 
     # Get balance/movement phase and start and end of movement phase for both
     # right and left foot
@@ -76,7 +80,8 @@ def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz, acc_hip_z, acc_hip_x):
                    end_move=lf_em,
                    grf=grf_lf_ind,
                    acc_hip_z=acc_hip_z,
-                   acc_hip_x=acc_hip_x)  # detect and add impacts
+                   acc_hip_x=acc_hip_x,
+                   acc_hip=acc_hip)  # detect and add impacts
     del lf_sm, lf_em  # no use in further computations
 
     _impact_detect(phase=rf_ph,
@@ -84,7 +89,8 @@ def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz, acc_hip_z, acc_hip_x):
                    end_move=rf_em,
                    grf=grf_rf_ind,
                    acc_hip_z=acc_hip_z,
-                   acc_hip_x=acc_hip_x)  # detect and add impacts
+                   acc_hip_x=acc_hip_x,
+                   acc_hip=acc_hip)  # detect and add impacts
     del rf_sm, rf_em, raz  # no use in further computations
 
     # Insert previous value for phase where data needed to predict was missing
@@ -94,8 +100,8 @@ def combine_phase(laz, raz, grf_lf_ind, grf_rf_ind, hz, acc_hip_z, acc_hip_x):
         phase_rf = np.ones(length).astype(int)
         phase_rf[finite_row] = rf_ph
         for i in nan_row:
-            phase_lf[i] = phase_lf[i-1]
-            phase_rf[i] = phase_rf[i-1]
+            phase_lf[i] = phase_lf[i - 1]
+            phase_rf[i] = phase_rf[i - 1]
     else:
         phase_lf, phase_rf = lf_ph, rf_ph
 
@@ -132,13 +138,13 @@ def _body_phase(acc_z, hz):
     end_mov = list(end_mov)
     if phase[0] == 1:
         start_mov.insert(0, 0)
-    # Assign first 10 data points of movement phase as balance (take_off)  
+    # Assign first 10 data points of movement phase as balance (take_off)
     # TODO Change this to actually have take-off phase
-    tf_win = int(0.30*hz)  # window for take_off
+    tf_win = int(0.30 * hz)  # window for take_off
     for i in start_mov:
-        phase[i:i + tf_win] = [0]*len(phase[i:i + tf_win])
+        phase[i:i + tf_win] = [0] * len(phase[i:i + tf_win])
     for j in end_mov:
-        phase[j - tf_win:j] = [0]*len(phase[j - tf_win:j])
+        phase[j - tf_win:j] = [0] * len(phase[j - tf_win:j])
     return np.array(phase), start_mov, end_mov
 
 
@@ -156,15 +162,15 @@ def _phase_detect(acc_z):
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.phase_detection._impact_detect')
-def _impact_detect(phase, start_move, end_move, grf, acc_hip_z, acc_hip_x):
+def _impact_detect(phase, start_move, end_move, grf, acc_hip_z, acc_hip_x, acc_hip):
     """
     Update phase with impacts and takeoffs
 
     Args:
         phase: array, with ground/air phases
-        start_move: an array, indexes when 'foot in the air' phase begins for 
+        start_move: an array, indexes when 'foot in the air' phase begins for
         left/right foot
-        end_move: an array, indexes when 'foot in the air' phase ends for 
+        end_move: an array, indexes when 'foot in the air' phase ends for
         left/right foot
 
     Returns:
@@ -182,32 +188,52 @@ def _impact_detect(phase, start_move, end_move, grf, acc_hip_z, acc_hip_x):
             for imp, length in zip(ranges, lengths):
                 imp += i
                 if (imp[0] != i and  # can't impact from start
-                    length >= imp_len and  # make sure impact is of enough length
-                    phase[imp[0] - 1] == phase_id.air.value):  # has to be in air right before impact
+                        #                    length >= imp_len and  # make sure impact is of enough length
+                        phase[imp[0] - 1] == PhaseId.air.value):  # has to be in air right before impact
                     if imp[1] == len(phase):
                         imp[1] -= 1
                     if imp[1] - imp[0] < 50:
-                        trough_flag = None
-                        crossing_flag = None
+                        acc_hip_z_step = acc_hip_z[imp[0]:imp[1]]
                         acc_hip_x_step = acc_hip_x[imp[0]:imp[1]]
-                        trough = np.where(acc_hip_x_step == min(acc_hip_x_step))[0]
-                        if len(trough) > 0:
-                            trough_flag = trough[0] + imp[0]
-                        for k in range(imp[0]+1, imp[1]-1):
-                            if acc_hip_z[k] > 0 and acc_hip_z[k-1] < 0:
-                                crossing_flag = k
-                                break
-                        if crossing_flag is not None and trough_flag is not None:
-                            imp[0] = int((crossing_flag + trough_flag) / 2)
-                        elif crossing_flag is not None and trough_flag is None:
-                            imp[0] = crossing_flag
-                        elif crossing_flag is None and trough_flag is not None:
-                            imp[0] = trough_flag
-
-                    phase[imp[0]: imp[1]] = phase_id.impact.value
-
+                        _update_impact_start_jog(imp, acc_hip_z_step, acc_hip_x_step)
+                        acc_hip_step = acc_hip[imp[0]:imp[1] + 5]
+                        _update_impact_end_jog(imp, acc_hip_step)
+                    if imp[1] - imp[0] > imp_len:
+                        phase[imp[0]: imp[1]] = PhaseId.impact.value
 
     _detect_takeoff(phase)
+
+
+def _update_impact_end_jog(imp, acc_hip):
+    hip_acc_cross = None
+    for l in range(int(len(acc_hip) / 2), len(acc_hip) - 1):
+        if acc_hip[l] >= 10 and acc_hip[l - 1] < 10:
+            #            print(l+imp[0])
+            hip_acc_cross = l + imp[0]
+            break
+    if hip_acc_cross is not None:
+        imp[1] = hip_acc_cross
+
+
+def _update_impact_start_jog(imp, acc_hip_z, acc_hip_x):
+    hip_x_trough = None
+    hip_z_cross = None
+    trough = np.where(acc_hip_x == min(acc_hip_x))[0]
+    if len(trough) > 0:
+        hip_x_trough = trough[0] + imp[0]
+    for k in range(1, len(acc_hip_z) - 1):
+        if acc_hip_z[k] >= 0 and acc_hip_z[k - 1] < 0:
+            hip_z_cross = k + imp[0]
+            break
+    if hip_z_cross is not None and hip_x_trough is not None:
+        if np.abs(hip_z_cross - hip_x_trough) <= 10:
+            imp[0] = int((hip_z_cross + hip_x_trough) / 2)
+        else:
+            imp[0] = hip_x_trough
+    elif hip_z_cross is not None and hip_x_trough is None:
+        imp[0] = hip_z_cross
+    elif hip_z_cross is None and hip_x_trough is not None:
+        imp[0] = hip_x_trough
 
 
 @xray_recorder.capture('app.jobs.sessionprocess.phase_detection._detect_takeoff')
@@ -231,7 +257,7 @@ def _detect_takeoff(phase):
         # find when this impact started
         try:
             impact_start = imp_range[np.where(imp_range[:, 1] == i)[0], 0]
-            takeoff_len = int((i - impact_start[0])/2)
+            takeoff_len = int((i - impact_start[0]) / 2)
             takeoff.append(np.arange(i - takeoff_len, i))
         except IndexError:
             print('error')
