@@ -4,6 +4,8 @@ import boto3
 import datetime
 import logging
 import os
+import pandas as pd
+import numpy as np
 
 
 _logger = logging.getLogger(__name__)
@@ -13,6 +15,8 @@ _cloudwatch_client = boto3.client('cloudwatch')
 class Job:
     def __init__(self, datastore):
         self._datastore = datastore
+        self.data = None
+        self._underlying_ndarray = None
 
     @property
     def datastore(self):
@@ -75,3 +79,28 @@ class Job:
             _logger.warning("Could not put cloudwatch metric")
             _logger.warning(repr(e))
             # Continue
+
+    def get_ndarray(self):
+
+        data_values = self.data.values
+        data = np.asanyarray(data_values)
+        self._underlying_ndarray = data
+
+        return data
+
+    def get_core_data_frame_from_ndarray(self, data):
+
+        self._underlying_ndarray = data
+
+        df = pd.DataFrame({'epoch_time': data[:, 0], 'static_0': data[:, 1], 'acc_0_x': data[:, 2],
+                           'acc_0_y': data[:, 3], 'acc_0_z': data[:, 4], 'quat_0_w': data[:, 5],
+                           'quat_0_x': data[:, 6], 'quat_0_y': data[:, 7], 'quat_0_z': data[:, 8],
+                           'static_1': data[:, 9], 'acc_1_x': data[:, 10], 'acc_1_y': data[:, 11],
+                           'acc_1_z': data[:, 12],
+                           'quat_1_w': data[:, 13], 'quat_1_x': data[:, 14], 'quat_1_y': data[:, 15],
+                           'quat_1_z': data[:, 16],
+                           'static_2': data[:, 17], 'acc_2_x': data[:, 18], 'acc_2_y': data[:, 19],
+                           'acc_2_z': data[:, 20], 'quat_2_w': data[:, 21], 'quat_2_x': data[:, 22],
+                           'quat_2_y': data[:, 23], 'quat_2_z': data[:, 24]})
+
+        return df

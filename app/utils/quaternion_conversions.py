@@ -124,3 +124,28 @@ def quat_force_euler_angle(quaternion, phi=None, theta=None, psi=None):
     if psi is not None:
         euler_angles[:, 2] = psi
     return euler_to_quat(euler_angles)
+
+
+def quat_from_euler_angles(angle, versor):
+    """Compute quaternion from Euler angles (in degrees)."""
+    angle = np.radians(angle)
+    versor = np.atleast_2d(versor)
+    w = np.cos(angle/2) * np.ones_like(versor[:,0])
+    x = np.sin(angle/2) * versor[:,0]
+    y = np.sin(angle/2) * versor[:,1]
+    z = np.sin(angle/2) * versor[:,2]
+    return np.stack((w, x, y, z), axis=-1)
+
+
+def quat_as_euler_angles(q):
+    """Compute Euler angles from quaternion(s) (in degrees)."""
+    q = np.asanyarray(q, dtype=float)
+    angles = np.zeros((*q.shape[:-1], 3))
+    w = q[...,0]
+    x = q[...,1]
+    y = q[...,2]
+    z = q[...,3]
+    angles[...,0] = np.arctan2(2*y*z + 2*w*x, 1 - 2*x**2 - 2*y**2)
+    angles[...,1] = np.arcsin(-2*x*z + 2*w*y)
+    angles[...,2] = np.arctan2(2*x*y + 2*w*z, 1 - 2*y**2 - 2*z**2)
+    return np.degrees(angles)

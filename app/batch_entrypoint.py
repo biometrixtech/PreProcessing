@@ -39,20 +39,27 @@ def main(script):
         DownloadandchunkJob(datastore).run()
 
     elif script == 'transformandplacement':
-        load_parameters([
-            'PLACEMENT_MODEL',
-            'CHUNK_SIZE',
-         ], 'models')
+        # load_parameters([
+        #     'PLACEMENT_MODEL',
+        #     'CHUNK_SIZE',
+        #  ], 'models')
         from jobs.transformandplacement import TransformandplacementJob
         TransformandplacementJob(datastore).run()
+
+    elif script == 'driftcorrection':
+        load_parameters([
+            'CHUNK_SIZE',
+         ], 'models')
+        from jobs.driftcorrection import DriftcorrectionJob
+        DriftcorrectionJob(datastore).run()
 
     elif script == 'sessionprocess':
         load_parameters([
             'MS_MODEL',
-            'LF_MS_MODEL',
-            'RF_MS_MODEL',
+            # 'LF_MS_MODEL',
+            # 'RF_MS_MODEL',
             'MS_SCALER',
-            'SL_MS_SCALER'
+            # 'SL_MS_SCALER'
          ], 'models')
         # Use theano backend for keras
         os.environ['KERAS_BACKEND'] = 'theano'

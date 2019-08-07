@@ -1,12 +1,18 @@
 from __future__ import print_function
-
+import logging
 import numpy as np
+import pandas as pd
 from scipy.stats import skew
 
-import utils.quaternion_conversions as qc
+
 import utils.quaternion_operations as qo
-from .exceptions import PlacementDetectionException
-from .column_vector import MatchProbability
+
+from utils import quaternion_conversions as qc
+from jobs.transformandplacement.exceptions import PlacementDetectionException
+from jobs.transformandplacement.column_vector import MatchProbability
+
+
+_logger = logging.getLogger(__name__)
 
 
 def detect_placement(data):
@@ -223,3 +229,5 @@ def predict_placement(data, condition_list):
             result = condition.split("_")
             placement = [int(i) for i in result[2]]
             return placement, {'left': result[0].upper(), 'right': result[1].upper()}
+
+

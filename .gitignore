@@ -3,6 +3,8 @@
 .DS_Store
 .idea/*
 .cache
+*.nbc
+*.nbi
 
 /app/*
 !/app/jobs
@@ -11,8 +13,16 @@
 !/app/*.py
 !/app/pip_requirements
 
-tests/advancedStats/.pytest_cache/*
-tests/session2/.pytest_cache/*
+tests/advancedStats/.pytest_cache
+tests/session2/.pytest_cache/*/*
+tests/aoi/.pytest_cache/*
+tests/app/writemongo/.pytest_cache/*
+tests/app/utils/.pytest_cache/*
+tests/app/jobs/driftcorrection/.pytest_cache/*
+tests/app/jobs/sessionprocess/.pytest_cache/*
+tests/app/jobs/transformandplacement/.pytest_cache/*
+tests/app/jobs/advancedstats/.pytest_cache/*
+tests/files/*
 apigateway/*
 !apigateway/routes
 !apigateway/*.py
