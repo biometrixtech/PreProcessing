@@ -49,6 +49,7 @@ class AggregateblocksJob(Job):
 
         user_mass = float(self.datastore.get_metadatum('user_mass', 60))
         data.grf /= 1000000.
+        data['euler_hip_y_diff'] = np.ediff1d(data.euler_hip_y.values, to_begin=0)
 
         data.active[data.stance == 0] = 0
         active_ind = np.array([k == 1 for k in data['active']])
