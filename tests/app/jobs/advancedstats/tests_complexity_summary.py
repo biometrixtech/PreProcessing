@@ -363,8 +363,8 @@ def test_get_decay_dataframe():
 
 # noinspection PyProtectedMember
 def test_get_movement_asymmetries_kruskal():
-    sessions = [#'f78a9e26-6003-5ac7-8590-3ae4a421dac7',
-                #'7bbff8e0-189a-5643-93bc-9730e0fdcd20',
+    sessions = ['f78a9e26-6003-5ac7-8590-3ae4a421dac7',
+                '7bbff8e0-189a-5643-93bc-9730e0fdcd20',
                 'e3223bf2-bc6b-52e7-8612-1ed7c6e7ae55']
 
     for session_id in sessions:

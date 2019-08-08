@@ -441,15 +441,15 @@ class AsymmetryProcessorJob(UnitBlockJob):
         mongo_collection = get_mongo_collection('ASYMMETRY')
 
         record_out = OrderedDict()
-        record_out['userId'] = self.datastore.get_metadatum('user_id', None)
-        record_out['eventDate'] = self.datastore.get_metadatum('event_date', None)
-        record_out['sessionId'] = self.datastore.session_id
+        record_out['user_id'] = self.datastore.get_metadatum('user_id', None)
+        record_out['event_date'] = self.datastore.get_metadatum('event_date', None)
+        record_out['session_id'] = self.datastore.session_id
 
         record_asymmetries = []
 
         for m in movement_events:
             event_record = OrderedDict()
-            event_record['timeBlock'] = m.time_block
+            event_record['time_block'] = m.time_block
             event_record['left'] = m.left_median
             event_record['right'] = m.right_median
             event_record['significant'] = m.significant
@@ -459,7 +459,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         record_out['time_blocks'] = record_asymmetries
 
-        query = {'sessionId': self.datastore.session_id}
+        query = {'session_id': self.datastore.session_id}
         mongo_collection.replace_one(query, record_out, upsert=True)
 
         _logger.info("Wrote asymmetry record for " + self.datastore.session_id)
