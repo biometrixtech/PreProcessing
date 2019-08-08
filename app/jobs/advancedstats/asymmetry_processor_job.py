@@ -140,20 +140,13 @@ class AsymmetryProcessorJob(UnitBlockJob):
         unit_block_list = list(set(unit_block_list_lf).union(unit_block_list_rf))
         unit_block_list.sort()
 
-        # event.adduc_rom_hip = self._get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
-        # event.adduc_motion_covered_tot_hip = self._get_steps_f_test("adduc_motion_covered_total_hip", left_steps, right_steps)
-        # event.adduc_motion_covered_pos_hip = self._get_steps_f_test("adduc_motion_covered_pos_hip", left_steps, right_steps)
-        # event.adduc_motion_covered_neg_hip = self._get_steps_f_test("adduc_motion_covered_neg_hip", left_steps, right_steps)
-        #
-        # event.flex_rom_hip = self._get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
-        # event.flex_motion_covered_tot_hip = self._get_steps_f_test("flex_motion_covered_total_hip", left_steps, right_steps)
-        # event.flex_motion_covered_pos_hip = self._get_steps_f_test("flex_motion_covered_pos_hip", left_steps, right_steps)
-        # event.flex_motion_covered_neg_hip = self._get_steps_f_test("flex_motion_covered_neg_hip", left_steps, right_steps)
         unit_blocks = self._unit_blocks
 
         events = []
 
         time_block = 0
+
+        last_unit_block_time = None
 
         for unit_block_number in unit_block_list:
 
@@ -174,40 +167,54 @@ class AsymmetryProcessorJob(UnitBlockJob):
             if len(cumulative_time) > 0:
                 start_time = min(cumulative_time)
                 end_time = max(cumulative_time)
+                if last_unit_block_time is None:
+                    last_unit_block_time = end_time
+                else:
+                    last_unit_block_time = max(end_time, last_unit_block_time)
                 seconds_diff = end_time - start_time
                 intervals = ceil(seconds_diff / float(seconds))
 
             for i in range(0, intervals):
-                event = MovementAsymmetry()
-                l_step_blocks = list(x for x in l_unit_block_steps if
-                                     start_time + (i * seconds) <= x.cumulative_end_time <= start_time + (
-                                                 (i + 1) * seconds))
-                r_step_blocks = list(x for x in r_unit_block_steps if
-                                     start_time + (i * seconds) <= x.cumulative_end_time <= start_time + (
-                                                 (i + 1) * seconds))
-                time_block += 1
-                event.anterior_pelvic_tilt_range = self._get_steps_f_test("anterior_pelvic_tilt_range", l_step_blocks,
-                                                                          r_step_blocks, time_block)
-                if event.anterior_pelvic_tilt_range is None:
-                    event.anterior_pelvic_tilt_range = AsymmetryDistribution()
-                    event.anterior_pelvic_tilt_range.start_time = start_time + (i * seconds)
-                    event.anterior_pelvic_tilt_range.end_time = start_time + ((i + 1) * seconds)
-                    event.anterior_pelvic_tilt_range.attribute_label = "anterior_pelvic_tilt_range"
-                    event.anterior_pelvic_tilt_range.time_block = time_block
-                event.anterior_pelvic_tilt_rate = self._get_steps_f_test("anterior_pelvic_tilt_rate", l_step_blocks,
-                                                                         r_step_blocks, time_block)
-                if event.anterior_pelvic_tilt_rate is None:
-                    event.anterior_pelvic_tilt_rate = AsymmetryDistribution()
-                    event.anterior_pelvic_tilt_rate.start_time = start_time + (i * seconds)
-                    event.anterior_pelvic_tilt_rate.end_time = start_time + ((i + 1) * seconds)
-                    event.anterior_pelvic_tilt_rate.attribute_label = "anterior_pelvic_tilt_rate"
-                    event.anterior_pelvic_tilt_rate.time_block = time_block
-                events.append(event)
 
-        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRangeLF", "anteriorPelvicTiltRangeLF", "Left", active_block_list, self.left_steps))
-        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRateLF", "anteriorPelvicTiltRateLF", "Left", active_block_list, self.left_steps))
-        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRangeRF", "anteriorPelvicTiltRangeRF", "Right", active_block_list, self.right_steps))
-        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRateRF", "anteriorPelvicTiltRateRF", "Right", active_block_list, self.right_steps))
+                event = AsymmetryDistribution()
+                block_start_time = start_time + (i * seconds)
+                block_end_time = min(start_time + ((i + 1) * seconds), end_time)
+
+                if block_start_time > last_unit_block_time and (block_start_time - last_unit_block_time) < 10:
+                    seconds_between_blocks = last_unit_block_time - block_start_time
+                    gap_intervals = ceil(seconds_between_blocks / float(seconds))
+                    for g in range(0, gap_intervals):
+                        gap_event = AsymmetryDistribution()
+                        gap_event.start_time = last_unit_block_time + (g * seconds)
+                        gap_end_time = min(last_unit_block_time + ((g + 1) * seconds), block_start_time)
+                        gap_event.end_time = gap_end_time
+                        gap_event.time_block = time_block
+                        time_block += 1
+                        events.append(gap_event)
+
+                if block_end_time - block_start_time >= 10:
+                    l_step_blocks = list(x for x in l_unit_block_steps if
+                                         block_start_time <= x.cumulative_end_time <= block_end_time)
+                    r_step_blocks = list(x for x in r_unit_block_steps if
+                                         block_start_time <= x.cumulative_end_time <= block_end_time)
+                    time_block += 1
+                    event = self._get_steps_f_test("anterior_pelvic_tilt_range", l_step_blocks,
+                                                                              r_step_blocks, time_block)
+                    if event is None:
+                        event = AsymmetryDistribution()
+                        event.start_time = block_start_time
+                        event.end_time = block_end_time
+                        #event.attribute_label = "anterior_pelvic_tilt_range"
+                        event.time_block = time_block
+                    # event.anterior_pelvic_tilt_rate = self._get_steps_f_test("anterior_pelvic_tilt_rate", l_step_blocks,
+                    #                                                          r_step_blocks, time_block)
+                    # if event.anterior_pelvic_tilt_rate is None:
+                    #     event.anterior_pelvic_tilt_rate = AsymmetryDistribution()
+                    #     event.anterior_pelvic_tilt_rate.start_time = start_time + (i * seconds)
+                    #     event.anterior_pelvic_tilt_rate.end_time = start_time + ((i + 1) * seconds)
+                    #     event.anterior_pelvic_tilt_rate.attribute_label = "anterior_pelvic_tilt_rate"
+                    #     event.anterior_pelvic_tilt_rate.time_block = time_block
+                    events.append(event)
 
         return events
 
