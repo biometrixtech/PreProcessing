@@ -121,7 +121,7 @@ def get_placement_lateral_hip(data, window_start, window_end):
         side_0 = sensor_dict["0T"] + sensor_dict["2P"]
         side_2 = sensor_dict["0P"] + sensor_dict["2T"]
 
-        if abs(side_0 - side_2) == 1 or (side_2 + side_0) <= 2:
+        if abs(side_0 - side_2) == 1 or (side_2 + side_0) <= 2 or (side_0 == side_2):
             weak_placement = True
 
         if side_0 > side_2:
