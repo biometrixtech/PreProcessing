@@ -1,5 +1,7 @@
 from scipy import stats
 import pandas as pd
+import statistics
+from math import ceil
 
 from ._unit_block_job import UnitBlockJob
 from models.categorization_variable import CategorizationVariable
@@ -8,6 +10,29 @@ from models.loading_asymmetry_summary import LoadingAsymmetrySummary
 from models.movement_asymmetry import MovementAsymmetry
 from models.unit_block import UnitBlock
 from utils import parse_datetime
+
+
+class AsymmetryDistribution(object):
+    def __init__(self):
+        self.attribute_label = ""
+        self.r_value = 0.0
+        self.left_median = 0.0
+        self.right_median =0.0
+        self.left_min = 0.0
+        self.right_min = 0.0
+        self.left_max = 0.0
+        self.right_max = 0.0
+        self.left_q1_sum = 0.0
+        self.left_q2_sum = 0.0
+        self.left_q3_sum = 0.0
+        self.left_q4_sum = 0.0
+        self.right_q1_sum = 0.0
+        self.right_q2_sum = 0.0
+        self.right_q3_sum = 0.0
+        self.right_q4_sum = 0.0
+        self.time_block = 0.0
+        self.start_time = None
+        self.end_time = None
 
 
 class AsymmetryProcessorJob(UnitBlockJob):
@@ -97,11 +122,11 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
     def _get_movement_asymmetries(self):
 
-        events = []
+        asymm_events = []
 
         for stance, complexity_matrix in [('Single', self._complexity_matrix_single_leg), ('Double', self._complexity_matrix_double_leg)]:
             for keys, mcsl in complexity_matrix.items():
-                event = self._get_movement_asymmetry(
+                events = self._get_movement_asymmetry(
                     mcsl.complexity_level,
                     mcsl.cma_level,
                     mcsl.grf_level,
@@ -109,28 +134,90 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     mcsl.left_steps,
                     mcsl.right_steps)
 
-                events.append(event)
+                asymm_events.extend(events)
 
-        return events
+        return asymm_events
 
     def _get_movement_asymmetry(self, complexity_level, cma_level, grf_level, stance, left_steps, right_steps):
 
-        event = MovementAsymmetry(complexity_level, cma_level, grf_level, stance)
+        unit_block_list_lf = {x.unit_block_number for x in left_steps}
+        unit_block_list_rf = {x.unit_block_number for x in right_steps}
+        unit_block_list = list(set(unit_block_list_lf).union(unit_block_list_rf))
+        unit_block_list.sort()
 
-        event.adduc_rom_hip = self._get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
-        event.adduc_motion_covered_tot_hip = self._get_steps_f_test("adduc_motion_covered_total_hip", left_steps, right_steps)
-        event.adduc_motion_covered_pos_hip = self._get_steps_f_test("adduc_motion_covered_pos_hip", left_steps, right_steps)
-        event.adduc_motion_covered_neg_hip = self._get_steps_f_test("adduc_motion_covered_neg_hip", left_steps, right_steps)
+        # event.adduc_rom_hip = self._get_steps_f_test("adduc_ROM_hip", left_steps, right_steps)
+        # event.adduc_motion_covered_tot_hip = self._get_steps_f_test("adduc_motion_covered_total_hip", left_steps, right_steps)
+        # event.adduc_motion_covered_pos_hip = self._get_steps_f_test("adduc_motion_covered_pos_hip", left_steps, right_steps)
+        # event.adduc_motion_covered_neg_hip = self._get_steps_f_test("adduc_motion_covered_neg_hip", left_steps, right_steps)
+        #
+        # event.flex_rom_hip = self._get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
+        # event.flex_motion_covered_tot_hip = self._get_steps_f_test("flex_motion_covered_total_hip", left_steps, right_steps)
+        # event.flex_motion_covered_pos_hip = self._get_steps_f_test("flex_motion_covered_pos_hip", left_steps, right_steps)
+        # event.flex_motion_covered_neg_hip = self._get_steps_f_test("flex_motion_covered_neg_hip", left_steps, right_steps)
+        unit_blocks = self._unit_blocks
 
-        event.flex_rom_hip = self._get_steps_f_test("flex_ROM_hip", left_steps, right_steps)
-        event.flex_motion_covered_tot_hip = self._get_steps_f_test("flex_motion_covered_total_hip", left_steps, right_steps)
-        event.flex_motion_covered_pos_hip = self._get_steps_f_test("flex_motion_covered_pos_hip", left_steps, right_steps)
-        event.flex_motion_covered_neg_hip = self._get_steps_f_test("flex_motion_covered_neg_hip", left_steps, right_steps)
+        events = []
 
-        return event
+        time_block = 0
+
+        for unit_block_number in unit_block_list:
+
+            l_unit_block_steps = list(x for x in left_steps if x.unit_block_number == unit_block_number)
+            r_unit_block_steps = list(x for x in right_steps if x.unit_block_number == unit_block_number)
+
+            all_steps = []
+            all_steps.extend(l_unit_block_steps)
+            all_steps.extend(r_unit_block_steps)
+
+            start_time = None
+            end_time = None
+            intervals = 0
+            seconds = 30
+
+            cumulative_time = list(x.cumulative_end_time for x in all_steps)
+
+            if len(cumulative_time) > 0:
+                start_time = min(cumulative_time)
+                end_time = max(cumulative_time)
+                seconds_diff = end_time - start_time
+                intervals = ceil(seconds_diff / float(seconds))
+
+            for i in range(0, intervals):
+                event = MovementAsymmetry(complexity_level, cma_level, grf_level, stance)
+                l_step_blocks = list(x for x in l_unit_block_steps if
+                                     start_time + (i * seconds) <= x.cumulative_end_time <= start_time + (
+                                                 (i + 1) * seconds))
+                r_step_blocks = list(x for x in r_unit_block_steps if
+                                     start_time + (i * seconds) <= x.cumulative_end_time <= start_time + (
+                                                 (i + 1) * seconds))
+                time_block += 1
+                event.anterior_pelvic_tilt_range = self._get_steps_f_test("anterior_pelvic_tilt_range", l_step_blocks,
+                                                                          r_step_blocks, time_block)
+                if event.anterior_pelvic_tilt_range is None:
+                    event.anterior_pelvic_tilt_range = AsymmetryDistribution()
+                    event.anterior_pelvic_tilt_range.start_time = start_time + (i * seconds)
+                    event.anterior_pelvic_tilt_range.end_time = start_time + ((i + 1) * seconds)
+                    event.anterior_pelvic_tilt_range.attribute_label = "anterior_pelvic_tilt_range"
+                    event.anterior_pelvic_tilt_range.time_block = time_block
+                event.anterior_pelvic_tilt_rate = self._get_steps_f_test("anterior_pelvic_tilt_rate", l_step_blocks,
+                                                                         r_step_blocks, time_block)
+                if event.anterior_pelvic_tilt_rate is None:
+                    event.anterior_pelvic_tilt_rate = AsymmetryDistribution()
+                    event.anterior_pelvic_tilt_rate.start_time = start_time + (i * seconds)
+                    event.anterior_pelvic_tilt_rate.end_time = start_time + ((i + 1) * seconds)
+                    event.anterior_pelvic_tilt_rate.attribute_label = "anterior_pelvic_tilt_rate"
+                    event.anterior_pelvic_tilt_rate.time_block = time_block
+                events.append(event)
+
+        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRangeLF", "anteriorPelvicTiltRangeLF", "Left", active_block_list, self.left_steps))
+        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRateLF", "anteriorPelvicTiltRateLF", "Left", active_block_list, self.left_steps))
+        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRangeRF", "anteriorPelvicTiltRangeRF", "Right", active_block_list, self.right_steps))
+        # outlier_list.extend(self.get_decay_outliers("anteriorPelvicTiltRateRF", "anteriorPelvicTiltRateRF", "Right", active_block_list, self.right_steps))
+
+        return events
 
     @staticmethod
-    def _get_steps_f_test(attribute, step_list_x, step_list_y):
+    def _get_steps_f_test(attribute, step_list_x, step_list_y, time_block):
         value_list_x = []
         value_list_y = []
         for item in step_list_x:
@@ -140,14 +227,63 @@ class AsymmetryProcessorJob(UnitBlockJob):
             if getattr(item, attribute) is not None:
                 value_list_y.append(getattr(item, attribute))
         if len(value_list_x) == 0 or len(value_list_y) == 0:
-            return 0
+            return None
         else:
             try:
                 value_list_x.sort()
                 value_list_y.sort()
                 r, p = stats.kruskal(value_list_x, value_list_y)
                 if p <= .05:
-                    return r
+                    all_values = []
+                    all_values.extend(step_list_x)
+                    all_values.extend(step_list_y)
+
+                    times = list(x.cumulative_end_time for x in all_values)
+                    start_time = min(times)
+                    end_time = max(times)
+
+                    dist = AsymmetryDistribution()
+                    dist.time_block = time_block
+                    dist.start_time = start_time
+                    dist.attribute_label = attribute
+                    dist.end_time = end_time
+                    dist.r_value = r
+                    dist.left_median = statistics.median(value_list_x)
+                    dist.right_median = statistics.median(value_list_y)
+
+                    dist.left_min = min(value_list_x)
+                    dist.left_max = max(value_list_x)
+                    dist.right_min = min(value_list_y)
+                    dist.right_max = max(value_list_y)
+
+                    left_q = (dist.left_max - dist.left_min) / float(4)
+                    right_q = (dist.right_max - dist.right_min) / float(4)
+
+                    for i in range(0, 4):
+                        if i == 0:
+                            dist.left_q1_sum = sum(x for x in value_list_x if dist.left_min + (i * left_q) <= x <= dist.left_min + ((i + 1) * left_q))
+                            dist.right_q1_sum = sum(y for y in value_list_y if
+                                                   dist.right_min + (i * right_q) <= y <= dist.right_min + ((i + 1) * right_q))
+                        elif i == 1:
+                            dist.left_q2_sum = sum(x for x in value_list_x if
+                                                   dist.left_min + (i * left_q) <= x <=  dist.left_min + ((i + 1) * left_q))
+                            dist.right_q2_sum = sum(y for y in value_list_y if
+                                                    dist.right_min + (i * right_q) <= y <= dist.right_min + (
+                                                                (i + 1) * right_q))
+                        elif i == 2:
+                            dist.left_q3_sum = sum(x for x in value_list_x if
+                                                   dist.left_min + (i * left_q) <= x <=  dist.left_min + ((i + 1) * left_q))
+                            dist.right_q3_sum = sum(y for y in value_list_y if
+                                                    dist.right_min + (i * right_q) <= y <= dist.right_min + (
+                                                                (i + 1) * right_q))
+                        elif i == 3:
+                            dist.left_q4_sum = sum(x for x in value_list_x if
+                                                   dist.left_min + (i * left_q) <= x <=  dist.left_min + ((i + 1) * left_q))
+                            dist.right_q4_sum = sum(y for y in value_list_y if
+                                                    dist.right_min + (i * right_q) <= y <= dist.right_min + (
+                                                                (i + 1) * right_q))
+
+                    return dist
                 else:
                     return None
             except ValueError:
