@@ -65,7 +65,8 @@ def get_unit_blocks(session_id, date):
 
     # unit_blocks = list(col.find({'userId': {'$eq': user},'eventDate':date},{'unitBlocks':1,'_id':0}))
     unit_blocks = list(collection.find(
-        {'sessionId': {'$eq': session_id}, 'eventDate': date},
+        #{'sessionId': {'$eq': session_id}, 'eventDate': date},
+        {'sessionId': {'$eq': session_id}},
         {'unitBlocks': 1, '_id': 1, 'timeStart': 1, 'timeEnd': 1}).sort('unitBlocks.timeStart', direction=ASCENDING)
     )
     return unit_blocks

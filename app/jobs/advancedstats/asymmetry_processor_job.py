@@ -1,3 +1,7 @@
+from aws_xray_sdk.core import xray_recorder
+from collections import OrderedDict
+import logging
+from config import get_mongo_collection
 from scipy import stats
 import pandas as pd
 import statistics
@@ -10,6 +14,8 @@ from models.loading_asymmetry_summary import LoadingAsymmetrySummary
 from models.movement_asymmetry import MovementAsymmetry
 from models.unit_block import UnitBlock
 from utils import parse_datetime
+
+_logger = logging.getLogger()
 
 
 class AsymmetryDistribution(object):
@@ -45,12 +51,13 @@ class AsymmetryProcessorJob(UnitBlockJob):
         #self._complexity_matrix_double_leg = complexity_matrix_double_leg
 
     def _run(self):
-        session_asymmetry_summaries = self._get_session_asymmetry_summaries()
-        self._write_session_asymmetry_summaries(session_asymmetry_summaries)
+        #session_asymmetry_summaries = self._get_session_asymmetry_summaries()
+        #self._write_session_asymmetry_summaries(session_asymmetry_summaries)
 
         movement_events = self._get_movement_asymmetries()
-        loading_events = self._get_loading_asymmetries()
-        self._write_loading_movement_asymmetry(loading_events, movement_events)
+        #loading_events = self._get_loading_asymmetries()
+        #self._write_loading_movement_asymmetry(loading_events, movement_events)
+        self.write_movement_asymmetry(movement_events)
 
     def _get_session_asymmetry_summaries(self):
         # relative magnitude
@@ -427,6 +434,35 @@ class AsymmetryProcessorJob(UnitBlockJob):
         if df.shape[0] > 0:
             self.datastore.put_data('relmagnitudeasymmetry', df)
             self.datastore.copy_to_s3('relmagnitudeasymmetry', 'advanced-stats', '_'.join([self.event_date, self.user_id]) + "/rel_magnitude_asymmetry.csv")
+
+
+    def write_movement_asymmetry(self, movement_events):
+
+        mongo_collection = get_mongo_collection('ASYMMETRY')
+
+        record_out = OrderedDict()
+        record_out['userId'] = self.datastore.get_metadatum('user_id', None)
+        record_out['eventDate'] = self.datastore.get_metadatum('event_date', None)
+        record_out['sessionId'] = self.datastore.session_id
+
+        record_asymmetries = []
+
+        for m in movement_events:
+            event_record = OrderedDict()
+            event_record['timeBlock'] = m.time_block
+            event_record['left'] = m.left_median
+            event_record['right'] = m.right_median
+            event_record['significant'] = m.significant
+            event_record['start_time'] = m.start_time
+            event_record['end_time'] = m.end_time
+            record_asymmetries.append(event_record)
+
+        record_out['time_blocks'] = record_asymmetries
+
+        query = {'sessionId': self.datastore.session_id}
+        mongo_collection.replace_one(query, record_out, upsert=True)
+
+        _logger.info("Wrote asymmetry record for " + self.datastore.session_id)
 
     def _write_loading_movement_asymmetry(self, loading_events, movement_events):
         df = pd.DataFrame()
