@@ -21,10 +21,10 @@ files = [  # 'f93e004d-Gabby-treadmill-073019-kit2831-normalPlacement-beforeFoam
 def test_get_asymmetery():
 
     asymmetry_dict = {}
-    output_file_name = "asymmetry_results_expanded_2_gaps.csv"
+    output_file_name = "asymmetry_results_expanded_3_gaps.csv"
     output_file_path = os.path.join(path, output_file_name)
     output_file = open(output_file_path, 'w')
-    line = ('file,variable, time_block, start_time, end_time, left_min, left_median, left_max, right_min, right_median, right_max, left_q1, left_q2, left_q3, left_q4, right_q1, right_q2, right_q3, right_q4')
+    line = ('file,variable, time_block, start_time, end_time, significant, left_median, right_median, left_min, left_max, right_min, right_max, left_q1, left_q2, left_q3, left_q4, right_q1, right_q2, right_q3, right_q4')
     output_file.write(line + '\n')
 
     for file in files:
@@ -50,10 +50,10 @@ def test_get_asymmetery():
                 # if e.anterior_pelvic_tilt_range is not None:
                 #     a = e.anterior_pelvic_tilt_range
                 text_line = (file + ",anterior_pelvic_tilt_range," + str(a.time_block) + "," + str(
-                    a.start_time) + "," + str(a.end_time) + "," +
-                             str(a.left_min) + "," + str(a.left_median) + "," + str(a.left_max) + "," + str(
+                    a.start_time) + "," + str(a.end_time) + "," + str(a.significant) + "," + str(a.left_median) + "," + str(a.right_median) + "," +
+                             str(a.left_min) + "," + str(a.left_max) + "," + str(
                             a.right_min) + "," +
-                             str(a.right_median) + "," + str(a.right_max) + "," + str(
+                             str(a.right_max) + "," + str(
                             a.left_q1_sum) + "," + str(a.left_q2_sum) + "," +
                              str(a.left_q3_sum) + "," + str(a.left_q4_sum) + "," + str(
                             a.right_q1_sum) + "," + str(

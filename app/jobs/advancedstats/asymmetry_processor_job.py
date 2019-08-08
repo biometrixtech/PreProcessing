@@ -33,6 +33,7 @@ class AsymmetryDistribution(object):
         self.time_block = 0.0
         self.start_time = None
         self.end_time = None
+        self.significant = False
 
 
 class AsymmetryProcessorJob(UnitBlockJob):
@@ -235,23 +236,35 @@ class AsymmetryProcessorJob(UnitBlockJob):
                 value_list_x.sort()
                 value_list_y.sort()
                 r, p = stats.kruskal(value_list_x, value_list_y)
-                if p <= .05:
-                    all_values = []
-                    all_values.extend(step_list_x)
-                    all_values.extend(step_list_y)
+                if len(value_list_x) > 0:
+                    left_median = statistics.median(value_list_x)
+                else:
+                    left_median = 0
+                if len(value_list_y) > 0:
+                    right_median = statistics.median(value_list_y)
+                else:
+                    right_median = 0
 
-                    times = list(x.cumulative_end_time for x in all_values)
-                    start_time = min(times)
-                    end_time = max(times)
+                all_values = []
+                all_values.extend(step_list_x)
+                all_values.extend(step_list_y)
+
+                times = list(x.cumulative_end_time for x in all_values)
+                start_time = min(times)
+                end_time = max(times)
+
+                if p <= .05:
 
                     dist = AsymmetryDistribution()
+                    dist.significant = True
                     dist.time_block = time_block
                     dist.start_time = start_time
-                    dist.attribute_label = attribute
                     dist.end_time = end_time
+                    dist.attribute_label = attribute
+
                     dist.r_value = r
-                    dist.left_median = statistics.median(value_list_x)
-                    dist.right_median = statistics.median(value_list_y)
+                    dist.left_median = left_median
+                    dist.right_median = right_median
 
                     dist.left_min = min(value_list_x)
                     dist.left_max = max(value_list_x)
@@ -287,7 +300,13 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
                     return dist
                 else:
-                    return None
+                    dist = AsymmetryDistribution()
+                    dist.time_block = time_block
+                    dist.left_median = left_median
+                    dist.right_median = right_median
+                    dist.start_time = start_time
+                    dist.end_time = end_time
+                    return dist
             except ValueError:
                 return None
 
