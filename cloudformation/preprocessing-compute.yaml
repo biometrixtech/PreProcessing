@@ -379,7 +379,7 @@ Resources:
                                 region=$(curl -s http://localhost:51678/v1/metadata | jq -r '. | .ContainerInstanceArn' | awk -F: '{print $4}')
 
                                 # Run the AWS CLI start-task command to start your task on this container instance
-                                aws ecs start-task --cluster $cluster --task-definition ${XRayTaskDefinition} --container-instances $instance_arn --started-by $instance_arn --region $region
+                                #aws ecs start-task --cluster $cluster --task-definition ${XRayTaskDefinition} --container-instances $instance_arn --started-by $instance_arn --region $region
                             end script
                             --==BOUNDARY==--
 
@@ -389,14 +389,16 @@ Resources:
             ServiceToken: { "Fn::ImportValue": "CfsnippetsArn-infra" }
             Code: |
                 import os
-                physical_resource_id =  'preprocessing-{}-compute-{}'.format(
+                physical_resource_id =  'preprocessing-{}-compute-{}-{}'.format(
                     os.environ['ENVIRONMENT'],
-                    os.environ['INSTANCE_SIZES'].replace(',', '_').replace('.', '')
+                    os.environ['INSTANCE_SIZES'].replace(',', '_').replace('.', ''),
+                    os.environ['LAUNCH_TEMPLATE_VERSION'],
                 )
             Environment:
                 Variables:
                     ENVIRONMENT: { Ref: "Environment" }
                     INSTANCE_SIZES: { "Fn::Join": [ ",", { Ref: "InstanceSize" } ] }
+                    LAUNCH_TEMPLATE_VERSION: { "Fn::GetAtt": [ "LaunchTemplate", "LatestVersionNumber" ] }
 
     BatchComputeEnvironment:
         Type: "AWS::Batch::ComputeEnvironment"

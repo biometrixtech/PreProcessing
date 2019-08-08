@@ -36,7 +36,7 @@ class constants:
     pos_thresh = .45*g  # positive threshold
     jump_thresh = 1.5*g
     win = int(0.04*hz)  # sampling window for impact detect
-    imp_len = int(0.06*hz)  # impact length
+    imp_len = int(0.1*hz)  # impact length
     end_imp_thresh = int(0.35*hz)
     max_imp_length = int(0.35*hz)
     drop_thresh = 0. * g

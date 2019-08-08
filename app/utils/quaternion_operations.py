@@ -170,3 +170,84 @@ def quat_avg(data):
 
     return avg_quat
 
+
+def hamilton_product(p, q):
+    """
+    Perform the Hamilton product between quaternions.
+
+    Parameters
+    ----------
+    p, q : array_like, list of array_like
+        Quaternions.
+
+    Returns
+    -------
+    output : numpy.ndarray
+        The Hamilton product of p and q. If the are arrays of quaternions,
+        the array of the products is returned.
+    """
+    p = np.asanyarray(p, dtype=float)
+    q = np.asanyarray(q, dtype=float)
+
+    w = p[...,0]*q[...,0] - p[...,1]*q[...,1] - p[...,2]*q[...,2] - p[...,3]*q[...,3]
+    x = p[...,0]*q[...,1] + p[...,1]*q[...,0] + p[...,2]*q[...,3] - p[...,3]*q[...,2]
+    y = p[...,0]*q[...,2] - p[...,1]*q[...,3] + p[...,2]*q[...,0] + p[...,3]*q[...,1]
+    z = p[...,0]*q[...,3] + p[...,1]*q[...,2] - p[...,2]*q[...,1] + p[...,3]*q[...,0]
+    return np.squeeze(np.stack((w, x, y, z), axis=-1))
+
+
+def quat_conjugate(q):
+    """Compute the conjugate of the given quaternion(s)."""
+    return np.asanyarray(q, dtype=float) * np.array((1., -1., -1., -1.))
+
+
+def quat_interp(p, q, alpha):
+    """
+    Perform a SPHERICAL LINEAR INTERPOLATION (SLERP) of two quaternions.
+
+    Parameters
+    ----------
+    p, q : array_like
+        Quaternions.
+    alpha : number, list of numbers
+        The interpolation coefficient(s).
+
+    Returns
+    -------
+    output : numpy.ndarray
+        Interpolation between p and q at alpha.
+    """
+    p = np.asanyarray(p, dtype=float)
+    q = np.asanyarray(q, dtype=float)
+
+    # Normalize the quaternions
+    p = p / np.linalg.norm(p)
+    q = q / np.linalg.norm(q)
+
+    # Abs of dot product between p and q
+    dot_pr = p @ q
+    abs_dot = np.abs(dot_pr)
+
+    p = p[np.newaxis,:]
+    q = q[np.newaxis,:]
+    alpha = np.asanyarray(alpha)
+    alpha = alpha[...,np.newaxis]
+
+    # Setup scale factors s and t
+    if abs_dot >= 1:
+        s = 1 - alpha
+        t = alpha
+    else:
+        # Theta is the angle between the two quaternions
+        theta = np.arccos(abs_dot)
+        sin_theta = np.sin(theta)
+        s = np.sin((1-alpha)*theta) / sin_theta
+        t = np.sin(alpha*theta) / sin_theta
+
+    # Sign inversion if needed
+    if dot_pr < 0:
+        t = -t
+
+    # Interpolation and normalisation of output quaternion
+    out = p * s + q * t
+    return np.squeeze(out / np.linalg.norm(out, axis=1, keepdims=True))

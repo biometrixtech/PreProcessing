@@ -101,6 +101,7 @@ def do_batch_job_counts():
     job_counts = {}
     for status_group, statuses in status_groups.items():
         for status in statuses:
+            job_counts[(None, status_group)] = 0
             for job in _batch_jobs_by_status(status):
                 if 'stoppedAt' in job and time.time() * 1000 - job['stoppedAt'] > 60 * 5 * 1000:
                     continue

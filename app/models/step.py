@@ -24,9 +24,9 @@ class Step(object):
             self.total_grf_avg = 0
             self.total_accel = 0
             self.total_accel_avg = 0
-            self.control = 0
-            self.ankle_control = 0
-            self.hip_control = 0
+            # self.control = 0
+            # self.ankle_control = 0
+            # self.hip_control = 0
             self.peak_grf = 0
             self.peak_grf_contact_duration = 0
             self.peak_grf_impact_duration = 0
@@ -36,9 +36,9 @@ class Step(object):
             self.flex_ROM = 0
             self.flex_motion_covered = 0
             self.contact_duration = 0
-            self.contralateral_hip_drop = 0
-            self.ankle_rotation = 0
-            self.land_pattern = 0
+            # self.contralateral_hip_drop = 0
+            # self.ankle_rotation = 0
+            # self.land_pattern = 0
             self.adduc_ROM_hip = 0
             self.adduc_motion_covered_total_hip = 0
             self.adduc_motion_covered_neg_hip = 0
@@ -48,7 +48,7 @@ class Step(object):
             self.flex_motion_covered_neg_hip = 0
             self.flex_motion_covered_pos_hip = 0
 
-            self.land_time = 0
+            # self.land_time = 0
             
         else:
             time_start = parse_datetime(mongo_step.get('startTime'))
@@ -73,9 +73,9 @@ class Step(object):
             self.total_grf_avg = mongo_step.get('totalGRFAvg')
             self.total_accel = mongo_step.get('totalAccel')
             self.total_accel_avg = mongo_step.get('totalAccelAvg')
-            self.control = mongo_step.get('control')
-            self.ankle_control = mongo_step.get('ankleControl')
-            self.hip_control = mongo_step.get('hipControl')
+            # self.control = mongo_step.get('control')
+            # self.ankle_control = mongo_step.get('ankleControl')
+            # self.hip_control = mongo_step.get('hipControl')
 
             if orientation == "Left":
                 self.peak_grf_contact_duration = mongo_step.get('peakGrfContactDurationLF')
@@ -86,9 +86,9 @@ class Step(object):
                 self.flex_ROM = mongo_step.get('flexROMLF')
                 self.flex_motion_covered = mongo_step.get('flexMotionCoveredLF')
                 self.contact_duration = mongo_step.get('contactDurationLF')
-                self.contralateral_hip_drop = mongo_step.get('contraHipDropLF')
-                self.ankle_rotation = mongo_step.get('ankleRotationLF')
-                self.land_pattern = mongo_step.get('landPatternLF')
+                # self.contralateral_hip_drop = mongo_step.get('contraHipDropLF')
+                # self.ankle_rotation = mongo_step.get('ankleRotationLF')
+                # self.land_pattern = mongo_step.get('landPatternLF')
             else:
                 self.peak_grf_contact_duration = mongo_step.get('peakGrfContactDurationRF')
                 self.peak_grf_impact_duration = mongo_step.get('peakGrfImpactDurationRF')
@@ -98,9 +98,9 @@ class Step(object):
                 self.flex_ROM = mongo_step.get('flexROMRF')
                 self.flex_motion_covered = mongo_step.get('flexMotionCoveredRF')
                 self.contact_duration = mongo_step.get('contactDurationRF')
-                self.contralateral_hip_drop = mongo_step.get('contraHipDropRF')
-                self.ankle_rotation = mongo_step.get('ankleRotationRF')
-                self.land_pattern = mongo_step.get('landPatternRF')
+                # self.contralateral_hip_drop = mongo_step.get('contraHipDropRF')
+                # self.ankle_rotation = mongo_step.get('ankleRotationRF')
+                # self.land_pattern = mongo_step.get('landPatternRF')
 
             self.adduc_ROM_hip = mongo_step.get('adducROMHip')
             self.adduc_motion_covered_total_hip = mongo_step.get('adducMotionCoveredTotalHip')
@@ -111,7 +111,7 @@ class Step(object):
             self.flex_motion_covered_neg_hip = mongo_step.get('flexMotionCoveredNegHip')
             self.flex_motion_covered_pos_hip = mongo_step.get('flexMotionCoveredPosHip')
 
-            self.land_time = mongo_step.get('landTime')
+            # self.land_time = mongo_step.get('landTime')
             self.stance = mongo_step.get('stance')
             self.stance_calc = self.get_stance()
 

@@ -10,15 +10,15 @@ Created on Tue Jul 25 13:45:44 2017
 import numpy as np
 import pandas as pd
 
+
 incoming_from_accessory = [
     'epoch_time',
-    'corrupt',
-    'magn_0', 'corrupt_0',
-    'acc_0_x', 'acc_0_y', 'acc_0_z', 'quat_0_x', 'quat_0_y', 'quat_0_z', 'quat_0_w',
-    'magn_1', 'corrupt_1',
-    'acc_1_x', 'acc_1_y', 'acc_1_z', 'quat_1_x', 'quat_1_y', 'quat_1_z', 'quat_1_w',
-    'magn_2', 'corrupt_2',
-    'acc_2_x', 'acc_2_y', 'acc_2_z', 'quat_2_x', 'quat_2_y', 'quat_2_z', 'quat_2_w',
+    'static_0',
+    'acc_0_x', 'acc_0_y', 'acc_0_z', 'quat_0_w', 'quat_0_x', 'quat_0_y', 'quat_0_z',
+    'static_1',
+    'acc_1_x', 'acc_1_y', 'acc_1_z', 'quat_1_w', 'quat_1_x', 'quat_1_y', 'quat_1_z',
+    'static_2',
+    'acc_2_x', 'acc_2_y', 'acc_2_z', 'quat_2_w', 'quat_2_x', 'quat_2_y', 'quat_2_z',
 ]
 
 
@@ -43,9 +43,10 @@ def _decode_magn(magn_data, nrow):
     magn_magnitude = magn_magnitude * 32  # multiply by 32 to calculate magnitude in mGauss
 
     # corrupt_enum = magn_temp & 7
-    corrupt_enum = magn_temp  # corrupt indicator changed
-    return np.concatenate((magn_magnitude.reshape(-1, 1),
-                           corrupt_enum.reshape(-1, 1)), axis=1)
+    corrupt_enum = magn_temp / 8  # corrupt indicator changed
+    # return np.concatenate((magn_magnitude.reshape(-1, 1),
+    #                        corrupt_enum.reshape(-1, 1)), axis=1)
+    return corrupt_enum.reshape(-1, 1)
 
 
 # AXL temporary value for the axl.5 bytes are used to
@@ -113,6 +114,9 @@ def _decode_quat(quat_data, nrows):
     if bad_norm.shape[0] > 0:
         quats[bad_norm, 3] = 0
         quats[bad_norm, :] = quats[bad_norm, :]/norm[bad_norm].reshape(-1, 1)
+    # sort to get wxyz
+    sorted_order = np.argsort([1, 2, 3, 0])
+    quats = quats[:, sorted_order]
     return quats
 
 
@@ -122,34 +126,34 @@ def read_file(filename):
     nrows = data.shape[0]
 
     timestamp = _decode_timestamp(data[:, 0:5], nrows).reshape(-1, 1)
-    corrupt = data[:, 6].reshape(-1, 1)
+    # corrupt = data[:, 6].reshape(-1, 1)
 
     output = np.concatenate((
         timestamp,
-        corrupt,
+        # corrupt,
         _decode_magn(data[:, 7], nrows),
-        _decode_accel(data[:, 8:13], nrows) / 1000 * 9.80665,
+        _decode_accel(data[:, 8:13], nrows),  # / 1000 * 9.80665,
         _decode_quat(data[:, 13:18], nrows),
         _decode_magn(data[:, 18], nrows),
-        _decode_accel(data[:, 19:24], nrows) / 1000 * 9.80665,
+        _decode_accel(data[:, 19:24], nrows), # / 1000 * 9.80665,
         _decode_quat(data[:, 24:29], nrows),
         _decode_magn(data[:, 29], nrows),
-        _decode_accel(data[:, 30:35], nrows) / 1000 * 9.80665,
+        _decode_accel(data[:, 30:35], nrows), # / 1000 * 9.80665,
         _decode_quat(data[:, 35:40], nrows),
     ), axis=1)
 
     output_pd = pd.DataFrame(output, columns=incoming_from_accessory)
-    output_pd['epoch_time'] = output_pd['epoch_time']. astype(float)
-    output_pd['corrupt'] = output_pd['corrupt']. astype(int)
-    output_pd['magn_0'] = output_pd['magn_0']. astype(int)
-    output_pd['corrupt_0'] = output_pd['corrupt_0']. astype(int)
-    output_pd['magn_1'] = output_pd['magn_1']. astype(int)
-    output_pd['corrupt_1'] = output_pd['corrupt_1']. astype(int)
-    output_pd['magn_2'] = output_pd['magn_2']. astype(int)
-    output_pd['corrupt_2'] = output_pd['corrupt_2']. astype(int)
-    ms_elapsed = np.ediff1d(timestamp, to_begin=10)
-    pos_timestamp = ms_elapsed >= 0
-    output_pd = output_pd.iloc[pos_timestamp]
-    output_pd.reset_index(drop=True, inplace=True)
+    output_pd['epoch_time'] = output_pd['epoch_time'].astype(float)
+    # output_pd['corrupt'] = output_pd['corrupt']. astype(int)
+    # output_pd['magn_0'] = output_pd['magn_0']. astype(int)
+    output_pd['static_0'] = output_pd['static_0'].astype(int)
+    # output_pd['magn_1'] = output_pd['magn_1']. astype(int)
+    output_pd['static_1'] = output_pd['static_1']. astype(int)
+    # output_pd['magn_2'] = output_pd['magn_2']. astype(int)
+    output_pd['static_2'] = output_pd['static_2'].astype(int)
+    # ms_elapsed = np.ediff1d(timestamp, to_begin=10)
+    # pos_timestamp = ms_elapsed >= 0
+    # output_pd = output_pd.iloc[pos_timestamp]
+    # output_pd.reset_index(drop=True, inplace=True)
     
     return output_pd

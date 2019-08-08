@@ -1,73 +1,45 @@
 from __future__ import print_function
 from aws_xray_sdk.core import xray_recorder
 import logging
-import numpy as np
+import boto3
+import os
+# import numpy as np
 
 from ..job import Job
-from .control_score import control_score
-from .scoring import score
+# from .control_score import control_score
+# from .scoring import score
 
 _logger = logging.getLogger()
+_s3_client = boto3.client('s3')
 
 _output_columns = [
     'obs_index',
+    'static_lf',
+    'static_hip',
+    'static_rf',
     'time_stamp',
     'epoch_time',
     'ms_elapsed',
-    'session_duration',
     'active',
-    'loading_lf',
-    'loading_rf',
     'phase_lf',
     'phase_rf',
-    'impact_phase_lf',
-    'impact_phase_rf',
+    'candidate_troughs_lf', 'troughs_lf',
+    'correction_points_hip',
+    'candidate_troughs_rf', 'troughs_rf',
     'grf',
     'grf_lf',
     'grf_rf',
-    'const_grf',
-    'dest_grf',
-    'destr_multiplier',
-    'session_grf_elapsed',
-    'symmetry',
-    'symmetry_l',
-    'symmetry_r',
-    'hip_symmetry',
-    'hip_symmetry_l',
-    'hip_symmetry_r',
-    'ankle_symmetry',
-    'ankle_symmetry_l',
-    'ankle_symmetry_r',
-    'consistency',
-    'hip_consistency',
-    'ankle_consistency',
-    'consistency_lf',
-    'consistency_rf',
-    'control',
-    'hip_control',
-    'ankle_control',
-    'control_lf',
-    'control_rf',
-    'contra_hip_drop_lf',
-    'contra_hip_drop_rf',
-    'ankle_rot_lf',
-    'ankle_rot_rf',
-    'foot_position_lf',
-    'foot_position_rf',
-    'land_pattern_lf',
-    'land_pattern_rf',
-    'land_time',
-    'rate_force_absorption_lf',
-    'rate_force_absorption_rf',
-    'rate_force_production_lf',
-    'rate_force_production_rf',
     'total_accel',
+    'euler_lf_x', 'euler_lf_y', 'euler_lf_z',
+    'euler_hip_x', 'euler_hip_y', 'euler_hip_z',
+    'euler_rf_x', 'euler_rf_y', 'euler_rf_z',
+    'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
+    'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
+    'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
+    'quat_lf_w','quat_lf_x', 'quat_lf_y', 'quat_lf_z',
+    'quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z',
+    'quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z',
     'stance',
-    'plane',
-    'rot',
-    'lat',
-    'vert',
-    'horz',
     'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     'adduc_range_of_motion_lf',
     'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
@@ -97,36 +69,33 @@ class ScoringJob(Job):
             raise Exception("Insufficient data, need 30000 rows, only got {}".format(data.shape[0]))
 
         # CONTROL SCORE
-        (
-            data['control'],
-            data['hip_control'],
-            data['ankle_control'],
-            data['control_lf'],
-            data['control_rf']
-        ) = control_score(data.euler_lf_x, data.euler_hip_x, data.euler_rf_x, data.phase_lf, data.phase_rf)
-        _logger.info('DONE WITH CONTROL SCORES!')
+        # (
+        #     data['control'],
+        #     data['hip_control'],
+        #     data['ankle_control'],
+        #     data['control_lf'],
+        #     data['control_rf']
+        # ) = control_score(data.euler_lf_x, data.euler_hip_x, data.euler_rf_x, data.phase_lf, data.phase_rf)
+        # _logger.info('DONE WITH CONTROL SCORES!')
 
         grf_scale = 1000000
-        data = score(data, grf_scale)
-        _logger.info("DONE WITH SCORING!")
+        # data = score(data, grf_scale)
+        # _logger.info("DONE WITH SCORING!")
 
         accel_scale = 100000
-        data['grf'] = data.grf / grf_scale
+        # data['grf'] = data.grf / grf_scale
         data['total_accel'] = data.total_accel * data.ms_elapsed / accel_scale
 
         # Round the data to 6th decimal point
         data = data.round(6)
-
-        # Add nans for future variables
-        data['symmetry_l'] = np.nan
-        data['symmetry_r'] = np.nan
-        data['hip_symmetry_l'] = np.nan
-        data['hip_symmetry_r'] = np.nan
-        data['ankle_symmetry_l'] = np.nan
-        data['ankle_symmetry_r'] = np.nan
 
         # TODO replace computing boundaries for twoMin by active blocks
 
         # Output data
         self.datastore.put_data('scoring', data, columns=_output_columns)
         _logger.info("DONE WRITING OUTPUT FILE")
+
+        # Upload processed file to s3
+        s3_key = self.datastore.session_id + '_processed'
+        _logger.info('Uploading processed file to "s3://biometrix-decode/{}",'.format(s3_key))
+        _s3_client.upload_file(os.path.join(self.datastore.working_directory, 'scoring'), 'biometrix-decode', s3_key)
