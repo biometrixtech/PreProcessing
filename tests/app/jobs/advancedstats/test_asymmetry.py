@@ -36,7 +36,7 @@ def test_get_asymmetery():
 
             cmj = ComplexityMatrixJob(ds, unit_blocks)
             cmj.run()
-            asymmetry_events = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_movement_asymmetries()
+            asymmetry_events = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)._get_movement_asymmetries()
             #asymmetry_dict[file] = asymmetry_events
             for e in asymmetry_events:
                 if e.anterior_pelvic_tilt_rate is not None:

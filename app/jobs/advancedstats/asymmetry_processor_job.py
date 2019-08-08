@@ -37,10 +37,11 @@ class AsymmetryDistribution(object):
 
 class AsymmetryProcessorJob(UnitBlockJob):
 
-    def __init__(self, datastore, unit_blocks, complexity_matrix_single_leg, complexity_matrix_double_leg):
+    def __init__(self, datastore, unit_blocks, complexity_matrix):
         super().__init__(datastore, unit_blocks)
-        self._complexity_matrix_single_leg = complexity_matrix_single_leg
-        self._complexity_matrix_double_leg = complexity_matrix_double_leg
+        self.complexity_matrix = complexity_matrix
+        #self._complexity_matrix_single_leg = complexity_matrix_single_leg
+        #self._complexity_matrix_double_leg = complexity_matrix_double_leg
 
     def _run(self):
         session_asymmetry_summaries = self._get_session_asymmetry_summaries()
@@ -65,80 +66,74 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         return self._get_variable_asymmetry_summaries(var_list)
 
-    def _get_loading_asymmetries(self):
-        events = []
-        for stance, complexity_matrix in [('Single Leg', self._complexity_matrix_single_leg), ('Double Leg', self._complexity_matrix_double_leg)]:
-            for keys, mcsl in complexity_matrix.items():
-                events.append(self._get_loading_asymmetry(
-                    "total_grf",
-                    mcsl,
-                    mcsl.complexity_level,
-                    mcsl.cma_level,
-                    mcsl.grf_level,
-                    stance))
-
-        return events
-
-    @staticmethod
-    def _get_loading_asymmetry(attribute, complexity_matrix_cell, complexity_level, cma_level, grf_level, stance):
-
-        asym = LoadingAsymmetry(complexity_level, cma_level, grf_level, stance)
-        asym.variable = attribute
-        asym.total_left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
-        asym.total_right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
-        asym.total_left_right_sum = asym.total_left_sum + asym.total_right_sum
-
-        if len(complexity_matrix_cell.left_steps) == 0 or len(complexity_matrix_cell.right_steps) == 0:
-            asym.training_asymmetry = asym.total_left_sum - asym.total_right_sum
-        else:
-            asym.kinematic_asymmetry = asym.total_left_sum - asym.total_right_sum
-        asym.total_asymmetry = asym.training_asymmetry + asym.kinematic_asymmetry
-        if asym.total_left_right_sum > 0:
-            asym.total_percent_asymmetry = (asym.total_asymmetry / asym.total_left_right_sum) * 100
-
-        asym.left_step_count = complexity_matrix_cell.left_step_count
-        asym.right_step_count = complexity_matrix_cell.right_step_count
-        asym.total_steps = asym.left_step_count + asym.right_step_count
-        asym.step_asymmetry = asym.left_step_count - asym.right_step_count
-        if asym.total_steps > 0:
-            asym.step_count_percent_asymmetry = (asym.step_asymmetry / float(asym.total_steps)) * 100
-
-        asym.ground_contact_time_left = complexity_matrix_cell.left_duration
-        asym.ground_contact_time_right = complexity_matrix_cell.right_duration
-        asym.total_ground_contact_time = asym.ground_contact_time_left + asym.ground_contact_time_right
-        asym.ground_contact_time_asymmetry = asym.ground_contact_time_left - asym.ground_contact_time_right
-        if asym.total_ground_contact_time > 0:
-            asym.ground_contact_time_percent_asymmetry = (asym.ground_contact_time_asymmetry / float(
-                asym.total_ground_contact_time)) * 100
-
-        asym.left_avg_accumulated_grf_sec = complexity_matrix_cell.left_avg_accumulated_grf_sec
-        asym.right_avg_accumulated_grf_sec = complexity_matrix_cell.right_avg_accumulated_grf_sec
-        asym.accumulated_grf_sec_asymmetry = asym.left_avg_accumulated_grf_sec - asym.right_avg_accumulated_grf_sec
-        if asym.right_avg_accumulated_grf_sec > 0:
-            asym.accumulated_grf_sec_percent_asymmetry = (asym.left_avg_accumulated_grf_sec /
-                                                          float(asym.right_avg_accumulated_grf_sec)) * 100
-
-        return asym
+    # def _get_loading_asymmetries(self):
+    #     events = []
+    #     for stance, complexity_matrix in [('Single Leg', self._complexity_matrix_single_leg), ('Double Leg', self._complexity_matrix_double_leg)]:
+    #         for keys, mcsl in complexity_matrix.items():
+    #             events.append(self._get_loading_asymmetry(
+    #                 "total_grf",
+    #                 mcsl,
+    #                 mcsl.complexity_level,
+    #                 mcsl.cma_level,
+    #                 mcsl.grf_level,
+    #                 stance))
+    #
+    #     return events
+    #
+    # @staticmethod
+    # def _get_loading_asymmetry(attribute, complexity_matrix_cell, complexity_level, cma_level, grf_level, stance):
+    #
+    #     asym = LoadingAsymmetry(complexity_level, cma_level, grf_level, stance)
+    #     asym.variable = attribute
+    #     asym.total_left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
+    #     asym.total_right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
+    #     asym.total_left_right_sum = asym.total_left_sum + asym.total_right_sum
+    #
+    #     if len(complexity_matrix_cell.left_steps) == 0 or len(complexity_matrix_cell.right_steps) == 0:
+    #         asym.training_asymmetry = asym.total_left_sum - asym.total_right_sum
+    #     else:
+    #         asym.kinematic_asymmetry = asym.total_left_sum - asym.total_right_sum
+    #     asym.total_asymmetry = asym.training_asymmetry + asym.kinematic_asymmetry
+    #     if asym.total_left_right_sum > 0:
+    #         asym.total_percent_asymmetry = (asym.total_asymmetry / asym.total_left_right_sum) * 100
+    #
+    #     asym.left_step_count = complexity_matrix_cell.left_step_count
+    #     asym.right_step_count = complexity_matrix_cell.right_step_count
+    #     asym.total_steps = asym.left_step_count + asym.right_step_count
+    #     asym.step_asymmetry = asym.left_step_count - asym.right_step_count
+    #     if asym.total_steps > 0:
+    #         asym.step_count_percent_asymmetry = (asym.step_asymmetry / float(asym.total_steps)) * 100
+    #
+    #     asym.ground_contact_time_left = complexity_matrix_cell.left_duration
+    #     asym.ground_contact_time_right = complexity_matrix_cell.right_duration
+    #     asym.total_ground_contact_time = asym.ground_contact_time_left + asym.ground_contact_time_right
+    #     asym.ground_contact_time_asymmetry = asym.ground_contact_time_left - asym.ground_contact_time_right
+    #     if asym.total_ground_contact_time > 0:
+    #         asym.ground_contact_time_percent_asymmetry = (asym.ground_contact_time_asymmetry / float(
+    #             asym.total_ground_contact_time)) * 100
+    #
+    #     asym.left_avg_accumulated_grf_sec = complexity_matrix_cell.left_avg_accumulated_grf_sec
+    #     asym.right_avg_accumulated_grf_sec = complexity_matrix_cell.right_avg_accumulated_grf_sec
+    #     asym.accumulated_grf_sec_asymmetry = asym.left_avg_accumulated_grf_sec - asym.right_avg_accumulated_grf_sec
+    #     if asym.right_avg_accumulated_grf_sec > 0:
+    #         asym.accumulated_grf_sec_percent_asymmetry = (asym.left_avg_accumulated_grf_sec /
+    #                                                       float(asym.right_avg_accumulated_grf_sec)) * 100
+    #
+    #     return asym
 
     def _get_movement_asymmetries(self):
 
         asymm_events = []
 
-        for stance, complexity_matrix in [('Single', self._complexity_matrix_single_leg), ('Double', self._complexity_matrix_double_leg)]:
-            for keys, mcsl in complexity_matrix.items():
-                events = self._get_movement_asymmetry(
-                    mcsl.complexity_level,
-                    mcsl.cma_level,
-                    mcsl.grf_level,
-                    stance,
-                    mcsl.left_steps,
-                    mcsl.right_steps)
+        #for stance, complexity_matrix in [('Single', self._complexity_matrix_single_leg), ('Double', self._complexity_matrix_double_leg)]:
+        for keys, mcsl in self.complexity_matrix.items():
+            events = self._get_movement_asymmetry(mcsl.left_steps, mcsl.right_steps)
 
-                asymm_events.extend(events)
+            asymm_events.extend(events)
 
         return asymm_events
 
-    def _get_movement_asymmetry(self, complexity_level, cma_level, grf_level, stance, left_steps, right_steps):
+    def _get_movement_asymmetry(self,  left_steps, right_steps):
 
         unit_block_list_lf = {x.unit_block_number for x in left_steps}
         unit_block_list_rf = {x.unit_block_number for x in right_steps}
@@ -183,7 +178,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                 intervals = ceil(seconds_diff / float(seconds))
 
             for i in range(0, intervals):
-                event = MovementAsymmetry(complexity_level, cma_level, grf_level, stance)
+                event = MovementAsymmetry()
                 l_step_blocks = list(x for x in l_unit_block_steps if
                                      start_time + (i * seconds) <= x.cumulative_end_time <= start_time + (
                                                  (i + 1) * seconds))

@@ -34,7 +34,7 @@ class ComplexityMatrix(object):
         #     self.cells["LowGrf_HighCMA"] = ComplexityMatrixCell("LowGrf", "HighCMA", "High")
         #     self.cells["ModGrf_HighCMA"] = ComplexityMatrixCell("ModGrf", "HighCMA", "High")
         #     self.cells["HighGrf_HighCMA"] = ComplexityMatrixCell("HighGrf", "HighCMA", "High")
-        self.cells["Test"] = ComplexityMatrixCell("A", "B", "C")
+        self.cells[self.stance] = ComplexityMatrixCell("A", "B", "C")
 
     def add_step(self, step):
         # if step.total_accel_avg is not None and step.total_accel_avg > 0 and step.peak_grf is not None:
@@ -65,7 +65,7 @@ class ComplexityMatrix(object):
         #
         #     elif step.total_accel_avg > 105 and step.peak_grf >= 3:
         #         self.cells["HighGrf_HighCMA"].add_step(step)
-        self.cells["Test"].add_step(step)
+        self.cells[self.stance].add_step(step)
 
     # def get_motion_complexity(self, complexity_level, interpolate_steps=False):
     #     complexity = MotionComplexity(complexity_level, self.stance)
