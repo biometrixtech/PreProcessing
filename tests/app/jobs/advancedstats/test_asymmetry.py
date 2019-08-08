@@ -10,33 +10,60 @@ from app.jobs.advancedstats.fatigue_processor_job import FatigueProcessorJob
 from tests.app.writemongo.datastore import MockDatastore
 from app.models.session_fatigue import SessionFatigue
 
+path = '../../../../testdata/advanced/'
+
+files = [  # 'f93e004d-Gabby-treadmill-073019-kit2831-normalPlacement-beforeFoamRoll_0.json',
+    # '7b6c7bba-Gabby-treadmill-073019-kit2c39-highPlacement-beforeFoamRoll_0.json',
+    # '07b9b744-Gabby-treadmill-073019-kit2BE8-offcenterPlacement-beforeFoamRoll_0.json',
+    'f78a9e26_0.json',
+    '7bbff8e0_0.json',
+    'e3223bf2_0.json',
+]
 
 def test_get_fatigue():
-    path = '../../../../testdata/advanced/'
-    file = 'f93e004d-Gabby-treadmill-073019-kit2831-normalPlacement-beforeFoamRoll_0.json'
-    file_path = os.path.join(path, file)
-    with open(file_path, 'r') as f:
-        data = json.load(f)
-        unit_blocks = data['unitBlocks']
-        ds = MockDatastore("gabby", "2019-08-02", None)
 
-        cmj = ComplexityMatrixJob(ds, unit_blocks)
-        cmj.run()
+    #file = 'f93e004d-Gabby-treadmill-073019-kit2831-normalPlacement-beforeFoamRoll_0.json'
+    output_file_name = "fatigue_results_exapnded_240.csv"
+    output_file_path = os.path.join(path, output_file_name)
+    output_file = open(output_file_path, 'w')
+    line = ('file,variable, time_block, end_time, orientation, raw_value, z_score')
+    output_file.write(line + '\n')
 
-        fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg,
-                                             cmj.motion_complexity_double_leg)._get_fatigue_events()
-        session_fatigue = SessionFatigue(fatigue_events)
+    for file in files:
+        file_path = os.path.join(path, file)
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+            unit_blocks = data['unitBlocks']
+            ds = MockDatastore("gabby", "2019-08-02", None)
 
-        cma_grf_list = session_fatigue.cma_grf_crosstab()
+            cmj = ComplexityMatrixJob(ds, unit_blocks)
+            cmj.run()
 
-        k=0
+            fatigue_events = FatigueProcessorJob(ds, cmj.motion_complexity_single_leg,
+                                                 cmj.motion_complexity_double_leg)._get_fatigue_events()
+            #session_fatigue = SessionFatigue(fatigue_events)
+
+            #cma_grf_list = session_fatigue.cma_grf_crosstab()
+
+            for f in fatigue_events:
+                text_line = file + "," + f.attribute_label + "," + str(f.time_block) + "," + str(f.cumulative_end_time) + "," + f.orientation + "," + str(f.raw_value) + "," + str(f.z_score) + "," + str(f.significant) + "\n"
+                output_file.write(text_line)
+
+            k=0
+
+    output_file.close()
+
+
 
 def test_get_asymmetery():
-    path = '../../../../testdata/advanced/'
-    files = ['f93e004d-Gabby-treadmill-073019-kit2831-normalPlacement-beforeFoamRoll_0.json',
-             '7b6c7bba-Gabby-treadmill-073019-kit2c39-highPlacement-beforeFoamRoll_0.json',
-             '07b9b744-Gabby-treadmill-073019-kit2BE8-offcenterPlacement-beforeFoamRoll_0.json']
+
     asymmetry_dict = {}
+    output_file_name = "asymmetry_results_expanded.csv"
+    output_file_path = os.path.join(path, output_file_name)
+    output_file = open(output_file_path, 'w')
+    line = ('file,variable, time_block, start_time, end_time, left_min, left_median, left_max, right_min, right_median, right_max, left_q1, left_q2, left_q3, left_q4, right_q1, right_q2, right_q3, right_q4')
+    output_file.write(line + '\n')
+
     for file in files:
         file_path = os.path.join(path, file)
         with open(file_path, 'r') as f:
@@ -47,5 +74,28 @@ def test_get_asymmetery():
             cmj = ComplexityMatrixJob(ds, unit_blocks)
             cmj.run()
             asymmetry_events = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_movement_asymmetries()
-            asymmetry_dict[file] = asymmetry_events
-    k=0
+            #asymmetry_dict[file] = asymmetry_events
+            for e in asymmetry_events:
+                if e.anterior_pelvic_tilt_rate is not None:
+                    a = e.anterior_pelvic_tilt_rate
+                    text_line = (file + "," + a.attribute_label + "," + str(a.time_block) + "," + str(a.start_time) + "," + str(a.end_time) + "," +
+                                 str(a.left_min) + "," + str(a.left_median) + "," + str(a.left_max) + "," + str(a.right_min) + "," +
+                                 str(a.right_median) + "," + str(a.right_max) + "," + str(a.left_q1_sum) + "," + str(a.left_q2_sum) + "," +
+                                 str(a.left_q3_sum) + "," + str(a.left_q4_sum) + "," + str(a.right_q1_sum) + "," + str(
+                                a.right_q2_sum) + "," + str(a.right_q3_sum) + "," + str(a.right_q4_sum) + "\n")
+                    output_file.write(text_line)
+                if e.anterior_pelvic_tilt_range is not None:
+                    a = e.anterior_pelvic_tilt_range
+                    text_line = (file + "," + a.attribute_label + "," + str(a.time_block) + "," + str(
+                        a.start_time) + "," + str(a.end_time) + "," +
+                                 str(a.left_min) + "," + str(a.left_median) + "," + str(a.left_max) + "," + str(
+                                a.right_min) + "," +
+                                 str(a.right_median) + "," + str(a.right_max) + "," + str(
+                                a.left_q1_sum) + "," + str(a.left_q2_sum) + "," +
+                                 str(a.left_q3_sum) + "," + str(a.left_q4_sum) + "," + str(
+                                a.right_q1_sum) + "," + str(
+                                a.right_q2_sum) + "," + str(a.right_q3_sum) + "," + str(a.right_q4_sum) + "\n")
+                    output_file.write(text_line)
+        k=0
+
+    output_file.close()

@@ -58,23 +58,38 @@ class ComplexityMatrixCell(object):
             else:
                 return None
 
-    def get_decay_outliers(self, attribute, label, orientation, active_block_list, step_list):
+    def get_decay_outliers(self, attribute, label, orientation, unit_block_list, step_list):
 
+        seconds = 420.0
         abs_list = {}
         abs_value_list = []
         abs_outlier_list = []
         active_block_count = -1
         interval = 0
-        for key in active_block_list:
+        decay = []
+        decay_mean = None
+        last_t0 = None
+        t = None
+        for unit_block_number in unit_block_list:
 
             active_block_count += 1
-            steps = list(x for x in step_list if x.active_block_id == key)
+            if len(decay) > 0:
+                decay_mean = np.mean(decay)
+            if decay_mean is not None:
+                abs_list[interval] = {
+                    'start_time': last_t0,
+                    'end_time': t,
+                    'time_block': interval,
+                    'raw_value': decay_mean
+                }
+                abs_value_list.append(decay_mean)
+            steps = list(x for x in step_list if x.unit_block_number == unit_block_number)
             decay = []
             y0 = None
             t0 = None
             decay_mean = None
             last_t0 = None
-            cnt = 0
+            cnt = 1
             yt = 0
             for item in steps:
                 if getattr(item, attribute) is not None:
@@ -85,12 +100,13 @@ class ComplexityMatrixCell(object):
                         last_t0 = t0
 
                     t = getattr(item, "cumulative_end_time")
-                    if last_t0 <= t <= (last_t0 + 30.0):
+                    if last_t0 <= t <= (last_t0 + seconds):
 
                         yt += math.fabs(getattr(item, attribute))
+                        yt_average = float(yt) / float(cnt)
                         if cnt > 4:
 
-                            decay.append((math.log(yt / y0)) / (t - last_t0))
+                            decay.append((math.log(yt_average / y0)) / (t - last_t0))
                         cnt += 1
                     else:
 
@@ -107,10 +123,23 @@ class ComplexityMatrixCell(object):
                         decay = []
                         last_t0 = t
                         t0 = t
+                        cnt = 1
                         y0 = math.fabs(getattr(item, attribute))
                         yt = math.fabs(getattr(item, attribute))
-                        cnt = 0
+                        yt_average = float(yt) / float(cnt)
+
                         interval += 1
+
+            if len(decay) > 0:
+                decay_mean = np.mean(decay)
+            if decay_mean is not None:
+                abs_list[interval] = {
+                    'start_time': last_t0,
+                    'end_time': t,
+                    'time_block': interval,
+                    'raw_value': decay_mean
+                }
+                abs_value_list.append(decay_mean)
 
             # t = None
             # cnt = 0
@@ -140,19 +169,20 @@ class ComplexityMatrixCell(object):
         # now loop back through and find outliers!
         for key, value in abs_list.items():
             z_score = (value['raw_value'] - abs_mean) / abs_stddev
+            outlier = FatigueEvent(self.cma_level, self.grf_level)
+            outlier.active_block_id = key
+            outlier.attribute_label = label
+            outlier.attribute_name = attribute
+            outlier.complexity_level = self.complexity_level
+            outlier.cumulative_end_time = value["end_time"]
+            outlier.orientation = orientation
+            outlier.raw_value = value['raw_value']
+            outlier.time_block = value["time_block"]
+            outlier.z_score = z_score
             if math.fabs(z_score) > 2:
-                outlier = FatigueEvent(self.cma_level, self.grf_level)
-                outlier.active_block_id = key
-                outlier.attribute_label = label
-                outlier.attribute_name = attribute
-                outlier.complexity_level = self.complexity_level
-                outlier.cumulative_end_time = value["end_time"]
-                outlier.orientation = orientation
-                outlier.raw_value = value['raw_value']
-                outlier.time_block = value["time_block"]
-                outlier.z_score = z_score
+                outlier.significant = 1
 
-                abs_outlier_list.append(outlier)
+            abs_outlier_list.append(outlier)
 
         return abs_outlier_list
 
@@ -207,14 +237,19 @@ class ComplexityMatrixCell(object):
         active_block_list = list(set(active_block_list_lf).union(active_block_list_rf))
         active_block_list.sort()
 
+        unit_block_list_lf = {x.unit_block_number for x in self.left_steps}
+        unit_block_list_rf = {x.unit_block_number for x in self.right_steps}
+        unit_block_list = list(set(unit_block_list_lf).union(unit_block_list_rf))
+        unit_block_list.sort()
+
         # outlier_list.extend(self.get_decay_outliers("adduc_ROM_hip", "adduc_rom_hip", "Left", active_block_list, self.left_steps))
         # outlier_list.extend(self.get_decay_outliers("flex_ROM_hip", "flex_rom_hip", "Left", active_block_list, self.left_steps))
         # outlier_list.extend(self.get_decay_outliers("adduc_ROM_hip", "adduc_rom_hip", "Right", active_block_list, self.right_steps))
         # outlier_list.extend(self.get_decay_outliers("flex_ROM_hip", "flex_rom_hip", "Right", active_block_list, self.right_steps))
-        outlier_list.extend(self.get_decay_outliers("anterior_pelvic_tilt_range", "anterior_pelvic_tilt_range", "Left", active_block_list, self.left_steps))
-        outlier_list.extend(self.get_decay_outliers("anterior_pelvic_tilt_rate", "anterior_pelvic_tilt_rate", "Left", active_block_list, self.left_steps))
-        outlier_list.extend(self.get_decay_outliers("anterior_pelvic_tilt_range", "anterior_pelvic_tilt_range", "Right", active_block_list, self.right_steps))
-        outlier_list.extend(self.get_decay_outliers("anterior_pelvic_tilt_rate", "anterior_pelvic_tilt_rate", "Right", active_block_list, self.right_steps))
+        outlier_list.extend(self.get_decay_outliers("anterior_pelvic_tilt_range", "anterior_pelvic_tilt_range", "Left", unit_block_list, self.left_steps))
+        outlier_list.extend(self.get_decay_outliers("anterior_pelvic_tilt_rate", "anterior_pelvic_tilt_rate", "Left", unit_block_list, self.left_steps))
+        outlier_list.extend(self.get_decay_outliers("anterior_pelvic_tilt_range", "anterior_pelvic_tilt_range", "Right", unit_block_list, self.right_steps))
+        outlier_list.extend(self.get_decay_outliers("anterior_pelvic_tilt_rate", "anterior_pelvic_tilt_rate", "Right", unit_block_list, self.right_steps))
 
 
         adduc_pos_hip_steps_lf = list(x for x in self.left_steps if x.adduc_motion_covered_pos_hip > 0)

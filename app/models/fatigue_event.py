@@ -14,3 +14,4 @@ class FatigueEvent(object):
         self.stance = ""
         self.time_block = ""
         self.z_score = 0.0
+        self.significant = 0
