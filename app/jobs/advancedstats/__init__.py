@@ -16,7 +16,12 @@ class AdvancedstatsJob(Job):
 
     def _run(self):
         event_date = self.datastore.get_metadatum('event_date')
-        unit_blocks = get_unit_blocks(self.datastore.session_id, event_date)
+        active_blocks = get_unit_blocks(self.datastore.session_id, event_date)
+
+        unit_blocks = []
+        for a in active_blocks:
+            unit_blocks.extend(a["unitBlocks"])
+
         if len(unit_blocks) > 0:
             # Write out active blocks
             from .summary_analysis_job import SummaryAnalysisJob
