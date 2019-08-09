@@ -91,6 +91,7 @@ def main(script):
             'MONGO_DATABASE',
             'MONGO_REPLICASET',
             'MONGO_COLLECTION_ACTIVEBLOCKS',
+            'MONGO_COLLECTION_ASYMMETRY'
         ], 'mongo')
         from jobs.advancedstats import AdvancedstatsJob
         AdvancedstatsJob(datastore).run()
