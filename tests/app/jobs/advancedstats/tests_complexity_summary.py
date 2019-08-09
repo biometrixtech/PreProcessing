@@ -378,7 +378,8 @@ def test_get_movement_asymmetries_kruskal():
 
         seconds_duraton = 60*91
 
-        session_time_start = parse_datetime(active_blocks[0]["timeStart"])
+        #session_time_start = parse_datetime(active_blocks[0]["timeStart"])
+        session_time_start = parse_datetime(date)
         session_time_end = format_datetime(session_time_start + timedelta(seconds=seconds_duraton))
 
         ds = MockDatastore(session_id, date, "tester", session_time_end)
@@ -389,6 +390,13 @@ def test_get_movement_asymmetries_kruskal():
         job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)
         asymmetry_events = job._get_movement_asymmetries()
         left_apt, right_apt = job._get_session_asymmetry_apts(asymmetry_events)
+
+        #faking duration
+        session_time_end = format_datetime(session_time_start + timedelta(seconds=len(asymmetry_events)*30))
+
+        ds = MockDatastore(session_id, date, "tester", session_time_end)
+        fake_job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)
+
 
         # optional output to csv
         # df = pandas.DataFrame()
@@ -414,8 +422,7 @@ def test_get_movement_asymmetries_kruskal():
         #               'flex_ROM', 'flex_motion_covered', 'adduc_ROM_hip',
         #               'adduc_motion_covered_total_hip', 'flex_ROM_hip', 'flex_motion_covered_total_hip'])
 
-
-        job.write_movement_asymmetry(asymmetry_events, left_apt, right_apt)
+        fake_job.write_movement_asymmetry(asymmetry_events, left_apt, right_apt)
 
     assert len(asymmetry_events) > 0
 
