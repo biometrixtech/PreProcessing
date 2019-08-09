@@ -23,12 +23,12 @@ class AdvancedstatsJob(Job):
             unit_blocks.extend(a["unitBlocks"])
 
         if len(unit_blocks) > 0:
-            # Write out active blocks
-            from .summary_analysis_job import SummaryAnalysisJob
-            SummaryAnalysisJob(self.datastore, unit_blocks).run()
+            # # Write out active blocks
+            # from .summary_analysis_job import SummaryAnalysisJob
+            # SummaryAnalysisJob(self.datastore, unit_blocks).run()
 
-            from .training_volume_job import TrainingVolumeJob
-            TrainingVolumeJob(self.datastore, unit_blocks).run()
+            # from .training_volume_job import TrainingVolumeJob
+            # TrainingVolumeJob(self.datastore, unit_blocks).run()
 
             from .complexity_matrix_job import ComplexityMatrixJob
             cmj = ComplexityMatrixJob(self.datastore, unit_blocks)
