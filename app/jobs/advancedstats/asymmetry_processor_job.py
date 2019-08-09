@@ -57,7 +57,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
         movement_events = self._get_movement_asymmetries()
         #loading_events = self._get_loading_asymmetries()
         #self._write_loading_movement_asymmetry(loading_events, movement_events)
-        self.write_movement_asymmetry(movement_events)
+        left_apt, right_apt = self._get_session_asymmetry_apts(movement_events)
+        self.write_movement_asymmetry(movement_events, left_apt, right_apt)
 
     def _get_session_asymmetry_summaries(self):
         # relative magnitude
@@ -128,6 +129,21 @@ class AsymmetryProcessorJob(UnitBlockJob):
     #                                                       float(asym.right_avg_accumulated_grf_sec)) * 100
     #
     #     return asym
+    def _get_session_asymmetry_apts(self, movement_asymmetries):
+
+        left_significant_events = [l.left_median for l in movement_asymmetries if l.significant]
+        right_significant_events = [r.right_median for r in movement_asymmetries if r.significant]
+
+        left_apt = 0
+        right_apt = 0
+
+        if len(left_significant_events) > 0:
+            left_apt = sum(left_significant_events)
+
+        if len(right_significant_events) > 0:
+            right_apt = sum(right_significant_events)
+
+        return left_apt, right_apt
 
     def _get_movement_asymmetries(self):
 
@@ -435,8 +451,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
             self.datastore.put_data('relmagnitudeasymmetry', df)
             self.datastore.copy_to_s3('relmagnitudeasymmetry', 'advanced-stats', '_'.join([self.event_date, self.user_id]) + "/rel_magnitude_asymmetry.csv")
 
-
-    def write_movement_asymmetry(self, movement_events):
+    def write_movement_asymmetry(self, movement_events, left_apt, right_apt):
 
         mongo_collection = get_mongo_collection('ASYMMETRY')
 
@@ -444,6 +459,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
         record_out['user_id'] = self.datastore.get_metadatum('user_id', None)
         record_out['event_date'] = self.datastore.get_metadatum('event_date', None)
         record_out['session_id'] = self.datastore.session_id
+        record_out['left_apt'] = left_apt
+        record_out['right_apt'] = right_apt
 
         record_asymmetries = []
 

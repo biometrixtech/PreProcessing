@@ -382,6 +382,7 @@ def test_get_movement_asymmetries_kruskal():
 
         job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)
         asymmetry_events = job._get_movement_asymmetries()
+        left_apt, right_apt = job._get_session_asymmetry_apts(asymmetry_events)
 
         # optional output to csv
         # df = pandas.DataFrame()
@@ -408,7 +409,7 @@ def test_get_movement_asymmetries_kruskal():
         #               'adduc_motion_covered_total_hip', 'flex_ROM_hip', 'flex_motion_covered_total_hip'])
 
 
-        job.write_movement_asymmetry(asymmetry_events)
+        job.write_movement_asymmetry(asymmetry_events, left_apt, right_apt)
 
     assert len(asymmetry_events) > 0
 
