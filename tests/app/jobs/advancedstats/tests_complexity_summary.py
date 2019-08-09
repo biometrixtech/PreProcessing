@@ -12,7 +12,8 @@ load_parameters([
             'MONGO_COLLECTION_ASYMMETRY',
         ], 'mongo')
 import pandas
-
+from datetime import datetime
+from utils import format_datetime
 from tests.app.writemongo.datastore import MockDatastore
 from app.jobs.advancedstats import get_unit_blocks
 #from ....app.jobs.advancedstats import get_unit_blocks
@@ -369,7 +370,7 @@ def test_get_movement_asymmetries_kruskal():
 
     for session_id in sessions:
 
-        date = "2019-08-08"
+        date = format_datetime(datetime.now())
         active_blocks = get_unit_blocks(session_id, date)
         unit_blocks = []
         for a in active_blocks:
