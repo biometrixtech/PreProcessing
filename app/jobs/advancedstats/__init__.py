@@ -16,7 +16,7 @@ class AdvancedstatsJob(Job):
     def _run(self):
         user_id = self.datastore.get_metadatum('user_id')
         event_date = self.datastore.get_metadatum('event_date')
-        unit_blocks = get_unit_blocks(user_id, event_date)
+        unit_blocks = get_unit_blocks(self.datastore.session_id, event_date)
         self._write_session_to_plans(user_id, event_date)
 
         if len(unit_blocks) > 0:
@@ -31,11 +31,11 @@ class AdvancedstatsJob(Job):
             cmj = ComplexityMatrixJob(self.datastore, unit_blocks)
             cmj.run()
 
-            from .fatigue_processor_job import FatigueProcessorJob
-            FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
+            # from .fatigue_processor_job import FatigueProcessorJob
+            # FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
             from .asymmetry_processor_job import AsymmetryProcessorJob
-            AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
+            AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
 
     def _write_session_to_plans(self, user_id, event_date):
         _service_token = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
@@ -54,7 +54,7 @@ class AdvancedstatsJob(Job):
                       headers=headers)
 
 
-def get_unit_blocks(user, date):
+def get_unit_blocks(session_id, date):
     """
     Load the unit blocks records from MongoDB
     :param user:
@@ -65,7 +65,8 @@ def get_unit_blocks(user, date):
 
     # unit_blocks = list(col.find({'userId': {'$eq': user},'eventDate':date},{'unitBlocks':1,'_id':0}))
     unit_blocks = list(collection.find(
-        {'userId': {'$eq': user}, 'eventDate': date},
+        #{'sessionId': {'$eq': session_id}, 'eventDate': date},
+        {'sessionId': {'$eq': session_id}},
         {'unitBlocks': 1, '_id': 1, 'timeStart': 1, 'timeEnd': 1}).sort('unitBlocks.timeStart', direction=ASCENDING)
     )
     return unit_blocks

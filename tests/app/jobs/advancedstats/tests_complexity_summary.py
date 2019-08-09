@@ -9,9 +9,11 @@ load_parameters([
             'MONGO_DATABASE',
             'MONGO_REPLICASET',
             'MONGO_COLLECTION_ACTIVEBLOCKS',
+            'MONGO_COLLECTION_ASYMMETRY',
         ], 'mongo')
 import pandas
-
+from datetime import datetime, timedelta
+from utils import format_datetime, parse_datetime
 from tests.app.writemongo.datastore import MockDatastore
 from app.jobs.advancedstats import get_unit_blocks
 #from ....app.jobs.advancedstats import get_unit_blocks
@@ -362,39 +364,65 @@ def test_get_decay_dataframe():
 
 # noinspection PyProtectedMember
 def test_get_movement_asymmetries_kruskal():
-    athlete = "Maggie"
-    date = "2018-04-24"
-    unit_blocks = get_unit_blocks(athlete, date)
-    ds = MockDatastore(athlete, date, None)
+    sessions = ['f78a9e26-6003-5ac7-8590-3ae4a421dac7',
+                '7bbff8e0-189a-5643-93bc-9730e0fdcd20',
+                'e3223bf2-bc6b-52e7-8612-1ed7c6e7ae55']
 
-    cmj = ComplexityMatrixJob(ds, unit_blocks)
-    cmj.run()
+    for session_id in sessions:
 
-    asymmetry_events = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg)._get_movement_asymmetries()
+        date = format_datetime(datetime.now())
+        active_blocks = get_unit_blocks(session_id, date)
+        unit_blocks = []
+        for a in active_blocks:
+            unit_blocks.extend(a["unitBlocks"])
 
-    # optional output to csv
-    # df = pandas.DataFrame()
-    # for f in asymmetry_events:
-    #     ab = pandas.DataFrame({
-    #         'complexity_level': [f.complexity_level],
-    #         'grf_level': [f.grf_level],
-    #         'cma_level': [f.cma_level],
-    #         'adduc_ROM': [f.adduc_rom],
-    #         'adduc_motion_covered': [f.adduc_motion_covered],
-    #         'flex_ROM': [f.flex_rom],
-    #         'flex_motion_covered': [f.flex_motion_covered],
-    #         'adduc_ROM_hip': [f.adduc_rom_hip],
-    #         'adduc_motion_covered_total_hip': [f.adduc_motion_covered_tot_hip],
-    #         'flex_ROM_hip': [f.flex_rom_hip],
-    #         'flex_motion_covered_total_hip': [f.flex_motion_covered_tot_hip]
-    #     }, index=[f.stance])
-    #     df = df.append(ab)
-    #
-    # df.to_csv('~/decay/kruskal_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
-    #           columns=[
-    #               'complexity_level', 'grf_level', 'cma_level', 'adduc_ROM', 'adduc_motion_covered',
-    #               'flex_ROM', 'flex_motion_covered', 'adduc_ROM_hip',
-    #               'adduc_motion_covered_total_hip', 'flex_ROM_hip', 'flex_motion_covered_total_hip'])
+        seconds_duraton = 60*91
+
+        #session_time_start = parse_datetime(active_blocks[0]["timeStart"])
+        session_time_start = parse_datetime(date)
+        session_time_end = format_datetime(session_time_start + timedelta(seconds=seconds_duraton))
+
+        ds = MockDatastore(session_id, date, "tester", session_time_end)
+
+        cmj = ComplexityMatrixJob(ds, unit_blocks)
+        cmj.run()
+
+        job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)
+        asymmetry_events = job._get_movement_asymmetries()
+        left_apt, right_apt = job._get_session_asymmetry_apts(asymmetry_events)
+
+        #faking duration
+        session_time_end = format_datetime(session_time_start + timedelta(seconds=len(asymmetry_events)*30))
+
+        ds = MockDatastore(session_id, date, "tester", session_time_end)
+        fake_job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)
+
+
+        # optional output to csv
+        # df = pandas.DataFrame()
+        # for f in asymmetry_events:
+        #     ab = pandas.DataFrame({
+        #         'complexity_level': [f.complexity_level],
+        #         'grf_level': [f.grf_level],
+        #         'cma_level': [f.cma_level],
+        #         'adduc_ROM': [f.adduc_rom],
+        #         'adduc_motion_covered': [f.adduc_motion_covered],
+        #         'flex_ROM': [f.flex_rom],
+        #         'flex_motion_covered': [f.flex_motion_covered],
+        #         'adduc_ROM_hip': [f.adduc_rom_hip],
+        #         'adduc_motion_covered_total_hip': [f.adduc_motion_covered_tot_hip],
+        #         'flex_ROM_hip': [f.flex_rom_hip],
+        #         'flex_motion_covered_total_hip': [f.flex_motion_covered_tot_hip]
+        #     }, index=[f.stance])
+        #     df = df.append(ab)
+        #
+        # df.to_csv('~/decay/kruskal_' + athlete + '_' + date + 'v6.csv', sep=',', index_label='Stance',
+        #           columns=[
+        #               'complexity_level', 'grf_level', 'cma_level', 'adduc_ROM', 'adduc_motion_covered',
+        #               'flex_ROM', 'flex_motion_covered', 'adduc_ROM_hip',
+        #               'adduc_motion_covered_total_hip', 'flex_ROM_hip', 'flex_motion_covered_total_hip'])
+
+        fake_job.write_movement_asymmetry(asymmetry_events, left_apt, right_apt)
 
     assert len(asymmetry_events) > 0
 

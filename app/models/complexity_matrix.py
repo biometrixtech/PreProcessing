@@ -14,56 +14,58 @@ class ComplexityMatrix(object):
         self.cells = {}
         self.stance = stance
 
-        if stance == "Double Leg":
-            self.cells["LowGrf_LowCMA"] = ComplexityMatrixCell("LowGrf", "LowCMA", "Low")
-            self.cells["ModGrf_LowCMA"] = ComplexityMatrixCell("ModGrf", "LowCMA", "Low")
-            self.cells["HighGrf_LowCMA"] = ComplexityMatrixCell("HighGrf", "LowCMA", "Moderate")
-            self.cells["LowGrf_ModCMA"] = ComplexityMatrixCell("LowGrf", "ModCMA", "Low")
-            self.cells["ModGrf_ModCMA"] = ComplexityMatrixCell("ModGrf", "ModCMA", "Low")
-            self.cells["HighGrf_ModCMA"] = ComplexityMatrixCell("HighGrf", "ModCMA", "Moderate")
-            self.cells["LowGrf_HighCMA"] = ComplexityMatrixCell("LowGrf", "HighCMA", "Moderate")
-            self.cells["ModGrf_HighCMA"] = ComplexityMatrixCell("ModGrf", "HighCMA", "Moderate")
-            self.cells["HighGrf_HighCMA"] = ComplexityMatrixCell("HighGrf", "HighCMA", "Moderate")
-        elif stance == "Single Leg":
-            self.cells["LowGrf_LowCMA"] = ComplexityMatrixCell("LowGrf", "LowCMA", "Low")
-            self.cells["ModGrf_LowCMA"] = ComplexityMatrixCell("ModGrf", "LowCMA", "Moderate")
-            self.cells["HighGrf_LowCMA"] = ComplexityMatrixCell("HighGrf", "LowCMA", "High")
-            self.cells["LowGrf_ModCMA"] = ComplexityMatrixCell("LowGrf", "ModCMA", "Moderate")
-            self.cells["ModGrf_ModCMA"] = ComplexityMatrixCell("ModGrf", "ModCMA", "Moderate")
-            self.cells["HighGrf_ModCMA"] = ComplexityMatrixCell("HighGrf", "ModCMA", "High")
-            self.cells["LowGrf_HighCMA"] = ComplexityMatrixCell("LowGrf", "HighCMA", "High")
-            self.cells["ModGrf_HighCMA"] = ComplexityMatrixCell("ModGrf", "HighCMA", "High")
-            self.cells["HighGrf_HighCMA"] = ComplexityMatrixCell("HighGrf", "HighCMA", "High")
+        # if stance == "Double Leg":
+        #     self.cells["LowGrf_LowCMA"] = ComplexityMatrixCell("LowGrf", "LowCMA", "Low")
+        #     self.cells["ModGrf_LowCMA"] = ComplexityMatrixCell("ModGrf", "LowCMA", "Low")
+        #     self.cells["HighGrf_LowCMA"] = ComplexityMatrixCell("HighGrf", "LowCMA", "Moderate")
+        #     self.cells["LowGrf_ModCMA"] = ComplexityMatrixCell("LowGrf", "ModCMA", "Low")
+        #     self.cells["ModGrf_ModCMA"] = ComplexityMatrixCell("ModGrf", "ModCMA", "Low")
+        #     self.cells["HighGrf_ModCMA"] = ComplexityMatrixCell("HighGrf", "ModCMA", "Moderate")
+        #     self.cells["LowGrf_HighCMA"] = ComplexityMatrixCell("LowGrf", "HighCMA", "Moderate")
+        #     self.cells["ModGrf_HighCMA"] = ComplexityMatrixCell("ModGrf", "HighCMA", "Moderate")
+        #     self.cells["HighGrf_HighCMA"] = ComplexityMatrixCell("HighGrf", "HighCMA", "Moderate")
+        # elif stance == "Single Leg":
+        #     self.cells["LowGrf_LowCMA"] = ComplexityMatrixCell("LowGrf", "LowCMA", "Low")
+        #     self.cells["ModGrf_LowCMA"] = ComplexityMatrixCell("ModGrf", "LowCMA", "Moderate")
+        #     self.cells["HighGrf_LowCMA"] = ComplexityMatrixCell("HighGrf", "LowCMA", "High")
+        #     self.cells["LowGrf_ModCMA"] = ComplexityMatrixCell("LowGrf", "ModCMA", "Moderate")
+        #     self.cells["ModGrf_ModCMA"] = ComplexityMatrixCell("ModGrf", "ModCMA", "Moderate")
+        #     self.cells["HighGrf_ModCMA"] = ComplexityMatrixCell("HighGrf", "ModCMA", "High")
+        #     self.cells["LowGrf_HighCMA"] = ComplexityMatrixCell("LowGrf", "HighCMA", "High")
+        #     self.cells["ModGrf_HighCMA"] = ComplexityMatrixCell("ModGrf", "HighCMA", "High")
+        #     self.cells["HighGrf_HighCMA"] = ComplexityMatrixCell("HighGrf", "HighCMA", "High")
+        self.cells[self.stance] = ComplexityMatrixCell("A", "B", "C")
 
     def add_step(self, step):
-        if step.total_accel_avg is not None and step.total_accel_avg > 0 and step.peak_grf is not None:
-            if step.total_accel_avg < 45 and step.peak_grf < 2:
-                self.cells["LowGrf_LowCMA"].add_step(step)
-
-            elif step.total_accel_avg < 45 and 2 <= step.peak_grf < 3:
-                self.cells["ModGrf_LowCMA"].add_step(step)
-
-            elif step.total_accel_avg < 45 and step.peak_grf >= 3:
-                self.cells["HighGrf_LowCMA"].add_step(step)
-
-            elif 45 <= step.total_accel_avg < 105 and step.peak_grf < 2:
-                self.cells["LowGrf_ModCMA"].add_step(step)
-
-            elif (
-                    45 <= step.total_accel_avg < 105 and 2 <= step.peak_grf < 3):
-                self.cells["ModGrf_ModCMA"].add_step(step)
-
-            elif 45 <= step.total_accel_avg < 105 and step.peak_grf >= 3:
-                self.cells["HighGrf_ModCMA"].add_step(step)
-
-            elif step.total_accel_avg > 105 and step.peak_grf < 2:
-                self.cells["LowGrf_HighCMA"].add_step(step)
-
-            elif step.total_accel_avg > 105 and 2 <= step.peak_grf < 3:
-                self.cells["ModGrf_HighCMA"].add_step(step)
-
-            elif step.total_accel_avg > 105 and step.peak_grf >= 3:
-                self.cells["HighGrf_HighCMA"].add_step(step)
+        # if step.total_accel_avg is not None and step.total_accel_avg > 0 and step.peak_grf is not None:
+        #     if step.total_accel_avg < 45 and step.peak_grf < 2:
+        #         self.cells["LowGrf_LowCMA"].add_step(step)
+        #
+        #     elif step.total_accel_avg < 45 and 2 <= step.peak_grf < 3:
+        #         self.cells["ModGrf_LowCMA"].add_step(step)
+        #
+        #     elif step.total_accel_avg < 45 and step.peak_grf >= 3:
+        #         self.cells["HighGrf_LowCMA"].add_step(step)
+        #
+        #     elif 45 <= step.total_accel_avg < 105 and step.peak_grf < 2:
+        #         self.cells["LowGrf_ModCMA"].add_step(step)
+        #
+        #     elif (
+        #             45 <= step.total_accel_avg < 105 and 2 <= step.peak_grf < 3):
+        #         self.cells["ModGrf_ModCMA"].add_step(step)
+        #
+        #     elif 45 <= step.total_accel_avg < 105 and step.peak_grf >= 3:
+        #         self.cells["HighGrf_ModCMA"].add_step(step)
+        #
+        #     elif step.total_accel_avg > 105 and step.peak_grf < 2:
+        #         self.cells["LowGrf_HighCMA"].add_step(step)
+        #
+        #     elif step.total_accel_avg > 105 and 2 <= step.peak_grf < 3:
+        #         self.cells["ModGrf_HighCMA"].add_step(step)
+        #
+        #     elif step.total_accel_avg > 105 and step.peak_grf >= 3:
+        #         self.cells["HighGrf_HighCMA"].add_step(step)
+        self.cells[self.stance].add_step(step)
 
     # def get_motion_complexity(self, complexity_level, interpolate_steps=False):
     #     complexity = MotionComplexity(complexity_level, self.stance)
