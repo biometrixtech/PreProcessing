@@ -455,12 +455,19 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         mongo_collection = get_mongo_collection('ASYMMETRY')
 
+        end_date = self.datastore.get_metadatum('end_date', None)
+        event_date = self.datastore.get_metadatum('event_date', None)
+
+        seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
+
         record_out = OrderedDict()
         record_out['user_id'] = self.datastore.get_metadatum('user_id', None)
-        record_out['event_date'] = self.datastore.get_metadatum('event_date', None)
+        record_out['event_date'] = event_date
+
         record_out['session_id'] = self.datastore.session_id
         record_out['left_apt'] = left_apt
         record_out['right_apt'] = right_apt
+        record_out['seconds_duration'] = seconds_duration
 
         record_asymmetries = []
 

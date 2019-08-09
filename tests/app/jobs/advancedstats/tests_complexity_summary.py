@@ -12,8 +12,8 @@ load_parameters([
             'MONGO_COLLECTION_ASYMMETRY',
         ], 'mongo')
 import pandas
-from datetime import datetime
-from utils import format_datetime
+from datetime import datetime, timedelta
+from utils import format_datetime, parse_datetime
 from tests.app.writemongo.datastore import MockDatastore
 from app.jobs.advancedstats import get_unit_blocks
 #from ....app.jobs.advancedstats import get_unit_blocks
@@ -376,7 +376,12 @@ def test_get_movement_asymmetries_kruskal():
         for a in active_blocks:
             unit_blocks.extend(a["unitBlocks"])
 
-        ds = MockDatastore(session_id, date, "tester")
+        seconds_duraton = 60*91
+
+        session_time_start = parse_datetime(active_blocks[0]["timeStart"])
+        session_time_end = format_datetime(session_time_start + timedelta(seconds=seconds_duraton))
+
+        ds = MockDatastore(session_id, date, "tester", session_time_end)
 
         cmj = ComplexityMatrixJob(ds, unit_blocks)
         cmj.run()
