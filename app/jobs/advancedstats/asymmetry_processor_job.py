@@ -59,6 +59,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
         #self._write_loading_movement_asymmetry(loading_events, movement_events)
         left_apt, right_apt = self._get_session_asymmetry_apts(movement_events)
         self.write_movement_asymmetry(movement_events, left_apt, right_apt)
+        return left_apt, right_apt
 
     def _get_session_asymmetry_summaries(self):
         # relative magnitude
