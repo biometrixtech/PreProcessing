@@ -270,7 +270,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                 if p <= .05:
 
                     dist = AsymmetryDistribution()
-                    dist.significant = True
+
                     dist.time_block = time_block
                     dist.start_time = start_time
                     dist.end_time = end_time
@@ -279,7 +279,15 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     dist.r_value = r
                     dist.left_median = left_median
                     dist.right_median = right_median
-
+                    if abs(left_median - right_median) > 1:
+                        if left_median > right_median > 0:
+                            if left_median / right_median > 1.15:
+                                dist.significant = True
+                        elif right_median > left_median > 0:
+                            if right_median / left_median > 1.15:
+                                dist.significant = True
+                        elif left_median == 0 or right_median == 0:
+                                dist.significant = True
                     dist.left_min = min(value_list_x)
                     dist.left_max = max(value_list_x)
                     dist.right_min = min(value_list_y)
@@ -460,8 +468,10 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
 
+        user_id = self.datastore.get_metadatum('user_id', None)
+
         record_out = OrderedDict()
-        record_out['user_id'] = self.datastore.get_metadatum('user_id', None)
+        record_out['user_id'] = user_id
         record_out['event_date'] = event_date
 
         record_out['session_id'] = self.datastore.session_id
@@ -483,7 +493,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         record_out['time_blocks'] = record_asymmetries
 
-        query = {'session_id': self.datastore.session_id}
+        query = {'session_id': self.datastore.session_id, 'user_id': user_id}
         mongo_collection.replace_one(query, record_out, upsert=True)
 
         _logger.info("Wrote asymmetry record for " + self.datastore.session_id)
