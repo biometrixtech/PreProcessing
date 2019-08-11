@@ -15,7 +15,7 @@ import pandas
 from datetime import datetime, timedelta
 from utils import format_datetime, parse_datetime
 from tests.app.writemongo.datastore import MockDatastore
-from app.jobs.advancedstats import get_unit_blocks
+from app.jobs.advancedstats import get_unit_blocks, AdvancedstatsJob
 #from ....app.jobs.advancedstats import get_unit_blocks
 from app.jobs.advancedstats.asymmetry_processor_job import AsymmetryProcessorJob
 from app.jobs.advancedstats.complexity_matrix_job import ComplexityMatrixJob
