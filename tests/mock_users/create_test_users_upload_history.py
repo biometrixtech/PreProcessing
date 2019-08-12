@@ -27,6 +27,7 @@ if __name__ == '__main__':
     sessions = []
     user_id = ""
     suffix = ""
+    make_symmetrical = False
 
     for u in users:
         if u == "tread_a@200.com":
@@ -34,6 +35,7 @@ if __name__ == '__main__':
                         "0f465cc7-1489-5f32-a5a2-3e6a6cf91d8b",
                         "d8d0198c-b186-5158-86d6-e3b623af0ef1"]
             user_id = "6fc48b46-23c8-4490-9885-e109ff63c20e"
+            make_symmetrical = False
         elif u == "tread_b@200.com":
             sessions = [
                 "a7083021-86e7-5dd1-8245-683bcdf6f6fe",
@@ -42,6 +44,7 @@ if __name__ == '__main__':
                 "be2e9653-e0e0-5ae0-a700-56b6bfe0d595"
             ]
             user_id = "4673998d-5206-4275-a048-da5dda6a7342"
+            make_symmetrical = False
         elif u == "tread_run@200.com":
             sessions = [
                 "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
@@ -54,12 +57,22 @@ if __name__ == '__main__':
                 "07b9b744-3e85-563d-b69a-822148673f58"
             ]
             user_id = "bdb8b194-e748-4197-819b-b356f1fb0629"
+            make_symmetrical = False
         elif u == "run_a@200.com":
             sessions = [
                 "7bbff8e0-189a-5643-93bc-9730e0fdcd20",
                 "39f243c2-6baf-5558-a2df-4f051f88c06f"
             ]
             user_id = "2b4a1792-42c7-460e-9e4c-98627e72cc6f"
+            make_symmetrical = False
+
+        elif u == "sym@200.com":
+            sessions = [
+                "7bbff8e0-189a-5643-93bc-9730e0fdcd20",
+                "39f243c2-6baf-5558-a2df-4f051f88c06f"
+            ]
+            user_id = "7fd0c1d4-61ac-4ce5-9621-16d69501b211"
+            make_symmetrical = True
 
         if len(user_id) > 0:
 
@@ -85,6 +98,10 @@ if __name__ == '__main__':
 
                 job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)
                 asymmetry_events = job._get_movement_asymmetries()
+                if make_symmetrical:
+                    for a in asymmetry_events:
+                        a.significant = False
+                        
                 left_apt, right_apt = job._get_session_asymmetry_apts(asymmetry_events)
 
                 # faking duration
