@@ -9,7 +9,7 @@ from .correction_parameters import foot_parameters, hip_parameters
 # from .foot_drift_correction import foot_drift_correction
 from .sensors_drift_correction import sensors_drift_correction
 from .acceleration_correction import axl_correction
-from .placement import get_placement_lateral_hip
+from .placement import get_placement_lateral_hip, get_placement_hip_correction
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
 from .exceptions import PlacementDetectionException
 
@@ -66,10 +66,22 @@ class DriftcorrectionJob(Job):
         self.data['troughs_2'] = troughs_2
 
         if run_placement:
-            placement_detected, weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
+            lateral_placement_detected, lateral_weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
+            hip_placement_detected, hip_weak_placement = get_placement_hip_correction(self.data)
+
+            if hip_placement_detected != [0, 0, 0]:
+                placement_detected = hip_placement_detected
+            elif lateral_placement_detected != [0, 0, 0]:
+                placement_detected = lateral_placement_detected
+            else:
+                placement_detected = [0, 0, 0]
+
             ret = {
                 'placement': placement_detected,
-                'weak_placement': weak_placement
+                'lateral_placement': lateral_placement_detected,
+                'hip_placement': hip_placement_detected,
+                'weak_placement_lateral': lateral_weak_placement,
+                'weak_placement_hip': hip_weak_placement,
             }
             self.datastore.put_metadata(ret)
             if placement_detected == [0, 0, 0]:

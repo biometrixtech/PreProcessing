@@ -1,5 +1,5 @@
 from aws_xray_sdk.core import xray_recorder
-from jobs.driftcorrection.placement import get_placement_lateral_hip
+from jobs.driftcorrection.placement import get_placement_lateral_hip, get_placement_hip_correction
 
 xray_recorder.configure(sampling=False)
 xray_recorder.begin_segment(name="test")
@@ -48,9 +48,11 @@ def plot_stomp(left, right):
     e = len(left)
 
     plt.figure()
-    plt.subplot(311)
-    plt.plot(left[s:e])
-    #plt.plot(right[s:e])
+    plt.subplot(211)
+    plt.plot(left[s:e], label="left")
+    plt.legend()
+    plt.subplot(212)
+    plt.plot(right[s:e], label="right")
     plt.legend()
 #
 #
@@ -184,39 +186,59 @@ def test_lateral_hip_acceleration():
     help_list = []
     zero_list = []
 
-    session_id = "2f26eee8-455a-5678-a384-ed5a14c6e54a"
+    session_id = "f93e004d-7dd0-56b3-bb22-353750586f5e"
 
-    test_file2 = session_id + '_processed'
-    test_data2 = pd.read_csv(path + test_file2, usecols=_output_columns)
-    test_data2.columns = _renamed_columns
+    file_name = session_id + '_processed'
+    data = pd.read_csv(path + file_name, usecols=_output_columns)
+    data.columns = _renamed_columns
 
-    start = 827
-    end = 1409
+    start = 807
+    end = 1392
 
-    hip_accel_data = test_data2["acc_1_y"][start:end]
-    sensor_0_accel_data = test_data2["acc_0_z"][start:end]
-    sensor_2_accel_data = test_data2["acc_2_z"][start:end]
+    hip_accel_data = data["acc_1_y"][start:end]
+    sensor_0_accel_data = data["acc_0_z"][start:end]
+    sensor_2_accel_data = data["acc_2_z"][start:end]
 
     #plot_accel(sensor_0_accel_data, sensor_2_accel_data, hip_accel_data)
 
-    sensor_0_accel_stomp_data = test_data2["acc_0_z"][end:end+1000]
-    sensor_2_accel_stomp_data = test_data2["acc_2_z"][end:end+1000]
+    sensor_0_accel_stomp_data = data["acc_0_z"][end:end+3000]
+    sensor_2_accel_stomp_data = data["acc_2_z"][end:end+3000]
 
-    plot_stomp(sensor_0_accel_stomp_data, sensor_2_accel_stomp_data)
+    # hip_window = 5
+    #
+    # hip_correction_data = data[["correction_points_1", "troughs_0", "troughs_2"]]
+    #
+    # corr_hip_indices = np.where(hip_correction_data.correction_points_1.values == 1)[0].astype(list)
+    # corr_point_padded = set(np.concatenate([np.arange(i - hip_window, i + hip_window) for i in corr_hip_indices]))
+    #
+    # window_data = hip_correction_data.loc[corr_point_padded, :]
+    #
+    # zero_sum = np.sum(window_data.troughs_0)
+    # two_sum = np.sum(window_data.troughs_2)
+    # test_sum = np.sum(window_data.correction_points_1)
+    #
+    # hip_correction_placement = "012"
+    #
+    # if two_sum > zero_sum:
+    #     hip_correction_placement = "210"
 
-    placement = get_placement_lateral_hip(test_data2, start, end)
+    #plot_stomp(sensor_0_accel_stomp_data, sensor_2_accel_stomp_data)
 
-    if placement == [2, 1, 0]:
-        error_list.append(file_num)
+    lateral_placement, weak_placement_lateral = get_placement_lateral_hip(data, start, end)
+
+    hip_placement, weak_placement_hip = get_placement_hip_correction(data)
+
+    #if placement == [2, 1, 0]:
+    #    error_list.append(file_num)
     #elif side_0 == 0:
     #    zero_list.append(file_num)
-    else:
-        correct_list.append(file_num)
+    #else:
+    #    correct_list.append(file_num)
 
     #if side_0 - side_2 == 1:
     #    help_list.append(file_num)
-    index_num += 1
+    #index_num += 1
 
-    i=0
+
 
 
