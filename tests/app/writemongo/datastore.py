@@ -2,12 +2,12 @@ from datastore import Datastore
 
 
 class MockDatastore(Datastore):
-    def __init__(self, session_id, event_date, user_id):
+    def __init__(self, session_id, event_date, user_id, end_date):
         try:
             super().__init__(session_id)
         except NotADirectoryError:
             pass  # Exception caused by nonexistent /net/efs/preprocessing directory
-        self._metadata = {'event_date': event_date, 'user_id': user_id}
+        self._metadata = {'event_date': event_date, 'user_id': user_id, 'end_date': end_date}
         self.side_loaded_data = None
 
     def get_metadatum(self, datum, default=NotImplemented):

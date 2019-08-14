@@ -40,7 +40,7 @@ class Job:
         try:
             xray_recorder.current_segment().put_annotation('batchjob', self.name)
             xray_recorder.current_segment().put_annotation('session_id', self.datastore.session_id)
-            self._run()
+            return self._run()
         except Exception as e:
             _logger.error(e)
             _logger.info('Process did not complete successfully! See error below!')
