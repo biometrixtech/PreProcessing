@@ -46,6 +46,7 @@ class AggregateblocksJob(Job):
 
         data = self.datastore.get_data('scoring')
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
+        mongo_collection.delete_many({'sessionId': self.datastore.session_id})
 
         user_mass = float(self.datastore.get_metadatum('user_mass', 60))
         data.grf /= 1000000.
