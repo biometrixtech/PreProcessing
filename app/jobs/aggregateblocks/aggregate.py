@@ -100,6 +100,9 @@ def aggregate(data, record, mass, agg_level):
     record = _get_stats(peak_grf_contact_lf, peak_grf_contact_rf, 'peakGrfContactDuration', record)
     record = _get_stats(peak_grf_impact_lf, peak_grf_impact_rf, 'peakGrfImpactDuration', record)
     record = _get_stats(peak_grf_perc_impact_lf, peak_grf_perc_impact_rf, 'peakGrfPercImpactDuration', record)
+    for key, value in record.items():
+        if isinstance(value, float):
+            record[key] = round(value, 2)
 
     return record
 
@@ -225,6 +228,10 @@ def _step_data(data, ranges, mass, sensor):
                 step_record['stance'] = [2.] * len(step_data)
             elif np.all(stance == np.array([3., 5.])):
                 step_record['stance'] = [3.] * len(step_data)
+
+        for key, value in step_record.items():
+            if isinstance(value, float):
+                step_record[key] = round(value, 2)
         steps.append(step_record)
 
     return steps
@@ -289,7 +296,7 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     """compute contact duration in ms given phase data
     """
     min_gc = 10
-    max_gc = 60
+    max_gc = 150
 
     # enumerate phase such that all ground contacts are 0
     _phase = copy.copy(phase)
