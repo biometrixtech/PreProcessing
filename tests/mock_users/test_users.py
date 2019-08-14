@@ -10,7 +10,8 @@ users = [
     #'sym', #7fd0c1d4-61ac-4ce5-9621-16d69501b211
     #'half_sym', #7cf2f832-a043-468c-8f61-13d07765d2a2
     #"run_a_2", #5c695e58-0aba-4eec-9af1-fa93970d3132
-    #"sym_2" #aa1534d0-4abd-41c0-9b84-4e414b3d86d4
+    #"sym_2", #aa1534d0-4abd-41c0-9b84-4e414b3d86d4
+    #"long_3s", #928f64b5-a761-4278-8724-95a908499fae
 ]
 
 def get_test_users():

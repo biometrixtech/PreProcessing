@@ -118,6 +118,19 @@ if __name__ == '__main__':
 
             symmetrical = [True, True]
 
+        elif u == "long_3s@200.com":
+            sessions = [
+                "958dba09-c338-5118-86a3-d20a559f09c2",
+                "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",
+                "b2a95b1b-8d7b-5638-bd69-7299a362c717"""
+            ]
+            user_id = "928f64b5-a761-4278-8724-95a908499fae"
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4))]
+
+            symmetrical = [False, False, False]
+
         elif u == "half_sym@200.com":
             sessions = [
                 "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
