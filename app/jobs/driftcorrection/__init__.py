@@ -61,7 +61,7 @@ class DriftcorrectionJob(Job):
         convert_accl_to_ms2(self.data)
         self.data['candidate_troughs_0'] = candidate_troughs_0
         self.data['troughs_0'] = troughs_0
-        self.data['correction_points_hip'] = correction_points_h
+        self.data['correction_points_1'] = correction_points_h
         self.data['candidate_troughs_2'] = candidate_troughs_2
         self.data['troughs_2'] = troughs_2
 
@@ -91,7 +91,7 @@ class DriftcorrectionJob(Job):
             # If placement id detected correctly, rename the columns in dataframe
             placement = zip(placement_detected, ['lf', 'hip', 'rf'])
             column_prefixes = ['static_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y',
-                               'quat_{}_z', 'quat_{}_w', 'candidate_troughs_{}', 'troughs_{}']
+                               'quat_{}_z', 'quat_{}_w', 'candidate_troughs_{}', 'troughs_{}', 'correction_points_{}']
             renames = {}
             for old, new in placement:
                 for prefix in column_prefixes:
