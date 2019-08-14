@@ -164,8 +164,6 @@ class AsymmetryProcessorJob(UnitBlockJob):
         unit_block_list = list(set(unit_block_list_lf).union(unit_block_list_rf))
         unit_block_list.sort()
 
-        unit_blocks = self._unit_blocks
-
         events = []
 
         time_block = 0

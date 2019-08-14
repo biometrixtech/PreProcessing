@@ -22,6 +22,8 @@ class AdvancedstatsJob(Job):
         for a in active_blocks:
             unit_blocks.extend(a["unitBlocks"])
 
+        unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10]
+
         if len(unit_blocks) > 0:
             # # Write out active blocks
             # from .summary_analysis_job import SummaryAnalysisJob
