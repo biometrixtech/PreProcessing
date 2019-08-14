@@ -289,7 +289,7 @@ def _contact_duration(phase, active, epoch_time, ground_phases):
     """compute contact duration in ms given phase data
     """
     min_gc = 10
-    max_gc = 60
+    max_gc = 150
 
     # enumerate phase such that all ground contacts are 0
     _phase = copy.copy(phase)
