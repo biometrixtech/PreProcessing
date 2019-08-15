@@ -240,7 +240,7 @@ def _step_data(data, ranges, mass, sensor):
 def get_apt_cme(euler_hip_y, euler_hip_y_diff):
     half = int(len(euler_hip_y) / 2)
     max_index = np.where(euler_hip_y[half:] == max(euler_hip_y[half:]))[0][0] + half
-    euler_y_step_diff = euler_hip_y_diff[:max_index]
+    euler_y_step_diff = euler_hip_y_diff[:max_index - 2]  # don't go all the way to max as top might be the flattest part
     if len(euler_y_step_diff) == 0:
         return None, None
     minima = np.where(euler_y_step_diff == min(euler_y_step_diff))[0][0]

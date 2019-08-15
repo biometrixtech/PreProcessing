@@ -22,6 +22,7 @@ class AdvancedstatsJob(Job):
         for a in active_blocks:
             unit_blocks.extend(a["unitBlocks"])
 
+        unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
         unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10]
 
         if len(unit_blocks) > 0:
@@ -80,7 +81,7 @@ def get_unit_blocks(session_id, date):
     unit_blocks = list(collection.find(
         #{'sessionId': {'$eq': session_id}, 'eventDate': date},
         {'sessionId': {'$eq': session_id}},
-        {'unitBlocks': 1, '_id': 1, 'timeStart': 1, 'timeEnd': 1}).sort('unitBlocks.timeStart', direction=ASCENDING)
+        {'unitBlocks': 1, '_id': 1, 'timeStart': 1, 'timeEnd': 1})
     )
     return unit_blocks
 

@@ -204,13 +204,17 @@ def _impact_detect(phase, start_move, end_move, grf, acc_hip_z, acc_hip_x, acc_h
 
 
 def _update_impact_end_jog(imp, acc_hip):
-    hip_acc_cross = None
-    for l in range(int(len(acc_hip) / 2), len(acc_hip) - 1):
-        if acc_hip[l] >= 10 and acc_hip[l - 1] < 10:
-            hip_acc_cross = l + imp[0]
-            # break
-    if hip_acc_cross is not None:
-        imp[1] = hip_acc_cross
+    search_start_index = int(3 * len(acc_hip) / 4)
+    max_index = np.where(acc_hip[search_start_index:] == max(acc_hip[search_start_index:]))[0][0] + search_start_index
+    imp[1] = imp[0] + max_index
+    
+    # hip_acc_cross = None
+    # for l in range(int(len(acc_hip) / 2), len(acc_hip) - 1):
+    #     if acc_hip[l] >= 10 and acc_hip[l - 1] < 10:
+    #         hip_acc_cross = l + imp[0]
+    #         # break
+    # if hip_acc_cross is not None:
+    #     imp[1] = hip_acc_cross
 
 
 def _update_impact_start_jog(imp, acc_hip_z, acc_hip_x):
