@@ -167,6 +167,7 @@ if __name__ == '__main__':
                 for a in active_blocks:
                     unit_blocks.extend(a["unitBlocks"])
 
+                unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
                 unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10]
 
                 seconds_duraton = 60 * 91
