@@ -376,6 +376,8 @@ def test_get_movement_asymmetries_kruskal():
         for a in active_blocks:
             unit_blocks.extend(a["unitBlocks"])
 
+        unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10]
+
         seconds_duraton = 60*91
 
         #session_time_start = parse_datetime(active_blocks[0]["timeStart"])

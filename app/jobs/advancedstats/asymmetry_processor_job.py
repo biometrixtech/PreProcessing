@@ -164,8 +164,6 @@ class AsymmetryProcessorJob(UnitBlockJob):
         unit_block_list = list(set(unit_block_list_lf).union(unit_block_list_rf))
         unit_block_list.sort()
 
-        unit_blocks = self._unit_blocks
-
         events = []
 
         time_block = 0
@@ -478,6 +476,18 @@ class AsymmetryProcessorJob(UnitBlockJob):
         record_out['session_id'] = self.datastore.session_id
         record_out['left_apt'] = left_apt
         record_out['right_apt'] = right_apt
+
+        sym_count = [m for m in movement_events if not m.significant and (m.left_median > 0 or m.right_median > 0)]
+        asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
+
+        total_count = len(sym_count) + len(asym_count)
+
+        percent_asym = 0
+
+        if total_count > 0:
+            percent_asym = round((len(asym_count) / float(total_count)) * 100)
+
+        record_out['percent_events_asymmetric'] = percent_asym
         record_out['seconds_duration'] = seconds_duration
 
         record_asymmetries = []
