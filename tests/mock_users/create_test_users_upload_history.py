@@ -96,6 +96,16 @@ if __name__ == '__main__':
                      format_datetime(datetime.now() - timedelta(days=2))]
             symmetrical = [False, False]
 
+        elif u == "run_a_3@200.com":
+            sessions = [
+                "7bbff8e0-189a-5643-93bc-9730e0fdcd20",
+                "39f243c2-6baf-5558-a2df-4f051f88c06f"
+            ]
+            user_id = "9e90e3ef-c6e0-4e2d-a430-a52f1e61a962"
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2))]
+            symmetrical = [False, False]
+
         elif u == "sym@200.com":
             sessions = [
                 "7bbff8e0-189a-5643-93bc-9730e0fdcd20",
@@ -118,11 +128,22 @@ if __name__ == '__main__':
 
             symmetrical = [True, True]
 
+        elif u == "sym_3@200.com":
+            sessions = [
+                "7bbff8e0-189a-5643-93bc-9730e0fdcd20",
+                "39f243c2-6baf-5558-a2df-4f051f88c06f"
+            ]
+            user_id = "34b47309-7ad5-4222-b865-0f825680541e"
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2))]
+
+            symmetrical = [True, True]
+
         elif u == "long_3s@200.com":
             sessions = [
                 "958dba09-c338-5118-86a3-d20a559f09c2",
                 "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",
-                "b2a95b1b-8d7b-5638-bd69-7299a362c717"""
+                "b2a95b1b-8d7b-5638-bd69-7299a362c717"
             ]
             user_id = "928f64b5-a761-4278-8724-95a908499fae"
             dates = [format_datetime(datetime.now()),
