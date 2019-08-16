@@ -54,7 +54,8 @@ _output_columns = [
     'adduc_range_of_motion_rf',
     'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
     'flex_range_of_motion_rf',
-    'contact_duration_rf']
+    'contact_duration_rf',
+    'change_of_direction']
 
 
 class ScoringJob(Job):

@@ -12,8 +12,11 @@ from .acceleration_correction import axl_correction
 from .placement import get_placement_lateral_hip, get_placement_hip_correction
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
 from .exceptions import PlacementDetectionException
+from .change_of_direction import flag_change_of_direction
+from utils.quaternion_conversions import quat_as_euler_angles
 
 _logger = logging.getLogger(__name__)
+
 
 class DriftcorrectionJob(Job):
 
@@ -34,6 +37,8 @@ class DriftcorrectionJob(Job):
 
         # Heading correction for all sensors
         dataHC = heading_correction(data, qH0, qHH, qH2)
+
+        euler_hip_z_hc = quat_as_euler_angles(dataHC[:, 13: 17])[:, 2]
 
         op_cond_0 = data[:, 1]
         op_cond_h = data[:, 9]
@@ -97,6 +102,8 @@ class DriftcorrectionJob(Job):
                 for prefix in column_prefixes:
                     renames[prefix.format(str(old))] = prefix.format(str(new))
             self.data = self.data.rename(index=str, columns=renames)
+
+        data['change_of_direction'] = flag_change_of_direction(self.data.acc_hip_z.values, euler_hip_z_hc)
 
         # get ms_elapsed and time_stamp
         self.data['time_stamp'], self.data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(self.data.epoch_time)
