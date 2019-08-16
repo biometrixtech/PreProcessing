@@ -31,7 +31,7 @@ def flag_change_of_direction(acc_hip_z, euler_hip_z_hc):
             heading_diff[i] = np.abs(headings_at_peak[i] - headings_at_peak[i-look_backs])
 
         # find indices where chage is > 40 degrees
-        heading_change_indices = np.where(heading_diff > (40 / 180 * np.pi))[0].astype(list)
+        heading_change_indices = np.where(heading_diff > 40)[0].astype(list)
         change_of_direction = np.zeros(len(acc_hip_z))
         # mark "steps_to_remove" steps before and after identified heading change point
         for i in heading_change_indices:
