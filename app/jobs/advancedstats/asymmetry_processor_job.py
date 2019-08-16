@@ -164,11 +164,16 @@ class AsymmetryProcessorJob(UnitBlockJob):
         unit_block_list = list(set(unit_block_list_lf).union(unit_block_list_rf))
         unit_block_list.sort()
 
+        event_date = self.datastore.get_metadatum('event_date')
+        end_date = self.datastore.get_metadatum('end_date')
+        seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
+
         events = []
 
         time_block = 0
 
         last_unit_block_time = 0
+        seconds = 30
 
         for unit_block_number in unit_block_list:
 
@@ -182,7 +187,6 @@ class AsymmetryProcessorJob(UnitBlockJob):
             start_time = None
             end_time = None
             intervals = 0
-            seconds = 30
 
             cumulative_time = list(x.cumulative_end_time for x in all_steps)
 
@@ -229,6 +233,18 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     events.append(event)
                     time_block += 1
             last_unit_block_time = max(end_time, last_unit_block_time)
+        if seconds_duration > last_unit_block_time and (seconds_duration - last_unit_block_time) > 10:
+            seconds_between_blocks = seconds_duration - last_unit_block_time
+            gap_intervals = ceil(seconds_between_blocks / float(seconds))
+            for g in range(0, gap_intervals):
+                # time_block += 1
+                gap_event = AsymmetryDistribution()
+                gap_event.start_time = last_unit_block_time + (g * seconds)
+                gap_end_time = min(last_unit_block_time + ((g + 1) * seconds), seconds_duration)
+                gap_event.end_time = gap_end_time
+                gap_event.time_block = time_block
+                events.append(gap_event)
+                time_block += 1
 
         return events
 
@@ -278,15 +294,16 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     dist.r_value = r
                     dist.left_median = left_median
                     dist.right_median = right_median
-                    if abs(left_median - right_median) > 1:
-                        if left_median > right_median > 0:
-                            if left_median / right_median > 1.15:
-                                dist.significant = True
-                        elif right_median > left_median > 0:
-                            if right_median / left_median > 1.15:
-                                dist.significant = True
-                        elif left_median == 0 or right_median == 0:
-                                dist.significant = True
+                    #if abs(left_median - right_median) > 1:
+                    if left_median > right_median > 0:
+                        if left_median / right_median > 1.15:
+                            dist.significant = True
+                    elif right_median > left_median > 0:
+                        if right_median / left_median > 1.15:
+                            dist.significant = True
+                    #ignore if one is zero
+                    # elif (left_median == 0 or right_median == 0) and left_median != right_median:
+                    #         dist.significant = True
                     dist.left_min = min(value_list_x)
                     dist.left_max = max(value_list_x)
                     dist.right_min = min(value_list_y)
