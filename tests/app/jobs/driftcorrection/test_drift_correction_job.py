@@ -28,7 +28,8 @@ def test_full_job_process():
         session_id = ""
         event_date = ""
         user_id = ""
-        datastore = MockDatastore(session_id, event_date, user_id)
+        end_date = ""
+        datastore = MockDatastore(session_id, event_date, user_id, end_date)
         datastore._metadata["start_march_1"] = str(start_MPh)
         datastore._metadata["end_march_1"] = str(stop_MPh)
 
