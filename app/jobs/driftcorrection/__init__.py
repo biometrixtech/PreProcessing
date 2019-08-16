@@ -70,6 +70,7 @@ class DriftcorrectionJob(Job):
         self.data['candidate_troughs_2'] = candidate_troughs_2
         self.data['troughs_2'] = troughs_2
 
+        self.data['change_of_direction'] = flag_change_of_direction(self.data.acc_1_z.values, euler_hip_z_hc)
         if run_placement:
             lateral_placement_detected, lateral_weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
             hip_placement_detected, hip_weak_placement = get_placement_hip_correction(self.data)
@@ -103,7 +104,6 @@ class DriftcorrectionJob(Job):
                     renames[prefix.format(str(old))] = prefix.format(str(new))
             self.data = self.data.rename(index=str, columns=renames)
 
-        data['change_of_direction'] = flag_change_of_direction(self.data.acc_hip_z.values, euler_hip_z_hc)
 
         # get ms_elapsed and time_stamp
         self.data['time_stamp'], self.data['ms_elapsed'] = convert_epochtime_datetime_mselapsed(self.data.epoch_time)
