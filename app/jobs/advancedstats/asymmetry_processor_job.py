@@ -207,14 +207,17 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     seconds_between_blocks = block_start_time - last_unit_block_time
                     gap_intervals = ceil(seconds_between_blocks / float(seconds))
                     for g in range(0, gap_intervals):
-                        #time_block += 1
                         gap_event = AsymmetryDistribution()
-                        gap_event.start_time = last_unit_block_time + (g * seconds)
+
                         gap_end_time = min(last_unit_block_time + ((g + 1) * seconds), block_start_time)
-                        gap_event.end_time = gap_end_time
-                        gap_event.time_block = time_block
-                        events.append(gap_event)
-                        time_block += 1
+                        gap_event.start_time = last_unit_block_time + (g * seconds)
+
+                        if (gap_end_time - gap_event.start_time) > 10:
+                            gap_event.end_time = gap_end_time
+                            gap_event.time_block = time_block
+                            events.append(gap_event)
+                            time_block += 1
+                            #last_unit_block_time = max(gap_end_time, last_unit_block_time)
                 last_unit_block_time = max(block_end_time, last_unit_block_time)
 
                 if block_end_time - block_start_time >= 10:

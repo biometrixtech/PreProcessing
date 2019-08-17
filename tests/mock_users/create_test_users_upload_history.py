@@ -65,6 +65,22 @@ if __name__ == '__main__':
                      format_datetime(datetime.now() - timedelta(days=2)),
                      format_datetime(datetime.now() - timedelta(days=4)),
                      format_datetime(datetime.now() - timedelta(days=5))]
+
+        elif u == "tread_b_mazen@200.com":
+            sessions = [
+                "a7083021-86e7-5dd1-8245-683bcdf6f6fe",
+                "2d8dd78d-2e1e-5e91-83b3-a19181b88eab",
+                "b9485ddd-4bf7-559f-9bfc-700bfaffbc86",
+                "be2e9653-e0e0-5ae0-a700-56b6bfe0d595"
+            ]
+            user_id = "1569f9bb-6de3-49a9-913c-f69d7d763d25"
+
+            symmetrical = [False, False, False, False]
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4)),
+                     format_datetime(datetime.now() - timedelta(days=5))]
+
         elif u == "tread_b_2@200.com":
             sessions = [
                 "a7083021-86e7-5dd1-8245-683bcdf6f6fe",
