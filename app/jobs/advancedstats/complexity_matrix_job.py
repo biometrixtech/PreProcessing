@@ -23,43 +23,47 @@ class ComplexityMatrixJob(UnitBlockJob):
         active_block_count = 0
         previous_active_block = ""
 
-        for ub in self._unit_blocks:
+        unit_block_count = 0
 
-            if len(ub) > 0:
-                active_block = str(ub.get('_id'))
+        for unit_block_data in self._unit_blocks:
+
+            if len(unit_block_data) > 0:
+                active_block = str(unit_block_data.get('_id'))
                 if previous_active_block != active_block:
                     active_block_count += 1
-                else:
                     previous_active_block = active_block
+                # else:
+                #     previous_active_block = active_block
+                #
+                # for unit_block_data in ub.get('unitBlocks'):
 
-                for unit_block_data in ub.get('unitBlocks'):
+                for n, lf_step in enumerate(unit_block_data.get('stepsLF')):
+                    left_step = Step(lf_step, accumulated_grf_lf, 'Left', active_block, unit_block_count, session_position,
+                                     session_time_start)
+                    left_step.active_block_number = active_block_count
+                    if left_step.peak_grf is not None:
+                        accumulated_grf_lf += left_step.peak_grf
+                    else:
+                        accumulated_grf_lf += 0
+                    if left_step.stance_calc == 4:
+                        dl_comp_matrix.add_step(left_step)
+                    elif left_step.stance_calc == 2:
+                        sl_comp_matrix.add_step(left_step)
 
-                    for n, lf_step in enumerate(unit_block_data.get('stepsLF')):
-                        left_step = Step(lf_step, accumulated_grf_lf, 'Left', active_block, n, session_position,
-                                         session_time_start)
-                        left_step.active_block_number = active_block_count
-                        if left_step.peak_grf is not None:
-                            accumulated_grf_lf += left_step.peak_grf
-                        else:
-                            accumulated_grf_lf += 0
-                        if left_step.stance_calc == 4:
-                            dl_comp_matrix.add_step(left_step)
-                        elif left_step.stance_calc == 2:
-                            sl_comp_matrix.add_step(left_step)
-
-                    for n, rf_step in enumerate(unit_block_data.get('stepsRF')):
-                        right_step = Step(rf_step, accumulated_grf_rf, 'Right', active_block, n, session_position,
-                                          session_time_start)
-                        right_step.active_block_number = active_block_count
-                        if right_step.peak_grf is not None:
-                            accumulated_grf_rf += right_step.peak_grf
-                        else:
-                            accumulated_grf_rf += 0
-                        if right_step.stance_calc == 4:
-                            dl_comp_matrix.add_step(right_step)
-                        elif right_step.stance_calc == 2:
-                            sl_comp_matrix.add_step(right_step)
-                    session_position = session_position + 1
+                for n, rf_step in enumerate(unit_block_data.get('stepsRF')):
+                    right_step = Step(rf_step, accumulated_grf_rf, 'Right', active_block, unit_block_count, session_position,
+                                      session_time_start)
+                    right_step.active_block_number = active_block_count
+                    if right_step.peak_grf is not None:
+                        accumulated_grf_rf += right_step.peak_grf
+                    else:
+                        accumulated_grf_rf += 0
+                    if right_step.stance_calc == 4:
+                        dl_comp_matrix.add_step(right_step)
+                    elif right_step.stance_calc == 2:
+                        sl_comp_matrix.add_step(right_step)
+                session_position = session_position + 1
+            unit_block_count += 1
 
         self._motion_complexity_single_leg = {}
         self._motion_complexity_single_leg.update(sl_comp_matrix.cells)
