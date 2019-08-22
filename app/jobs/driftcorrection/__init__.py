@@ -63,7 +63,7 @@ class DriftcorrectionJob(Job):
             else:
                 hip_parameters[16] = troughs_2
                 axl_drift_hip = np.copy(dataHC[:, 11])
-                q_corr_h,corr_points_hip, cand_corr_points_hip  = sensors_drift_correction (op_cond_h, axl_drift_hip , dataHC[:,13:17], hip_parameters, Foot=False)
+                q_corr_h, candidate_correction_points_h, correction_points_h  = sensors_drift_correction (op_cond_h, axl_drift_hip , dataHC[:,13:17], hip_parameters, Foot=False)
                 placement = [2, 1, 0]
 
         # store the values
@@ -147,6 +147,9 @@ def convert_accl_to_ms2(data):
 
 
 def _validate_hip_correction(troughs_0, troughs_2, cand_corr_points_hip):
+    troughs_0 = np.where(troughs_0 == 1)[0]
+    troughs_2 = np.where(troughs_2 == 1)[0]
+    cand_corr_points_hip = np.where(cand_corr_points_hip == 1)[0]
     # check if l/r assumption was correct
     if len(troughs_0) > 0:
         troughs_0_padded = set(np.concatenate([np.arange(i - 8, i + 5) for i in troughs_0]))
