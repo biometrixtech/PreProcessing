@@ -20,7 +20,7 @@ def flag_data_for_removal(data):
     for r, l in zip(ranges, lengths):
         if l < 300:
             removal_flag[r[0]: r[1]] = 1
-    data['removal_flag'] = removal_flag
+    data.loc[:, 'remove'] = removal_flag
 
 
 def get_steps(_phase):

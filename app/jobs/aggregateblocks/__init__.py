@@ -25,7 +25,8 @@ _input_columns = [
     'total_accel',
     'euler_hip_y',
     'acc_hip_z',
-    'stance'
+    'stance',
+    'remove'
     # 'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     # 'adduc_range_of_motion_lf',
     # 'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',

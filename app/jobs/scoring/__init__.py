@@ -41,6 +41,7 @@ _output_columns = [
     'quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z',
     'quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z',
     'stance',
+    'remove'
     # 'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     # 'adduc_range_of_motion_lf',
     # 'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',

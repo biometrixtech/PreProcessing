@@ -163,8 +163,10 @@ def _step_data(data, ranges, mass, sensor):
             step_record['peakGrfImpactDuration' + sensor] = None
             step_record['peakGrfPercImpactDuration' + sensor] = None
 
-
-        apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
+        if any(step_record.loc[:, 'remove'] == 1):  # if the step was marked for removal, do not compute APT
+            apt_range, apt_rate = None, None
+        else:
+            apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
 

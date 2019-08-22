@@ -165,7 +165,7 @@ def run_session(data, mass, grf_fit, sc):
 
     # DEFINE UNIT ACTIVE BLOCKS
     data.total_accel[data.stance == 0] = 0
-    data['active'] = define_unit_blocks(data.total_accel)
+    data.loc[:, 'active'] = define_unit_blocks(data.total_accel)
 
     # combine into data table
     scoring_data = data.loc[:, _output_columns]
