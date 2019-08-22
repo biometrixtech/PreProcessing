@@ -8,6 +8,7 @@ import os
 from ..job import Job
 # from .control_score import control_score
 # from .scoring import score
+from .remove_data import flag_data_for_removal
 
 _logger = logging.getLogger()
 _s3_client = boto3.client('s3')
@@ -24,7 +25,7 @@ _output_columns = [
     'phase_lf',
     'phase_rf',
     'candidate_troughs_lf', 'troughs_lf',
-    'correction_points_hip',
+    'candidate_correction_points_hip', 'correction_points_hip',
     'candidate_troughs_rf', 'troughs_rf',
     'grf',
     'grf_lf',
@@ -89,7 +90,7 @@ class ScoringJob(Job):
         # Round the data to 6th decimal point
         data = data.round(6)
 
-        # TODO replace computing boundaries for twoMin by active blocks
+        flag_data_for_removal(data)
 
         # Output data
         self.datastore.put_data('scoring', data, columns=_output_columns)
