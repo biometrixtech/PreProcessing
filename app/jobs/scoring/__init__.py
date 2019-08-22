@@ -41,21 +41,22 @@ _output_columns = [
     'quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z',
     'quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z',
     'stance',
-    'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
-    'adduc_range_of_motion_lf',
-    'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
-    'flex_range_of_motion_lf',
-    'contact_duration_lf',
-    'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
-    'adduc_range_of_motion_h',
-    'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
-    'flex_range_of_motion_h',
-    'contact_duration_h',
-    'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
-    'adduc_range_of_motion_rf',
-    'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
-    'flex_range_of_motion_rf',
-    'contact_duration_rf']
+    # 'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
+    # 'adduc_range_of_motion_lf',
+    # 'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
+    # 'flex_range_of_motion_lf',
+    # 'contact_duration_lf',
+    # 'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
+    # 'adduc_range_of_motion_h',
+    # 'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
+    # 'flex_range_of_motion_h',
+    # 'contact_duration_h',
+    # 'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
+    # 'adduc_range_of_motion_rf',
+    # 'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
+    # 'flex_range_of_motion_rf',
+    # 'contact_duration_rf'
+]
 
 
 class ScoringJob(Job):

@@ -28,7 +28,8 @@ def test_full_job_process():
         session_id = ""
         event_date = ""
         user_id = ""
-        datastore = MockDatastore(session_id, event_date, user_id)
+        end_date = ""
+        datastore = MockDatastore(session_id, event_date, user_id, end_date)
         datastore._metadata["start_march_1"] = str(start_MPh)
         datastore._metadata["end_march_1"] = str(stop_MPh)
 
@@ -40,7 +41,7 @@ def test_full_job_process():
         # load test data into datastore
         data = np.asanyarray(dataC)
         job.datastore.side_loaded_data = job.get_core_data_frame_from_ndarray(data)
-        job._run(run_placement=False)
+        job._run(run_placement=True)
 
         precision = 10**-4
         for a in range(0, 25):

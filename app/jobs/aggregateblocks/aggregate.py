@@ -168,42 +168,42 @@ def _step_data(data, ranges, mass, sensor):
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
 
-        adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
-        adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
-        adduc_motion_covered_pos = np.nanmean(step_data['adduc_motion_covered_pos_' + sensor.lower()])
-        adduc_motion_covered_neg = np.nanmean(step_data['adduc_motion_covered_neg_' + sensor.lower()])
-        flex_rom = np.nanmean(step_data['flex_range_of_motion_' + sensor.lower()])
-        flex_motion_covered_abs = np.nanmean(step_data['flex_motion_covered_abs_' + sensor.lower()])
-        flex_motion_covered_pos = np.nanmean(step_data['flex_motion_covered_pos_' + sensor.lower()])
-        flex_motion_covered_neg = np.nanmean(step_data['flex_motion_covered_neg_' + sensor.lower()])
-
-        adduc_rom_hip = np.nanmean(step_data['adduc_range_of_motion_h'])
-        adduc_motion_covered_abs_hip = np.nanmean(step_data['adduc_motion_covered_abs_h'])
-        adduc_motion_covered_pos_hip = np.nanmean(step_data['adduc_motion_covered_pos_h'])
-        adduc_motion_covered_neg_hip = np.nanmean(step_data['adduc_motion_covered_neg_h'])
-        flex_rom_hip = np.nanmean(step_data['flex_range_of_motion_h'])
-        flex_motion_covered_abs_hip = np.nanmean(step_data['flex_motion_covered_abs_h'])
-        flex_motion_covered_pos_hip = np.nanmean(step_data['flex_motion_covered_pos_h'])
-        flex_motion_covered_neg_hip = np.nanmean(step_data['flex_motion_covered_neg_h'])
-
-        step_record['adducROM' + sensor] = adduc_rom
-        step_record['adducMotionCoveredTotal' + sensor] = adduc_motion_covered_abs
-        step_record['adducMotionCoveredPos' + sensor] = adduc_motion_covered_pos
-        step_record['adducMotionCoveredNeg' + sensor] = adduc_motion_covered_neg
-        step_record['flexROM' + sensor] = flex_rom
-        step_record['flexMotionCoveredTotal' + sensor] = flex_motion_covered_abs
-        step_record['flexMotionCoveredPos' + sensor] = flex_motion_covered_pos
-        step_record['flexMotionCoveredNeg' + sensor] = flex_motion_covered_neg
+        # adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
+        # adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
+        # adduc_motion_covered_pos = np.nanmean(step_data['adduc_motion_covered_pos_' + sensor.lower()])
+        # adduc_motion_covered_neg = np.nanmean(step_data['adduc_motion_covered_neg_' + sensor.lower()])
+        # flex_rom = np.nanmean(step_data['flex_range_of_motion_' + sensor.lower()])
+        # flex_motion_covered_abs = np.nanmean(step_data['flex_motion_covered_abs_' + sensor.lower()])
+        # flex_motion_covered_pos = np.nanmean(step_data['flex_motion_covered_pos_' + sensor.lower()])
+        # flex_motion_covered_neg = np.nanmean(step_data['flex_motion_covered_neg_' + sensor.lower()])
+        #
+        # adduc_rom_hip = np.nanmean(step_data['adduc_range_of_motion_h'])
+        # adduc_motion_covered_abs_hip = np.nanmean(step_data['adduc_motion_covered_abs_h'])
+        # adduc_motion_covered_pos_hip = np.nanmean(step_data['adduc_motion_covered_pos_h'])
+        # adduc_motion_covered_neg_hip = np.nanmean(step_data['adduc_motion_covered_neg_h'])
+        # flex_rom_hip = np.nanmean(step_data['flex_range_of_motion_h'])
+        # flex_motion_covered_abs_hip = np.nanmean(step_data['flex_motion_covered_abs_h'])
+        # flex_motion_covered_pos_hip = np.nanmean(step_data['flex_motion_covered_pos_h'])
+        # flex_motion_covered_neg_hip = np.nanmean(step_data['flex_motion_covered_neg_h'])
+        #
+        step_record['adducROM' + sensor] = 0
+        step_record['adducMotionCoveredTotal' + sensor] = 0
+        step_record['adducMotionCoveredPos' + sensor] = 0
+        step_record['adducMotionCoveredNeg' + sensor] = 0
+        step_record['flexROM' + sensor] = 0
+        step_record['flexMotionCoveredTotal' + sensor] = 0
+        step_record['flexMotionCoveredPos' + sensor] = 0
+        step_record['flexMotionCoveredNeg' + sensor] = 0
         step_record['contactDuration' + sensor] = contact_duration
 
-        step_record['adducROMHip'] = adduc_rom_hip
-        step_record['adducMotionCoveredTotalHip'] = adduc_motion_covered_abs_hip
-        step_record['adducMotionCoveredPosHip'] = adduc_motion_covered_pos_hip
-        step_record['adducMotionCoveredNegHip'] = adduc_motion_covered_neg_hip
-        step_record['flexROMHip'] = flex_rom_hip
-        step_record['flexMotionCoveredTotalHip'] = flex_motion_covered_abs_hip
-        step_record['flexMotionCoveredPosHip'] = flex_motion_covered_pos_hip
-        step_record['flexMotionCoveredNegHip'] = flex_motion_covered_neg_hip
+        step_record['adducROMHip'] = 0
+        step_record['adducMotionCoveredTotalHip'] = 0
+        step_record['adducMotionCoveredPosHip'] = 0
+        step_record['adducMotionCoveredNegHip'] = 0
+        step_record['flexROMHip'] = 0
+        step_record['flexMotionCoveredTotalHip'] = 0
+        step_record['flexMotionCoveredPosHip'] = 0
+        step_record['flexMotionCoveredNegHip'] = 0
         step_record['stance'] = list(step_data['stance'].values)
         stance = np.unique(step_record['stance'])
         if len(stance) > 1:
