@@ -49,7 +49,7 @@ class DriftcorrectionJob(Job):
         q_corr_2, candidate_troughs_2, troughs_2 = sensors_drift_correction(op_cond_2, dataHC[:, 18:21], dataHC[:, 21:25], foot_parameters, Foot=True)
 
         # try hip correction assuming sensor0 is left
-        hip_parameters.append(troughs_0)
+        hip_parameters.append(np.where(troughs_0 == 1)[0])
         q_corr_h, candidate_correction_points_h, correction_points_h = sensors_drift_correction(op_cond_h, axl_drift_hip, dataHC[:, 13:17], hip_parameters, Foot=False)
 
         try:
@@ -61,7 +61,7 @@ class DriftcorrectionJob(Job):
             if valid_hip_correction:
                 placement = [0, 1, 2]
             else:
-                hip_parameters[16] = troughs_2
+                hip_parameters[16] = np.where(troughs_2 == 1)[0]
                 axl_drift_hip = np.copy(dataHC[:, 11])
                 q_corr_h, candidate_correction_points_h, correction_points_h  = sensors_drift_correction (op_cond_h, axl_drift_hip , dataHC[:,13:17], hip_parameters, Foot=False)
                 placement = [2, 1, 0]
