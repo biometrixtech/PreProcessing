@@ -14,6 +14,7 @@ def get_placement_hip_correction(data):
     hip_correction_data = data[["correction_points_1", "troughs_0", "troughs_2"]]
 
     corr_hip_indices = np.where(hip_correction_data.correction_points_1.values == 1)[0].astype(list)
+    print(corr_hip_indices)
     corr_point_padded = set(np.concatenate([np.arange(i - hip_window, i + hip_window) for i in corr_hip_indices]))
 
     window_data = hip_correction_data.loc[corr_point_padded, :]

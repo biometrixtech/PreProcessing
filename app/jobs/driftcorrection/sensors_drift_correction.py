@@ -454,6 +454,9 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
         if len(all_candidate_corr_points) > 0:
             candidate_trough_points[all_candidate_corr_points] = 1
 
+    if not Foot:
+        print(all_corr_points)
+
     return q_corr, candidate_trough_points, corr_points
 
 
