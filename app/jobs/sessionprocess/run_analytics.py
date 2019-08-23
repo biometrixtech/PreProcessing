@@ -61,6 +61,7 @@ _output_columns = [
     # 'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
     # 'flex_range_of_motion_rf',
     # 'contact_duration_rf',
+    'change_of_direction'
 ]
 
 

@@ -107,7 +107,7 @@ class AggregateblocksJob(Job):
                 if ub.end_index >= len(data):
                     ub.end_index = len(data) - 1
                 unit_block_data = data.loc[ub.start_index:ub.end_index]
-                ub.get_cadence_zone(unit_block_data)
+                ub.set_complexity_flags(unit_block_data)
 
                 unit_block_record = OrderedDict()
                 unit_block_start = str(pd.to_datetime(data['epoch_time'][ub.start_index], unit='ms'))
