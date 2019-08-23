@@ -26,6 +26,6 @@ def flag_data_for_removal(data):
 def get_steps(_phase):
     # get index ranges for ground contacts
     ranges, lengths = get_ranges(_phase, 0, True)
-    length_index = np.where((lengths <= 50) & (lengths >= 13))
+    length_index = np.where((lengths <= 150) & (lengths >= 13))
     ranges = ranges[length_index]
     return ranges
