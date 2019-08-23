@@ -53,18 +53,19 @@ class DriftcorrectionJob(Job):
         q_corr_h, candidate_correction_points_h, correction_points_h = sensors_drift_correction(op_cond_h, axl_drift_hip, dataHC[:, 13:17], hip_parameters, Foot=False)
 
         try:
-            valid_hip_correction = _validate_hip_correction(troughs_0, troughs_2, candidate_correction_points_h)
+            valid_hip_correction, hip_weak_placement = _validate_hip_correction(troughs_0, troughs_2, candidate_correction_points_h)
         except HipCorrectionException as e:
             _logger.warning(e)
-            placement = [0, 0, 0]
+            hip_placement_detected = [0, 0, 0]
+            hip_weak_placement = True
         else:
             if valid_hip_correction:
-                placement = [0, 1, 2]
+                hip_placement_detected = [0, 1, 2]
             else:
                 hip_parameters[16] = np.where(troughs_2 == 1)[0]
                 axl_drift_hip = np.copy(dataHC[:, 11])
                 q_corr_h, candidate_correction_points_h, correction_points_h  = sensors_drift_correction (op_cond_h, axl_drift_hip , dataHC[:,13:17], hip_parameters, Foot=False)
-                placement = [2, 1, 0]
+                hip_placement_detected = [2, 1, 0]
 
         # store the values
         dataHC[:, 5: 9] = q_corr_0
@@ -92,14 +93,27 @@ class DriftcorrectionJob(Job):
         # self.data['change_of_direction'] = flag_change_of_direction(self.data.acc_1_z.values, euler_hip_z_hc)
         if run_placement:
             lateral_placement_detected, lateral_weak_placement = get_placement_lateral_hip(self.data, start_MPh, stop_MPh)
-            hip_placement_detected, hip_weak_placement = get_placement_hip_correction(self.data)
+            # hip_placement_detected, hip_weak_placement = get_placement_hip_correction(self.data)
 
-            if hip_placement_detected != [0, 0, 0]:
+            if not hip_weak_placement:  # if hip is not weak, use it
                 placement_detected = hip_placement_detected
-            elif lateral_placement_detected != [0, 0, 0]:
-                placement_detected = lateral_placement_detected
-            else:
-                placement_detected = [0, 0, 0]
+            else: # hip placement detection is weak
+                if not lateral_weak_placement:  # if lateral is not weak, use it
+                    placement_detected = lateral_placement_detected
+                else: # both are weak
+                    if hip_placement_detected != [0, 0, 0]:  # when both weak, use hip first
+                        placement_detected = hip_placement_detected
+                    elif lateral_placement_detected != [0, 0, 0]:  # lateral second
+                        placement_detected = lateral_placement_detected
+                    else:  # if none, assign 000
+                        placement_detected = [0, 0, 0]
+
+            # if hip_placement_detected != [0, 0, 0]:
+            #     placement_detected = hip_placement_detected
+            # elif lateral_placement_detected != [0, 0, 0]:
+            #     placement_detected = lateral_placement_detected
+            # else:
+            #     placement_detected = [0, 0, 0]
 
             ret = {
                 'placement': placement_detected,
@@ -167,9 +181,13 @@ def _validate_hip_correction(troughs_0, troughs_2, cand_corr_points_hip):
         per_corr_points_troughs_2 = 0.
     _logger.info(f"hip corr points within window -- sensor0: {len(corr_points_subset_0)}, sensor2: {len(corr_points_subset_2)} \nsensor0 corr points: {len(troughs_0)} \nsensor2 corr points: {len(troughs_2)}")
 
+    weak_validation = False
+    if abs(len(corr_points_subset_2) - len(corr_points_subset_0)) < 10:
+        weak_validation = True
+
     if per_corr_points_troughs_0 < .30 and per_corr_points_troughs_2 < .30:
         raise HipCorrectionException('Not enough correction points within range for either foot')
     elif len(corr_points_subset_2) > len(corr_points_subset_0):
-        return False
+        return False, weak_validation
     else:
-        return True
+        return True, weak_validation
