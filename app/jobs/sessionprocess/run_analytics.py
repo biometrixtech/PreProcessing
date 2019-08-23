@@ -46,6 +46,7 @@ _output_columns = [
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
     'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
+    'change_of_direction'
     # 'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
     # 'adduc_range_of_motion_lf',
     # 'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
@@ -61,7 +62,6 @@ _output_columns = [
     # 'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
     # 'flex_range_of_motion_rf',
     # 'contact_duration_rf',
-    'change_of_direction'
 ]
 
 
