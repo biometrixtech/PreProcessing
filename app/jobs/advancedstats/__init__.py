@@ -63,7 +63,7 @@ class AdvancedstatsJob(Job):
                 }  
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
-        requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/4_3/session/three_sensor_data',
+        requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data',
                       data=json.dumps(body),
                       headers=headers)
 

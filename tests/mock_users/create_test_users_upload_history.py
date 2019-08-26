@@ -95,6 +95,36 @@ if __name__ == '__main__':
                      format_datetime(datetime.now() - timedelta(days=2)),
                      format_datetime(datetime.now() - timedelta(days=4)),
                      format_datetime(datetime.now() - timedelta(days=5))]
+
+        elif u == "full_fte_tread@200.com":
+            sessions = [
+                "a7083021-86e7-5dd1-8245-683bcdf6f6fe",
+                "2d8dd78d-2e1e-5e91-83b3-a19181b88eab",
+                "b9485ddd-4bf7-559f-9bfc-700bfaffbc86",
+                "be2e9653-e0e0-5ae0-a700-56b6bfe0d595"
+            ]
+            user_id = "33293741-bf30-479e-83e9-bc6b3a1cb7c2"
+
+            symmetrical = [False, False, False, False]
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4)),
+                     format_datetime(datetime.now() - timedelta(days=5))]
+
+        elif u == "two_pain_tread@200.com":
+            sessions = [
+                "a7083021-86e7-5dd1-8245-683bcdf6f6fe",
+                "2d8dd78d-2e1e-5e91-83b3-a19181b88eab",
+                "b9485ddd-4bf7-559f-9bfc-700bfaffbc86",
+                "be2e9653-e0e0-5ae0-a700-56b6bfe0d595"
+            ]
+            user_id = "25c38e39-357a-456d-84b7-61547364a2ba"
+
+            symmetrical = [False, False, False, False]
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4)),
+                     format_datetime(datetime.now() - timedelta(days=5))]
         elif u == "tread_run@200.com":
             sessions = [
                 "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
@@ -129,6 +159,53 @@ if __name__ == '__main__':
                 "07b9b744-3e85-563d-b69a-822148673f58"
             ]
             user_id = "4c8792b2-d5e2-475b-b55d-c16e70dc47aa"
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4)),
+                     format_datetime(datetime.now() - timedelta(days=6)),
+                     format_datetime(datetime.now() - timedelta(days=8)),
+                     format_datetime(datetime.now() - timedelta(days=10)),
+                     format_datetime(datetime.now() - timedelta(days=12)),
+                     format_datetime(datetime.now() - timedelta(days=14))]
+
+            symmetrical = [False, False, False, False, False, False, False, False]
+
+        elif u == "ts_tread@200.com":
+            sessions = [
+                "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
+                "f93e004d-7dd0-56b3-bb22-353750586f5e",
+                "7b6c7bba-3250-5d45-949f-1998ff88800d",
+                "8331f565-08af-564b-8ae9-f847b17fa851",
+                "c7bcaf5e-f4a0-525d-aca9-c9c449f2a39e",
+                "2f26eee8-455a-5678-a384-ed5a14c6e54a",
+                "398ad5bf-3792-5b63-b07f-60a1e6bda875",
+                "07b9b744-3e85-563d-b69a-822148673f58"
+            ]
+            user_id = "18ad5cde-92a8-4cd4-8295-71a91c7d3aac"
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4)),
+                     format_datetime(datetime.now() - timedelta(days=6)),
+                     format_datetime(datetime.now() - timedelta(days=8)),
+                     format_datetime(datetime.now() - timedelta(days=10)),
+                     format_datetime(datetime.now() - timedelta(days=12)),
+                     format_datetime(datetime.now() - timedelta(days=14))]
+
+            symmetrical = [False, False, False, False, False, False, False, False]
+
+
+        elif u == "nc_sore_tread@200.com":
+            sessions = [
+                "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
+                "f93e004d-7dd0-56b3-bb22-353750586f5e",
+                "7b6c7bba-3250-5d45-949f-1998ff88800d",
+                "8331f565-08af-564b-8ae9-f847b17fa851",
+                "c7bcaf5e-f4a0-525d-aca9-c9c449f2a39e",
+                "2f26eee8-455a-5678-a384-ed5a14c6e54a",
+                "398ad5bf-3792-5b63-b07f-60a1e6bda875",
+                "07b9b744-3e85-563d-b69a-822148673f58"
+            ]
+            user_id = "917e94bc-3f56-4519-8d25-ae54878748f2"
             dates = [format_datetime(datetime.now()),
                      format_datetime(datetime.now() - timedelta(days=2)),
                      format_datetime(datetime.now() - timedelta(days=4)),
@@ -256,6 +333,45 @@ if __name__ == '__main__':
                 "b2a95b1b-8d7b-5638-bd69-7299a362c717"
             ]
             user_id = "06a112b3-b07f-4da7-a6bb-16558c5345ea"
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4))]
+
+            symmetrical = [False, False, False]
+
+        elif u == "full_fte_long@200.com":
+            sessions = [
+                "958dba09-c338-5118-86a3-d20a559f09c2",
+                "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",
+                "b2a95b1b-8d7b-5638-bd69-7299a362c717"
+            ]
+            user_id = "024a6807-eef6-4556-b3b8-1c8639dd1758"
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4))]
+
+            symmetrical = [False, False, False]
+
+        elif u == "nc_long@200.com":
+            sessions = [
+                "958dba09-c338-5118-86a3-d20a559f09c2",
+                "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",
+                "b2a95b1b-8d7b-5638-bd69-7299a362c717"
+            ]
+            user_id = "7bb3e792-41ff-43cb-861e-87cf2bdeeadf"
+            dates = [format_datetime(datetime.now()),
+                     format_datetime(datetime.now() - timedelta(days=2)),
+                     format_datetime(datetime.now() - timedelta(days=4))]
+
+            symmetrical = [False, False, False]
+
+        elif u == "ts_pain_long@200.com":
+            sessions = [
+                "958dba09-c338-5118-86a3-d20a559f09c2",
+                "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",
+                "b2a95b1b-8d7b-5638-bd69-7299a362c717"
+            ]
+            user_id = "e602620d-2040-4ecc-87cc-f392d9db5eab"
             dates = [format_datetime(datetime.now()),
                      format_datetime(datetime.now() - timedelta(days=2)),
                      format_datetime(datetime.now() - timedelta(days=4))]

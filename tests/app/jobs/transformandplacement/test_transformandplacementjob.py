@@ -19,7 +19,8 @@ def test_full_job_process():
         session_id = "unit_test"
         event_date = "2019-07-11"
         user_id = "unit_test"
-        datastore = MockDatastore(session_id, event_date, user_id)
+        end_date = ""
+        datastore = MockDatastore(session_id, event_date, user_id, end_date)
         datastore._metadata["version"] = "2.3"
         job = TransformandplacementJob(datastore)
 
