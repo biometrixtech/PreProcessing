@@ -32,7 +32,7 @@ _output_columns = [
     'active',
     'phase_lf',  'phase_rf',
     'candidate_troughs_lf', 'troughs_lf',
-    'correction_points_hip',
+    'candidate_correction_points_hip', 'correction_points_hip',
     'candidate_troughs_rf', 'troughs_rf',
     'grf', 'grf_lf', 'grf_rf',
     'total_accel',
@@ -46,21 +46,22 @@ _output_columns = [
     'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
     'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
     'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
-    'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
-    'adduc_range_of_motion_lf',
-    'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
-    'flex_range_of_motion_lf',
-    'contact_duration_lf',
-    'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
-    'adduc_range_of_motion_h',
-    'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
-    'flex_range_of_motion_h',
-    'contact_duration_h',
-    'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
-    'adduc_range_of_motion_rf',
-    'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
-    'flex_range_of_motion_rf',
-    'contact_duration_rf',
+    'change_of_direction'
+    # 'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
+    # 'adduc_range_of_motion_lf',
+    # 'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
+    # 'flex_range_of_motion_lf',
+    # 'contact_duration_lf',
+    # 'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
+    # 'adduc_range_of_motion_h',
+    # 'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
+    # 'flex_range_of_motion_h',
+    # 'contact_duration_h',
+    # 'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
+    # 'adduc_range_of_motion_rf',
+    # 'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
+    # 'flex_range_of_motion_rf',
+    # 'contact_duration_rf',
 ]
 
 
@@ -160,12 +161,12 @@ def run_session(data, mass, grf_fit, sc):
     logger.info('DONE WITH MOVEMENT ATTRIBUTES AND PERFORMANCE VARIABLES!')
 
     # new relative CMEs
-    data = run_relative_cmes(data)
+    # data = run_relative_cmes(data)
     logger.info('DONE WITH RELATIVE CME!')
 
     # DEFINE UNIT ACTIVE BLOCKS
     data.total_accel[data.stance == 0] = 0
-    data['active'] = define_unit_blocks(data.total_accel)
+    data.loc[:, 'active'] = define_unit_blocks(data.total_accel)
 
     # combine into data table
     scoring_data = data.loc[:, _output_columns]

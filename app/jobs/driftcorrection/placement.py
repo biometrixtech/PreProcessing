@@ -14,23 +14,27 @@ def get_placement_hip_correction(data):
     hip_correction_data = data[["correction_points_1", "troughs_0", "troughs_2"]]
 
     corr_hip_indices = np.where(hip_correction_data.correction_points_1.values == 1)[0].astype(list)
-    corr_point_padded = set(np.concatenate([np.arange(i - hip_window, i + hip_window) for i in corr_hip_indices]))
+    if len(corr_hip_indices) > 0:
+        corr_point_padded = set(np.concatenate([np.arange(i - hip_window, i + hip_window) for i in corr_hip_indices]))
 
-    window_data = hip_correction_data.loc[corr_point_padded, :]
+        window_data = hip_correction_data.loc[corr_point_padded, :]
 
-    zero_sum = np.sum(window_data.troughs_0)
-    two_sum = np.sum(window_data.troughs_2)
-    test_sum = np.sum(window_data.correction_points_1)
+        zero_sum = np.sum(window_data.troughs_0)
+        two_sum = np.sum(window_data.troughs_2)
+        test_sum = np.sum(window_data.correction_points_1)
 
-    hip_correction_placement = [0, 1, 2]
-    weak_placement = False
+        hip_correction_placement = [0, 1, 2]
+        weak_placement = False
 
-    if two_sum > zero_sum:
-        hip_correction_placement = [2, 1, 0]
-    elif two_sum == zero_sum:
+        if two_sum > zero_sum:
+            hip_correction_placement = [2, 1, 0]
+        elif two_sum == zero_sum:
+            hip_correction_placement = [0, 0, 0]
+
+        if abs(two_sum - zero_sum) <= 10:
+            weak_placement = True
+    else:
         hip_correction_placement = [0, 0, 0]
-
-    if abs(two_sum - zero_sum) <= 10:
         weak_placement = True
 
     return hip_correction_placement, weak_placement

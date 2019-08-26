@@ -23,19 +23,24 @@ _input_columns = [
     'grf_lf',
     'grf_rf',
     'total_accel',
-    'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
-    'adduc_range_of_motion_lf',
-    'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
-    'flex_range_of_motion_lf',
-    'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
-    'adduc_range_of_motion_h',
-    'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
-    'flex_range_of_motion_h',
-    'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
-    'adduc_range_of_motion_rf',
-    'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
-    'flex_range_of_motion_rf',
+    'euler_hip_y',
+    'acc_hip_z',
     'stance',
+    'remove',
+    'change_of_direction'
+    # 'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
+    # 'adduc_range_of_motion_lf',
+    # 'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
+    # 'flex_range_of_motion_lf',
+    # 'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
+    # 'adduc_range_of_motion_h',
+    # 'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
+    # 'flex_range_of_motion_h',
+    # 'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
+    # 'adduc_range_of_motion_rf',
+    # 'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
+    # 'flex_range_of_motion_rf',
+    # 'stance',
 ]
 
 
@@ -44,7 +49,7 @@ class AggregateblocksJob(Job):
     @xray_recorder.capture('app.jobs.aggregateblocks._run')
     def _run(self):
 
-        data = self.datastore.get_data('scoring')
+        data = self.datastore.get_data('scoring', columns=_input_columns)
         mongo_collection = get_mongo_collection('ACTIVEBLOCKS')
         mongo_collection.delete_many({'sessionId': self.datastore.session_id})
 
@@ -103,7 +108,7 @@ class AggregateblocksJob(Job):
                 if ub.end_index >= len(data):
                     ub.end_index = len(data) - 1
                 unit_block_data = data.loc[ub.start_index:ub.end_index]
-                ub.get_cadence_zone(unit_block_data)
+                ub.set_complexity_flags(unit_block_data)
 
                 unit_block_record = OrderedDict()
                 unit_block_start = str(pd.to_datetime(data['epoch_time'][ub.start_index], unit='ms'))

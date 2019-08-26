@@ -50,7 +50,7 @@ def define_cadence_zone(data):
             peaks += br[0]
             all_cadence[peaks] = cadence
             start_index = 10
-            initial_cadence = int(np.mean(cadence[:start_index]))
+            initial_cadence = int(np.nanmean(cadence[:start_index]))
             current_zone = _get_cadence_zone(initial_cadence)
             cadence_zone[br[0]:peaks[start_index]] = current_zone.value
             last_updated_index = peaks[start_index]
