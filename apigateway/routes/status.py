@@ -70,14 +70,16 @@ def _get_cleaned_session(session):
     item['event_date'] = _get_local_time(session['event_date'])
     item['end_date'] = _get_local_time(session.get('end_date', None))
     item['upload_end_date'] = _get_local_time(session.get('upload_end_date', None))
+    item['updated_date'] = _get_local_time(session.get('updated_date', None))
     
     session_status = session.get('session_status', None)
-    if session_status in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS']:
-        item['status'] = 0
-    elif session_status in ['PROCESSING_COMPLETE']:
-        item['status'] = 1
-    else:
-        item['status'] = 2
+    item['status'] = session_status
+    # if session_status in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS']:
+    #     item['status'] = 0
+    # elif session_status in ['PROCESSING_COMPLETE']:
+    #     item['status'] = 1
+    # else:
+    #     item['status'] = 2
     if item['end_date'] is not None and item['event_date'] is not None:
         item['duration'] = round((parse_datetime(item['end_date']) - parse_datetime(item['event_date'])).seconds / 60, 2)
     else:
