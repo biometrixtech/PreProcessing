@@ -43,6 +43,19 @@ def handler(event, _):
             accessory = Service('hardware', '2_0').call_apigateway_sync('GET', f"accessory/{new_object['accessory_id']}").get('accessory', None)
             if accessory is not None:
                 update_dynamodb(new_object['id'], {'user_id': accessory['owner_id'] or '---'})
+                user_id = accessory.get('owner_id', None)
+                if user_id is not None:
+                    body = {
+                        'user_id': user_id,
+                        'event_date': new_object['event_date'],
+                        'session_id': new_object['id'],
+                        'end_date': new_object['end_date'],
+                        'updated_date': new_object['updated_date'],
+                        'session_status': new_object['session_status']
+                    }
+
+                    Service('plans', '4_4').call_apigateway_async('POST', f"session/{user_id}/three_sensor_data", body)
+
 
 
 def trigger_sfn(session_id, version):
