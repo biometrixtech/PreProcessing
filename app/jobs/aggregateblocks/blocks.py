@@ -17,7 +17,7 @@ class ActiveBlock(object):
 
     def get_unit_blocks(self, data):
         ab_data = data.loc[self.start_index:self.end_index, :]
-        unit_block_flag = ab_data.cadence_zone.values
+        unit_block_flag = ab_data.cadence_zone.values # + ab_data.change_of_direction.values
         diff = np.abs(np.ediff1d(unit_block_flag, to_begin=-1))  # mark start of active block as start of first unit block
         diff[-1] = -1
         ub_changes = np.where(diff != 0)[0]
@@ -66,5 +66,6 @@ class UnitBlock(object):
                 "decelerating": self.decelerating}
         return ret
 
-    def get_cadence_zone(self, data):
+    def set_complexity_flags(self, data):
         self.cadence_zone = data.cadence_zone[self.start_index]
+        # self.change_of_direction = True if data.change_of_direction[self.start_index] == 1 else False
