@@ -7,7 +7,7 @@ import logging
 
 from ..job import Job
 from .apply_data_transformations import apply_data_transformations
-from .exceptions import PlacementDetectionException, FileVersionNotSupportedException
+from .exceptions import PlacementDetectionException, FileVersionNotSupportedException, HeadingDetectionException, MarchDetectionException, StillDetectionException
 from .placement_detection import detect_placement, shift_accel, predict_placement
 from .column_vector import Condition
 from .sensor_use_detection import detect_single_sensor, detect_data_truncation
@@ -49,17 +49,23 @@ class TransformandplacementJob(Job):
         # data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'], ret['sensor_position'])
 
         data = body_frame_tran(data, ret['reference_quats']['0'], ret['reference_quats']['1'], ret['reference_quats']['2'])
-        heading_quat_0, heading_quat_2 = heading_foot_finder(data[:3000, 5:9], data[:3000, 21:25], int(ret['start_march_1']), int(ret['end_march_1']))
-        ret['heading_quat_0'] = heading_quat_0.tolist()[0]
-        ret['heading_quat_2'] = heading_quat_2.tolist()[0]
-        _logger.info(ret)
-        self.datastore.put_metadata(ret)
+        try:
+            heading_quat_0, heading_quat_2 = heading_foot_finder(data[:3000, 5:9], data[:3000, 21:25], int(ret['start_march_1']), int(ret['end_march_1']))
+        except HeadingDetectionException as err:
+            self.datastore.put_metadata({'failure': 'HEADING_DETECTION',
+                                         'failure_sensor': err.sensor})
+            raise err
+        else:
+            ret['heading_quat_0'] = heading_quat_0.tolist()[0]
+            ret['heading_quat_2'] = heading_quat_2.tolist()[0]
+            _logger.info(ret)
+            self.datastore.put_metadata(ret)
 
-        # convert to pandas
-        data = self.get_core_data_frame_from_ndarray(data)
+            # convert to pandas
+            data = self.get_core_data_frame_from_ndarray(data)
 
-        # self.datastore.put_data('transformandplacement', data, chunk_size=int(os.environ['CHUNK_SIZE']))
-        self.datastore.put_data('transformandplacement', data)
+            # self.datastore.put_data('transformandplacement', data, chunk_size=int(os.environ['CHUNK_SIZE']))
+            self.datastore.put_data('transformandplacement', data)
 
     def execute(self, all_data):
         data = all_data
@@ -98,6 +104,14 @@ class TransformandplacementJob(Job):
         except PlacementDetectionException as err:
             _logger.error(err)
             raise PlacementDetectionException("Could not detect placement")
+        except MarchDetectionException as err:
+            self.datastore.put_metadata({'failure': 'MARCH_DETECTION',
+                                         'failure_sensor': err.sensor})
+            raise err
+        except StillDetectionException as err:
+            self.datastore.put_metadata({'failure': 'STILL_DETECTION',
+                                         'failure_sensor': err.sensor})
+            raise err
             # if it fails, assign a placement, get transform values and go
             # to single sensor processing
             # sensors = 1

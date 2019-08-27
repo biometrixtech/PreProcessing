@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from .exceptions import StillDetectionException, MarchDetectionException
 
 from utils import get_ranges
 from utils.quaternion_conversions import quat_to_euler
@@ -36,7 +37,7 @@ def _detect_march_and_still_ankle(data, sensor):
         end_still += start_march - samples_before_march
         return start_still, end_still, start_march, end_march
     else:
-        raise ValueError(f'Could not detect march for sensor{sensor}')
+        raise MarchDetectionException(f'Could not detect march for sensor{sensor}', sensor)
 
 
 def _detect_march(static):
@@ -90,4 +91,4 @@ def _detect_still(data, sensor=0):
     if (still > 1 or max_diff < .75) and max_diff_all < 20:
         return start, end
     else:
-        raise ValueError(f'could not detect still for sensor{sensor}')
+        raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
