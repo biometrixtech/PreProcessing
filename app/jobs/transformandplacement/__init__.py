@@ -85,9 +85,9 @@ class TransformandplacementJob(Job):
                 'sensors': sensors
             }
 
-        except PlacementDetectionException as err:
-            _logger.error(err)
-            raise PlacementDetectionException("Could not detect placement")
+        # except PlacementDetectionException as err:
+        #     _logger.error(err)
+        #     raise PlacementDetectionException("Could not detect placement")
         except MarchDetectionException as err:
             self.datastore.put_metadata({'failure': 'MARCH_DETECTION',
                                          'failure_sensor': err.sensor})

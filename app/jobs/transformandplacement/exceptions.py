@@ -1,5 +1,5 @@
 class SensorException(Exception):
-    def __init__(self, message, sensor=0):
+    def __init__(self, message="", sensor=0):
         self._message = message
         self._sensor = sensor
 
@@ -37,6 +37,7 @@ class StillDetectionException(SensorException):
     An exception thrown for old version of the file
     """
     pass
+
 
 class MarchDetectionException(SensorException):
     """
