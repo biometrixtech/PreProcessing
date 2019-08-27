@@ -57,6 +57,7 @@ def _fix_short_static(static):
     return static
 
 
+
 def _detect_still(data, sensor=0):
     """Detect part of data without activity for neutral reference
     """
@@ -68,27 +69,26 @@ def _detect_still(data, sensor=0):
     )
     euler_x = euler[:, 0] * 180 / np.pi
     euler_y = euler[:, 1] * 180 / np.pi
-
+    static = data[f'static_{sensor}'].values
     x_diff = max(euler_x) - min(euler_x)
     y_diff = max(euler_y) - min(euler_y)
     max_diff_all = max(x_diff, y_diff)
+    if max_diff_all > 20:  # too much movement/drift in the second prior
+        raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
 
-    sd_x = pd.Series(euler_x).rolling(25).std(center=True)
-    sd_y = pd.Series(euler_y).rolling(25).std(center=True)
-    sd_tilt = sd_x + sd_y
+    for i in np.arange(len(data) - 1, 25, -1):
+        start = i - 25
+        end = i
+        # get the greatest change in angle in the window
+        x_diff = max(euler_x[start:end]) - min(euler_x[start:end])
+        y_diff = max(euler_y[start:end]) - min(euler_y[start:end])
+        max_diff = max(x_diff, y_diff)
 
-    min_sd_tilt = np.min(sd_tilt)
-    min_sd_loc = np.where(sd_tilt == min_sd_tilt)[0][0]
-    start = min_sd_loc - 12
-    end = min_sd_loc + 12
+        # check the number of static samples in the window
+        static_present = static[start:end] == 0
+        static_count = sum(static_present)
 
-    x_diff = max(euler_x[start:end]) - min(euler_x[start:end])
-    y_diff = max(euler_y[start:end]) - min(euler_y[start:end])
-    max_diff = max(x_diff, y_diff)
-
-    still_present = data[f'static_{sensor}'][start:end].values == 0
-    still = sum(still_present)
-    if (still > 1 or max_diff < .75) and max_diff_all < 20:
-        return start, end
-    else:
-        raise StillDetectionException(f'Could not detect still for sensor{sensor}', sensor)
+        # if either is good, use the window
+        if static_count >= 20 or max_diff < .75:
+            return start, end
+    raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
