@@ -5,13 +5,11 @@ import logging
 from ..job import Job
 from .heading_correction import heading_correction
 from .correction_parameters import foot_parameters, hip_parameters
-# from .hip_drift_correction import hip_drift_correction
-# from .foot_drift_correction import foot_drift_correction
 from .sensors_drift_correction import sensors_drift_correction
 from .acceleration_correction import axl_correction
 from .placement import get_placement_lateral_hip, get_placement_hip_correction
 from .epoch_time_transform import convert_epochtime_datetime_mselapsed
-from .exceptions import PlacementDetectionException, HipCorrectionException
+from .exceptions import LeftRightDetectionException, HipCorrectionException
 from .change_of_direction import flag_change_of_direction
 from utils.quaternion_conversions import quat_as_euler_angles
 
@@ -64,7 +62,7 @@ class DriftcorrectionJob(Job):
             else:
                 hip_parameters[16] = np.where(troughs_2 == 1)[0]
                 axl_drift_hip = np.copy(dataHC[:, 11])
-                q_corr_h, candidate_correction_points_h, correction_points_h  = sensors_drift_correction (op_cond_h, axl_drift_hip , dataHC[:,13:17], hip_parameters, Foot=False)
+                q_corr_h, candidate_correction_points_h, correction_points_h  = sensors_drift_correction(op_cond_h, axl_drift_hip , dataHC[:,13:17], hip_parameters, Foot=False)
                 hip_placement_detected = [2, 1, 0]
 
         # store the values
@@ -108,13 +106,6 @@ class DriftcorrectionJob(Job):
                     else:  # if none, assign 000
                         placement_detected = [0, 0, 0]
 
-            # if hip_placement_detected != [0, 0, 0]:
-            #     placement_detected = hip_placement_detected
-            # elif lateral_placement_detected != [0, 0, 0]:
-            #     placement_detected = lateral_placement_detected
-            # else:
-            #     placement_detected = [0, 0, 0]
-
             ret = {
                 'placement': placement_detected,
                 'lateral_placement': lateral_placement_detected,
@@ -124,9 +115,8 @@ class DriftcorrectionJob(Job):
             }
             self.datastore.put_metadata(ret)
             if placement_detected == [0, 0, 0]:
-                placement_detected = [0, 1, 2]
-                _logger.info('Placement detection failed')
-                # raise PlacementDetectionException('Could not detect placement')
+                self.datastore.put_metadata({'failure': 'LEFT_RIGHT_DETECTION'})
+                raise LeftRightDetectionException('Could not detect left/right sensor')
             # If placement id detected correctly, rename the columns in dataframe
             placement = zip(placement_detected, ['lf', 'hip', 'rf'])
             column_prefixes = ['static_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y',

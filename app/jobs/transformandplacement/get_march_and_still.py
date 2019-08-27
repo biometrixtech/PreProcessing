@@ -91,4 +91,4 @@ def _detect_still(data, sensor=0):
     if (still > 1 or max_diff < .75) and max_diff_all < 20:
         return start, end
     else:
-        raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
+        raise StillDetectionException(f'Could not detect still for sensor{sensor}', sensor)

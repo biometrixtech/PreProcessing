@@ -31,22 +31,6 @@ class TransformandplacementJob(Job):
         else:
             ret = self.execute(data)
         _logger.info(ret)
-        # self.datastore.put_metadata(ret)
-
-        # if ret['truncation_index'] is not None:
-        #     data = data.loc[:ret['truncation_index']]
-
-        # placement = zip(ret['placement'], ['lf', 'hip', 'rf'])
-        # column_prefixes = ['magn_{}', 'corrupt_{}', 'acc_{}_x', 'acc_{}_y', 'acc_{}_z', 'quat_{}_x', 'quat_{}_y', 'quat_{}_z', 'quat_{}_w']
-        # renames = {}
-        # for old, new in placement:
-        #     for prefix in column_prefixes:
-        #         renames[prefix.format(str(old))] = prefix.format(str(new))
-
-        # data = data.rename(index=str, columns=renames)
-
-        # Apply normalisation transforms
-        # data = apply_data_transformations(data, ret['body_frame_transforms'], ret['hip_neutral_yaw'], ret['sensor_position'])
 
         data = body_frame_tran(data, ret['reference_quats']['0'], ret['reference_quats']['1'], ret['reference_quats']['2'])
         try:
@@ -112,35 +96,3 @@ class TransformandplacementJob(Job):
             self.datastore.put_metadata({'failure': 'STILL_DETECTION',
                                          'failure_sensor': err.sensor})
             raise err
-            # if it fails, assign a placement, get transform values and go
-            # to single sensor processing
-            # sensors = 1
-            # # detect the single sensor being used
-            # placement = [0, 1, 2]
-            # truncation_index, single_sensor = detect_data_truncation(data, placement, sensors)
-
-            # # get transformation values
-            # data_sub = copy.copy(data.loc[0:2000, :])
-            # shift_accel(data_sub)
-            # body_frame_transforms = compute_transform(data_sub)
-
-            # return {
-            #     'placement': placement,
-            #     'body_frame_transforms': {
-            #         'left': body_frame_transforms[0],
-            #         'hip': body_frame_transforms[1],
-            #         'right': body_frame_transforms[2],
-            #     },
-            #     'hip_neutral_yaw': body_frame_transforms[3],
-            #     'sensors': sensors,
-            #     'truncation_index': truncation_index,
-            #     'sensor_position': {'left': 'single_sensor', 'right': 'single_sensor'}
-            # }
-
-
-# @xray_recorder.capture('app.jobs.transformandplacement._load_model')
-# def _load_model(model):
-#     path = os.path.join('/net/efs/globalmodels', model)
-#     _logger.info("Loading model from {}".format(path))
-#     with open(path, 'rb') as f:
-#         return pickle.load(f, encoding='latin1')
