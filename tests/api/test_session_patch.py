@@ -1,9 +1,9 @@
-from .base_test import BaseTest
+from .base_test import BaseTest, get_api_service_token
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
 # This has username = '00:00:00:00:00'
-jwt_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6IjAwOjAwOjAwOjAwOjAwIn0._EtGIW4hbbJAbAywUrtonMwZgQuuU8dSyOrPZEF6TJE'
+jwt_token = get_api_service_token('00:00:00:00:00')
 
 sessions_table = boto3.resource('dynamodb').Table('preprocessing-dev-ingest-sessions')
 
@@ -18,16 +18,16 @@ def _query_dynamodb(resource, key_condition_expression):
 
 
 class TestSessionPatchNoAuth(BaseTest):
-    endpoint = 'session/911bffe6-2649-5b74-825a-7481bdf5920e'
+    endpoint = 'session/ab0bc061-7c79-5e64-a1f6-e6b900257ace'
     method = 'PATCH'
     expected_status = 401
 
 
-class TestSessionPatchInvalidUuid(BaseTest):
-    endpoint = 'session/foobar'
-    method = 'PATCH'
-    authorization = jwt_token
-    expected_status = 400
+# class TestSessionPatchInvalidUuid(BaseTest):
+#     endpoint = 'session/foobar'
+#     method = 'PATCH'
+#     authorization = jwt_token
+#     expected_status = 400
 
 
 class TestSessionPatchNonExistent(BaseTest):
@@ -38,19 +38,19 @@ class TestSessionPatchNonExistent(BaseTest):
 
 
 class TestSessionPatchUipToUc(BaseTest):
-    endpoint = 'session/911bffe6-2649-5b74-825a-7481bdf5920e'
+    endpoint = 'session/ab0bc061-7c79-5e64-a1f6-e6b900257ace'
     method = 'PATCH'
     authorization = jwt_token
     body = {'session_status': 'UPLOAD_COMPLETE'}
-    expected_status = 400
-    expected_id = '911bffe6-2649-5b74-825a-7481bdf5920e'
+    expected_status = 200
+    expected_id = 'ab0bc061-7c79-5e64-a1f6-e6b900257ace'
 
     def validate_aws_pre(self):
         existing = _query_dynamodb(sessions_table, Key('id').eq(self.expected_id))
         if existing is None:
             self.fail('Session should exist prior to test')
         self.assertIn('session_status', existing)
-        self.assertEqual('CREATE_COMPLETE', existing['session_status'])
+        self.assertEqual('UPLOAD_IN_PROGRESS', existing['session_status'])
 
     def validate_aws_post(self):
         res = _query_dynamodb(sessions_table, Key('id').eq(self.expected_id))
@@ -59,7 +59,7 @@ class TestSessionPatchUipToUc(BaseTest):
         self.assertIn('id', res)
         self.assertEqual(self.expected_id, res['id'])
         self.assertIn('session_status', res)
-        self.assertEqual('CREATE_COMPLETE', res['session_status'])
+        self.assertEqual('UPLOAD_COMPLETE', res['session_status'])
 
     def validate_response(self, body, headers, status):
         self.assertIn('session', body)
@@ -68,13 +68,14 @@ class TestSessionPatchUipToUc(BaseTest):
         self.assertEqual(self.expected_id, session['id'])
 
     def setUp(self):
+        sessions_table.delete_item(Key={'id': self.expected_id})
         sessions_table.put_item(Item={
             'accessory_id': '00:00:00:00:00',
             'created_dateString': '2018-05-14T22:18:22Z',
             'event_date': '2001-01-01T01:23:45Z',
-            'id': '911bffe6-2649-5b74-825a-7481bdf5920e',
+            'id': 'ab0bc061-7c79-5e64-a1f6-e6b900257ace',
             'sensor_ids': ['11:11:11:11:11'],
-            'session_status': 'CREATE_COMPLETE',
+            'session_status': 'UPLOAD_IN_PROGRESS',
             'updated_date':	'2018-05-14T22:18:22Z',
             'version': '2.3',
         })

@@ -22,12 +22,12 @@ users = [
     # "run_a_mazen", #110e14e6-8630-48e8-b75d-0caad447d661
     # "tread_run_2_mazen", #23e93c04-c7cc-40b3-8e34-e43a9cab286a
     #"tread_b_mazen",  # 1569f9bb-6de3-49a9-913c-f69d7d763d25
-    # "nc_long",  #7bb3e792-41ff-43cb-861e-87cf2bdeeadf
-    # "nc_sore_tread",  # 917e94bc-3f56-4519-8d25-ae54878748f2
-    # "ts_tread", # '18ad5cde-92a8-4cd4-8295-71a91c7d3aac'
-    # "ts_pain_long", #e602620d-2040-4ecc-87cc-f392d9db5eab
-    # "two_pain_tread",  # 25c38e39-357a-456d-84b7-61547364a2ba
-    #"full_fte_long", #024a6807-eef6-4556-b3b8-1c8639dd1758
+    "nc_long",  #7bb3e792-41ff-43cb-861e-87cf2bdeeadf
+    "nc_sore_tread",  # 917e94bc-3f56-4519-8d25-ae54878748f2
+    "ts_tread", # '18ad5cde-92a8-4cd4-8295-71a91c7d3aac'
+    "ts_pain_long", #e602620d-2040-4ecc-87cc-f392d9db5eab
+    "two_pain_tread",  # 25c38e39-357a-456d-84b7-61547364a2ba
+    "full_fte_long", #024a6807-eef6-4556-b3b8-1c8639dd1758
     "full_fte_tread", #33293741-bf30-479e-83e9-bc6b3a1cb7c2
 ]
 
