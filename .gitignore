@@ -13,6 +13,9 @@
 !/app/*.py
 !/app/pip_requirements
 
+
+tests/.pytest_cache/*
+tests/*/.pytest_cache/*
 tests/advancedStats/.pytest_cache
 tests/session2/.pytest_cache/*/*
 tests/aoi/.pytest_cache/*

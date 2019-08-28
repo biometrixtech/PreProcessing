@@ -1,8 +1,15 @@
 import numpy as np
 import pandas as pd
+from .exceptions import StillDetectionException, MarchDetectionException
 
 from utils import get_ranges
 from utils.quaternion_conversions import quat_to_euler
+
+
+# constants
+march_detection_start = 775
+march_detection_end = 2000
+samples_before_march = 75
 
 
 def detect_march_and_still(data):
@@ -10,9 +17,9 @@ def detect_march_and_still(data):
     start_still_2, end_still_2, start_march_2, end_march_2 = _detect_march_and_still_ankle(data, 2)
     start_march_hip = max([start_march_0, start_march_2])
     end_march_hip = min([end_march_0, end_march_2])
-    start_still_hip, end_still_hip = _detect_still(data[start_march_hip - 75:start_march_hip], sensor=1)
-    start_still_hip += start_march_hip - 75
-    end_still_hip += start_march_hip - 75
+    start_still_hip, end_still_hip = _detect_still(data[start_march_hip - samples_before_march:start_march_hip], sensor=1)
+    start_still_hip += start_march_hip - samples_before_march
+    end_still_hip += start_march_hip - samples_before_march
 
     return (start_march_0, end_march_0, start_still_0, end_still_0,
             start_march_hip, end_march_hip, start_still_hip, end_still_hip,
@@ -21,16 +28,16 @@ def detect_march_and_still(data):
 
 def _detect_march_and_still_ankle(data, sensor):
     # get march
-    start_march, end_march = _detect_march(data[f'static_{sensor}'][int(8 * 97.52):int(20*97.52)])
+    start_march, end_march = _detect_march(data[f'static_{sensor}'][march_detection_start:march_detection_end])
     if end_march != 0:
-        start_march += int(8 * 97.52)
-        end_march += int(8 * 97.52)
-        start_still, end_still = _detect_still(data[start_march - 75:start_march], sensor=0)
-        start_still += start_march - 75
-        end_still += start_march - 75
+        start_march += march_detection_start
+        end_march += march_detection_start
+        start_still, end_still = _detect_still(data[start_march - samples_before_march:start_march], sensor=sensor)
+        start_still += start_march - samples_before_march
+        end_still += start_march - samples_before_march
         return start_still, end_still, start_march, end_march
     else:
-        raise ValueError(f'Could not detect march for sensor{sensor}')
+        raise MarchDetectionException(f'Could not detect march for sensor{sensor}', sensor)
 
 
 def _detect_march(static):
@@ -38,7 +45,7 @@ def _detect_march(static):
     ranges, lengths = get_ranges(static, 1, True)
     for r, length in zip(ranges, lengths):
         if length >= 400:
-            return r[0], min(r[1], r[0] + int(6 * 97.52))
+            return r[0], min(r[1], r[0] + int(600))
     return 0, 0
 
 
@@ -48,6 +55,7 @@ def _fix_short_static(static):
         if l < 15:
             static[r[0]: r[1]] = 1
     return static
+
 
 
 def _detect_still(data, sensor=0):
@@ -61,22 +69,26 @@ def _detect_still(data, sensor=0):
     )
     euler_x = euler[:, 0] * 180 / np.pi
     euler_y = euler[:, 1] * 180 / np.pi
-    sd_x = pd.Series(euler_x).rolling(25).std(center=True)
-    sd_y = pd.Series(euler_y).rolling(25).std(center=True)
-    sd_tilt = sd_x + sd_y
+    static = data[f'static_{sensor}'].values
+    x_diff = max(euler_x) - min(euler_x)
+    y_diff = max(euler_y) - min(euler_y)
+    max_diff_all = max(x_diff, y_diff)
+    if max_diff_all > 20:  # too much movement/drift in the second prior
+        raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
 
-    min_sd_tilt = np.min(sd_tilt)
-    min_sd_loc = np.where(sd_tilt == min_sd_tilt)[0][0]
-    start = min_sd_loc - 12
-    end = min_sd_loc + 12
+    for i in np.arange(len(data) - 1, 25, -1):
+        start = i - 25
+        end = i
+        # get the greatest change in angle in the window
+        x_diff = max(euler_x[start:end]) - min(euler_x[start:end])
+        y_diff = max(euler_y[start:end]) - min(euler_y[start:end])
+        max_diff = max(x_diff, y_diff)
 
-    x_diff = max(euler_x[start:end]) - min(euler_x[start:end])
-    y_diff = max(euler_y[start:end]) - min(euler_y[start:end])
-    max_diff = max(x_diff, y_diff)
+        # check the number of static samples in the window
+        static_present = static[start:end] == 0
+        static_count = sum(static_present)
 
-    still_present = data[f'static_{sensor}'][start:end].values == 0
-    still = sum(still_present)
-    if still > 0 or max_diff < 1:
-        return start, end
-    else:
-        raise ValueError(f'could not detect still for sensor{sensor}')
+        # if either is good, use the window
+        if static_count >= 20 or max_diff < .75:
+            return start, end
+    raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
