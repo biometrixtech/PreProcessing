@@ -1,7 +1,5 @@
 import jwt
-import os
 import requests
-import unittest
 import pytest
 from botocore.exceptions import ClientError
 from jose import jwt
