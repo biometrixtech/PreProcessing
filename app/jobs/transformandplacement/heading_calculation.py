@@ -55,11 +55,11 @@ def heading_foot_finder(q_refC0, q_refC2, start_marching_phase, stop_marching_ph
     try:
         qH0 = heading_calculus(q_refC0[start_marching_phase:stop_marching_phase,:])
     except HeadingDetectionException:
-        raise HeadingDetectionException("Could not detect heading for sensor0")
+        raise HeadingDetectionException("Could not detect heading for sensor0", 0)
     try:
         qH2 = heading_calculus(q_refC2[start_marching_phase:stop_marching_phase,:])
     except HeadingDetectionException:
-        raise HeadingDetectionException("Could not detect heading for sensor2")
+        raise HeadingDetectionException("Could not detect heading for sensor2", 2)
 
     return qH0, qH2
 

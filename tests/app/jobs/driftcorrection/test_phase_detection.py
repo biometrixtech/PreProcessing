@@ -1,12 +1,12 @@
-# from aws_xray_sdk.core import xray_recorder
-# from jobs.driftcorrection.placement import get_placement_lateral_hip
-#
-# xray_recorder.configure(sampling=False)
-# xray_recorder.begin_segment(name="test")
-# import numpy as np
-# import pandas as pd
-# import os
-# import matplotlib.pyplot as plt
+from aws_xray_sdk.core import xray_recorder
+from jobs.driftcorrection.placement import get_placement_lateral_hip, get_placement_hip_correction
+
+xray_recorder.configure(sampling=False)
+xray_recorder.begin_segment(name="test")
+import numpy as np
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
 #
 # # Use theano backend for keras
 # os.environ['KERAS_BACKEND'] = 'theano'
@@ -22,20 +22,38 @@
 #     pass
 #
 #
-# def plot_accel(left, right, hip):
-#     left.reset_index(drop=True, inplace=True)
-#     right.reset_index(drop=True, inplace=True)
-#     hip.reset_index(drop=True, inplace=True)
-#
-#     s = 0
-#     e = len(left)
-#
-#     plt.figure()
-#     plt.subplot(311)
-#     plt.plot(left[s:e])
-#     plt.plot(right[s:e])
-#     plt.plot(hip[s:e])
-#     plt.legend()
+def plot_accel(left, right, hip):
+
+    #left.reset_index(drop=True, inplace=True)
+    #right.reset_index(drop=True, inplace=True)
+    #hip.reset_index(drop=True, inplace=True)
+
+    s = 0
+    e = len(left)
+
+    plt.figure()
+    plt.subplot(311)
+    plt.plot(left[s:e])
+    plt.plot(right[s:e])
+    plt.plot(hip[s:e])
+    plt.legend()
+
+def plot_stomp(left, right):
+
+    #left.reset_index(drop=True, inplace=True)
+    #right.reset_index(drop=True, inplace=True)
+    #hip.reset_index(drop=True, inplace=True)
+
+    s = 0
+    e = len(left)
+
+    plt.figure()
+    plt.subplot(211)
+    plt.plot(left[s:e], label="left")
+    plt.legend()
+    plt.subplot(212)
+    plt.plot(right[s:e], label="right")
+    plt.legend()
 #
 #
 #
@@ -72,39 +90,155 @@
 #     pass
 #
 #
-# def test_lateral_hip_acceleration():
-#     path = '../../../../testdata/calibration/'
-#     correct_list = []
-#     error_list = []
-#     help_list = []
-#     zero_list = []
-#     file_nums = [1, 3, 5, 7, 9, 11, 13, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
-#     file_starts = [920, 860, 900, 860, 840, 900, 890, 840, 840, 850, 890, 900, 790, 870, 820, 870, 880, 900]
-#     file_ends = [1710, 1500, 1475, 1530, 1510, 1500, 1523, 1500, 1470, 1475, 1500, 1500, 1630, 1580, 1550, 1510, 1560, 1640]
-#     index_num = 0
-#     for file_num in file_nums:
-#
-#         test_file2 = 'capture'+str(file_num)+'_calibration.csv'
-#         test_data2 = pd.read_csv(path + test_file2)
-#         test_data2.columns = ['epoch_time', 'quat_0_w', 'quat_0_x', 'quat_0_y', 'quat_0_z', 'acc_0_x', 'acc_0_y',
-#                               'acc_0_z', 'quat_1_w', 'quat_1_x', 'quat_1_y', 'quat_1_z', 'acc_1_x', 'acc_1_y',
-#                               'acc_1_z', 'quat_2_w', 'quat_2_x', 'quat_2_y', 'quat_2_z', 'acc_2_x', 'acc_2_y', 'acc_2_z']
-#
-#         if index_num in [3, 4, 14]:
-#             f=0
-#         placement = get_placement_lateral_hip(test_data2, file_starts[index_num], file_ends[index_num])
-#
-#         if placement == [2, 1, 0]:
-#             error_list.append(file_num)
-#         #elif side_0 == 0:
-#         #    zero_list.append(file_num)
-#         else:
-#             correct_list.append(file_num)
-#
-#         #if side_0 - side_2 == 1:
-#         #    help_list.append(file_num)
-#         index_num += 1
-#
-#     i=0
-#
-#
+
+_output_columns = [
+    'obs_index',
+    'static_lf',
+    'static_hip',
+    'static_rf',
+    'time_stamp',
+    'epoch_time',
+    'ms_elapsed',
+    'active',
+    'phase_lf',
+    'phase_rf',
+    'candidate_troughs_lf', 'troughs_lf',
+    'correction_points_hip',
+    'candidate_troughs_rf', 'troughs_rf',
+    'grf',
+    'grf_lf',
+    'grf_rf',
+    'total_accel',
+    'euler_lf_x', 'euler_lf_y', 'euler_lf_z',
+    'euler_hip_x', 'euler_hip_y', 'euler_hip_z',
+    'euler_rf_x', 'euler_rf_y', 'euler_rf_z',
+    'acc_lf_x', 'acc_lf_y', 'acc_lf_z',
+    'acc_hip_x', 'acc_hip_y', 'acc_hip_z',
+    'acc_rf_x', 'acc_rf_y', 'acc_rf_z',
+    'quat_lf_w','quat_lf_x', 'quat_lf_y', 'quat_lf_z',
+    'quat_hip_w', 'quat_hip_x', 'quat_hip_y', 'quat_hip_z',
+    'quat_rf_w', 'quat_rf_x', 'quat_rf_y', 'quat_rf_z',
+    'stance',
+    'adduc_motion_covered_abs_lf', 'adduc_motion_covered_pos_lf', 'adduc_motion_covered_neg_lf',
+    'adduc_range_of_motion_lf',
+    'flex_motion_covered_abs_lf', 'flex_motion_covered_pos_lf', 'flex_motion_covered_neg_lf',
+    'flex_range_of_motion_lf',
+    'contact_duration_lf',
+    'adduc_motion_covered_abs_h', 'adduc_motion_covered_pos_h', 'adduc_motion_covered_neg_h',
+    'adduc_range_of_motion_h',
+    'flex_motion_covered_abs_h', 'flex_motion_covered_pos_h', 'flex_motion_covered_neg_h',
+    'flex_range_of_motion_h',
+    'contact_duration_h',
+    'adduc_motion_covered_abs_rf', 'adduc_motion_covered_pos_rf', 'adduc_motion_covered_neg_rf',
+    'adduc_range_of_motion_rf',
+    'flex_motion_covered_abs_rf', 'flex_motion_covered_pos_rf', 'flex_motion_covered_neg_rf',
+    'flex_range_of_motion_rf',
+    'contact_duration_rf']
+
+_renamed_columns = [
+    'obs_index',
+    'static_0',
+    'static_1',
+    'static_2',
+    'time_stamp',
+    'epoch_time',
+    'ms_elapsed',
+    'active',
+    'phase_0',
+    'phase_2',
+    'candidate_troughs_0', 'troughs_0',
+    'correction_points_1',
+    'candidate_troughs_2', 'troughs_2',
+    'grf',
+    'grf_0',
+    'grf_2',
+    'total_accel',
+    'euler_0_x', 'euler_0_y', 'euler_0_z',
+    'euler_1_x', 'euler_1_y', 'euler_1_z',
+    'euler_2_x', 'euler_2_y', 'euler_2_z',
+    'acc_0_x', 'acc_0_y', 'acc_0_z',
+    'acc_1_x', 'acc_1_y', 'acc_1_z',
+    'acc_2_x', 'acc_2_y', 'acc_2_z',
+    'quat_0_w','quat_0_x', 'quat_0_y', 'quat_0_z',
+    'quat_1_w', 'quat_1_x', 'quat_1_y', 'quat_1_z',
+    'quat_2_w', 'quat_2_x', 'quat_2_y', 'quat_2_z',
+    'stance',
+    'adduc_motion_covered_abs_0', 'adduc_motion_covered_pos_0', 'adduc_motion_covered_neg_0',
+    'adduc_range_of_motion_0',
+    'flex_motion_covered_abs_0', 'flex_motion_covered_pos_0', 'flex_motion_covered_neg_0',
+    'flex_range_of_motion_0',
+    'contact_duration_0',
+    'adduc_motion_covered_abs_1', 'adduc_motion_covered_pos_1', 'adduc_motion_covered_neg_1',
+    'adduc_range_of_motion_1',
+    'flex_motion_covered_abs_1', 'flex_motion_covered_pos_1', 'flex_motion_covered_neg_1',
+    'flex_range_of_motion_1',
+    'contact_duration_1',
+    'adduc_motion_covered_abs_2', 'adduc_motion_covered_pos_2', 'adduc_motion_covered_neg_2',
+    'adduc_range_of_motion_2',
+    'flex_motion_covered_abs_2', 'flex_motion_covered_pos_2', 'flex_motion_covered_neg_2',
+    'flex_range_of_motion_2',
+    'contact_duration_2']
+
+def test_lateral_hip_acceleration():
+    path = '../../../../testdata/failed_placements_completed/'
+    correct_list = []
+    error_list = []
+    help_list = []
+    zero_list = []
+
+    session_id = "f93e004d-7dd0-56b3-bb22-353750586f5e"
+
+    file_name = session_id + '_processed'
+    data = pd.read_csv(path + file_name, usecols=_output_columns)
+    data.columns = _renamed_columns
+
+    start = 807
+    end = 1392
+
+    hip_accel_data = data["acc_1_y"][start:end]
+    sensor_0_accel_data = data["acc_0_z"][start:end]
+    sensor_2_accel_data = data["acc_2_z"][start:end]
+
+    #plot_accel(sensor_0_accel_data, sensor_2_accel_data, hip_accel_data)
+
+    sensor_0_accel_stomp_data = data["acc_0_z"][end:end+3000]
+    sensor_2_accel_stomp_data = data["acc_2_z"][end:end+3000]
+
+    # hip_window = 5
+    #
+    # hip_correction_data = data[["correction_points_1", "troughs_0", "troughs_2"]]
+    #
+    # corr_hip_indices = np.where(hip_correction_data.correction_points_1.values == 1)[0].astype(list)
+    # corr_point_padded = set(np.concatenate([np.arange(i - hip_window, i + hip_window) for i in corr_hip_indices]))
+    #
+    # window_data = hip_correction_data.loc[corr_point_padded, :]
+    #
+    # zero_sum = np.sum(window_data.troughs_0)
+    # two_sum = np.sum(window_data.troughs_2)
+    # test_sum = np.sum(window_data.correction_points_1)
+    #
+    # hip_correction_placement = "012"
+    #
+    # if two_sum > zero_sum:
+    #     hip_correction_placement = "210"
+
+    #plot_stomp(sensor_0_accel_stomp_data, sensor_2_accel_stomp_data)
+
+    lateral_placement, weak_placement_lateral = get_placement_lateral_hip(data, start, end)
+
+    hip_placement, weak_placement_hip = get_placement_hip_correction(data)
+
+    #if placement == [2, 1, 0]:
+    #    error_list.append(file_num)
+    #elif side_0 == 0:
+    #    zero_list.append(file_num)
+    #else:
+    #    correct_list.append(file_num)
+
+    #if side_0 - side_2 == 1:
+    #    help_list.append(file_num)
+    #index_num += 1
+
+
+
+

@@ -62,6 +62,12 @@ class UnitBlock(object):
         self.peak_grf_contact_duration_lf = mongo_unit_block.get('peakGrfContactDurationLF')
         self.peak_grf_contact_duration_rf = mongo_unit_block.get('peakGrfContactDurationRF')
 
+        # complexity of movement variables
+        self.cadence_zone = mongo_unit_block.get('cadence_zone')
+        self.change_of_direction = mongo_unit_block.get('change_of_direction')
+        self.accelerating = mongo_unit_block.get('accelerating')
+        self.decelerating = mongo_unit_block.get('decelerating')
+
         # Derived variables
         if self.peak_grf_lf is not None and self.peak_grf_rf is not None:
             self.peak_grf_perc_left = self.peak_grf_lf / (self.peak_grf_rf + self.peak_grf_lf) * 100
