@@ -1,9 +1,9 @@
-from .base_test import BaseTest
+from .base_test import BaseTest, get_api_service_token
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
 # This has username = '00:00:00:00:00'
-jwt_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6IjAwOjAwOjAwOjAwOjAwIn0._EtGIW4hbbJAbAywUrtonMwZgQuuU8dSyOrPZEF6TJE'
+jwt_token = get_api_service_token(sub='00:00:00:00:00')
 
 sessions_table = boto3.resource('dynamodb').Table('preprocessing-dev-ingest-sessions')
 
@@ -63,8 +63,6 @@ class TestSessionCreateOneSensor(BaseTest):
         session = body['session']
         self.assertIn('id', session)
         self.assertEqual(self.expected_id, session['id'])
-        self.assertIn('session_status', session)
-        self.assertEqual('CREATE_COMPLETE', session['session_status'])
 
     def setUp(self):
         sessions_table.delete_item(Key={'id': self.expected_id})
