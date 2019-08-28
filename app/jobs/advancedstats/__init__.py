@@ -63,9 +63,15 @@ class AdvancedstatsJob(Job):
                 }  
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
-        requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data',
-                      data=json.dumps(body),
-                      headers=headers)
+
+        response = requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data',
+                                 data=json.dumps(body),
+                                 headers=headers)
+        if response.status_code >= 300:
+            _logger.warning(f"API call failed with the following error:\n{response.status_code} {response.text}")
+            self.datastore.put_metadata({'failure': 'PLANS_API',
+                                         'plans_api_error_code': response.status_code})
+
 
 
 def get_unit_blocks(session_id, date):
