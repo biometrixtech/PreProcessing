@@ -58,8 +58,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
         #loading_events = self._get_loading_asymmetries()
         #self._write_loading_movement_asymmetry(loading_events, movement_events)
         left_apt, right_apt = self._get_session_asymmetry_apts(movement_events)
-        self.write_movement_asymmetry(movement_events, left_apt, right_apt)
-        return left_apt, right_apt
+        asymmetric_count, symmetric_count = self.write_movement_asymmetry(movement_events, left_apt, right_apt)
+        return left_apt, right_apt, asymmetric_count, symmetric_count
 
     def _get_session_asymmetry_summaries(self):
         # relative magnitude
@@ -500,6 +500,9 @@ class AsymmetryProcessorJob(UnitBlockJob):
         sym_count = [m for m in movement_events if not m.significant and (m.left_median > 0 or m.right_median > 0)]
         asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
 
+        record_out['symmetric_events'] = len(sym_count)
+        record_out['asymmetric_events'] = len(asym_count)
+
         total_count = len(sym_count) + len(asym_count)
 
         percent_asym = 0
@@ -528,6 +531,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
         mongo_collection.replace_one(query, record_out, upsert=True)
 
         _logger.info("Wrote asymmetry record for " + self.datastore.session_id)
+
+        return len(asym_count), len(sym_count)
 
     def _write_loading_movement_asymmetry(self, loading_events, movement_events):
         df = pd.DataFrame()
