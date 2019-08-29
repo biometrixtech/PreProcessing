@@ -41,11 +41,11 @@ class AdvancedstatsJob(Job):
             # FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
             from .asymmetry_processor_job import AsymmetryProcessorJob
-            left_apt, right_apt = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
+            left_apt, right_apt, asymmetric_count, symmetric_count = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
 
-            self._write_session_to_plans(left_apt, right_apt )
+            self._write_session_to_plans(left_apt, right_apt, asymmetric_count, symmetric_count)
 
-    def _write_session_to_plans(self, left_apt, right_apt):
+    def _write_session_to_plans(self, left_apt, right_apt, asymmetric_count, symmetric_count):
         _service_token = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
         user_id = self.datastore.get_metadatum('user_id')
         event_date = self.datastore.get_metadatum('event_date')
@@ -58,14 +58,22 @@ class AdvancedstatsJob(Job):
                 "seconds_duration": seconds_duration,
                 "asymmetry": {
                     "left_apt": left_apt,
-                    "right_apt": right_apt
+                    "right_apt": right_apt,
+                    "asymmetric_events": asymmetric_count,
+                    "symmetric_events": symmetric_count
                     }
                 }  
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
-        requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data',
-                      data=json.dumps(body),
-                      headers=headers)
+
+        response = requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data',
+                                 data=json.dumps(body),
+                                 headers=headers)
+        if response.status_code >= 300:
+            _logger.warning(f"API call failed with the following error:\n{response.status_code} {response.text}")
+            self.datastore.put_metadata({'failure': 'PLANS_API',
+                                         'plans_api_error_code': response.status_code})
+
 
 
 def get_unit_blocks(session_id, date):
