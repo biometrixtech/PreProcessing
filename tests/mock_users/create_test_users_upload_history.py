@@ -186,10 +186,10 @@ if __name__ == '__main__':
 
                 left_apt, right_apt = job._get_session_asymmetry_apts(asymmetry_events)
 
-                job.write_movement_asymmetry(asymmetry_events, left_apt, right_apt)
+                asym_count, sym_count = job.write_movement_asymmetry(asymmetry_events, left_apt, right_apt)
 
                 advanced_stats_job = AdvancedstatsJob(ds)
-                advanced_stats_job._write_session_to_plans(left_apt, right_apt)
+                advanced_stats_job._write_session_to_plans(left_apt, right_apt, asym_count, sym_count)
 
 
 

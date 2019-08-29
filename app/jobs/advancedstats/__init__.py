@@ -41,11 +41,11 @@ class AdvancedstatsJob(Job):
             # FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
             from .asymmetry_processor_job import AsymmetryProcessorJob
-            left_apt, right_apt = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
+            left_apt, right_apt, asymmetric_count, symmetric_count = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
 
-            self._write_session_to_plans(left_apt, right_apt )
+            self._write_session_to_plans(left_apt, right_apt, asymmetric_count, symmetric_count)
 
-    def _write_session_to_plans(self, left_apt, right_apt):
+    def _write_session_to_plans(self, left_apt, right_apt, asymmetric_count, symmetric_count):
         _service_token = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
         user_id = self.datastore.get_metadatum('user_id')
         event_date = self.datastore.get_metadatum('event_date')
@@ -58,7 +58,9 @@ class AdvancedstatsJob(Job):
                 "seconds_duration": seconds_duration,
                 "asymmetry": {
                     "left_apt": left_apt,
-                    "right_apt": right_apt
+                    "right_apt": right_apt,
+                    "asymmetric_events": asymmetric_count,
+                    "symmetric_events": symmetric_count
                     }
                 }  
         headers = {'Content-Type': 'application/json',
