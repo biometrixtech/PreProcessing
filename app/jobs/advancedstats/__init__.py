@@ -52,7 +52,7 @@ class AdvancedstatsJob(Job):
         end_date = self.datastore.get_metadatum('end_date')
         seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
 
-        body = {'user_id': user_id,
+        body = {
                 'event_date': event_date,
                 "session_id": self.datastore.session_id,
                 "seconds_duration": seconds_duration,
@@ -71,6 +71,7 @@ class AdvancedstatsJob(Job):
         if plans_api_version >= '4_4':
             endpoint = f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/{plans_api_version}/session/{user_id}/three_sensor_data'
         else:
+            body['user_id'] = user_id
             endpoint = f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/{plans_api_version}/session/three_sensor_data'
 
         response = requests.post(url=endpoint,
