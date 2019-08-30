@@ -66,7 +66,14 @@ class AdvancedstatsJob(Job):
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
 
-        response = requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data',
+        plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
+        print(user_id, plans_api_version)
+        if plans_api_version >= '4_4':
+            endpoint = f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/{plans_api_version}/session/{user_id}/three_sensor_data'
+        else:
+            endpoint = f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/{plans_api_version}/session/three_sensor_data'
+
+        response = requests.post(url=endpoint,
                                  data=json.dumps(body),
                                  headers=headers)
         if response.status_code >= 300:
