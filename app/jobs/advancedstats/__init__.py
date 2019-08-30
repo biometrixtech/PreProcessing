@@ -67,7 +67,6 @@ class AdvancedstatsJob(Job):
                    'Authorization': _service_token}
 
         plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
-        print(user_id, plans_api_version)
         if plans_api_version >= '4_4':
             endpoint = f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/{plans_api_version}/session/{user_id}/three_sensor_data'
         else:
