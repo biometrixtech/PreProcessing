@@ -28,9 +28,10 @@ def handler(event, _):
 
         if 'user_id' in changes and new_object['user_id'] != '---':
             print('Loading data from users service')
-            user = Service('users', '2_0').call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
+            user = Service('users', '2_3').call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
             if user is not None:
-                data = {'user_mass': decimal.Decimal(str(user['biometric_data']['mass']['kg']))}
+                data = {'user_mass': decimal.Decimal(str(user['biometric_data']['mass']['kg'])),
+                        'plans_api_version': user.get('plans_api_version', None) or '4_4'}
                 if 'teams' in user and len(user['teams']):
                     data['team_id'] = user['teams'][0]['id']
                 if 'training_groups' in user and len(user['training_groups']):
