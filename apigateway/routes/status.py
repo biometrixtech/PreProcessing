@@ -71,15 +71,32 @@ def _get_cleaned_session(session):
     item['end_date'] = _get_local_time(session.get('end_date', None))
     item['upload_end_date'] = _get_local_time(session.get('upload_end_date', None))
     item['updated_date'] = _get_local_time(session.get('updated_date', None))
+    item['cause_of_failure'] = None
     
     session_status = session.get('session_status', None)
-    item['status'] = session_status
-    # if session_status in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS']:
-    #     item['status'] = 0
-    # elif session_status in ['PROCESSING_COMPLETE']:
-    #     item['status'] = 1
-    # else:
-    #     item['status'] = 2
+
+    # The statuses displayed on mobile are UPLOAD_PAUSED, UPLOAD_IN_PROGRESS, PROCESSING_IN_PROGRESS, PROCESSING_FAILED and PROCESSING_COMPLETE
+    if session_status in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS']:
+        # If uploading check when the last part came in and if more than 4 mins since last upload, UPLOAD_PAUSED
+        if session.get('updated_date') is not None and (datetime.datetime.now() - parse_datetime(session['updated_date'])).seconds >= 60 * 4:
+            item['status'] = 'UPLOAD_PAUSED'
+        else:
+            item['status'] = 'UPLOAD_IN_PROGRESS'
+    elif session_status in ['UPLOAD_COMPLETE', 'PROCESSING_IN_PROGRESS']:
+        item['status'] = 'PROCESSING_IN_PROGRESS'
+    elif session_status in ['PROCESSING_FAILED']:
+        item['status'] = session_status
+        # if failed processing, assign one of CALIBRATION, PLACEMENT, ERROR
+        session_failure = session.get('failure')
+        if session_failure in ['HEADING_DETECTION', 'STILL_DETECTION', 'MARCH_DETECTION']:
+            item['cause_of_failure'] = 'CALIBRATION'
+        elif session_failure == 'LEFT_RIGHT_DETECTION':
+            item['cause_of_failure'] = 'PLACEMENT'
+        else:
+            item['cause_of_failure'] = 'ERROR'
+    else:  # processing completed successfully
+        item['status'] = session_status
+
     if item['end_date'] is not None and item['event_date'] is not None:
         item['duration'] = round((parse_datetime(item['end_date']) - parse_datetime(item['event_date'])).seconds / 60, 2)
     else:
