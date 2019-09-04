@@ -70,7 +70,7 @@ def _get_cleaned_session(session):
     item['event_date'] = _get_local_time(session['event_date'])
     item['end_date'] = _get_local_time(session.get('end_date', None))
     item['upload_end_date'] = _get_local_time(session.get('upload_end_date', None))
-    item['updated_date'] = _get_local_time(session.get('updated_date', None))
+    # item['updated_date'] = _get_local_time(session.get('updated_date', None))
     item['cause_of_failure'] = None
     
     session_status = session.get('session_status', None)
