@@ -13,7 +13,7 @@ from .define_blocks import define_active_blocks, define_cadence_zone
 _logger = logging.getLogger()
 
 _input_columns = [
-    'obs_index',
+    # 'obs_index',
     'epoch_time',
     'ms_elapsed',
     'active',
@@ -23,7 +23,9 @@ _input_columns = [
     'grf_lf',
     'grf_rf',
     'total_accel',
+    'euler_lf_y',
     'euler_hip_y',
+    'euler_rf_y',
     'acc_hip_z',
     'stance',
     'remove',
@@ -86,7 +88,7 @@ class AggregateblocksJob(Job):
 
             block_start = str(pd.to_datetime(data['epoch_time'][block.start_index], unit='ms'))
             block_end = str(pd.to_datetime(data['epoch_time'][block.end_index], unit='ms'))
-            block_data = data.loc[block.start_index:block.end_index, :]
+            block_data = data.loc[block.start_index - 15:block.end_index + 30, :]
 
             record_out = OrderedDict()
             record_out['userId'] = self.datastore.get_metadatum('user_id', None)
@@ -107,7 +109,7 @@ class AggregateblocksJob(Job):
             for ub in block.unit_blocks:
                 if ub.end_index >= len(data):
                     ub.end_index = len(data) - 1
-                unit_block_data = data.loc[ub.start_index:ub.end_index]
+                unit_block_data = data.loc[ub.start_index - 15:ub.end_index + 30]
                 ub.set_complexity_flags(unit_block_data)
 
                 unit_block_record = OrderedDict()

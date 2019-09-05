@@ -166,10 +166,18 @@ def _step_data(data, ranges, mass, sensor):
         if any(step_data.loc[:, 'remove'] == 1):  # if the step was marked for removal, do not compute APT
             print('removed step')
             apt_range, apt_rate = None, None
+            pitch_range, pitch_range_impact_start = None, None
         else:
             apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
+            if range_gc[0] > 10 and range_gc[1] < len(data) - 30:
+                pitch_range, pitch_range_impact_start = get_pitch_range_cme(data.loc[range_gc[0] - 20:range_gc[1] + 30, f"euler_{sensor.lower()}_y"].values)
+            else:
+                pitch_range, pitch_range_impact_start = None, None
+
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
+        step_record['anklePitchRange'] = pitch_range
+        step_record['anklePitchRangeImpactStart'] = pitch_range_impact_start
 
         # adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
         # adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
@@ -258,6 +266,30 @@ def get_apt_cme(euler_hip_y, euler_hip_y_diff):
         return None, None
     range_rate = range_euler_y / duration * 100
     return range_euler_y, range_rate
+
+
+def get_pitch_range_cme(euler_y_window):
+    min_pitch = np.min(euler_y_window[:int(len(euler_y_window) / 2)])  # min in the first half
+    max_pitch = np.max(euler_y_window[int(len(euler_y_window) / 2):])  # max in the second half
+    pitch_impact_start = euler_y_window[20]
+    min_point = np.where(euler_y_window == min_pitch)[0][0]
+    max_point = np.where(euler_y_window == max_pitch)[0][0]
+
+    # pitch rom CME
+    pitch_range = max_pitch - min_pitch
+
+    # alternate pitch rom CME that we won't be using
+    pitch_range_impact_start = max_pitch - pitch_impact_start
+
+    if pitch_range < 0:
+        print('neg pitch range')
+        return None, None
+    if (max_point - min_point) < 15:
+        print('min and max too close, possible error')
+        return None, None
+
+
+    return pitch_range * 180 / np.pi, pitch_range_impact_start * 180 / np.pi  # result in degrees
 
 
 def _contact_duration_peak_grf(grf, ranges, epoch_time):
