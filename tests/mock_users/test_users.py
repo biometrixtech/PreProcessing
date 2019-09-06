@@ -22,20 +22,20 @@ users = [
     # "run_a_mazen", #110e14e6-8630-48e8-b75d-0caad447d661
     # "tread_run_2_mazen", #23e93c04-c7cc-40b3-8e34-e43a9cab286a
     #"tread_b_mazen",  # 1569f9bb-6de3-49a9-913c-f69d7d763d25
-    # ("nc_long@200.com",  '7bb3e792-41ff-43cb-861e-87cf2bdeeadf'),
-    # ("nc_sore_tread@200.com",  '917e94bc-3f56-4519-8d25-ae54878748f2'),
+    #("nc_long@200.com",  '7bb3e792-41ff-43cb-861e-87cf2bdeeadf'),
+    ("nc_sore_tread@200.com",  '917e94bc-3f56-4519-8d25-ae54878748f2'),
     # ("ts_tread@200.com", '18ad5cde-92a8-4cd4-8295-71a91c7d3aac'),
     # ("ts_pain_long@200.com", 'e602620d-2040-4ecc-87cc-f392d9db5eab'),
     # ("two_pain_tread@200.com",  '25c38e39-357a-456d-84b7-61547364a2ba'),
     # ("full_fte_long@200.com", '024a6807-eef6-4556-b3b8-1c8639dd1758'),
     # ("full_fte_tread@200.com", '33293741-bf30-479e-83e9-bc6b3a1cb7c2'),
-    ("nc_long_2@200.com",  '8f6ff382-9314-43d2-9bb5-54bd8416a682'),
-    ("nc_sore_tread_2@200.com",  '3f4bd8a2-c76b-4296-8c75-7302c31468c2'),
-    ("ts_pain_long_2@200.com",  '5dd7a148-1c0e-4ddf-a1b1-020a99347069'),
-    ("ts_tread_2@200.com",  '93b7a075-8168-4fad-961f-cfebdee392fc'),
-    ("two_pain_tread_2@200.com",  '84a5e6fd-19f2-44ed-8bbd-ed2c03769ecf'),
-    ("full_fte_long_2@200.com",  '24882bdf-69df-4043-b832-74d6c1f7052c'),
-    ("full_fte_tread_2@200.com",  '703b5309-78cd-46b1-82ec-45e86b6d71de'),
+    # ("nc_long_2@200.com",  '8f6ff382-9314-43d2-9bb5-54bd8416a682'),
+    # ("nc_sore_tread_2@200.com",  '3f4bd8a2-c76b-4296-8c75-7302c31468c2'),
+    # ("ts_pain_long_2@200.com",  '5dd7a148-1c0e-4ddf-a1b1-020a99347069'),
+    # ("ts_tread_2@200.com",  '93b7a075-8168-4fad-961f-cfebdee392fc'),
+    # ("two_pain_tread_2@200.com",  '84a5e6fd-19f2-44ed-8bbd-ed2c03769ecf'),
+    # ("full_fte_long_2@200.com",  '24882bdf-69df-4043-b832-74d6c1f7052c'),
+    # ("full_fte_tread_2@200.com",  '703b5309-78cd-46b1-82ec-45e86b6d71de'),
 ]
 
 def get_test_users():
