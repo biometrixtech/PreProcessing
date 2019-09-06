@@ -36,7 +36,7 @@ def handle_get_upload_status(user_id):
     return {"sessions": cleaned_sessions_list, "accessory": accessory}
 
 
-@app.route('/<uuid:user_id>/last_session', methods=['POST'])
+@app.route('/<uuid:user_id>/last_session', methods=['GET'])
 @require.authenticated.any
 @xray_recorder.capture('routes.user.get_last_session')
 def handle_get_last_created_session(user_id):
@@ -54,9 +54,9 @@ def handle_get_last_created_session(user_id):
                 "event_date": _get_epoch_time(session['event_date']),
                 "end_time": _get_epoch_time(session.get('end_date', None))
             }
-            return {"session": cleaned_session}
+            return {"last_session": cleaned_session}
 
-    return {"sessions": None}
+    return {"session": None}
 
 
 def _get_accessory(accessory_id):
