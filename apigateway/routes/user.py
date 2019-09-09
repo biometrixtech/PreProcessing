@@ -47,6 +47,7 @@ def handle_get_last_created_session(user_id):
                                      index='user_id-event_date'))
     # subset to last 30 days
     sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - timedelta(days=days))]
+    sessions = sorted(sessions, key=lambda k: k['event_date'], reverse=True)
     for session in sessions:
         if session['session_status'] == 'CREATE_COMPLETE':
             cleaned_session = {
