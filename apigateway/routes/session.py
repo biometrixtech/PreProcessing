@@ -111,6 +111,8 @@ def handle_session_patch(session_id):
             ('UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE'),
             ('PROCESSING_COMPLETE', 'UPLOAD_IN_PROGRESS'),
             ('PROCESSING_FAILED', 'UPLOAD_IN_PROGRESS'),
+            ('CREATE_COMPLETE', 'NO_DATA'),
+            ('CREATE_COMPLETE', 'CREATE_ATTEMPT_FAILED')
         ]
         if (session['session_status'], request.json['session_status']) in allowed_transitions:
             session['session_status'] = request.json['session_status']
