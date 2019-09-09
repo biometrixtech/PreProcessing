@@ -52,7 +52,7 @@ def handle_get_last_created_session(user_id):
             cleaned_session = {
                 "id": session['id'],
                 "event_date": _get_epoch_time(session['event_date']),
-                "end_time": _get_epoch_time(session.get('end_date', None))
+                "end_date": _get_epoch_time(session.get('end_date', None))
             }
             return {"last_session": cleaned_session}
 
