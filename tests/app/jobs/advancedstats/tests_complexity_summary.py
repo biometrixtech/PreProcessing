@@ -391,7 +391,7 @@ def test_get_movement_asymmetries_kruskal():
 
         job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)
         asymmetry_events = job._get_movement_asymmetries()
-        left_apt, right_apt = job._get_session_asymmetry_apts(asymmetry_events)
+        left_apt, right_apt = job._get_session_asymmetry_summary(asymmetry_events)
 
         #faking duration
         session_time_end = format_datetime(session_time_start + timedelta(seconds=len(asymmetry_events)*30))

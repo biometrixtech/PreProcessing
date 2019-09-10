@@ -23,7 +23,7 @@ class AdvancedstatsJob(Job):
             unit_blocks.extend(a["unitBlocks"])
 
         unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
-        unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10]
+        unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10 and b["cadence_zone"] != 0]
 
         if len(unit_blocks) > 0:
             # # Write out active blocks
@@ -40,12 +40,12 @@ class AdvancedstatsJob(Job):
             # from .fatigue_processor_job import FatigueProcessorJob
             # FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
-            from .asymmetry_processor_job import AsymmetryProcessorJob
-            left_apt, right_apt, asymmetric_count, symmetric_count = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
+            from .asymmetry_processor_job import AsymmetryProcessorJob, AsymmetryEvents
+            asymmetry_events = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
 
-            self._write_session_to_plans(left_apt, right_apt, asymmetric_count, symmetric_count)
+            self._write_session_to_plans(asymmetry_events)
 
-    def _write_session_to_plans(self, left_apt, right_apt, asymmetric_count, symmetric_count):
+    def _write_session_to_plans(self, asymmetry_events):
         _service_token = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
         user_id = self.datastore.get_metadatum('user_id')
         event_date = self.datastore.get_metadatum('event_date')
@@ -57,10 +57,18 @@ class AdvancedstatsJob(Job):
                 "session_id": self.datastore.session_id,
                 "seconds_duration": seconds_duration,
                 "asymmetry": {
-                    "left_apt": left_apt,
-                    "right_apt": right_apt,
-                    "asymmetric_events": asymmetric_count,
-                    "symmetric_events": symmetric_count
+                    "apt":{
+                        "left": asymmetry_events.anterior_pelvic_tilt_summary.left,
+                        "right": asymmetry_events.anterior_pelvic_tilt_summary.right,
+                        "asymmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events,
+                        "symmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
+                        },
+                    "ankle_pitch": {
+                        "left": asymmetry_events.ankle_pitch_summary.left,
+                        "right": asymmetry_events.ankle_pitch_summary.right,
+                        "asymmetric_events": asymmetry_events.ankle_pitch_summary.asymmetric_events,
+                        "symmetric_events": asymmetry_events.ankle_pitch_summary.symmetric_events
+                        }
                     }
                 }  
         headers = {'Content-Type': 'application/json',

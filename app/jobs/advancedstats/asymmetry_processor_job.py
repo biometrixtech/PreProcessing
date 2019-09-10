@@ -42,6 +42,37 @@ class AsymmetryDistribution(object):
         self.significant = False
 
 
+class AsymmetrySummary(object):
+    def __init__(self):
+        self.left = 0
+        self.right = 0
+        self.symmetric_events = 0
+        self.asymmetric_events = 0
+        self.percent_events_asymmetric = 0
+
+
+class AsymmetryEvents(object):
+    def __init__(self):
+        self.anterior_pelvic_tilt_summary = AsymmetrySummary()
+        self.ankle_pitch_summary = AsymmetrySummary()
+
+
+class TimeBlockAsymmetry(object):
+    def __init__(self):
+        self.left = 0
+        self.right = 0
+        self.significant = False
+
+
+class TimeBlock(object):
+    def __init__(self):
+        self.time_block = 0
+        self.start_time = None
+        self.end_time = None
+        self.anterior_pelvic_tilt = TimeBlockAsymmetry()
+        self.ankle_pitch = TimeBlockAsymmetry()
+
+
 class AsymmetryProcessorJob(UnitBlockJob):
 
     def __init__(self, datastore, unit_blocks, complexity_matrix):
@@ -55,11 +86,9 @@ class AsymmetryProcessorJob(UnitBlockJob):
         #self._write_session_asymmetry_summaries(session_asymmetry_summaries)
 
         movement_events = self._get_movement_asymmetries()
-        #loading_events = self._get_loading_asymmetries()
-        #self._write_loading_movement_asymmetry(loading_events, movement_events)
-        left_apt, right_apt = self._get_session_asymmetry_apts(movement_events)
-        asymmetric_count, symmetric_count = self.write_movement_asymmetry(movement_events, left_apt, right_apt)
-        return left_apt, right_apt, asymmetric_count, symmetric_count
+        asymmetry_events = self._get_session_asymmetry_summary(movement_events)
+        self.write_movement_asymmetry(movement_events, asymmetry_events)
+        return asymmetry_events
 
     def _get_session_asymmetry_summaries(self):
         # relative magnitude
@@ -130,21 +159,74 @@ class AsymmetryProcessorJob(UnitBlockJob):
     #                                                       float(asym.right_avg_accumulated_grf_sec)) * 100
     #
     #     return asym
-    def _get_session_asymmetry_apts(self, movement_asymmetries):
-
-        left_significant_events = [l.left_median for l in movement_asymmetries if l.significant]
-        right_significant_events = [r.right_median for r in movement_asymmetries if r.significant]
+    def _get_session_asymmetry_summary(self, movement_asymmetries):
 
         left_apt = 0
         right_apt = 0
+        apt_sym_count = 0
+        apt_asym_count = 0
+        left_ankle_pitch = 0
+        right_ankle_pitch = 0
+        ankle_pitch_sym_count = 0
+        ankle_pitch_asym_count = 0
 
-        if len(left_significant_events) > 0:
-            left_apt = sum(left_significant_events)
+        for m in movement_asymmetries:
+            if m.anterior_pelvic_tilt.significant:
+                left_apt += m.anterior_pelvic_tilt.left
+                right_apt += m.anterior_pelvic_tilt.right
+                if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
+                    apt_asym_count += 1
+            else:
+                if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
+                    apt_sym_count += 1
+            if m.ankle_pitch.significant:
+                left_ankle_pitch += m.ankle_pitch.left
+                right_ankle_pitch += m.ankle_pitch.right
+                if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
+                    ankle_pitch_asym_count += 1
+            else:
+                if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
+                    ankle_pitch_sym_count += 1
 
-        if len(right_significant_events) > 0:
-            right_apt = sum(right_significant_events)
+        events = AsymmetryEvents()
+        events.anterior_pelvic_tilt_summary.left = left_apt
+        events.anterior_pelvic_tilt_summary.right = right_apt
+        events.anterior_pelvic_tilt_summary.symmetric_events = apt_sym_count
+        events.anterior_pelvic_tilt_summary.asymmetric_events = apt_asym_count
 
-        return left_apt, right_apt
+        apt_total_count = apt_sym_count + apt_asym_count
+
+        events.anterior_pelvic_tilt_summary.percent_events_asymmetric = 0
+
+        if apt_total_count > 0:
+            events.anterior_pelvic_tilt_summary.percent_events_asymmetric = round((apt_asym_count / float(apt_total_count)) * 100)
+
+        events.ankle_pitch_summary.left = left_ankle_pitch
+        events.ankle_pitch_summary.right = right_ankle_pitch
+        events.ankle_pitch_summary.symmetric_events = ankle_pitch_sym_count
+        events.ankle_pitch_summary.asymmetric_events = ankle_pitch_asym_count
+
+        ankle_pitch_total_count = ankle_pitch_sym_count + ankle_pitch_asym_count
+
+        events.ankle_pitch_summary.percent_events_asymmetric = 0
+
+        if ankle_pitch_total_count > 0:
+            events.ankle_pitch_summary.percent_events_asymmetric = round((ankle_pitch_asym_count / float(ankle_pitch_total_count)) * 100)
+
+        # left_significant_events = [l.left for l in movement_asymmetries if l.significant]
+        # right_significant_events = [r.right for r in movement_asymmetries if r.significant]
+        #
+        # left_apt = 0
+        # right_apt = 0
+        #
+        # if len(left_significant_events) > 0:
+        #     left_apt = sum(left_significant_events)
+        #
+        # if len(right_significant_events) > 0:
+        #     right_apt = sum(right_significant_events)
+
+        #return left_apt, right_apt
+        return events
 
     def _get_movement_asymmetries(self):
 
@@ -199,7 +281,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
             for i in range(0, intervals):
 
-                event = AsymmetryDistribution()
+                #apt_event = AsymmetryDistribution()
                 block_start_time = start_time + (i * seconds)
                 block_end_time = min(start_time + ((i + 1) * seconds), end_time)
 
@@ -207,7 +289,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     seconds_between_blocks = block_start_time - last_unit_block_time
                     gap_intervals = ceil(seconds_between_blocks / float(seconds))
                     for g in range(0, gap_intervals):
-                        gap_event = AsymmetryDistribution()
+                        #gap_event = AsymmetryDistribution()
+                        gap_event = TimeBlock()
 
                         gap_end_time = min(last_unit_block_time + ((g + 1) * seconds), block_start_time)
                         gap_event.start_time = last_unit_block_time + (g * seconds)
@@ -226,14 +309,34 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     r_step_blocks = list(x for x in r_unit_block_steps if
                                          block_start_time <= x.cumulative_end_time <= block_end_time)
 
-                    event = self._get_steps_f_test("anterior_pelvic_tilt_range", l_step_blocks,
+                    time_block_obj = TimeBlock()
+                    time_block_obj.time_block = time_block
+                    time_block_obj.start_time = block_start_time
+                    time_block_obj.end_time = block_end_time
+                    time_block_obj.anterior_pelvic_tilt = TimeBlockAsymmetry()
+                    time_block_obj.ankle_pitch = TimeBlockAsymmetry()
+
+                    apt_event = self._get_steps_f_test("anterior_pelvic_tilt_range", l_step_blocks,
                                                                               r_step_blocks, time_block)
-                    if event is None:
-                        event = AsymmetryDistribution()
-                        event.start_time = block_start_time
-                        event.end_time = block_end_time
-                        event.time_block = time_block
-                    events.append(event)
+
+                    if apt_event is not None:
+                        time_block_obj.anterior_pelvic_tilt.left = apt_event.left_median
+                        time_block_obj.anterior_pelvic_tilt.right = apt_event.right_median
+                        time_block_obj.anterior_pelvic_tilt.significant = apt_event.significant
+
+                    ankle_pitch_event = self._get_steps_f_test("ankle_pitch_range", l_step_blocks,
+                                                                              r_step_blocks, time_block, threshold=1.0)
+                    if ankle_pitch_event is not None:
+                        time_block_obj.ankle_pitch.left = ankle_pitch_event.left_median
+                        time_block_obj.ankle_pitch.right = ankle_pitch_event.right_median
+                        time_block_obj.ankle_pitch.significant = ankle_pitch_event.significant
+
+                    # if apt_event is None:
+                    #     apt_event = AsymmetryDistribution()
+                    #     apt_event.start_time = block_start_time
+                    #     apt_event.end_time = block_end_time
+                    #     apt_event.time_block = time_block
+                    events.append(time_block_obj)
                     time_block += 1
             last_unit_block_time = max(end_time, last_unit_block_time)
         if seconds_duration > last_unit_block_time and (seconds_duration - last_unit_block_time) > 10:
@@ -241,7 +344,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
             gap_intervals = ceil(seconds_between_blocks / float(seconds))
             for g in range(0, gap_intervals):
                 # time_block += 1
-                gap_event = AsymmetryDistribution()
+                #gap_event = AsymmetryDistribution()
+                gap_event = TimeBlock()
                 gap_event.start_time = last_unit_block_time + (g * seconds)
                 gap_end_time = min(last_unit_block_time + ((g + 1) * seconds), seconds_duration)
                 gap_event.end_time = gap_end_time
@@ -252,7 +356,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
         return events
 
     @staticmethod
-    def _get_steps_f_test(attribute, step_list_x, step_list_y, time_block):
+    def _get_steps_f_test(attribute, step_list_x, step_list_y, time_block, threshold=1.15):
         value_list_x = []
         value_list_y = []
         for item in step_list_x:
@@ -299,10 +403,10 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     dist.right_median = right_median
                     #if abs(left_median - right_median) > 1:
                     if left_median > right_median > 0:
-                        if left_median / right_median > 1.15:
+                        if left_median / right_median > threshold:
                             dist.significant = True
                     elif right_median > left_median > 0:
-                        if right_median / left_median > 1.15:
+                        if right_median / left_median > threshold:
                             dist.significant = True
                     #ignore if one is zero
                     # elif (left_median == 0 or right_median == 0) and left_median != right_median:
@@ -478,7 +582,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
             self.datastore.put_data('relmagnitudeasymmetry', df)
             self.datastore.copy_to_s3('relmagnitudeasymmetry', 'advanced-stats', '_'.join([self.event_date, self.user_id]) + "/rel_magnitude_asymmetry.csv")
 
-    def write_movement_asymmetry(self, movement_events, left_apt, right_apt):
+    def write_movement_asymmetry(self, movement_events, asymmetry_events):
 
         mongo_collection = get_mongo_collection('ASYMMETRY')
 
@@ -492,37 +596,52 @@ class AsymmetryProcessorJob(UnitBlockJob):
         record_out = OrderedDict()
         record_out['user_id'] = user_id
         record_out['event_date'] = event_date
-
-        record_out['session_id'] = self.datastore.session_id
-        record_out['left_apt'] = left_apt
-        record_out['right_apt'] = right_apt
-
-        sym_count = [m for m in movement_events if not m.significant and (m.left_median > 0 or m.right_median > 0)]
-        asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
-
-        record_out['symmetric_events'] = len(sym_count)
-        record_out['asymmetric_events'] = len(asym_count)
-
-        total_count = len(sym_count) + len(asym_count)
-
-        percent_asym = 0
-
-        if total_count > 0:
-            percent_asym = round((len(asym_count) / float(total_count)) * 100)
-
-        record_out['percent_events_asymmetric'] = percent_asym
         record_out['seconds_duration'] = seconds_duration
+        record_out['session_id'] = self.datastore.session_id
+
+        # sym_count = [m for m in movement_events if not m.significant and (m.left_median > 0 or m.right_median > 0)]
+        # asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
+
+        anterior_pelivic_tilt = OrderedDict()
+        anterior_pelivic_tilt['left'] = asymmetry_events.anterior_pelvic_tilt_summary.left
+        anterior_pelivic_tilt['right'] = asymmetry_events.anterior_pelvic_tilt_summary.right
+        anterior_pelivic_tilt['symmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
+        anterior_pelivic_tilt['asymmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
+        anterior_pelivic_tilt['percent_events_asymmetric'] = asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
+
+        record_out['apt'] = anterior_pelivic_tilt
+
+        ankle_pitch = OrderedDict()
+        ankle_pitch['left'] = asymmetry_events.ankle_pitch_summary.left
+        ankle_pitch['right'] = asymmetry_events.ankle_pitch_summary.right
+        ankle_pitch['symmetric_events'] = asymmetry_events.ankle_pitch_summary.symmetric_events
+        ankle_pitch['asymmetric_events'] = asymmetry_events.ankle_pitch_summary.asymmetric_events
+        ankle_pitch['percent_events_asymmetric'] = asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
+
+        record_out['ankle_pitch'] = ankle_pitch
 
         record_asymmetries = []
 
         for m in movement_events:
             event_record = OrderedDict()
             event_record['time_block'] = m.time_block
-            event_record['left'] = m.left_median
-            event_record['right'] = m.right_median
-            event_record['significant'] = m.significant
             event_record['start_time'] = m.start_time
             event_record['end_time'] = m.end_time
+
+            apt_time_block = OrderedDict()
+            apt_time_block['left'] = m.anterior_pelvic_tilt.left
+            apt_time_block['right'] = m.anterior_pelvic_tilt.right
+            apt_time_block['significant'] = m.anterior_pelvic_tilt.significant
+
+            event_record['apt'] = apt_time_block
+
+            ankle_pitch_time_block = OrderedDict()
+            ankle_pitch_time_block['left'] = m.ankle_pitch.left
+            ankle_pitch_time_block['right'] = m.ankle_pitch.right
+            ankle_pitch_time_block['significant'] = m.ankle_pitch.significant
+
+            event_record['ankle_pitch'] = ankle_pitch_time_block
+
             record_asymmetries.append(event_record)
 
         record_out['time_blocks'] = record_asymmetries
@@ -531,8 +650,6 @@ class AsymmetryProcessorJob(UnitBlockJob):
         mongo_collection.replace_one(query, record_out, upsert=True)
 
         _logger.info("Wrote asymmetry record for " + self.datastore.session_id)
-
-        return len(asym_count), len(sym_count)
 
     def _write_loading_movement_asymmetry(self, loading_events, movement_events):
         df = pd.DataFrame()
