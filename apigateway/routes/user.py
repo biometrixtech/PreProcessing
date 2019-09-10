@@ -57,7 +57,7 @@ def handle_get_last_created_session(user_id):
             }
             return {"last_session": cleaned_session}
 
-    return {"session": None}
+    return {"last_session": None}
 
 
 def _get_accessory(accessory_id):
