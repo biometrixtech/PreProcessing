@@ -14,11 +14,11 @@ _logger = logging.getLogger()
 _s3_client = boto3.client('s3')
 
 _output_columns = [
-    'obs_index',
+    # 'obs_index',
     'static_lf',
     'static_hip',
     'static_rf',
-    'time_stamp',
+    # 'time_stamp',
     'epoch_time',
     'ms_elapsed',
     'active',
