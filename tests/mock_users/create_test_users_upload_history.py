@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
                 asymmetry_events = job._get_session_asymmetry_summary(movement_events)
 
-                job.write_movement_asymmetry(movement_events, asymmetry_events)
+                job.write_movement_asymmetry(movement_events, asymmetry_events, os.environ["ENVIRONMENT"])
 
                 advanced_stats_job = AdvancedstatsJob(ds)
                 advanced_stats_job._write_session_to_plans(asymmetry_events)

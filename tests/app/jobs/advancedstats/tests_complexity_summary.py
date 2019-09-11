@@ -10,6 +10,8 @@ load_parameters([
             'MONGO_REPLICASET',
             'MONGO_COLLECTION_ACTIVEBLOCKS',
             'MONGO_COLLECTION_ASYMMETRY',
+            'MONGO_COLLECTION_ASYMMETRYRESERVE',
+            'MONGO_COLLECTION_SESSIONASYMMETRYRESERVE',
         ], 'mongo')
 import pandas
 from datetime import datetime, timedelta

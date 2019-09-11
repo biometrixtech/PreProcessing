@@ -7,7 +7,7 @@ class MockDatastore(Datastore):
             super().__init__(session_id)
         except NotADirectoryError:
             pass  # Exception caused by nonexistent /net/efs/preprocessing directory
-        self._metadata = {'event_date': event_date, 'user_id': user_id, 'end_date': end_date, 'plans_api_version': '4_4'}
+        self._metadata = {'event_date': event_date, 'user_id': user_id, 'end_date': end_date, 'plans_api_version': '4_5'}
         self.side_loaded_data = None
 
     def get_metadatum(self, datum, default=NotImplemented):

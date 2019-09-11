@@ -1,5 +1,6 @@
 from aws_xray_sdk.core import xray_recorder
 from collections import OrderedDict
+import os
 import logging
 from config import get_mongo_collection
 from scipy import stats
@@ -7,7 +8,9 @@ import pandas as pd
 import statistics
 from math import ceil
 
+
 from ._unit_block_job import UnitBlockJob
+from .plans_structure import PlansFactory
 from models.categorization_variable import CategorizationVariable
 from models.loading_asymmetry import LoadingAsymmetry
 from models.loading_asymmetry_summary import LoadingAsymmetrySummary
@@ -87,7 +90,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         movement_events = self._get_movement_asymmetries()
         asymmetry_events = self._get_session_asymmetry_summary(movement_events)
-        self.write_movement_asymmetry(movement_events, asymmetry_events)
+        self.write_movement_asymmetry(movement_events, asymmetry_events, os.environ["ENVIRONMENT"])
         return asymmetry_events
 
     def _get_session_asymmetry_summaries(self):
@@ -169,7 +172,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
         right_ankle_pitch = 0
         ankle_pitch_sym_count = 0
         ankle_pitch_asym_count = 0
-
+        left_ankle_pitch_list = []
+        right_ankle_pitch_list = []
         for m in movement_asymmetries:
             if m.anterior_pelvic_tilt.significant:
                 left_apt += m.anterior_pelvic_tilt.left
@@ -180,8 +184,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
                 if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
                     apt_sym_count += 1
             if m.ankle_pitch.significant:
-                left_ankle_pitch += m.ankle_pitch.left
-                right_ankle_pitch += m.ankle_pitch.right
+                left_ankle_pitch_list.append(m.ankle_pitch.left)
+                right_ankle_pitch_list.append(m.ankle_pitch.right)
                 if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
                     ankle_pitch_asym_count += 1
             else:
@@ -200,6 +204,12 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         if apt_total_count > 0:
             events.anterior_pelvic_tilt_summary.percent_events_asymmetric = round((apt_asym_count / float(apt_total_count)) * 100)
+
+        if len(left_ankle_pitch_list) > 0:
+            left_ankle_pitch = statistics.median(left_ankle_pitch_list)
+
+        if len(right_ankle_pitch_list) > 0:
+            right_ankle_pitch = statistics.median(right_ankle_pitch_list)
 
         events.ankle_pitch_summary.left = left_ankle_pitch
         events.ankle_pitch_summary.right = right_ankle_pitch
@@ -325,7 +335,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.anterior_pelvic_tilt.significant = apt_event.significant
 
                     ankle_pitch_event = self._get_steps_f_test("ankle_pitch_range", l_step_blocks,
-                                                                              r_step_blocks, time_block, threshold=1.0)
+                                                                              r_step_blocks, time_block, threshold=1.03)
                     if ankle_pitch_event is not None:
                         time_block_obj.ankle_pitch.left = ankle_pitch_event.left_median
                         time_block_obj.ankle_pitch.right = ankle_pitch_event.right_median
@@ -582,9 +592,10 @@ class AsymmetryProcessorJob(UnitBlockJob):
             self.datastore.put_data('relmagnitudeasymmetry', df)
             self.datastore.copy_to_s3('relmagnitudeasymmetry', 'advanced-stats', '_'.join([self.event_date, self.user_id]) + "/rel_magnitude_asymmetry.csv")
 
-    def write_movement_asymmetry(self, movement_events, asymmetry_events):
+    def write_movement_asymmetry(self, movement_events, asymmetry_events, environment):
 
         mongo_collection = get_mongo_collection('ASYMMETRY')
+        plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
 
         end_date = self.datastore.get_metadatum('end_date', None)
         event_date = self.datastore.get_metadatum('event_date', None)
@@ -593,63 +604,77 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         user_id = self.datastore.get_metadatum('user_id', None)
 
-        record_out = OrderedDict()
-        record_out['user_id'] = user_id
-        record_out['event_date'] = event_date
-        record_out['seconds_duration'] = seconds_duration
-        record_out['session_id'] = self.datastore.session_id
-
-        # sym_count = [m for m in movement_events if not m.significant and (m.left_median > 0 or m.right_median > 0)]
-        # asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
-
-        anterior_pelivic_tilt = OrderedDict()
-        anterior_pelivic_tilt['left'] = asymmetry_events.anterior_pelvic_tilt_summary.left
-        anterior_pelivic_tilt['right'] = asymmetry_events.anterior_pelvic_tilt_summary.right
-        anterior_pelivic_tilt['symmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
-        anterior_pelivic_tilt['asymmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
-        anterior_pelivic_tilt['percent_events_asymmetric'] = asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
-
-        record_out['apt'] = anterior_pelivic_tilt
-
-        ankle_pitch = OrderedDict()
-        ankle_pitch['left'] = asymmetry_events.ankle_pitch_summary.left
-        ankle_pitch['right'] = asymmetry_events.ankle_pitch_summary.right
-        ankle_pitch['symmetric_events'] = asymmetry_events.ankle_pitch_summary.symmetric_events
-        ankle_pitch['asymmetric_events'] = asymmetry_events.ankle_pitch_summary.asymmetric_events
-        ankle_pitch['percent_events_asymmetric'] = asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
-
-        record_out['ankle_pitch'] = ankle_pitch
-
-        record_asymmetries = []
-
-        for m in movement_events:
-            event_record = OrderedDict()
-            event_record['time_block'] = m.time_block
-            event_record['start_time'] = m.start_time
-            event_record['end_time'] = m.end_time
-
-            apt_time_block = OrderedDict()
-            apt_time_block['left'] = m.anterior_pelvic_tilt.left
-            apt_time_block['right'] = m.anterior_pelvic_tilt.right
-            apt_time_block['significant'] = m.anterior_pelvic_tilt.significant
-
-            event_record['apt'] = apt_time_block
-
-            ankle_pitch_time_block = OrderedDict()
-            ankle_pitch_time_block['left'] = m.ankle_pitch.left
-            ankle_pitch_time_block['right'] = m.ankle_pitch.right
-            ankle_pitch_time_block['significant'] = m.ankle_pitch.significant
-
-            event_record['ankle_pitch'] = ankle_pitch_time_block
-
-            record_asymmetries.append(event_record)
-
-        record_out['time_blocks'] = record_asymmetries
+        plans_factory = PlansFactory(plans_api_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration, asymmetry_events)
+        plans = plans_factory.get_plans()
+        record_out = plans.get_mongo_asymmetry_record(movement_events)
 
         query = {'session_id': self.datastore.session_id, 'user_id': user_id}
         mongo_collection.replace_one(query, record_out, upsert=True)
 
         _logger.info("Wrote asymmetry record for " + self.datastore.session_id)
+
+        if plans_api_version != plans_factory.latest_plans_version:
+            latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration, asymmetry_events)
+            latest_plans = latest_plans_factory.get_plans()
+            latest_record_out = latest_plans.get_mongo_asymmetry_record(movement_events)
+            latest_record_out["plans_version"] = plans_factory.latest_plans_version
+            latest_mongo_collection = get_mongo_collection('ASYMMETRYRESERVE')
+            latest_mongo_collection.replace_one(query, latest_record_out, upsert=True)
+
+            _logger.info("Wrote asymmetryReserve record for " + self.datastore.session_id)
+
+        # record_out = OrderedDict()
+        # record_out['user_id'] = user_id
+        # record_out['event_date'] = event_date
+        # record_out['seconds_duration'] = seconds_duration
+        # record_out['session_id'] = self.datastore.session_id
+        #
+        # # sym_count = [m for m in movement_events if not m.significant and (m.left_median > 0 or m.right_median > 0)]
+        # # asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
+        #
+        # anterior_pelivic_tilt = OrderedDict()
+        # anterior_pelivic_tilt['left'] = asymmetry_events.anterior_pelvic_tilt_summary.left
+        # anterior_pelivic_tilt['right'] = asymmetry_events.anterior_pelvic_tilt_summary.right
+        # anterior_pelivic_tilt['symmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
+        # anterior_pelivic_tilt['asymmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
+        # anterior_pelivic_tilt['percent_events_asymmetric'] = asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
+        #
+        # record_out['apt'] = anterior_pelivic_tilt
+        #
+        # ankle_pitch = OrderedDict()
+        # ankle_pitch['left'] = asymmetry_events.ankle_pitch_summary.left
+        # ankle_pitch['right'] = asymmetry_events.ankle_pitch_summary.right
+        # ankle_pitch['symmetric_events'] = asymmetry_events.ankle_pitch_summary.symmetric_events
+        # ankle_pitch['asymmetric_events'] = asymmetry_events.ankle_pitch_summary.asymmetric_events
+        # ankle_pitch['percent_events_asymmetric'] = asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
+        #
+        # record_out['ankle_pitch'] = ankle_pitch
+        #
+        # record_asymmetries = []
+        #
+        # for m in movement_events:
+        #     event_record = OrderedDict()
+        #     event_record['time_block'] = m.time_block
+        #     event_record['start_time'] = m.start_time
+        #     event_record['end_time'] = m.end_time
+        #
+        #     apt_time_block = OrderedDict()
+        #     apt_time_block['left'] = m.anterior_pelvic_tilt.left
+        #     apt_time_block['right'] = m.anterior_pelvic_tilt.right
+        #     apt_time_block['significant'] = m.anterior_pelvic_tilt.significant
+        #
+        #     event_record['apt'] = apt_time_block
+        #
+        #     ankle_pitch_time_block = OrderedDict()
+        #     ankle_pitch_time_block['left'] = m.ankle_pitch.left
+        #     ankle_pitch_time_block['right'] = m.ankle_pitch.right
+        #     ankle_pitch_time_block['significant'] = m.ankle_pitch.significant
+        #
+        #     event_record['ankle_pitch'] = ankle_pitch_time_block
+        #
+        #     record_asymmetries.append(event_record)
+        #
+        # record_out['time_blocks'] = record_asymmetries
 
     def _write_loading_movement_asymmetry(self, loading_events, movement_events):
         df = pd.DataFrame()

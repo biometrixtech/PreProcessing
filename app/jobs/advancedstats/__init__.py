@@ -8,6 +8,7 @@ import json
 import boto3
 import os
 from utils import parse_datetime
+from .plans_structure import PlansFactory
 
 _logger = logging.getLogger()
 
@@ -52,43 +53,35 @@ class AdvancedstatsJob(Job):
         end_date = self.datastore.get_metadatum('end_date')
         seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
 
-        body = {
-                'event_date': event_date,
-                "session_id": self.datastore.session_id,
-                "seconds_duration": seconds_duration,
-                "asymmetry": {
-                    "apt":{
-                        "left": asymmetry_events.anterior_pelvic_tilt_summary.left,
-                        "right": asymmetry_events.anterior_pelvic_tilt_summary.right,
-                        "asymmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events,
-                        "symmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
-                        },
-                    "ankle_pitch": {
-                        "left": asymmetry_events.ankle_pitch_summary.left,
-                        "right": asymmetry_events.ankle_pitch_summary.right,
-                        "asymmetric_events": asymmetry_events.ankle_pitch_summary.asymmetric_events,
-                        "symmetric_events": asymmetry_events.ankle_pitch_summary.symmetric_events
-                        }
-                    }
-                }  
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
 
         plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
-        if plans_api_version >= '4_4':
-            endpoint = f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/{plans_api_version}/session/{user_id}/three_sensor_data'
-        else:
-            body['user_id'] = user_id
-            endpoint = f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/{plans_api_version}/session/three_sensor_data'
 
-        response = requests.post(url=endpoint,
-                                 data=json.dumps(body),
+        plans_factory = PlansFactory(plans_api_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id,
+                                     seconds_duration, asymmetry_events)
+        plans = plans_factory.get_plans()
+
+        response = requests.post(url=plans.endpoint,
+                                 data=json.dumps(plans.body),
                                  headers=headers)
+
+        if plans_api_version != plans_factory.latest_plans_version:
+            latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id, seconds_duration, asymmetry_events)
+            latest_plans = latest_plans_factory.get_plans()
+            latest_record_out = latest_plans.body
+            latest_record_out["plans_version"] = plans_factory.latest_plans_version
+            latest_record_out["user_id"] = user_id
+            latest_mongo_collection = get_mongo_collection('SESSIONASYMMETRYRESERVE')
+            query = {'session_id': self.datastore.session_id, 'user_id': user_id}
+            latest_mongo_collection.replace_one(query, latest_record_out, upsert=True)
+
+            _logger.info("Wrote sessionAsymmetryReserve record for " + self.datastore.session_id)
+
         if response.status_code >= 300:
             _logger.warning(f"API call failed with the following error:\n{response.status_code} {response.text}")
             self.datastore.put_metadata({'failure': 'PLANS_API',
                                          'plans_api_error_code': response.status_code})
-
 
 
 def get_unit_blocks(session_id, date):
