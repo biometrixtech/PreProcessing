@@ -13,7 +13,7 @@ from .define_blocks import define_active_blocks, define_cadence_zone
 _logger = logging.getLogger()
 
 _input_columns = [
-    'obs_index',
+    # 'obs_index',
     'epoch_time',
     'ms_elapsed',
     'active',
@@ -23,7 +23,9 @@ _input_columns = [
     'grf_lf',
     'grf_rf',
     'total_accel',
+    'euler_lf_y',
     'euler_hip_y',
+    'euler_rf_y',
     'acc_hip_z',
     'stance',
     'remove',
@@ -73,6 +75,7 @@ class AggregateblocksJob(Job):
         data['rf_only_grf'] = data['grf'].fillna(value=np.nan) * rf_ground
         # accel
         data['total_accel'] = data['total_accel'] * active_ind
+        data['change_of_direction']  = data['change_of_direction'] * data['active']
 
         # get cadence zones
         define_cadence_zone(data)
@@ -109,20 +112,20 @@ class AggregateblocksJob(Job):
                     ub.end_index = len(data) - 1
                 unit_block_data = data.loc[ub.start_index:ub.end_index]
                 ub.set_complexity_flags(unit_block_data)
+                if ub.cadence_zone != 0:
+                    unit_block_record = OrderedDict()
+                    unit_block_start = str(pd.to_datetime(data['epoch_time'][ub.start_index], unit='ms'))
+                    unit_block_end = str(pd.to_datetime(data['epoch_time'][ub.end_index], unit='ms'))
+                    unit_block_record['timeStart'] = unit_block_start
+                    unit_block_record['timeEnd'] = unit_block_end
+                    unit_block_record['cadence_zone'] = ub.cadence_zone
+                    unit_block_record['change_of_direction'] = ub.change_of_direction
+                    unit_block_record['accelerating'] = ub.accelerating
+                    unit_block_record['decelerating'] = ub.decelerating
 
-                unit_block_record = OrderedDict()
-                unit_block_start = str(pd.to_datetime(data['epoch_time'][ub.start_index], unit='ms'))
-                unit_block_end = str(pd.to_datetime(data['epoch_time'][ub.end_index], unit='ms'))
-                unit_block_record['timeStart'] = unit_block_start
-                unit_block_record['timeEnd'] = unit_block_end
-                unit_block_record['cadence_zone'] = ub.cadence_zone
-                unit_block_record['change_of_direction'] = ub.change_of_direction
-                unit_block_record['accelerating'] = ub.accelerating
-                unit_block_record['decelerating'] = ub.decelerating
+                    unit_block_record = aggregate(unit_block_data, unit_block_record, user_mass, agg_level='unit_blocks')
 
-                unit_block_record = aggregate(unit_block_data, unit_block_record, user_mass, agg_level='unit_blocks')
-
-                unit_blocks.append(unit_block_record)
+                    unit_blocks.append(unit_block_record)
 
             record_out['unitBlocks'] = unit_blocks
 

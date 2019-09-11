@@ -67,6 +67,7 @@ def _get_accessory(accessory_id):
 def _get_cleaned_session(session):
     item = dict()
     # get different times and convert to local timezone
+    item['id'] = session['id']
     item['event_date'] = _get_local_time(session['event_date'])
     item['end_date'] = _get_local_time(session.get('end_date', None))
     item['upload_end_date'] = _get_local_time(session.get('upload_end_date', None))

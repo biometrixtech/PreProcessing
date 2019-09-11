@@ -60,13 +60,21 @@ class DownloadandchunkJob(Job):
         if self.datastore.get_metadatum('version', '2.3') == '1.0':
             data = pd.read_csv(concat_filename)
         else:
-            data = read_file(concat_filename)
+            data, timestamp_error = read_file(concat_filename)
+            if timestamp_error is not None:
+            # Save error record to DDB if necessary
+                metadata = {
+                        'timestamp_error': timestamp_error,
+                    }
+                self.datastore.put_metadata(metadata)
             if len(data) == 0:
                 raise Exception("Sensor data is empty!")
             _logger.info("Decoded data")
 
         # Save to datastore
         self.datastore.put_data(self.name, data)
+
+
 
         # Upload combined, undecoded file back to s3
         combined_s3_key = self.datastore.session_id + '_combined'

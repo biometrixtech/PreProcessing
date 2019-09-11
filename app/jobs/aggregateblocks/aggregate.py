@@ -135,41 +135,49 @@ def _step_data(data, ranges, mass, sensor):
         step_record['totalAccel'] = np.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
 
-        mph = 1.2
-        grf_sub = data.grf[range_gc[0]:range_gc[1]].values
-        norm_grf = grf_sub * 1000000. / mass / 9.807
-        peak_indices = detect_peaks(norm_grf, mph=mph, mpd=1)
-        if len(peak_indices) != 0:
-            peak_grfs = norm_grf[peak_indices]
-            peak_index = peak_indices[np.where(np.max(peak_grfs))[0]]
-            peak_grf = norm_grf[peak_index]
-            ratio = peak_grf / contact_duration * 1000.
-            step_record['peakGRF'] = peak_grf[0]
-            step_record['peakGrfContactDuration' + sensor] = ratio[0]
-            peak_grf = peak_grf - data.grf[max([range_gc[0] - 1, 0])] * 1000000. / mass / 9.807
-            if peak_grf > 0.0:
-                length_impact = step_data.epoch_time[range_gc[0] + peak_index] - step_data.epoch_time[range_gc[0]]
-                perc_impact = length_impact.values / contact_duration
-                ratio_impact = peak_grf / length_impact.values * 1000.
-                ratio_perc_impact = peak_grf / perc_impact
-                step_record['peakGrfImpactDuration' + sensor] = ratio_impact[0]
-                step_record['peakGrfPercImpactDuration' + sensor] = ratio_perc_impact[0]
-            else:
-                step_record['peakGrfImpactDuration' + sensor] = None
-                step_record['peakGrfPercImpactDuration' + sensor] = None
-        else:
-            step_record['peakGRF'] = None
-            step_record['peakGrfContactDuration' + sensor] = None
-            step_record['peakGrfImpactDuration' + sensor] = None
-            step_record['peakGrfPercImpactDuration' + sensor] = None
+        # mph = 1.2
+        # grf_sub = data.grf[range_gc[0]:range_gc[1]].values
+        # norm_grf = grf_sub * 1000000. / mass / 9.807
+        # peak_indices = detect_peaks(norm_grf, mph=mph, mpd=1)
+        # if len(peak_indices) != 0:
+        #     peak_grfs = norm_grf[peak_indices]
+        #     peak_index = peak_indices[np.where(np.max(peak_grfs))[0]]
+        #     peak_grf = norm_grf[peak_index]
+        #     ratio = peak_grf / contact_duration * 1000.
+        #     step_record['peakGRF'] = peak_grf[0]
+        #     step_record['peakGrfContactDuration' + sensor] = ratio[0]
+        #     peak_grf = peak_grf - data.grf[max([range_gc[0] - 1, 0])] * 1000000. / mass / 9.807
+        #     if peak_grf > 0.0:
+        #         length_impact = step_data.epoch_time[range_gc[0] + peak_index] - step_data.epoch_time[range_gc[0]]
+        #         perc_impact = length_impact.values / contact_duration
+        #         ratio_impact = peak_grf / length_impact.values * 1000.
+        #         ratio_perc_impact = peak_grf / perc_impact
+        #         step_record['peakGrfImpactDuration' + sensor] = ratio_impact[0]
+        #         step_record['peakGrfPercImpactDuration' + sensor] = ratio_perc_impact[0]
+        #     else:
+        #         step_record['peakGrfImpactDuration' + sensor] = None
+        #         step_record['peakGrfPercImpactDuration' + sensor] = None
+        # else:
+        #     step_record['peakGRF'] = None
+        #     step_record['peakGrfContactDuration' + sensor] = None
+        #     step_record['peakGrfImpactDuration' + sensor] = None
+        #     step_record['peakGrfPercImpactDuration' + sensor] = None
 
         if any(step_data.loc[:, 'remove'] == 1):  # if the step was marked for removal, do not compute APT
             print('removed step')
             apt_range, apt_rate = None, None
+            pitch_range, pitch_range_impact_start = None, None
         else:
             apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
+            if range_gc[0] > 10 and range_gc[1] < len(data) - 30:
+                pitch_range, pitch_range_impact_start = get_pitch_range_cme(data.loc[range_gc[0] - 20:range_gc[1] + 30, f"euler_{sensor.lower()}_y"].values)
+            else:
+                pitch_range, pitch_range_impact_start = None, None
+
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
+        step_record['anklePitchRange'] = pitch_range
+        step_record['anklePitchRangeImpactStart'] = pitch_range_impact_start
 
         # adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
         # adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
@@ -189,52 +197,53 @@ def _step_data(data, ranges, mass, sensor):
         # flex_motion_covered_pos_hip = np.nanmean(step_data['flex_motion_covered_pos_h'])
         # flex_motion_covered_neg_hip = np.nanmean(step_data['flex_motion_covered_neg_h'])
         #
-        step_record['adducROM' + sensor] = 0
-        step_record['adducMotionCoveredTotal' + sensor] = 0
-        step_record['adducMotionCoveredPos' + sensor] = 0
-        step_record['adducMotionCoveredNeg' + sensor] = 0
-        step_record['flexROM' + sensor] = 0
-        step_record['flexMotionCoveredTotal' + sensor] = 0
-        step_record['flexMotionCoveredPos' + sensor] = 0
-        step_record['flexMotionCoveredNeg' + sensor] = 0
-        step_record['contactDuration' + sensor] = contact_duration
+        # step_record['adducROM' + sensor] = 0
+        # step_record['adducMotionCoveredTotal' + sensor] = 0
+        # step_record['adducMotionCoveredPos' + sensor] = 0
+        # step_record['adducMotionCoveredNeg' + sensor] = 0
+        # step_record['flexROM' + sensor] = 0
+        # step_record['flexMotionCoveredTotal' + sensor] = 0
+        # step_record['flexMotionCoveredPos' + sensor] = 0
+        # step_record['flexMotionCoveredNeg' + sensor] = 0
+        # step_record['contactDuration' + sensor] = contact_duration
 
-        step_record['adducROMHip'] = 0
-        step_record['adducMotionCoveredTotalHip'] = 0
-        step_record['adducMotionCoveredPosHip'] = 0
-        step_record['adducMotionCoveredNegHip'] = 0
-        step_record['flexROMHip'] = 0
-        step_record['flexMotionCoveredTotalHip'] = 0
-        step_record['flexMotionCoveredPosHip'] = 0
-        step_record['flexMotionCoveredNegHip'] = 0
-        step_record['stance'] = list(step_data['stance'].values)
-        stance = np.unique(step_record['stance'])
-        if len(stance) > 1:
-            if np.all(stance == np.array([2., 3.])):
-                if sensor == 'LF':
-                    rf_air = np.where(step_data.phase_rf.values == 1)[0]
-                    if len(rf_air) <= 2:
-                        step_record['stance'] = [3.] * len(step_data)
-                    else:
-                        step_record['stance'] = [0.] * len(step_data)
-                if sensor == 'RF':
-                    lf_air = np.where(step_data.phase_lf.values == 1)[0]
-                    if len(lf_air) <= 2:
-                        step_record['stance'] = [3.] * len(step_data)
-                    else:
-                        step_record['stance'] = [0.] * len(step_data)
-            elif np.all(stance == np.array([2., 6.])):
-                continue
-            elif np.all(stance == np.array([3., 6.])):
-                continue
-            elif np.all(stance == np.array([2., 4.])):
-                step_record['stance'] = [2.] * len(step_data)
-            elif np.all(stance == np.array([3., 5.])):
-                step_record['stance'] = [3.] * len(step_data)
+        # step_record['adducROMHip'] = 0
+        # step_record['adducMotionCoveredTotalHip'] = 0
+        # step_record['adducMotionCoveredPosHip'] = 0
+        # step_record['adducMotionCoveredNegHip'] = 0
+        # step_record['flexROMHip'] = 0
+        # step_record['flexMotionCoveredTotalHip'] = 0
+        # step_record['flexMotionCoveredPosHip'] = 0
+        # step_record['flexMotionCoveredNegHip'] = 0
+        # step_record['stance'] = list(step_data['stance'].values)
+        # stance = np.unique(step_record['stance'])
+        # if len(stance) > 1:
+        #     if np.all(stance == np.array([2., 3.])):
+        #         if sensor == 'LF':
+        #             rf_air = np.where(step_data.phase_rf.values == 1)[0]
+        #             if len(rf_air) <= 2:
+        #                 step_record['stance'] = [3.] * len(step_data)
+        #             else:
+        #                 step_record['stance'] = [0.] * len(step_data)
+        #         if sensor == 'RF':
+        #             lf_air = np.where(step_data.phase_lf.values == 1)[0]
+        #             if len(lf_air) <= 2:
+        #                 step_record['stance'] = [3.] * len(step_data)
+        #             else:
+        #                 step_record['stance'] = [0.] * len(step_data)
+        #     elif np.all(stance == np.array([2., 6.])):
+        #         continue
+        #     elif np.all(stance == np.array([3., 6.])):
+        #         continue
+        #     elif np.all(stance == np.array([2., 4.])):
+        #         step_record['stance'] = [2.] * len(step_data)
+        #     elif np.all(stance == np.array([3., 5.])):
+        #         step_record['stance'] = [3.] * len(step_data)
 
         for key, value in step_record.items():
             if isinstance(value, float):
                 step_record[key] = round(value, 2)
+        step_record['stance'] = [2.]
         steps.append(step_record)
 
     return steps
@@ -258,6 +267,30 @@ def get_apt_cme(euler_hip_y, euler_hip_y_diff):
         return None, None
     range_rate = range_euler_y / duration * 100
     return range_euler_y, range_rate
+
+
+def get_pitch_range_cme(euler_y_window):
+    min_pitch = np.min(euler_y_window[:int(len(euler_y_window) / 2)])  # min in the first half
+    max_pitch = np.max(euler_y_window[int(len(euler_y_window) / 2):])  # max in the second half
+    pitch_impact_start = euler_y_window[20]
+    min_point = np.where(euler_y_window == min_pitch)[0][0]
+    max_point = np.where(euler_y_window == max_pitch)[0][0]
+
+    # pitch rom CME
+    pitch_range = max_pitch - min_pitch
+
+    # alternate pitch rom CME that we won't be using
+    pitch_range_impact_start = max_pitch - pitch_impact_start
+
+    if pitch_range < 0:
+        print('neg pitch range')
+        return None, None
+    if (max_point - min_point) < 15:
+        print('min and max too close, possible error')
+        return None, None
+
+
+    return pitch_range * 180 / np.pi, pitch_range_impact_start * 180 / np.pi  # result in degrees
 
 
 def _contact_duration_peak_grf(grf, ranges, epoch_time):

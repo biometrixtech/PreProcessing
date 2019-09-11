@@ -17,7 +17,8 @@ def detect_march_and_still(data):
     start_still_2, end_still_2, start_march_2, end_march_2 = _detect_march_and_still_ankle(data, 2)
     start_march_hip = max([start_march_0, start_march_2])
     end_march_hip = min([end_march_0, end_march_2])
-    start_still_hip, end_still_hip = _detect_still(data[start_march_hip - samples_before_march:start_march_hip], sensor=1)
+    start_search_hip  = min([start_march_0, start_march_2])  # start searching before the first ankle moves
+    start_still_hip, end_still_hip = _detect_still(data[start_search_hip - samples_before_march:start_search_hip], sensor=1)
     start_still_hip += start_march_hip - samples_before_march
     end_still_hip += start_march_hip - samples_before_march
 
@@ -52,7 +53,7 @@ def _detect_march(static):
 def _fix_short_static(static):
     ranges, length = get_ranges(static, 0, True)
     for r, l in zip(ranges, length):
-        if l < 15:
+        if l < 20:
             static[r[0]: r[1]] = 1
     return static
 
