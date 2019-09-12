@@ -77,8 +77,8 @@ class Plans_4_4(PlansBase):
             event_record['time_block'] = m.time_block
             event_record['start_time'] = m.start_time
             event_record['end_time'] = m.end_time
-            event_record['left_apt'] = m.anterior_pelvic_tilt.left
-            event_record['right_apt'] = m.anterior_pelvic_tilt.right
+            event_record['left'] = m.anterior_pelvic_tilt.left
+            event_record['right'] = m.anterior_pelvic_tilt.right
             event_record['significant'] = m.anterior_pelvic_tilt.significant
 
             record_asymmetries.append(event_record)
