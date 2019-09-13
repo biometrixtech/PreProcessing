@@ -1,6 +1,6 @@
 from app.jobs.advancedstats.asymmetry_processor_job import AsymmetryEvents, TimeBlock
 from app.jobs.advancedstats.plans_structure import PlansFactory
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 os.environ["ENVIRONMENT"] = "dev"
 
@@ -70,7 +70,7 @@ def test_get_4_4_endpoint():
 def test_get_4_5_endpoint():
 
     asymmetry_events = get_asymmetry_events()
-    plans_factory = PlansFactory("4_5", "dev", "tester", datetime.now(), "test_session_id", 600, asymmetry_events)
+    plans_factory = PlansFactory("4_5", "dev", "tester", datetime.now(), "test_session_id", 600, asymmetry_events, datetime.now() + timedelta(minutes=30))
     plans = plans_factory.get_plans()
     assert f'https://apis.dev.fathomai.com/plans/4_5/session/tester/three_sensor_data' == plans.endpoint
 
@@ -110,12 +110,14 @@ def test_get_4_4_plans_body():
 def test_get_4_5_plans_body():
     asymmetry_events = get_asymmetry_events()
     event_date = datetime.now()
-    plans_factory = PlansFactory("4_5", "dev", "tester", event_date, "test_session_id", 600, asymmetry_events)
+    end_date = event_date + timedelta(minutes=30)
+    plans_factory = PlansFactory("4_5", "dev", "tester", event_date, "test_session_id", 600, asymmetry_events, end_date)
     plans = plans_factory.get_plans()
     assert "user_id" not in plans.body
     assert "test_session_id" == plans.body["session_id"]
     assert 600 == plans.body["seconds_duration"]
     assert event_date == plans.body["event_date"]
+    assert end_date == plans.body["end_date"]
     assert 12 == plans.body["asymmetry"]["apt"]["left"]
     assert 10 == plans.body["asymmetry"]["apt"]["right"]
     assert 30 == plans.body["asymmetry"]["apt"]["asymmetric_events"]
@@ -149,14 +151,14 @@ def test_get_4_3_plans_mongo_record():
     assert 0 == time_blocks[0]['time_block']
     assert 10 == time_blocks[0]['start_time']
     assert 40 == time_blocks[0]['end_time']
-    assert 12 == time_blocks[0]['left_apt']
-    assert 10 == time_blocks[0]['right_apt']
+    assert 12 == time_blocks[0]['left']
+    assert 10 == time_blocks[0]['right']
     assert True is time_blocks[0]['significant']
     assert 1 == time_blocks[1]['time_block']
     assert 41 == time_blocks[1]['start_time']
     assert 71 == time_blocks[1]['end_time']
-    assert 11 == time_blocks[1]['left_apt']
-    assert 9 == time_blocks[1]['right_apt']
+    assert 11 == time_blocks[1]['left']
+    assert 9 == time_blocks[1]['right']
     assert True is time_blocks[1]['significant']
 
 
@@ -180,14 +182,14 @@ def test_get_4_4_plans_mongo_record():
     assert 0 == time_blocks[0]['time_block']
     assert 10 == time_blocks[0]['start_time']
     assert 40 == time_blocks[0]['end_time']
-    assert 12 == time_blocks[0]['left_apt']
-    assert 10 == time_blocks[0]['right_apt']
+    assert 12 == time_blocks[0]['left']
+    assert 10 == time_blocks[0]['right']
     assert True is time_blocks[0]['significant']
     assert 1 == time_blocks[1]['time_block']
     assert 41 == time_blocks[1]['start_time']
     assert 71 == time_blocks[1]['end_time']
-    assert 11 == time_blocks[1]['left_apt']
-    assert 9 == time_blocks[1]['right_apt']
+    assert 11 == time_blocks[1]['left']
+    assert 9 == time_blocks[1]['right']
     assert True is time_blocks[1]['significant']
 
 
