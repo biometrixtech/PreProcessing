@@ -2,11 +2,12 @@ from collections import OrderedDict
 
 
 class PlansFactory(object):
-    def __init__(self, plans_api_version, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events):
+    def __init__(self, plans_api_version, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events, end_date=None):
         self.plans_api_version = plans_api_version
         self.environment = environment
         self.user_id = user_id
         self.event_date = event_date
+        self.end_date = end_date
         self.session_id = session_id
         self.seconds_duration = seconds_duration
         self.asymmetry_events = asymmetry_events
@@ -17,8 +18,8 @@ class PlansFactory(object):
             return Plans_4_4(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration,
                              self.asymmetry_events)
         elif self.plans_api_version == "4_5":
-            return Plans_4_5(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration,
-                             self.asymmetry_events)
+            return Plans_4_5(self.environment, self.user_id, self.event_date,self.session_id, self.seconds_duration,
+                             self.asymmetry_events, end_date=self.end_date)
         else:
             return Plans_4_3(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration,
                              self.asymmetry_events)
@@ -96,13 +97,14 @@ class Plans_4_3(Plans_4_4):
 
 
 class Plans_4_5(PlansBase):
-    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events):
+    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events, end_date):
         super().__init__(environment, user_id, event_date, session_id, seconds_duration, asymmetry_events)
         self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_5/session/{user_id}/three_sensor_data'
         self.body = {
                     'event_date': event_date,
                     "session_id": session_id,
                     "seconds_duration": seconds_duration,
+                    "end_date": end_date,
                     "asymmetry": {
                         "apt":{
                             "left": asymmetry_events.anterior_pelvic_tilt_summary.left,
