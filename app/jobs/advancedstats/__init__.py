@@ -59,7 +59,7 @@ class AdvancedstatsJob(Job):
         plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
 
         plans_factory = PlansFactory(plans_api_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id,
-                                     seconds_duration, asymmetry_events)
+                                     seconds_duration, asymmetry_events, end_date)
         plans = plans_factory.get_plans()
 
         response = requests.post(url=plans.endpoint,
