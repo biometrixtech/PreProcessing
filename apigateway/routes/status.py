@@ -79,7 +79,7 @@ def _get_cleaned_session(session):
     # The statuses displayed on mobile are UPLOAD_PAUSED, UPLOAD_IN_PROGRESS, PROCESSING_IN_PROGRESS, PROCESSING_FAILED and PROCESSING_COMPLETE
     if session_status in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS']:
         # If uploading check when the last part came in and if more than 4 mins since last upload, UPLOAD_PAUSED
-        if session.get('updated_date') is not None and (datetime.datetime.now() - parse_datetime(session['updated_date'])).seconds >= 60 * 4:
+        if session.get('updated_date') is not None and (datetime.datetime.now() - parse_datetime(session['updated_date'])).seconds >= 60 * 1:
             item['status'] = 'UPLOAD_PAUSED'
         else:
             item['status'] = 'UPLOAD_IN_PROGRESS'
