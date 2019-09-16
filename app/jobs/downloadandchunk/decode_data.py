@@ -126,6 +126,7 @@ def read_file(filename):
     nrows = data.shape[0]
 
     timestamp = _decode_timestamp(data[:, 0:5], nrows).reshape(-1, 1)
+    timestamp_error = None
     # corrupt = data[:, 6].reshape(-1, 1)
 
     output = np.concatenate((
@@ -135,10 +136,10 @@ def read_file(filename):
         _decode_accel(data[:, 8:13], nrows),  # / 1000 * 9.80665,
         _decode_quat(data[:, 13:18], nrows),
         _decode_magn(data[:, 18], nrows),
-        _decode_accel(data[:, 19:24], nrows), # / 1000 * 9.80665,
+        _decode_accel(data[:, 19:24], nrows),  # / 1000 * 9.80665,
         _decode_quat(data[:, 24:29], nrows),
         _decode_magn(data[:, 29], nrows),
-        _decode_accel(data[:, 30:35], nrows), # / 1000 * 9.80665,
+        _decode_accel(data[:, 30:35], nrows),  # / 1000 * 9.80665,
         _decode_quat(data[:, 35:40], nrows),
     ), axis=1)
 
@@ -153,11 +154,16 @@ def read_file(filename):
     output_pd['static_2'] = output_pd['static_2'].astype(int)
     ms_elapsed = np.ediff1d(timestamp, to_begin=10)
     neg_timestamp = np.where(ms_elapsed < 0)[0]
+    big_jumps = np.where(abs(ms_elapsed) > 1000)[0]
     if len(neg_timestamp) > 0:
         for i in neg_timestamp:
             if i != len(data) - 1:
+                timestamp_error = "SMALL_NEGATIVE_JUMP"
                 output_pd.loc[i, 'epoch_time'] = int((output_pd.loc[i - 1, 'epoch_time'] + output_pd.loc[i + 1, 'epoch_time']) / 2)
+    if len(big_jumps) > 0:
+        output_pd = output_pd.loc[:big_jumps[0] - 1, :]
+        timestamp_error = "LARGE_JUMP_DATA_TRUNCATED"
     # output_pd = output_pd.iloc[pos_timestamp]
     # output_pd.reset_index(drop=True, inplace=True)
     
-    return output_pd
+    return output_pd, timestamp_error

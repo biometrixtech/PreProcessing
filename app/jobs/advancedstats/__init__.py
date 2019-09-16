@@ -8,6 +8,7 @@ import json
 import boto3
 import os
 from utils import parse_datetime
+from .plans_structure import PlansFactory
 
 _logger = logging.getLogger()
 
@@ -23,7 +24,7 @@ class AdvancedstatsJob(Job):
             unit_blocks.extend(a["unitBlocks"])
 
         unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
-        unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10]
+        unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10 and b["cadence_zone"] != 0]
 
         if len(unit_blocks) > 0:
             # # Write out active blocks
@@ -40,40 +41,47 @@ class AdvancedstatsJob(Job):
             # from .fatigue_processor_job import FatigueProcessorJob
             # FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
-            from .asymmetry_processor_job import AsymmetryProcessorJob
-            left_apt, right_apt, asymmetric_count, symmetric_count = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
+            from .asymmetry_processor_job import AsymmetryProcessorJob, AsymmetryEvents
+            asymmetry_events = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
 
-            self._write_session_to_plans(left_apt, right_apt, asymmetric_count, symmetric_count)
+            self._write_session_to_plans(asymmetry_events)
 
-    def _write_session_to_plans(self, left_apt, right_apt, asymmetric_count, symmetric_count):
+    def _write_session_to_plans(self, asymmetry_events):
         _service_token = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
         user_id = self.datastore.get_metadatum('user_id')
         event_date = self.datastore.get_metadatum('event_date')
         end_date = self.datastore.get_metadatum('end_date')
         seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
 
-        body = {'user_id': user_id,
-                'event_date': event_date,
-                "session_id": self.datastore.session_id,
-                "seconds_duration": seconds_duration,
-                "asymmetry": {
-                    "left_apt": left_apt,
-                    "right_apt": right_apt,
-                    "asymmetric_events": asymmetric_count,
-                    "symmetric_events": symmetric_count
-                    }
-                }  
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
 
-        response = requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data',
-                                 data=json.dumps(body),
+        plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
+
+        plans_factory = PlansFactory(plans_api_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id,
+                                     seconds_duration, asymmetry_events, end_date)
+        plans = plans_factory.get_plans()
+
+        response = requests.post(url=plans.endpoint,
+                                 data=json.dumps(plans.body),
                                  headers=headers)
+
+        if plans_api_version != plans_factory.latest_plans_version:
+            latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id, seconds_duration, asymmetry_events)
+            latest_plans = latest_plans_factory.get_plans()
+            latest_record_out = latest_plans.body
+            latest_record_out["plans_version"] = plans_factory.latest_plans_version
+            latest_record_out["user_id"] = user_id
+            latest_mongo_collection = get_mongo_collection('SESSIONASYMMETRYRESERVE')
+            query = {'session_id': self.datastore.session_id, 'user_id': user_id}
+            latest_mongo_collection.replace_one(query, latest_record_out, upsert=True)
+
+            _logger.info("Wrote sessionAsymmetryReserve record for " + self.datastore.session_id)
+
         if response.status_code >= 300:
             _logger.warning(f"API call failed with the following error:\n{response.status_code} {response.text}")
             self.datastore.put_metadata({'failure': 'PLANS_API',
                                          'plans_api_error_code': response.status_code})
-
 
 
 def get_unit_blocks(session_id, date):
