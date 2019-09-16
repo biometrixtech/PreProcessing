@@ -174,10 +174,12 @@ class AsymmetryProcessorJob(UnitBlockJob):
         ankle_pitch_asym_count = 0
         left_ankle_pitch_list = []
         right_ankle_pitch_list = []
+        left_apt_list = []
+        right_apt_list = []
         for m in movement_asymmetries:
             if m.anterior_pelvic_tilt.significant:
-                left_apt += m.anterior_pelvic_tilt.left
-                right_apt += m.anterior_pelvic_tilt.right
+                left_apt_list.append(m.anterior_pelvic_tilt.left)
+                right_apt_list.append(m.anterior_pelvic_tilt.right)
                 if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
                     apt_asym_count += 1
             else:
@@ -193,6 +195,13 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     ankle_pitch_sym_count += 1
 
         events = AsymmetryEvents()
+
+        if len(left_apt_list) > 0:
+            left_apt = statistics.median(left_apt_list)
+
+        if len(right_apt_list) > 0:
+            right_apt = statistics.median(right_apt_list)
+
         events.anterior_pelvic_tilt_summary.left = left_apt
         events.anterior_pelvic_tilt_summary.right = right_apt
         events.anterior_pelvic_tilt_summary.symmetric_events = apt_sym_count
