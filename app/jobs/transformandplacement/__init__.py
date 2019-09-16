@@ -2,6 +2,7 @@ from aws_xray_sdk.core import xray_recorder
 import boto3
 import copy
 import logging
+import numpy as np
 # import os
 # import pickle
 
@@ -15,6 +16,7 @@ from .transform_calculation import compute_transform
 from .heading_calculation import heading_foot_finder
 from .get_march_and_still import detect_march_and_still
 from .body_frame_transformation import body_frame_tran
+from utils import get_epoch_time
 
 _logger = logging.getLogger(__name__)
 _s3_client = boto3.client('s3')
@@ -56,10 +58,14 @@ class TransformandplacementJob(Job):
 
         try:
             # if placement passes without issue, go to multiple sensor processing
-            sensors = 3
-            data_sub = copy.copy(data.loc[:2000])
 
-            march_still_indices = detect_march_and_still(data_sub)
+            event_date = get_epoch_time(self.datastore.get_metadatum('event_date'))
+            start_sample = np.where(data.epoch_time > event_date)[0][0]
+            print(start_sample)
+            sensors = 3
+            data_sub = copy.copy(data.loc[:3000])
+
+            march_still_indices = detect_march_and_still(data_sub, start_sample)
             ref_quats = compute_transform(data_sub,
                                           march_still_indices[2],
                                           march_still_indices[3],

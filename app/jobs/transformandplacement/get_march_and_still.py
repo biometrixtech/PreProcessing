@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+# import pandas as pd
 from .exceptions import StillDetectionException, MarchDetectionException
 
 from utils import get_ranges
@@ -7,17 +7,17 @@ from utils.quaternion_conversions import quat_to_euler
 
 
 # constants
-march_detection_start = 775
-march_detection_end = 2000
-samples_before_march = 75
+# march_detection_start = 550
+# march_detection_end = 2000
+samples_before_march = 250
 
 
-def detect_march_and_still(data):
-    start_still_0, end_still_0, start_march_0, end_march_0 = _detect_march_and_still_ankle(data, 0)
-    start_still_2, end_still_2, start_march_2, end_march_2 = _detect_march_and_still_ankle(data, 2)
+def detect_march_and_still(data, start_sample):
+    start_still_0, end_still_0, start_march_0, end_march_0 = _detect_march_and_still_ankle(data, 0, start_sample)
+    start_still_2, end_still_2, start_march_2, end_march_2 = _detect_march_and_still_ankle(data, 2, start_sample)
     start_march_hip = max([start_march_0, start_march_2])
     end_march_hip = min([end_march_0, end_march_2])
-    start_search_hip  = min([start_march_0, start_march_2])  # start searching before the first ankle moves
+    start_search_hip = min([start_march_0, start_march_2])  # start searching before the first ankle moves
     start_still_hip, end_still_hip = _detect_still(data[start_search_hip - samples_before_march:start_search_hip], sensor=1)
     start_still_hip += start_march_hip - samples_before_march
     end_still_hip += start_march_hip - samples_before_march
@@ -27,8 +27,10 @@ def detect_march_and_still(data):
             start_march_2, end_march_2, start_still_2, end_still_2)
 
 
-def _detect_march_and_still_ankle(data, sensor):
+def _detect_march_and_still_ankle(data, sensor, start_sample):
     # get march
+    march_detection_start = 550 + start_sample
+    march_detection_end = 2000 + start_sample
     start_march, end_march = _detect_march(data[f'static_{sensor}'][march_detection_start:march_detection_end])
     if end_march != 0:
         start_march += march_detection_start
@@ -56,7 +58,6 @@ def _fix_short_static(static):
         if l < 20:
             static[r[0]: r[1]] = 1
     return static
-
 
 
 def _detect_still(data, sensor=0):
