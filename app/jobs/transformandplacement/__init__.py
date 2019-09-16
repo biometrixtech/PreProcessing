@@ -66,6 +66,7 @@ class TransformandplacementJob(Job):
             data_sub = copy.copy(data.loc[:3000])
 
             march_still_indices = detect_march_and_still(data_sub, start_sample)
+            print(march_still_indices)
             ref_quats = compute_transform(data_sub,
                                           march_still_indices[2],
                                           march_still_indices[3],
