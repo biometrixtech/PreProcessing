@@ -36,7 +36,9 @@ class TransformandplacementJob(Job):
 
         data = body_frame_tran(data, ret['reference_quats']['0'], ret['reference_quats']['1'], ret['reference_quats']['2'])
         try:
-            heading_quat_0, heading_quat_2 = heading_foot_finder(data[:3000, 5:9], data[:3000, 21:25], int(ret['start_march_1']), int(ret['end_march_1']))
+            start_march = int(ret['start_march_1'])
+            end_march = int(ret['end_march_1'])
+            heading_quat_0, heading_quat_2 = heading_foot_finder(data[start_march:end_march, 5:9], data[start_march:end_march, 21:25])
         except HeadingDetectionException as err:
             self.datastore.put_metadata({'failure': 'HEADING_DETECTION',
                                          'failure_sensor': err.sensor})

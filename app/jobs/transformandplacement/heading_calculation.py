@@ -29,7 +29,7 @@ def heading_hip_finder(hip_ref_quat):
     return hip_heading_quat
 
 
-def heading_foot_finder(q_refC0, q_refC2, start_marching_phase, stop_marching_phase):
+def heading_foot_finder(q_refC0, q_refC2):
     """
     Heading values finder for foot sensors
 
@@ -53,11 +53,11 @@ def heading_foot_finder(q_refC0, q_refC2, start_marching_phase, stop_marching_ph
     #     qH2 = np.array((1., 0., 0., 0.))
     # else:
     try:
-        qH0 = heading_calculus(q_refC0[start_marching_phase:stop_marching_phase,:])
+        qH0 = heading_calculus(q_refC0)
     except HeadingDetectionException:
         raise HeadingDetectionException("Could not detect heading for sensor0", 0)
     try:
-        qH2 = heading_calculus(q_refC2[start_marching_phase:stop_marching_phase,:])
+        qH2 = heading_calculus(q_refC2)
     except HeadingDetectionException:
         raise HeadingDetectionException("Could not detect heading for sensor2", 2)
 
