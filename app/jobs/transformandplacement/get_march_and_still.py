@@ -34,6 +34,7 @@ def _detect_march_and_still_ankle(data, sensor, search_samples):
         start_still, end_still = _detect_still(data[start_march - samples_before_march:start_march], sensor=sensor)
         start_still += start_march - samples_before_march
         end_still += start_march - samples_before_march
+        start_march = end_still + 1
         return start_still, end_still, start_march, end_march
     else:
         raise MarchDetectionException(f'Could not detect march for sensor{sensor}', sensor)
