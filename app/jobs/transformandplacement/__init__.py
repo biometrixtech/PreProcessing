@@ -76,6 +76,7 @@ class TransformandplacementJob(Job):
                 search_samples = {'march_detection_start': 775,
                                   'march_detection_end': 2000,
                                   'samples_before_march': 75}
+            print(search_samples)
             march_still_indices = detect_march_and_still(data_sub, search_samples)
             print(march_still_indices)
             ref_quats = compute_transform(data_sub,
