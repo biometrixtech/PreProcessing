@@ -113,6 +113,7 @@ def handle_session_patch(session_id):
             ('PROCESSING_COMPLETE', 'UPLOAD_IN_PROGRESS'),
             ('PROCESSING_FAILED', 'UPLOAD_IN_PROGRESS'),
             ('CREATE_COMPLETE', 'NO_DATA'),
+            ('CREATE_COMPLETE', 'TOO_SHORT'),
             ('CREATE_COMPLETE', 'CREATE_ATTEMPT_FAILED')
         ]
         if (session['session_status'], request.json['session_status']) in allowed_transitions:

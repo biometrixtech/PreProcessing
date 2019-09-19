@@ -32,7 +32,7 @@ def handle_get_upload_status(user_id):
     for session in sessions:
         cleaned_session = _get_cleaned_session(session)
         cleaned_sessions_list.append(cleaned_session)
-    # cleaned_sessions_list = [session for session in cleaned_sessions_list if session['event_date'] is not None]
+    cleaned_sessions_list = [session for session in cleaned_sessions_list if session['status'] != "CREATE_ATTEMPT_FAILED"]
     return {"sessions": cleaned_sessions_list, "accessory": accessory}
 
 
@@ -101,7 +101,7 @@ def _get_cleaned_session(session):
     session_status = session.get('session_status', None)
 
     # The statuses displayed on mobile are UPLOAD_PAUSED, UPLOAD_IN_PROGRESS, PROCESSING_IN_PROGRESS, PROCESSING_FAILED and PROCESSING_COMPLETE
-    if session_status in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS']:
+    if session_status == 'UPLOAD_IN_PROGRESS':
         # If uploading check when the last part came in and if more than 4 mins since last upload, UPLOAD_PAUSED
         if session.get('updated_date') is not None and (datetime.now() - parse_datetime(session['updated_date'])).seconds >= 60 * 1:
             item['status'] = 'UPLOAD_PAUSED'
@@ -119,7 +119,7 @@ def _get_cleaned_session(session):
             item['cause_of_failure'] = 'PLACEMENT'
         else:
             item['cause_of_failure'] = 'ERROR'
-    else:  # processing completed successfully
+    else:  # all other statuses (PROCESSING_COMPLETE, TOO_SHORT, NO_DATA) return normally
         item['status'] = session_status
 
     if item['end_date'] is not None and item['event_date'] is not None:
