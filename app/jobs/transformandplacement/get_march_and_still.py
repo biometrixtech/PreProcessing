@@ -6,15 +6,10 @@ from utils import get_ranges
 from utils.quaternion_conversions import quat_to_euler
 
 
-# constants
-# march_detection_start = 550
-# march_detection_end = 2000
-samples_before_march = 250
-
-
-def detect_march_and_still(data, start_sample):
-    start_still_0, end_still_0, start_march_0, end_march_0 = _detect_march_and_still_ankle(data, 0, start_sample)
-    start_still_2, end_still_2, start_march_2, end_march_2 = _detect_march_and_still_ankle(data, 2, start_sample)
+def detect_march_and_still(data, search_samples):
+    samples_before_march = search_samples['samples_before_march']
+    start_still_0, end_still_0, start_march_0, end_march_0 = _detect_march_and_still_ankle(data, 0, search_samples)
+    start_still_2, end_still_2, start_march_2, end_march_2 = _detect_march_and_still_ankle(data, 2, search_samples)
     start_march_hip = max([start_march_0, start_march_2])
     end_march_hip = min([end_march_0, end_march_2])
     start_search_hip = min([start_march_0, start_march_2])  # start searching before the first ankle moves
@@ -27,10 +22,11 @@ def detect_march_and_still(data, start_sample):
             start_march_2, end_march_2, start_still_2, end_still_2)
 
 
-def _detect_march_and_still_ankle(data, sensor, start_sample):
+def _detect_march_and_still_ankle(data, sensor, search_samples):
+    march_detection_start = search_samples['march_detection_start']
+    march_detection_end = search_samples['march_detection_end']
+    samples_before_march = search_samples['samples_before_march']
     # get march
-    march_detection_start = 550 + start_sample
-    march_detection_end = 2000 + start_sample
     start_march, end_march = _detect_march(data[f'static_{sensor}'][march_detection_start:march_detection_end])
     if end_march != 0:
         start_march += march_detection_start

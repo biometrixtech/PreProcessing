@@ -60,12 +60,23 @@ class TransformandplacementJob(Job):
             # if placement passes without issue, go to multiple sensor processing
 
             event_date = get_epoch_time(self.datastore.get_metadatum('event_date'))
-            start_sample = np.where(data.epoch_time > event_date)[0][0]
+            try:
+                start_sample = np.where(data.epoch_time > event_date)[0][0]
+            except:
+                start_sample = 0
             print(start_sample)
             sensors = 3
-            data_sub = copy.copy(data.loc[:3000])
+            data_sub = copy.copy(data.loc[:start_sample+3000])
 
-            march_still_indices = detect_march_and_still(data_sub, start_sample)
+            if start_sample > 100:  # new start procedure
+                search_samples = {'march_detection_start': start_sample + 500,
+                                  'march_detection_end': start_sample + 2000,
+                                  'samples_before_march': 250}
+            else: # start_sample should be 0 for existing data, use current thresholds
+                search_samples = {'march_detection_start': 775,
+                                  'march_detection_end': 2000,
+                                  'samples_before_march': 75}
+            march_still_indices = detect_march_and_still(data_sub, search_samples)
             print(march_still_indices)
             ref_quats = compute_transform(data_sub,
                                           march_still_indices[2],
