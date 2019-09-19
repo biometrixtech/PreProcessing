@@ -1,5 +1,5 @@
 import boto3
-import datetime
+from datetime import datetime, timezone
 import decimal
 import json
 import os
@@ -42,11 +42,28 @@ def handler(event, _):
             print('Loading data from hardware service')
             accessory = Service('hardware', '2_0').call_apigateway_sync('GET', f"accessory/{new_object['accessory_id']}").get('accessory', None)
             if accessory is not None:
-                update_dynamodb(new_object['id'], {'user_id': accessory['owner_id'] or '---'})
+                update = {'user_id': accessory['owner_id'] or '---'}
+                if accessory['clock_drift_rate'] is not None and accessory['last_sync_date'] is not None:
+                    event_date_epoch_time = _get_epoch_time(new_object['event_date'])
+                    last_sync_epoch_time = _get_epoch_time(accessory['last_sync_date'])
+                    time_since_last_update = event_date_epoch_time - last_sync_epoch_time
+                    if time_since_last_update > 0:
+                        clock_offset = time_since_last_update * accessory['clock_drift_rate']  # unit is ms
+                        event_date_epoch_time += clock_offset
+                        event_date = _format_datetime_from_epoch_time(event_date_epoch_time)
+                        update['event_date'] = event_date
+                        update['clock_offset'] = str(clock_offset)
+                        print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time} \n clock_drift_rate: {accessory['clock_drift_rate']} \nclock_offset: {clock_offset}")
+                    else:
+                        print("Accessory synced after session started. Do not need to adjust")
+                        print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time}")
+
+
+                update_dynamodb(new_object['id'], update)
 
 
 def trigger_sfn(session_id, version):
-    now = int(datetime.datetime.utcnow().timestamp())
+    now = int(datetime.utcnow().timestamp())
     execution_name = '{}-{}'.format(session_id, int(time.time()))
     logs_client.create_log_stream(
         logGroupName=os.environ['LOG_GROUP_NAME'],
@@ -93,6 +110,27 @@ def update_dynamodb(session_id, updates):
         UpdateExpression=update_expression,
         ExpressionAttributeValues=values,
     )
+
+
+def _get_epoch_time(time_string):
+    if time_string is not None:
+        return int(parse_datetime(time_string).replace(tzinfo=timezone.utc).timestamp() * 1000)  # get in ms resolution
+    else:
+        return None
+
+
+def _format_datetime_from_epoch_time(epoch_time):
+    # epoch time is is ms resolution utcfromtimestamp needs it to be in s resolution
+    return datetime.utcfromtimestamp(epoch_time / 1000.).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+def parse_datetime(date_input):
+    for format_string in ["%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ"]:
+        try:
+            return datetime.strptime(date_input, format_string)
+        except ValueError:
+            pass
+    raise ValueError('date_time must be in ISO8601 format')
 
 
 if __name__ == '__main__':
