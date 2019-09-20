@@ -49,13 +49,17 @@ def handle_get_last_created_session(user_id):
     sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - timedelta(days=days))]
     sessions = sorted(sessions, key=lambda k: k['event_date'], reverse=True)
     for session in sessions:
-        if session['session_status'] == 'CREATE_COMPLETE':
-            cleaned_session = {
-                "id": session['id'],
-                "event_date": _get_epoch_time(session['event_date']),
-                "end_date": _get_epoch_time(session.get('end_date', None))
-            }
-            return {"last_session": cleaned_session}
+        if session['session_status'] in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS']:
+            try:
+                cleaned_session = {
+                    "id": session['id'],
+                    "event_date": _get_epoch_time(session['event_date']),
+                    "end_date": _get_epoch_time(session.get('end_date', None))
+                }
+                return {"last_session": cleaned_session}
+            except Exception as e:  # if there's some issue with timestamp
+                print(e)
+                continue
 
     return {"last_session": None}
 

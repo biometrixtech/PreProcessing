@@ -116,6 +116,8 @@ def handle_session_patch(session_id):
             ('CREATE_COMPLETE', 'TOO_SHORT'),
             ('CREATE_COMPLETE', 'CREATE_ATTEMPT_FAILED')
         ]
+        if session['session_status'] == 'UPLOAD_IN_PROGRESS' and request.json['session_status'] == 'NO_DATA':
+            request.json['session_status'] = 'UPLOAD_COMPLETE'
         if (session['session_status'], request.json['session_status']) in allowed_transitions:
             session['session_status'] = request.json['session_status']
             if session['session_status'] == 'UPLOAD_COMPLETE':
