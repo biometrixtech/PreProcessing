@@ -68,7 +68,7 @@ class TransformandplacementJob(Job):
                 start_sample = 0
             print(start_sample)
             sensors = 3
-            data_sub = copy.copy(data.loc[:6000])
+            data_sub = copy.copy(data.loc[:start_sample + 3500])
 
             # if start_sample > 100:  # new start procedure
             #     search_samples = {'march_detection_start': start_sample + 500,
