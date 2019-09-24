@@ -129,8 +129,9 @@ def handle_session_patch(session_id):
             # https://app.asana.com/0/654140198477919/673983533272813
             return {'message': 'Currently at status {}, cannot change to {}'.format(session['session_status'], request.json['session_status'])}, 200
             # raise InvalidSchemaException('Transition from {} to {} is not allowed'.format(session.session_status, request.json['session_status']))
-    if 'set_end_date' in request.json and request.json['set_end_date']:
-        session['end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    if 'set_end_date' in request.json:
+        request.json['end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        del request.json['set_end_date']
 
     session = Session(session_id).patch(request.json)
     return {'session': session}
