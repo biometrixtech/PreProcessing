@@ -35,7 +35,7 @@ def get_march_and_still(data, sensor):
     for r, length in zip(ranges, lengths):
         if length >= 400 and r[0] > 150:
             start = r[0]
-            end = min(r[1], r[0] + int(500))
+            end = min(r[1], r[0] + int(550))
             if is_valid_march(data, start, end):
                 (start_still_0, end_still_0, start_still_hip, end_still_hip, start_still_2, end_still_2) = get_still_all(data, start)
                 return (start, end, start_still_0, end_still_0,
@@ -176,7 +176,7 @@ def validate_march_acc(acc):
 def _fix_short_static(static):
     ranges, length = get_ranges(static, 0, True)
     for r, l in zip(ranges, length):
-        if l < 20:
+        if l < 15:
             static[r[0]: r[1]] = 1
     return static
 

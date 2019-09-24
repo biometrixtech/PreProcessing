@@ -26,7 +26,7 @@ def handler(event, _):
             print('Beginning SFN execution')
             trigger_sfn(new_object['id'], new_object.get('version', '2.3'))
 
-        if 'user_id' in changes and new_object['user_id'] != '---':
+        if 'user_id' in changes and 'user_id' in new_object and new_object['user_id'] != '---':
             print('Loading data from users service')
             user = Service('users', '2_3').call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
             if user is not None:
@@ -48,19 +48,22 @@ def handler(event, _):
                 else:
                     update = {'user_id': accessory['owner_id'] or '---'}
                 if accessory['clock_drift_rate'] is not None and accessory['last_sync_date'] is not None:
-                    event_date_epoch_time = _get_epoch_time(new_object['event_date'])
-                    last_sync_epoch_time = _get_epoch_time(accessory['last_sync_date'])
-                    time_since_last_update = event_date_epoch_time - last_sync_epoch_time
-                    if time_since_last_update > 0:
-                        adjustment = time_since_last_update * (1 - accessory['clock_drift_rate'])  # unit is ms
-                        event_date_epoch_time += adjustment
-                        event_date = _format_datetime_from_epoch_time(event_date_epoch_time)
-                        update['event_date'] = event_date
-                        update['start_time_adjustment'] = str(adjustment)
-                        print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time} \n clock_drift_rate: {accessory['clock_drift_rate']} \nstart_time_adjustment: {adjustment}")
-                    else:
-                        print("Accessory synced after session started. Do not need to adjust")
-                        print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time}")
+                    try:
+                        event_date_epoch_time = _get_epoch_time(new_object['event_date'])
+                        last_sync_epoch_time = _get_epoch_time(accessory['last_sync_date'])
+                        time_since_last_update = event_date_epoch_time - last_sync_epoch_time
+                        if time_since_last_update > 0:
+                            adjustment = time_since_last_update * (1 - accessory['clock_drift_rate'])  # unit is ms
+                            event_date_epoch_time += adjustment
+                            event_date = _format_datetime_from_epoch_time(event_date_epoch_time)
+                            update['event_date'] = event_date
+                            update['start_time_adjustment'] = str(adjustment)
+                            print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time} \n clock_drift_rate: {accessory['clock_drift_rate']} \nstart_time_adjustment: {adjustment}")
+                        else:
+                            print("Accessory synced after session started. Do not need to adjust")
+                            print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time}")
+                    except Exception as e:
+                        print(e)
 
                 if len(update) > 0:
                     update_dynamodb(new_object['id'], update)
