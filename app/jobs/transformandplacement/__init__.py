@@ -118,4 +118,4 @@ class TransformandplacementJob(Job):
                                          'failure_sensor': err.sensor})
             raise err
         except NoDataException as err:
-            self.datastore.put_metadata({'failure': 'NO_DATA'})
+            self.datastore.put_metadata({'failure': 'NO_MARCH_DETECTION_DATA'})

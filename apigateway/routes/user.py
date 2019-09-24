@@ -117,7 +117,7 @@ def _get_cleaned_session(session):
         item['status'] = session_status
         # if failed processing, assign one of CALIBRATION, PLACEMENT, ERROR
         session_failure = session.get('failure')
-        if session_failure in ['HEADING_DETECTION', 'STILL_DETECTION', 'MARCH_DETECTION']:
+        if session_failure in ['HEADING_DETECTION', 'STILL_DETECTION', 'MARCH_DETECTION', 'NO_MARCH_DETECTION_DATA']:
             item['cause_of_failure'] = 'CALIBRATION'
         elif session_failure == 'LEFT_RIGHT_DETECTION':
             item['cause_of_failure'] = 'PLACEMENT'
