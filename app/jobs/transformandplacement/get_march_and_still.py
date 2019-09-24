@@ -58,7 +58,7 @@ def is_valid_march(data, start, end):
     if left_valid and right_valid:
         # find static right before marching
         try:
-            samples_before_march = 250
+            samples_before_march = min([250, start])
             start_still_0, end_still_0 = _detect_still(data[start - samples_before_march:start], sensor=0)
             start_still_0 += start - samples_before_march
             end_still_0 += start - samples_before_march
