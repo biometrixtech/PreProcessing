@@ -30,19 +30,23 @@ def handler(event, _):
             print('Loading data from users service')
             user = Service('users', '2_3').call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
             if user is not None:
-                data = {'user_mass': decimal.Decimal(str(user['biometric_data']['mass']['kg'])),
+                try:
+                    user_mass = user['biometric_data']['mass']['kg']
+                except:
+                    user_mass = 70
+                data = {'user_mass': decimal.Decimal(str(user_mass)),
                         'plans_api_version': user.get('plans_api_version', None) or '4_4'}
-                if 'teams' in user and len(user['teams']):
-                    data['team_id'] = user['teams'][0]['id']
-                if 'training_groups' in user and len(user['training_groups']):
-                    data['training_group_ids'] = set([tg['id'] for tg in user['training_groups']])
                 update_dynamodb(new_object['id'], data)
 
         if 'accessory_id' in changes:
             print('Loading data from hardware service')
             accessory = Service('hardware', '2_0').call_apigateway_sync('GET', f"accessory/{new_object['accessory_id']}").get('accessory', None)
             if accessory is not None:
-                update = {'user_id': accessory['owner_id'] or '---'}
+                if 'user_id' in new_object and new_object['user_id'] != '---':
+                    print("user_id already exists, do not need to update!")
+                    update = {}
+                else:
+                    update = {'user_id': accessory['owner_id'] or '---'}
                 if accessory['clock_drift_rate'] is not None and accessory['last_sync_date'] is not None:
                     event_date_epoch_time = _get_epoch_time(new_object['event_date'])
                     last_sync_epoch_time = _get_epoch_time(accessory['last_sync_date'])
@@ -58,8 +62,8 @@ def handler(event, _):
                         print("Accessory synced after session started. Do not need to adjust")
                         print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time}")
 
-
-                update_dynamodb(new_object['id'], update)
+                if len(update) > 0:
+                    update_dynamodb(new_object['id'], update)
 
 
 def trigger_sfn(session_id, version):
