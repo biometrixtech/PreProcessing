@@ -8,7 +8,7 @@ import numpy as np
 
 from ..job import Job
 from .apply_data_transformations import apply_data_transformations
-from .exceptions import PlacementDetectionException, FileVersionNotSupportedException, HeadingDetectionException, MarchDetectionException, StillDetectionException
+from .exceptions import FileVersionNotSupportedException, HeadingDetectionException, MarchDetectionException, StillDetectionException, NoDataException
 from .placement_detection import detect_placement, shift_accel, predict_placement
 from .column_vector import Condition
 from .sensor_use_detection import detect_single_sensor, detect_data_truncation
@@ -62,6 +62,8 @@ class TransformandplacementJob(Job):
             # if placement passes without issue, go to multiple sensor processing
 
             event_date = get_epoch_time(self.datastore.get_metadatum('event_date'))
+            if data.epoch_time[0] - event_date > 20 * 1000:  # need data within 20s of event_date
+                raise NoDataException("Start of data is more than 20s from event_date")
             try:
                 start_sample = np.where(data.epoch_time > event_date)[0][0]
             except:
@@ -115,3 +117,5 @@ class TransformandplacementJob(Job):
             self.datastore.put_metadata({'failure': 'STILL_DETECTION',
                                          'failure_sensor': err.sensor})
             raise err
+        except NoDataException as err:
+            self.datastore.put_metadata({'failure': 'NO_DATA'})
