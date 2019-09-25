@@ -54,6 +54,14 @@ def get_epoch_time(time_string):
         return None
 
 
+def format_datetime_from_epoch_time(epoch_time):
+    try:
+        return format_datetime(_datetime.datetime.utcfromtimestamp(epoch_time))
+    except ValueError:
+        raise ValueError("Make sure epoch_time is in seconds resolution")
+
+
+
 def json_serialise(obj):
     """
     JSON serializer for objects not serializable by default json code
