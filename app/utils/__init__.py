@@ -42,6 +42,26 @@ def parse_datetime(date_input):
             raise ValueError(f'Unrecognised datetime format "{date_input}"')
 
 
+def get_epoch_time(time_string):
+    """
+    convert a date in ISO8601 format to a epoch_time
+    :param str time_string:
+    :return: int
+    """
+    if time_string is not None:
+        return int(parse_datetime(time_string).replace(tzinfo=_datetime.timezone.utc).timestamp() * 1000)
+    else:
+        return None
+
+
+def format_datetime_from_epoch_time(epoch_time):
+    try:
+        return format_datetime(_datetime.datetime.utcfromtimestamp(epoch_time))
+    except ValueError:
+        raise ValueError("Make sure epoch_time is in seconds resolution")
+
+
+
 def json_serialise(obj):
     """
     JSON serializer for objects not serializable by default json code

@@ -11,6 +11,7 @@ import sys
 
 from ..job import Job
 from .decode_data import read_file
+from utils import format_datetime_from_epoch_time
 
 _logger = logging.getLogger(__name__)
 _s3_client = boto3.client('s3')
@@ -61,11 +62,16 @@ class DownloadandchunkJob(Job):
             data = pd.read_csv(concat_filename)
         else:
             data, timestamp_error = read_file(concat_filename)
+            metadata = {}
             if timestamp_error is not None:
-            # Save error record to DDB if necessary
-                metadata = {
-                        'timestamp_error': timestamp_error,
-                    }
+                # add timestamp error if needed
+                metadata['timestamp_error'] = timestamp_error
+            if len(data) > 0:
+                end_date = data.epoch_time.values[-1]
+                end_date = format_datetime_from_epoch_time(end_date / 1000)
+                metadata['end_date'] = end_date
+            # Save record to DDB if necessary
+            if len(metadata) > 0:
                 self.datastore.put_metadata(metadata)
             if len(data) == 0:
                 raise Exception("Sensor data is empty!")
@@ -73,8 +79,6 @@ class DownloadandchunkJob(Job):
 
         # Save to datastore
         self.datastore.put_data(self.name, data)
-
-
 
         # Upload combined, undecoded file back to s3
         combined_s3_key = self.datastore.session_id + '_combined'
