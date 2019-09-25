@@ -5,9 +5,12 @@ from jobs.driftcorrection.correction_parameters import foot_parameters, hip_para
 
 
 def test_match_221e():
-    for i in [2, 3, 4, 6]:
-        path = f'../../../files/v_1.8/data{i}/'
+    for i in [0, 2, 3, 4, 6]:
+        # path = f'../../../files/v_1.8/data{i}/'
+        path = f'../../../files/v_1.10/data{i}/'
         if 'v_1.8' in path and i == 6:
+            continue
+        if 'v_1.10' in path and i != 0:
             continue
 
         data = scipy.io.loadmat(f"{path}data.mat").get("data")
@@ -32,6 +35,6 @@ def test_match_221e():
         precision = 10**-4
 
         for a in range(0, 4):
-                assert (np.abs(q_corr_l_actual[:-1, a] - q_corr_l[:-1, a]) < precision).all()
-                # assert (np.abs(q_corr_h_actual[:, a] - q_corr_h[:, a]) < precision).all()
-                assert (np.abs(q_corr_r_actual[:-1, a] - q_corr_r[:-1, a]) < precision).all()
+            assert (np.abs(q_corr_l_actual[:-1, a] - q_corr_l[:-1, a]) < precision).all()
+            # assert (np.abs(q_corr_h_actual[:, a] - q_corr_h[:, a]) < precision).all()
+            assert (np.abs(q_corr_r_actual[:-1, a] - q_corr_r[:-1, a]) < precision).all()
