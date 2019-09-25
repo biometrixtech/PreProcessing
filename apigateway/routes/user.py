@@ -1,5 +1,5 @@
 from flask import request, Blueprint
-import datetime
+from datetime import datetime, timedelta, timezone
 
 from fathomapi.comms.service import Service
 from fathomapi.utils.decorators import require
@@ -9,31 +9,59 @@ from fathomapi.utils.exceptions import InvalidSchemaException
 from models.session import Session
 
 
-app = Blueprint('status', __name__)
+app = Blueprint('user', __name__)
 HARDWARE_API_VERSION = '2_0'
 
 
-@app.route('/sensor', methods=['POST'])
+@app.route('/<uuid:user_id>/status', methods=['POST'])
 @require.authenticated.any
-@xray_recorder.capture('routes.status.get')
-def handle_get_upload_status(principal_id=None):
-    user_id = principal_id
+@xray_recorder.capture('routes.user.get_status')
+def handle_get_upload_status(user_id):
+    # user_id = principal_id
     accessory_id = request.json.get('accessory_id', None)
     accessory = _get_accessory(accessory_id)
 
     days = request.json.get('days', 14)
-    current_time = datetime.datetime.now()
+    current_time = datetime.now()
     # Get all sessions for the user
     sessions = list(Session.get_many(user_id=user_id,
                                      index='user_id-event_date'))
     # subset to get relevant dates
-    sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - datetime.timedelta(days=days))]
+    sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - timedelta(days=days))]
     cleaned_sessions_list = []
     for session in sessions:
         cleaned_session = _get_cleaned_session(session)
         cleaned_sessions_list.append(cleaned_session)
-    # cleaned_sessions_list = [session for session in cleaned_sessions_list if session['event_date'] is not None]
+    cleaned_sessions_list = [session for session in cleaned_sessions_list if session['status'] != "CREATE_ATTEMPT_FAILED"]
     return {"sessions": cleaned_sessions_list, "accessory": accessory}
+
+
+@app.route('/<uuid:user_id>/last_session', methods=['GET'])
+@require.authenticated.any
+@xray_recorder.capture('routes.user.get_last_session')
+def handle_get_last_created_session(user_id):
+    days = 30
+    current_time = datetime.now()
+    # Get all sessions for the user
+    sessions = list(Session.get_many(user_id=user_id,
+                                     index='user_id-event_date'))
+    # subset to last 30 days
+    sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - timedelta(days=days))]
+    sessions = sorted(sessions, key=lambda k: k['event_date'], reverse=True)
+    for session in sessions:
+        if session['session_status'] in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS']:
+            try:
+                cleaned_session = {
+                    "id": session['id'],
+                    "event_date": _get_epoch_time(session['event_date']),
+                    "end_date": _get_epoch_time(session.get('end_date', None))
+                }
+                return {"last_session": cleaned_session}
+            except Exception as e:  # if there's some issue with timestamp
+                print(e)
+                continue
+
+    return {"last_session": None}
 
 
 def _get_accessory(accessory_id):
@@ -77,9 +105,9 @@ def _get_cleaned_session(session):
     session_status = session.get('session_status', None)
 
     # The statuses displayed on mobile are UPLOAD_PAUSED, UPLOAD_IN_PROGRESS, PROCESSING_IN_PROGRESS, PROCESSING_FAILED and PROCESSING_COMPLETE
-    if session_status in ['CREATE_COMPLETE', 'UPLOAD_IN_PROGRESS']:
+    if session_status == 'UPLOAD_IN_PROGRESS':
         # If uploading check when the last part came in and if more than 4 mins since last upload, UPLOAD_PAUSED
-        if session.get('updated_date') is not None and (datetime.datetime.now() - parse_datetime(session['updated_date'])).seconds >= 60 * 1:
+        if session.get('updated_date') is not None and (datetime.now() - parse_datetime(session['updated_date'])).seconds >= 60 * 1:
             item['status'] = 'UPLOAD_PAUSED'
         else:
             item['status'] = 'UPLOAD_IN_PROGRESS'
@@ -89,13 +117,13 @@ def _get_cleaned_session(session):
         item['status'] = session_status
         # if failed processing, assign one of CALIBRATION, PLACEMENT, ERROR
         session_failure = session.get('failure')
-        if session_failure in ['HEADING_DETECTION', 'STILL_DETECTION', 'MARCH_DETECTION']:
+        if session_failure in ['HEADING_DETECTION', 'STILL_DETECTION', 'MARCH_DETECTION', 'NO_MARCH_DETECTION_DATA']:
             item['cause_of_failure'] = 'CALIBRATION'
         elif session_failure == 'LEFT_RIGHT_DETECTION':
             item['cause_of_failure'] = 'PLACEMENT'
         else:
             item['cause_of_failure'] = 'ERROR'
-    else:  # processing completed successfully
+    else:  # all other statuses (PROCESSING_COMPLETE, TOO_SHORT, NO_DATA) return normally
         item['status'] = session_status
 
     if item['end_date'] is not None and item['event_date'] is not None:
@@ -109,7 +137,7 @@ def _get_local_time(utc_time_string):
     offset = _get_offset()
     if utc_time_string is not None:
         try:
-            local_time = parse_datetime(utc_time_string) + datetime.timedelta(minutes=offset)
+            local_time = parse_datetime(utc_time_string) + timedelta(minutes=offset)
             return format_datetime(local_time)
         except InvalidSchemaException:
             return None
@@ -127,3 +155,10 @@ def _get_offset():
     else:
         minute_offset += hour_offset * 60
     return minute_offset
+
+
+def _get_epoch_time(time_string):
+    if time_string is not None:
+        return int(parse_datetime(time_string).replace(tzinfo=timezone.utc).timestamp())
+    else:
+        return None
