@@ -66,16 +66,15 @@ class DownloadandchunkJob(Job):
             if timestamp_error is not None:
                 # add timestamp error if needed
                 metadata['timestamp_error'] = timestamp_error
-            if len(data) == 0:
-                raise Exception("Sensor data is empty!")
-            else:
+            if len(data) > 0:
                 end_date = data.epoch_time.values[-1]
                 end_date = format_datetime_from_epoch_time(end_date / 1000)
                 metadata['end_date'] = end_date
-
             # Save record to DDB if necessary
             if len(metadata) > 0:
                 self.datastore.put_metadata(metadata)
+            if len(data) == 0:
+                raise Exception("Sensor data is empty!")
             _logger.info("Decoded data")
 
         # Save to datastore
