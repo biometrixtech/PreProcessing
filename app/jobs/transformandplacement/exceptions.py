@@ -44,3 +44,10 @@ class MarchDetectionException(SensorException):
     An exception thrown for old version of the file
     """
     pass
+
+
+class NoDataException(Exception):
+    """
+    An exception thrown when there's no data
+    """
+    pass
