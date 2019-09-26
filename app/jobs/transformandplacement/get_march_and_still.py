@@ -35,7 +35,7 @@ def get_march_and_still(data, sensor):
     for r, length in zip(ranges, lengths):
         if length >= 400 and r[0] > 150:
             start = r[0]
-            end = min(r[1], r[0] + int(550))
+            end = min(r[1], r[0] + int(600))
             if is_valid_march(data, start, end):
                 (start_still_0, end_still_0, start_still_hip, end_still_hip, start_still_2, end_still_2) = get_still_all(data, start)
                 return (start, end, start_still_0, end_still_0,
@@ -132,10 +132,9 @@ def validate_pitch(quats):
         quats[:, 1],
         quats[:, 2],
         quats[:, 3])
-    euler_y = euls[:, 1]
-    euler_x = euls[:, 0] * 180 / np.pi
+    euler_y = euls[:, 1] * 180 / np.pi
+    euler_x = euls[:400, 0] * 180 / np.pi  # only validate for the first 4s
 
-    euler_y = euler_y * 180 / np.pi
     init_pitch = euler_y[0]
     pitch_diff = euler_y - init_pitch
     peaks, peak_heights = find_peaks(pitch_diff, height=20, distance=50)
