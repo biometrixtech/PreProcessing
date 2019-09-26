@@ -403,10 +403,10 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
                     
                     j = np.arange(1, corr_point_pos.size)
                     # Differential quaternion calculation
-                    q_tmp = hamilton_product(quat_conjugate(q_points[j-1,:]), q_points[j,:])
+                    q_tmp = hamilton_product(quat_conjugate(q_points[j - 1, :]), q_points[j, :])
                     a_tmp = quat_as_euler_angles(q_tmp)
-                    
-                    q_delta3[corr_point_pos[j],:] = q_tmp
+
+                    q_delta3[corr_point_pos[j], :] = q_tmp
 
     #                #Save marker_fft logic values
     #                mark=marker_fft[corr_point_pos[j]]
@@ -428,7 +428,6 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
                     #     else:
                     #         q_tmp = hamilton_product(quat_conjugate(q_refCH3[first - 1, :]), q_refCH3[h, :])
                     #         q_corr[h, :] = hamilton_product( q_corr[first - 1, :], hamilton_product(quat_conjugate(q_delta_step), q_tmp))
-
 
                 # Correct remaining part of the signal on the basis of the last corrected trough
                 if corr_point_pos.size != 0:
