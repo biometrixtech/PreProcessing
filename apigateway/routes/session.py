@@ -12,6 +12,7 @@ from fathomapi.api.config import Config
 from fathomapi.utils.exceptions import ApplicationException, DuplicateEntityException, InvalidSchemaException
 from fathomapi.utils.decorators import require
 from fathomapi.utils.xray import xray_recorder
+from fathomapi.utils.formatters import parse_datetime
 
 from models.session import Session
 
@@ -31,8 +32,18 @@ def handle_session_create(principal_id=None):
     xray_recorder.current_subsegment().put_annotation('accessory_id', principal_id)
 
     body = request.json
+
+    if body['event_date'] == 'ERROR':  # problem getting event date, set server time
+        try:
+            event_date = datetime.datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            event_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        body['event_date'] = event_date
+
     if 'accessory_id' not in body:
         body['accessory_id'] = principal_id
+    else:  # call came from mobile, adjust event date
+        body['event_date'] = (parse_datetime(body['event_date']) + datetime.timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     body['session_status'] = 'CREATE_COMPLETE'
 
     body['sensor_ids'] = []

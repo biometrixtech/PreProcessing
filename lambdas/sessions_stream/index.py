@@ -53,7 +53,7 @@ def handler(event, _):
                         last_sync_epoch_time = _get_epoch_time(accessory['last_sync_date'])
                         time_since_last_update = event_date_epoch_time - last_sync_epoch_time
                         if time_since_last_update > 0:
-                            adjustment = time_since_last_update * (1 - accessory['clock_drift_rate'])  # unit is ms
+                            adjustment = time_since_last_update * (accessory['clock_drift_rate'] - 1)  # unit is ms
                             event_date_epoch_time += adjustment
                             event_date = _format_datetime_from_epoch_time(event_date_epoch_time)
                             update['event_date'] = event_date
