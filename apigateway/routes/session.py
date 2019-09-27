@@ -32,8 +32,13 @@ def handle_session_create(principal_id=None):
     xray_recorder.current_subsegment().put_annotation('accessory_id', principal_id)
 
     body = request.json
+
     if body['event_date'] == 'ERROR':  # problem getting event date, set server time
-        body['event_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        try:
+            event_date = datetime.datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            event_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        body['event_date'] = event_date
 
     if 'accessory_id' not in body:
         body['accessory_id'] = principal_id
