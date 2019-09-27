@@ -32,10 +32,18 @@ def handle_session_create(principal_id=None):
     xray_recorder.current_subsegment().put_annotation('accessory_id', principal_id)
 
     body = request.json
+    # print(request.headers, request.json)
+    print(datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"), body['event_date'])
+    print(request.input_stream)
+    print(dir(request))
+
+    if body['event_date'] == 'ERROR':  # problem getting event date, set server time
+        body['event_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
     if 'accessory_id' not in body:
         body['accessory_id'] = principal_id
     else:  # call came from mobile, adjust event date
-        request.json['event_date'] = (parse_datetime(request.json['event_date']) + datetime.timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        body['event_date'] = (parse_datetime(body['event_date']) + datetime.timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     body['session_status'] = 'CREATE_COMPLETE'
 
     body['sensor_ids'] = []
