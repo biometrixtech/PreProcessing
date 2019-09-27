@@ -270,6 +270,8 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
         if corr_point_pos.size > corr_point_threshold:
             # Discard any troughs which are close to the end of the dynamic window
             corr_point_pos = corr_point_pos[corr_point_pos <= i - 200]
+            # Add first op_cond sample in correct points list
+            corr_point_pos = np.insert(corr_point_pos, 0, start_op_cond)
             corr_point_pos = corr_point_pos.astype(int)
 
             # Manage wrong correction points ONLY IN HIP that cause tilt offset
@@ -298,67 +300,80 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
                     corr_point_pos[discard]=-1
                     corr_point_pos = corr_point_pos[corr_point_pos >= 0]
 
-            if corr_point_pos.size > corr_point_threshold: # need to check again as we might've dropped too many for hip
+            if corr_point_pos.size > 1: # need to check again as we might've dropped too many for hip
                 # Iterate through the troughs (and therefore the windows) in order to
                 # compensate each window for the drift quaternion computed up to the
                 # previous
                 # Store current window troughs quaternions in temporary variables (q_points)
-                q_points = q_refCH[corr_point_pos,:]
+                q_points = q_refCH[corr_point_pos[1:], :]
+                q_id = np.zeros((1 , 4))
+                q_id[:, 0] = 1
+                q_points = np.concatenate((q_id, q_points), axis=0)
                 # Drift correction procedure
-                j = np.arange(corr_point_threshold - 1, corr_point_pos.size)
+                j = np.arange(1, corr_point_pos.size)
                 # Differential quaternion calculation
                 q_tmp = hamilton_product(quat_conjugate(q_points[j-1,:]), q_points[j,:])
                 a_tmp = quat_as_euler_angles(q_tmp)
+                
+                q_delta[corr_point_pos[j], :] = q_tmp
+                # # Manage change in rhythm (see FFT)
+                # Save marker_fft logic values
+                # mark=marker_fft[corr_point_pos[j]]
 
-                ## Manage change in rhythm (see FFT)
-                #Save marker_fft logic values
-                mark=marker_fft[corr_point_pos[j]]
-
-                # Control pitch jump between two correction points. In change of rhythm pitch change when the foot touches the ground has been noticed
-                q_delta[corr_point_pos[j],:] =np.where(np.expand_dims(mark==False,1), q_tmp[...,:],
-                       np.where(np.expand_dims(np.abs(a_tmp[...,1]) < tilt_th_pitch, 1),q_tmp[...,:],
-                       np.where(np.logical_and(np.expand_dims(np.abs(a_tmp[...,0]) < tilt_th_roll, 1),np.expand_dims(np.abs(a_tmp[...,2]) < yaw_th, 1)),
-                                 [1, 0, 0, 0],q_tmp[...,:])))
+                # # Control pitch jump between two correction points. In change of rhythm pitch change when the foot touches the ground has been noticed
+                # q_delta[corr_point_pos[j],:] =np.where(np.expand_dims(mark==False,1), q_tmp[...,:],
+                #        np.where(np.expand_dims(np.abs(a_tmp[...,1]) < tilt_th_pitch, 1),q_tmp[...,:],
+                #        np.where(np.logical_and(np.expand_dims(np.abs(a_tmp[...,0]) < tilt_th_roll, 1),np.expand_dims(np.abs(a_tmp[...,2]) < yaw_th, 1)),
+                #                  [1, 0, 0, 0],q_tmp[...,:])))
 
                 # Actual correction where q_delta is distributed step by step between two consecutive troughs (interpolation)
-                for j in range(corr_point_threshold- 1, corr_point_pos.size):
-                    first, last = corr_point_pos[j-1], corr_point_pos[j]
-                    h = np.arange(first, last + 1)
-                    q_delta_step = quat_interp([1, 0, 0, 0], q_delta[last,:], (h - first) / (last - first))
-                    q_tmp = hamilton_product(quat_conjugate(q_refCH[first-1,:]),q_refCH[h,:])
-                    q_corr[h,:] = hamilton_product(
-                            q_corr[first-1,:],
-                            hamilton_product(quat_conjugate(q_delta_step),q_tmp))
+                _correct_drift(q_corr, corr_point_pos, q_delta, q_refCH)
+                # for j in range(1, corr_point_pos.size):
+                #     first, last = corr_point_pos[j - 1], corr_point_pos[j]
+                #     h = np.arange(first, last + 1)
+                #     q_delta_step = quat_interp([1, 0, 0, 0], q_delta[last, :], (h - first) / (last - first))
+                #     if j == 1:
+                #         q_tmp = q_refCH[h, :]
+                #         q_corr[h, :] = hamilton_product([1, 0, 0, 0], hamilton_product(quat_conjugate(q_delta_step), q_tmp))
+                #     else:
+                #         q_tmp = hamilton_product(quat_conjugate(q_refCH[first - 1,:]),q_refCH[h,:])
+                #         q_corr[h, :] = hamilton_product(q_corr[first - 1, :], hamilton_product(quat_conjugate(q_delta_step), q_tmp))
 
                 # Additional correction of drift
                 q_refCH2=np.copy(q_corr)
                 # Store current window troughs quaternions in temporary variables (q_peaks and q_troughs)
-                q_points = q_refCH2[corr_point_pos,:]
+                q_points = q_refCH2[corr_point_pos[1:], :]
+                q_points = np.concatenate((q_id, q_points), axis=0)
 
-                j = np.arange(corr_point_threshold - 1, corr_point_pos.size)
+                j = np.arange(1, corr_point_pos.size)
                 # Differential quaternion calculation
-                q_tmp = hamilton_product(quat_conjugate(q_points[j-1,:]), q_points[j,:])
+                q_tmp = hamilton_product(quat_conjugate(q_points[j-1, :]), q_points[j, :])
                 a_tmp = quat_as_euler_angles(q_tmp)
 
+                q_delta2[corr_point_pos[j],:] = q_tmp
+
                 #Save marker_fft logic values
-                mark=marker_fft[corr_point_pos[j]]
+               # mark=marker_fft[corr_point_pos[j]]
 
-                ## Manage change in rhythm (see FFT)
-                q_delta2[corr_point_pos[j],:] =np.where(np.expand_dims(mark==False,1), q_tmp[...,:],
-                np.where(np.expand_dims(np.abs(a_tmp[...,1]) < tilt_th_pitch, 1),q_tmp[...,:],
-                       np.where(np.logical_and(np.expand_dims(np.abs(a_tmp[...,0]) < tilt_th_roll, 1),np.expand_dims(np.abs(a_tmp[...,2]) < yaw_th, 1)),
-                                 [1, 0, 0, 0],q_tmp[...,:])))
-
+               # ## Manage change in rhythm (see FFT) 
+               #  q_delta2[corr_point_pos[j],:] =np.where(np.expand_dims(mark==False,1), q_tmp[...,:],
+               #  np.where(np.expand_dims(np.abs(a_tmp[...,1]) < tilt_th_pitch, 1),q_tmp[...,:],
+               #         np.where(np.logical_and(np.expand_dims(np.abs(a_tmp[...,0]) < tilt_th_roll, 1),np.expand_dims(np.abs(a_tmp[...,2]) < yaw_th, 1)),
+               #                   [1, 0, 0, 0],q_tmp[...,:])))
 
                 # Actual correction where q_delta is distributed step by step between two consecutive troughs (interpolation)
-                for j in range(corr_point_threshold- 1, corr_point_pos.size):
-                    first, last = corr_point_pos[j-1], corr_point_pos[j]
-                    h = np.arange(first, last + 1)
-                    q_delta_step = quat_interp([1, 0, 0, 0], q_delta2[last,:], (h - first) / (last - first))
-                    q_tmp = hamilton_product(quat_conjugate(q_refCH2[first-1,:]),q_refCH2[h,:])
-                    q_corr[h,:] = hamilton_product(
-                            q_corr[first-1,:],
-                            hamilton_product(quat_conjugate(q_delta_step),q_tmp))
+
+                _correct_drift(q_corr, corr_point_pos, q_delta2, q_refCH2)
+                # for j in range(1, corr_point_pos.size):
+                #     first, last = corr_point_pos[j-1], corr_point_pos[j]
+                #     h = np.arange(first, last + 1)
+                #     q_delta_step = quat_interp([1, 0, 0, 0], q_delta2[last,:], (h - first) / (last - first))
+                #     if j==1:
+                #         q_tmp = q_refCH2[h,:]
+                #         q_corr[h, :] = hamilton_product([1, 0, 0, 0], hamilton_product(quat_conjugate(q_delta_step), q_tmp))
+                #     else:
+                #         q_tmp = hamilton_product(quat_conjugate(q_refCH2[first - 1,:]), q_refCH2[h, :])
+                #         q_corr[h, :] = hamilton_product(q_corr[first - 1, :], hamilton_product(quat_conjugate(q_delta_step), q_tmp))
 
                 ##################################################################
                 ## Evaluate if a third correction procedure is needed
@@ -383,32 +398,36 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
                 if correction_three_needed:
                     q_refCH3 = np.copy(q_corr)
                     # Store current window troughs quaternions in temporary variables (q_peaks and q_troughs)
-                    q_points = q_refCH3[corr_point_pos, :]
-
-                    j = np.arange(corr_point_threshold - 1, corr_point_pos.size)
+                    q_points = q_refCH3[corr_point_pos[1:],:]
+                    q_points = np.concatenate((q_id, q_points),axis=0)
+                    
+                    j = np.arange(1, corr_point_pos.size)
                     # Differential quaternion calculation
                     q_tmp = hamilton_product(quat_conjugate(q_points[j - 1, :]), q_points[j, :])
                     a_tmp = quat_as_euler_angles(q_tmp)
 
-                    # Save marker_fft logic values
-                    mark = marker_fft[corr_point_pos[j]]
+                    q_delta3[corr_point_pos[j], :] = q_tmp
 
-                    ## Manage change in rhythm (see FFT) 
-                    q_delta3[corr_point_pos[j], :] = np.where(np.expand_dims(mark == False, 1), q_tmp[..., :],
-                                                               np.where(np.expand_dims(np.abs(a_tmp[..., 1]) < tilt_th_pitch, 1), q_tmp[..., :],
-                                                                         np.where(np.logical_and(np.expand_dims(np.abs(a_tmp[..., 0]) < tilt_th_roll, 1),
-                                                                                                   np.expand_dims(np.abs(a_tmp[..., 2]) < yaw_th, 1)),
-                                                                                   [1, 0, 0, 0], q_tmp[..., :])))
-
+    #                #Save marker_fft logic values
+    #                mark=marker_fft[corr_point_pos[j]]
+    #                
+    #                ## Manage change in rhythm (see FFT) 
+    #                q_delta3[corr_point_pos[j],:] =np.where(np.expand_dims(mark==False,1), q_tmp[...,:],
+    #                np.where(np.expand_dims(np.abs(a_tmp[...,1]) < tilt_th_pitch, 1),q_tmp[...,:],
+    #                       np.where(np.logical_and(np.expand_dims(np.abs(a_tmp[...,0]) < tilt_th_roll, 1),np.expand_dims(np.abs(a_tmp[...,2]) < yaw_th, 1)),
+    #                                 [1, 0, 0, 0],q_tmp[...,:])))
                     # Actual correction where q_delta is distributed step by step between two consecutive troughs (interpolation)
-                    for j in range(corr_point_threshold - 1, corr_point_pos.size):
-                        first, last = corr_point_pos[j - 1], corr_point_pos[j]
-                        h = np.arange(first, last + 1)
-                        q_delta_step = quat_interp([1, 0, 0, 0], q_delta3[last, :], (h - first) / (last - first))
-                        q_tmp = hamilton_product(quat_conjugate(q_refCH3[first - 1, :]), q_refCH3[h, :])
-                        q_corr[h, :] = hamilton_product(
-                                q_corr[first - 1, :],
-                                hamilton_product(quat_conjugate(q_delta_step), q_tmp))
+                    _correct_drift(q_corr, corr_point_pos, q_delta3, q_refCH3)
+                    # for j in range(1, corr_point_pos.size):
+                    #     first, last = corr_point_pos[j-1], corr_point_pos[j]
+                    #     h = np.arange(first, last + 1)
+                    #     q_delta_step = quat_interp([1, 0, 0, 0], q_delta3[last,:], (h - first) / (last - first))
+                    #     if j == 1:
+                    #         q_tmp = q_refCH3[h, :]
+                    #         q_corr[h, :] = hamilton_product([1, 0, 0, 0], hamilton_product(quat_conjugate(q_delta_step), q_tmp))
+                    #     else:
+                    #         q_tmp = hamilton_product(quat_conjugate(q_refCH3[first - 1, :]), q_refCH3[h, :])
+                    #         q_corr[h, :] = hamilton_product( q_corr[first - 1, :], hamilton_product(quat_conjugate(q_delta_step), q_tmp))
 
                 # Correct remaining part of the signal on the basis of the last corrected trough
                 if corr_point_pos.size != 0:
@@ -422,8 +441,9 @@ def sensors_drift_correction(op_cond, axl_refCH, q_refCH, parameters, Foot):
                             hamilton_product(quat_conjugate(q_refCH[j[0]-1,:]), q_refCH[j,:]))
 
                 # All peaks/troughs store
+                corr_point_pos[0]=-1
+                corr_point_pos=corr_point_pos[corr_point_pos >= 0]
                 all_corr_points.append(corr_point_pos)
-
         # Backward offset compensation
         # Search for the first N samples of static within the next 5 secs
         static_threshold = 20
@@ -518,4 +538,19 @@ def _discard_hip_corr_points(corr_points_h, corr_points_foot):
         troughs_foot_padded = []
 
     corr_points_h_subset = [i for i in corr_points_h if i in troughs_foot_padded]
-    return np.array(corr_points_h_subset)
+    if corr_points_h[0] not in corr_points_h_subset:
+        corr_points_h_subset = np.insert(corr_points_h_subset, 0, corr_points_h[0])
+    return np.array(corr_points_h_subset).astype(int)
+
+
+def _correct_drift(q_corr, corr_point_pos, q_delta, q_refCH):
+    for j in range(1, corr_point_pos.size):
+        first, last = corr_point_pos[j-1], corr_point_pos[j]
+        h = np.arange(first, last + 1)
+        q_delta_step = quat_interp([1, 0, 0, 0], q_delta[last,:], (h - first) / (last - first))
+        if j == 1:
+            q_tmp = q_refCH[h, :]
+            q_corr[h, :] = hamilton_product([1, 0, 0, 0], hamilton_product(quat_conjugate(q_delta_step), q_tmp))
+        else:
+            q_tmp = hamilton_product(quat_conjugate(q_refCH[first - 1, :]), q_refCH[h, :])
+            q_corr[h, :] = hamilton_product( q_corr[first - 1, :], hamilton_product(quat_conjugate(q_delta_step), q_tmp))

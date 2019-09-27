@@ -56,6 +56,8 @@ def handle_get_last_created_session(user_id):
                     "event_date": _get_epoch_time(session['event_date']),
                     "end_date": _get_epoch_time(session.get('end_date', None))
                 }
+                if cleaned_session['end_date'] is None:  # if no end_date add 4 hours to start_date
+                    cleaned_session['end_date'] = cleaned_session['event_date'] + 4 * 3600
                 return {"last_session": cleaned_session}
             except Exception as e:  # if there's some issue with timestamp
                 print(e)

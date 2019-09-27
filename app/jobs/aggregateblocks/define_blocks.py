@@ -41,10 +41,10 @@ def define_cadence_zone(data):
     block_ranges = get_ranges(data.active.values, 1)
     cadence_zone = np.zeros(len(data))
     all_cadence = np.zeros(len(data))
-    acc_hip_z = filter_data(data.acc_hip_z.values, filt='low', highcut=4)
+    euler_y = filter_data(data.euler_lf_y.values, filt='band', highcut=35) * 180 / np.pi
     for br in block_ranges:
-        acc_hip_z_block = acc_hip_z[br[0]: br[1]]
-        peaks, peak_heights = find_peaks(acc_hip_z_block, height=1.5, distance=20)
+        euler_y_block = euler_y[br[0]: br[1]]
+        peaks, peak_heights = find_peaks(euler_y_block, height=20, distance=30)
         if len(peaks) > 10:
             cadence = _get_cadence(peaks)
             peaks += br[0]
@@ -86,10 +86,10 @@ def _get_cadence(peaks):
     peak_diff = np.ediff1d(peaks, to_begin=0).astype(float)
     peak_diff[0] = peak_diff[1]
     peak_diff = pd.Series(peak_diff).rolling(window=3, center=True).mean().values
-    peak_diff[np.where(peak_diff > 200)[0]] = np.nan
+    peak_diff[np.where(peak_diff > 400)[0]] = np.nan
     peak_diff[0] = peak_diff[1]
     peak_diff[-1] = peak_diff[-2]
-    cadence = 100 / peak_diff * 60
+    cadence = 100 / peak_diff * 60 * 2
     cadence = pd.Series(cadence).rolling(window=3, center=True).mean().values
     cadence[0] = cadence[1]
     cadence[-1] = cadence[-2]
