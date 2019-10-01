@@ -63,9 +63,9 @@ if __name__ == '__main__':
             sessions = [
                 "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
                 "f93e004d-7dd0-56b3-bb22-353750586f5e",
-                #"7b6c7bba-3250-5d45-949f-1998ff88800d",
-                # "8331f565-08af-564b-8ae9-f847b17fa851",
-                # "c7bcaf5e-f4a0-525d-aca9-c9c449f2a39e",
+                "7b6c7bba-3250-5d45-949f-1998ff88800d",
+                "8331f565-08af-564b-8ae9-f847b17fa851",
+                "c7bcaf5e-f4a0-525d-aca9-c9c449f2a39e",
                 "2f26eee8-455a-5678-a384-ed5a14c6e54a",
                 "398ad5bf-3792-5b63-b07f-60a1e6bda875",
                 "07b9b744-3e85-563d-b69a-822148673f58"
@@ -77,8 +77,8 @@ if __name__ == '__main__':
                      format_datetime(datetime.now() - timedelta(days=6)),
                      format_datetime(datetime.now() - timedelta(days=8)),
                      format_datetime(datetime.now() - timedelta(days=10)),
-                     # format_datetime(datetime.now() - timedelta(days=12)),
-                     # format_datetime(datetime.now() - timedelta(days=14))
+                     format_datetime(datetime.now() - timedelta(days=12)),
+                     format_datetime(datetime.now() - timedelta(days=14))
                      ]
 
             symmetrical = [False, False, False, False, False, False, False, False]

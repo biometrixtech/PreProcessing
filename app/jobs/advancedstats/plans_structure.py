@@ -119,6 +119,13 @@ class Plans_4_5(PlansBase):
                             "asymmetric_events": asymmetry_events.ankle_pitch_summary.asymmetric_events,
                             "symmetric_events": asymmetry_events.ankle_pitch_summary.symmetric_events,
                             "percent_events_asymmetric": asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
+                            },
+                        "hip_drop": {
+                            "left": asymmetry_events.hip_drop_summary.left,
+                            "right": asymmetry_events.hip_drop_summary.right,
+                            "asymmetric_events": asymmetry_events.hip_drop_summary.asymmetric_events,
+                            "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
+                            "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
                             }
                         }
                     }
@@ -153,6 +160,15 @@ class Plans_4_5(PlansBase):
 
         record_out['ankle_pitch'] = ankle_pitch
 
+        hip_drop = OrderedDict()
+        hip_drop['left'] = self.asymmetry_events.hip_drop_summary.left
+        hip_drop['right'] = self.asymmetry_events.hip_drop_summary.right
+        hip_drop['symmetric_events'] = self.asymmetry_events.hip_drop_summary.symmetric_events
+        hip_drop['asymmetric_events'] = self.asymmetry_events.hip_drop_summary.asymmetric_events
+        hip_drop['percent_events_asymmetric'] = self.asymmetry_events.hip_drop_summary.percent_events_asymmetric
+
+        record_out['hip_drop'] = hip_drop
+
         record_asymmetries = []
 
         for m in movement_events:
@@ -174,6 +190,13 @@ class Plans_4_5(PlansBase):
             ankle_pitch_time_block['significant'] = m.ankle_pitch.significant
 
             event_record['ankle_pitch'] = ankle_pitch_time_block
+
+            hip_drop_time_block = OrderedDict()
+            hip_drop_time_block['left'] = m.hip_drop.left
+            hip_drop_time_block['right'] = m.hip_drop.right
+            hip_drop_time_block['significant'] = m.hip_drop.significant
+
+            event_record['hip_drop'] = hip_drop_time_block
 
             record_asymmetries.append(event_record)
 
