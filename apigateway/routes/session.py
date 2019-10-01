@@ -12,6 +12,7 @@ from fathomapi.api.config import Config
 from fathomapi.utils.exceptions import ApplicationException, DuplicateEntityException, InvalidSchemaException
 from fathomapi.utils.decorators import require
 from fathomapi.utils.xray import xray_recorder
+from fathomapi.utils.formatters import parse_datetime
 
 from models.session import Session
 
@@ -25,13 +26,24 @@ _s3_config = TransferConfig(use_threads=False)
 
 @app.route('/', methods=['POST'])
 @require.authenticated.any
-@require.body({'event_date': str, 'sensors': list})
+@require.body({'event_date': str})
 @xray_recorder.capture('routes.session.create')
 def handle_session_create(principal_id=None):
     xray_recorder.current_subsegment().put_annotation('accessory_id', principal_id)
 
     body = request.json
-    body['accessory_id'] = principal_id
+
+    if body['event_date'] == 'ERROR':  # problem getting event date, set server time
+        try:
+            event_date = datetime.datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            event_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        body['event_date'] = event_date
+
+    if 'accessory_id' not in body:
+        body['accessory_id'] = principal_id
+    else:  # call came from mobile, adjust event date
+        body['event_date'] = (parse_datetime(body['event_date']) + datetime.timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     body['session_status'] = 'CREATE_COMPLETE'
 
     body['sensor_ids'] = []
@@ -111,18 +123,26 @@ def handle_session_patch(session_id):
             ('UPLOAD_IN_PROGRESS', 'UPLOAD_COMPLETE'),
             ('PROCESSING_COMPLETE', 'UPLOAD_IN_PROGRESS'),
             ('PROCESSING_FAILED', 'UPLOAD_IN_PROGRESS'),
+            ('CREATE_COMPLETE', 'NO_DATA'),
+            ('CREATE_COMPLETE', 'TOO_SHORT'),
+            ('CREATE_COMPLETE', 'CREATE_ATTEMPT_FAILED')
         ]
+        if session['session_status'] == 'UPLOAD_IN_PROGRESS' and request.json['session_status'] == 'NO_DATA':
+            request.json['session_status'] = 'UPLOAD_COMPLETE'
         if (session['session_status'], request.json['session_status']) in allowed_transitions:
             session['session_status'] = request.json['session_status']
             if session['session_status'] == 'UPLOAD_COMPLETE':
                 request.json['upload_end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-            # https://app.asana.com/0/410356542105212/1126815467611560
-            # Race condition between uploads being noted in DynamoDB (from S3 event watcher) and processing starting; hack around with a sleep
-            time.sleep(5)
+                # https://app.asana.com/0/410356542105212/1126815467611560
+                # Race condition between uploads being noted in DynamoDB (from S3 event watcher) and processing starting; hack around with a sleep
+                time.sleep(5)
         else:
             # https://app.asana.com/0/654140198477919/673983533272813
             return {'message': 'Currently at status {}, cannot change to {}'.format(session['session_status'], request.json['session_status'])}, 200
             # raise InvalidSchemaException('Transition from {} to {} is not allowed'.format(session.session_status, request.json['session_status']))
+    if 'set_end_date' in request.json:
+        request.json['end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        del request.json['set_end_date']
 
     session = Session(session_id).patch(request.json)
     return {'session': session}

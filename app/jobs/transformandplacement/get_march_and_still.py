@@ -1,67 +1,189 @@
 import numpy as np
-import pandas as pd
+# import pandas as pd
 from .exceptions import StillDetectionException, MarchDetectionException
 
 from utils import get_ranges
 from utils.quaternion_conversions import quat_to_euler
+# from utils.quaternion_operations import quat_conjugate, hamilton_product
 
+from .body_frame_transformation import body_frame_tran
 
-# constants
-march_detection_start = 775
-march_detection_end = 2000
-samples_before_march = 75
+from scipy.signal import find_peaks
+
+from .transform_calculation import compute_transform
+from .heading_calculation import heading_foot_finder
+from jobs.driftcorrection.heading_correction import heading_correction
 
 
 def detect_march_and_still(data):
-    start_still_0, end_still_0, start_march_0, end_march_0 = _detect_march_and_still_ankle(data, 0)
-    start_still_2, end_still_2, start_march_2, end_march_2 = _detect_march_and_still_ankle(data, 2)
-    start_march_hip = max([start_march_0, start_march_2])
-    end_march_hip = min([end_march_0, end_march_2])
-    start_search_hip  = min([start_march_0, start_march_2])  # start searching before the first ankle moves
-    start_still_hip, end_still_hip = _detect_still(data[start_search_hip - samples_before_march:start_search_hip], sensor=1)
-    start_still_hip += start_march_hip - samples_before_march
-    end_still_hip += start_march_hip - samples_before_march
+    # get candidate windows
+    try:
+        print('trying with sensor0')
+        return get_march_and_still(data, 0)
+    except MarchDetectionException:
+        try:
+            print('trying with sensor2')
+            return get_march_and_still(data, 2)
+        except MarchDetectionException:
+            raise
+        
 
-    return (start_march_0, end_march_0, start_still_0, end_still_0,
-            start_march_hip, end_march_hip, start_still_hip, end_still_hip,
-            start_march_2, end_march_2, start_still_2, end_still_2)
-
-
-def _detect_march_and_still_ankle(data, sensor):
-    # get march
-    start_march, end_march = _detect_march(data[f'static_{sensor}'][march_detection_start:march_detection_end])
-    if end_march != 0:
-        start_march += march_detection_start
-        end_march += march_detection_start
-        start_still, end_still = _detect_still(data[start_march - samples_before_march:start_march], sensor=sensor)
-        start_still += start_march - samples_before_march
-        end_still += start_march - samples_before_march
-        return start_still, end_still, start_march, end_march
-    else:
-        raise MarchDetectionException(f'Could not detect march for sensor{sensor}', sensor)
-
-
-def _detect_march(static):
+def get_march_and_still(data, sensor):
+    static = data[f"static_{sensor}"]
     static = _fix_short_static(static)
     ranges, lengths = get_ranges(static, 1, True)
     for r, length in zip(ranges, lengths):
-        if length >= 400:
-            return r[0], min(r[1], r[0] + int(600))
-    return 0, 0
+        if length >= 400 and r[0] > 150:
+            start = r[0]
+            end = min(r[1], r[0] + int(600))
+            if is_valid_march(data, start, end):
+                (start_still_0, end_still_0, start_still_hip, end_still_hip, start_still_2, end_still_2) = get_still_all(data, start)
+                return (start, end, start_still_0, end_still_0,
+                        start, end, start_still_hip, end_still_hip,
+                        start, end, start_still_2, end_still_2)
+            else:
+                continue
+    raise MarchDetectionException("could not detect marching+still")
+
+
+def is_valid_march(data, start, end):
+    print(f"candidate start and end of march {start}, {end}")
+
+    # validate march based on acceleration
+    acc_lf = data.loc[start:end, ['acc_0_x', 'acc_0_y', 'acc_0_z']].values
+    acc_rf = data.loc[start:end, ['acc_2_x', 'acc_2_y', 'acc_2_z']].values
+    left_valid = validate_march_acc(acc_lf)
+    right_valid = validate_march_acc(acc_rf)
+
+    if left_valid and right_valid:
+        # find static right before marching
+        try:
+            samples_before_march = min([250, start])
+            start_still_0, end_still_0 = _detect_still(data[start - samples_before_march:start], sensor=0)
+            start_still_0 += start - samples_before_march
+            end_still_0 += start - samples_before_march
+            start_still_2, end_still_2 = _detect_still(data[start - samples_before_march:start], sensor=2)
+            start_still_2 += start - samples_before_march
+            end_still_2 += start - samples_before_march
+            start_still_hip = start_still_0
+            end_still_hip = end_still_0
+            start = min([end_still_0, end_still_2])
+        except StillDetectionException:
+            print(f"STILL DETECTION FAILED {start, end}")
+            return False
+        else:
+            # transform and heading correct the data
+            ref_quats = compute_transform(data,
+                                          start_still_0,
+                                          end_still_0,
+                                          start_still_hip,
+                                          end_still_hip,
+                                          start_still_2,
+                                          end_still_2
+                                          )
+            data_c = body_frame_tran(data, ref_quats[0], ref_quats[1], ref_quats[2])
+            print("data transformed")
+            qHH = ref_quats[3]
+            try:
+                qH0, qH2 = heading_foot_finder(data_c[start:end, 5:9], data_c[start:end, 21:25])
+                data_hc = heading_correction(data_c, qH0, qHH, qH2)
+                print("heading corrected, checking euler")
+            except:
+                print(f"HEADING DETECTION FAILED {start, end}")
+                return False
+            else:
+                # euler angle checks
+                quats_lf = data_hc[start:end, 5:9]
+                quats_rf = data_hc[start:end, 21:25]
+                if validate_pitch(quats_lf) and validate_pitch(quats_rf):
+                    print(f"PITCH VALIDATED")
+                    return True
+                else:
+                    print(f"PITCH VALIDATION FAILED {start, end}")
+                    return False
+
+
+def get_still_all(data, start):
+    samples_before_march = 250
+    start_still_0, end_still_0 = _detect_still(data[start - samples_before_march:start], sensor=0)
+    start_still_0 += start - samples_before_march
+    end_still_0 += start - samples_before_march
+    start_still_2, end_still_2 = _detect_still(data[start - samples_before_march:start], sensor=2)
+    start_still_2 += start - samples_before_march
+    end_still_2 += start - samples_before_march
+    start_still_hip = start_still_0
+    end_still_hip = end_still_0
+
+    return (start_still_0, end_still_0,
+            start_still_hip, end_still_hip,
+            start_still_2, end_still_2)
+
+
+def validate_pitch(quats):
+    """
+    Validate:
+        - We have pitch change in good range
+        - Pitch change is uni-directional
+        - Motion is mostly in pitch and roll change is minimal
+    """
+    valid_pitch = False
+    euls = quat_to_euler(
+        quats[:, 0],
+        quats[:, 1],
+        quats[:, 2],
+        quats[:, 3])
+    euler_y = euls[:, 1] * 180 / np.pi
+    euler_x = euls[:400, 0] * 180 / np.pi  # only validate for the first 4s
+
+    init_pitch = euler_y[0]
+    pitch_diff = euler_y - init_pitch
+    peaks, peak_heights = find_peaks(pitch_diff, height=20, distance=50)
+    has_good_peaks = len(peaks) >= 3
+    if has_good_peaks:
+        # make sure pich change is uni-directional (exclude walking)
+        if np.any(pitch_diff[peaks] >= 75):
+            # exclude march with very high pitch change (e.g. buttkicks) as this introduces error in heading detection
+            return False
+        for i in range(1, len(peaks)):
+            if np.all(pitch_diff[peaks[i-1]:peaks[i]] > -10):
+                if i >= 2:
+                    valid_pitch = True
+            else:
+                break
+    if valid_pitch:
+        # validate that after heading correction, most of the motion is in pitch
+        if min(euler_x) < -15 or max(euler_x) > 15:
+            valid_pitch = False
+            print(f"min and max roll: {min(euler_x), max(euler_x)}")
+
+    return valid_pitch
+
+
+def validate_march_acc(acc):
+    """Validate that the window has some peaks in acceleration associated with marching
+    Note: this will validate walking as well, which will be rejected in a later step
+    """
+
+    marching_found = False
+    acc_norm = np.linalg.norm(acc, axis=1) - 1000
+    peak_pos, _ = find_peaks(acc_norm, height=1000, distance=50)
+    if peak_pos.size >= 3:
+        marching_found = True
+    return marching_found
 
 
 def _fix_short_static(static):
     ranges, length = get_ranges(static, 0, True)
     for r, l in zip(ranges, length):
-        if l < 20:
+        if l < 15:
             static[r[0]: r[1]] = 1
     return static
-
 
 
 def _detect_still(data, sensor=0):
     """Detect part of data without activity for neutral reference
     """
+    len(data)
     euler = quat_to_euler(
         data[f'quat_{sensor}_w'],
         data[f'quat_{sensor}_x'],
@@ -71,11 +193,11 @@ def _detect_still(data, sensor=0):
     euler_x = euler[:, 0] * 180 / np.pi
     euler_y = euler[:, 1] * 180 / np.pi
     static = data[f'static_{sensor}'].values
-    x_diff = max(euler_x) - min(euler_x)
-    y_diff = max(euler_y) - min(euler_y)
-    max_diff_all = max(x_diff, y_diff)
-    if max_diff_all > 20:  # too much movement/drift in the second prior
-        raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
+    # x_diff = max(euler_x) - min(euler_x)
+    # y_diff = max(euler_y) - min(euler_y)
+#    max_diff_all = max(x_diff, y_diff)
+#    if max_diff_all > 20:  # too much movement/drift in the second prior
+#        raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
 
     for i in np.arange(len(data) - 1, 25, -1):
         start = i - 25
