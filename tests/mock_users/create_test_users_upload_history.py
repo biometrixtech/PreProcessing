@@ -59,7 +59,7 @@ if __name__ == '__main__':
                      format_datetime(datetime.now() - timedelta(days=5))]
 
         elif u[0] in ["tread_run@200.com","tread_run_2@200.com", "ts_tread@200.com", "nc_sore_tread@200.com",
-                      "tread_run_2_mazen@200.com", "nc_sore_tread_2@200.com", "ts_tread_2@200.com"]:
+                      "tread_run_2_mazen@200.com", "nc_sore_tread_2@200.com", "ts_tread_2@200.com", "ivonna+demo1@fathomai.com"]:
             sessions = [
                 "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
                 "f93e004d-7dd0-56b3-bb22-353750586f5e",
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
         elif u[0] in ["long_3s@200.com","long_3s_2@200.com","full_fte_long@200.com", "nc_long@200.com",
                       "ts_pain_long@200.com","nc_long_2@200.com", "ts_pain_long_2@200.com",
-                      "full_fte_long_2@200.com"]:
+                      "full_fte_long_2@200.com","ivonna+demo2@fathomai.com"]:
             sessions = [
                 "958dba09-c338-5118-86a3-d20a559f09c2",
                 #"b6b42d70-b66d-5ff3-a8bc-7047e9f3c993",
