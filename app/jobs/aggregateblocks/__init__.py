@@ -24,6 +24,7 @@ _input_columns = [
     'grf_rf',
     'total_accel',
     'euler_lf_y',
+    'euler_hip_x',
     'euler_hip_y',
     'euler_rf_y',
     'acc_hip_z',
