@@ -143,6 +143,8 @@ def handle_session_patch(session_id):
     if 'set_end_date' in request.json:
         request.json['end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         del request.json['set_end_date']
+    if 'end_date' in request.json and session['session_status'] != 'CREATE_COMPLETE':
+        del request.json['end_date']
 
     session = Session(session_id).patch(request.json)
     return {'session': session}
