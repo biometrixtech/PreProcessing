@@ -23,8 +23,8 @@ class AdvancedstatsJob(Job):
         for a in active_blocks:
             unit_blocks.extend(a["unitBlocks"])
 
-        unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
         unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10 and b["cadence_zone"] != 0]
+        unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
 
         if len(unit_blocks) > 0:
             # # Write out active blocks
@@ -44,14 +44,18 @@ class AdvancedstatsJob(Job):
             from .asymmetry_processor_job import AsymmetryProcessorJob, AsymmetryEvents
             asymmetry_events = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
 
-            self._write_session_to_plans(asymmetry_events)
+            active_time_start = unit_blocks[0]['timeStart']
+            active_time_end = unit_blocks[len(unit_blocks) - 1]['timeEnd']
+            self._write_session_to_plans(asymmetry_events, active_time_start, active_time_end)
 
-    def _write_session_to_plans(self, asymmetry_events):
+    def _write_session_to_plans(self, asymmetry_events, active_time_start, active_time_end):
         _service_token = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
         user_id = self.datastore.get_metadatum('user_id')
         event_date = self.datastore.get_metadatum('event_date')
         end_date = self.datastore.get_metadatum('end_date')
-        seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
+
+        #seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
+        seconds_duration = (parse_datetime(active_time_end) - parse_datetime(active_time_start)).seconds
 
         headers = {'Content-Type': 'application/json',
                    'Authorization': _service_token}
