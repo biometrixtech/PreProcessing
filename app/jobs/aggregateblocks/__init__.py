@@ -8,6 +8,7 @@ from ..job import Job
 from config import get_mongo_collection
 from .aggregate import aggregate
 from .define_blocks import define_active_blocks, define_cadence_zone
+from utils import format_datetime_from_epoch_time
 
 
 _logger = logging.getLogger()
@@ -134,3 +135,6 @@ class AggregateblocksJob(Job):
             mongo_collection.replace_one(query, record_out, upsert=True)
 
             _logger.info("Wrote a bock record")
+            # get end_date as last index of last unit block
+            end_date = format_datetime_from_epoch_time(data['epoch_time'][ub.end_index] / 1000)
+            self.datastore.put_metadata({'end_date': end_date})
