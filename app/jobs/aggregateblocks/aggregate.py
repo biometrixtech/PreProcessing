@@ -163,10 +163,11 @@ def _step_data(data, ranges, mass, sensor):
         #     step_record['peakGrfImpactDuration' + sensor] = None
         #     step_record['peakGrfPercImpactDuration' + sensor] = None
 
-        if any(step_data.loc[:, 'remove'] == 1):  # if the step was marked for removal, do not compute APT
+        if any(step_data.loc[:, 'remove'] == 1):  # if the step was marked for removal, do not compute CME
             print('removed step')
             apt_range, apt_rate = None, None
             pitch_range, pitch_range_impact_start = None, None
+            hip_drop = None
         else:
             apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
             if range_gc[0] > 10 and range_gc[1] < len(data) - 30:
@@ -174,10 +175,16 @@ def _step_data(data, ranges, mass, sensor):
             else:
                 pitch_range, pitch_range_impact_start = None, None
 
+            if range_gc[0] > 3:
+                hip_drop = get_hip_drop_cme(data.loc[range_gc[0] - 3:range_gc[1], "euler_hip_x"].values, sensor)
+            else:
+                hip_drop = None
+
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
         step_record['anklePitchRange'] = pitch_range
         step_record['anklePitchRangeImpactStart'] = pitch_range_impact_start
+        step_record['hipDrop'] = hip_drop
 
         # adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
         # adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
@@ -289,8 +296,27 @@ def get_pitch_range_cme(euler_y_window):
         print('min and max too close, possible error')
         return None, None
 
-
     return pitch_range * 180 / np.pi, pitch_range_impact_start * 180 / np.pi  # result in degrees
+
+
+def get_hip_drop_cme(hip_roll, sensor):
+    if sensor == 'RF':
+        hip_roll *= -1
+    min_roll = np.min(hip_roll[:6])
+    min_point = np.where(hip_roll == min_roll)[0][0]
+    max_roll = np.max(hip_roll[min_point:int(len(hip_roll) / 2):])
+    max_point = np.where(hip_roll == max_roll)[0][0]
+
+    hip_drop = max_roll - min_roll
+    contact_duration = max_point - min_point
+    
+    if contact_duration <= 0:
+        print('max before min')
+        return None
+    if hip_drop <= 0:
+        return None
+
+    return hip_drop * 180 / np.pi
 
 
 def _contact_duration_peak_grf(grf, ranges, epoch_time):
