@@ -48,7 +48,7 @@ def handler(event, _):
                 else:
                     update = {'user_id': accessory['owner_id'] or '---'}
                 if accessory.get('true_time') is not None:
-                    update['last_true_time'] = accessory['true_time']
+                    update['last_true_time'] = decimal.Decimal(str(accessory['true_time']))
                 # if accessory.get('clock_drift_rate') is not None and accessory.get('last_sync_date') is not None:
                 #     try:
                 #         event_date_epoch_time = _get_epoch_time(new_object['event_date'])
