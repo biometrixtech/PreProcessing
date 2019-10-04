@@ -47,23 +47,25 @@ def handler(event, _):
                     update = {}
                 else:
                     update = {'user_id': accessory['owner_id'] or '---'}
-                if accessory.get('clock_drift_rate') is not None and accessory.get('last_sync_date') is not None:
-                    try:
-                        event_date_epoch_time = _get_epoch_time(new_object['event_date'])
-                        last_sync_epoch_time = _get_epoch_time(accessory['last_sync_date'])
-                        time_since_last_update = event_date_epoch_time - last_sync_epoch_time
-                        if time_since_last_update > 0:
-                            adjustment = time_since_last_update * (accessory['clock_drift_rate'] - 1)  # unit is ms
-                            event_date_epoch_time += adjustment
-                            event_date = _format_datetime_from_epoch_time(event_date_epoch_time)
-                            update['event_date'] = event_date
-                            update['start_time_adjustment'] = str(adjustment)
-                            print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time} \n clock_drift_rate: {accessory['clock_drift_rate']} \nstart_time_adjustment: {adjustment}")
-                        else:
-                            print("Accessory synced after session started. Do not need to adjust")
-                            print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time}")
-                    except Exception as e:
-                        print(e)
+                if accessory.get('true_time') is not None:
+                    update['last_true_time'] = decimal.Decimal(str(accessory['true_time']))
+                # if accessory.get('clock_drift_rate') is not None and accessory.get('last_sync_date') is not None:
+                #     try:
+                #         event_date_epoch_time = _get_epoch_time(new_object['event_date'])
+                #         last_sync_epoch_time = _get_epoch_time(accessory['last_sync_date'])
+                #         time_since_last_update = event_date_epoch_time - last_sync_epoch_time
+                #         if time_since_last_update > 0:
+                #             adjustment = time_since_last_update * (accessory['clock_drift_rate'] - 1)  # unit is ms
+                #             event_date_epoch_time += adjustment
+                #             event_date = _format_datetime_from_epoch_time(event_date_epoch_time)
+                #             update['event_date'] = event_date
+                #             update['start_time_adjustment'] = str(adjustment)
+                #             print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time} \n clock_drift_rate: {accessory['clock_drift_rate']} \nstart_time_adjustment: {adjustment}")
+                #         else:
+                #             print("Accessory synced after session started. Do not need to adjust")
+                #             print(f"event_date: {new_object['event_date']}/ {event_date_epoch_time} \nlast_sync_date:{accessory['last_sync_date']}/ {last_sync_epoch_time}")
+                #     except Exception as e:
+                #         print(e)
 
                 if len(update) > 0:
                     update_dynamodb(new_object['id'], update)

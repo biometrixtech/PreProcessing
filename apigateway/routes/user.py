@@ -54,7 +54,8 @@ def handle_get_last_created_session(user_id):
                 cleaned_session = {
                     "id": session['id'],
                     "event_date": _get_epoch_time(session['event_date']),
-                    "end_date": _get_epoch_time(session.get('end_date', None))
+                    "end_date": _get_epoch_time(session.get('end_date', None)),
+                    "last_true_time": session.get('last_true_time', None)
                 }
                 if cleaned_session['end_date'] is None:  # if no end_date add 4 hours to start_date
                     cleaned_session['end_date'] = cleaned_session['event_date'] + 4 * 3600
