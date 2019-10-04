@@ -178,63 +178,63 @@ class AsymmetryProcessorJob(UnitBlockJob):
         right_hip_drop = 0
         hip_drop_sym_count = 0
         hip_drop_asym_count = 0
-        left_ankle_pitch_significant_list = []
-        right_ankle_pitch_significant_list = []
-        left_apt_significant_list = []
-        right_apt_significant_list = []
-        left_hip_drop_significant_list = []
-        right_hip_drop_significant_list = []
+        left_ankle_pitch_list = []
+        right_ankle_pitch_list = []
+        left_apt_list = []
+        right_apt_list = []
+        left_hip_drop_list = []
+        right_hip_drop_list = []
 
-        left_ankle_pitch_not_significant_list = []
-        right_ankle_pitch_not_significant_list = []
-        left_apt_not_significant_list = []
-        right_apt_not_significant_list = []
-        left_hip_drop_not_significant_list = []
-        right_hip_drop_not_significant_list = []
+        # left_ankle_pitch_not_significant_list = []
+        # right_ankle_pitch_not_significant_list = []
+        # left_apt_not_significant_list = []
+        # right_apt_not_significant_list = []
+        # left_hip_drop_not_significant_list = []
+        # right_hip_drop_not_significant_list = []
 
         for m in movement_asymmetries:
             if m.anterior_pelvic_tilt.significant:
-                left_apt_significant_list.append(m.anterior_pelvic_tilt.left)
-                right_apt_significant_list.append(m.anterior_pelvic_tilt.right)
+                left_apt_list.append(m.anterior_pelvic_tilt.left)
+                right_apt_list.append(m.anterior_pelvic_tilt.right)
                 if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
                     apt_asym_count += 1
             else:
                 if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
                     apt_sym_count += 1
-                    left_apt_not_significant_list.append(m.anterior_pelvic_tilt.left)
-                    right_apt_not_significant_list.append(m.anterior_pelvic_tilt.right)
+                    left_apt_list.append(m.anterior_pelvic_tilt.left)
+                    right_apt_list.append(m.anterior_pelvic_tilt.right)
             if m.ankle_pitch.significant:
-                left_ankle_pitch_significant_list.append(m.ankle_pitch.left)
-                right_ankle_pitch_significant_list.append(m.ankle_pitch.right)
+                left_ankle_pitch_list.append(m.ankle_pitch.left)
+                right_ankle_pitch_list.append(m.ankle_pitch.right)
                 if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
                     ankle_pitch_asym_count += 1
             else:
                 if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
                     ankle_pitch_sym_count += 1
-                    left_ankle_pitch_not_significant_list.append(m.ankle_pitch.left)
-                    right_ankle_pitch_not_significant_list.append(m.ankle_pitch.right)
+                    left_ankle_pitch_list.append(m.ankle_pitch.left)
+                    right_ankle_pitch_list.append(m.ankle_pitch.right)
             if m.hip_drop.significant:
-                left_hip_drop_significant_list.append(m.hip_drop.left)
-                right_hip_drop_significant_list.append(m.hip_drop.right)
+                left_hip_drop_list.append(m.hip_drop.left)
+                right_hip_drop_list.append(m.hip_drop.right)
                 if m.hip_drop.left > 0 or m.hip_drop.right > 0:
                     hip_drop_asym_count += 1
             else:
                 if m.hip_drop.left > 0 or m.hip_drop.right > 0:
                     hip_drop_sym_count += 1
-                    left_hip_drop_not_significant_list.append(m.hip_drop.left)
-                    right_hip_drop_not_significant_list.append(m.hip_drop.right)
+                    left_hip_drop_list.append(m.hip_drop.left)
+                    right_hip_drop_list.append(m.hip_drop.right)
 
         events = AsymmetryEvents()
 
-        if len(left_apt_significant_list) > 0:
-            left_apt = statistics.median(left_apt_significant_list)
-        elif len(left_apt_not_significant_list) > 0:
-            left_apt = statistics.median(left_apt_not_significant_list)
+        if len(left_apt_list) > 0:
+            left_apt = statistics.median(left_apt_list)
+        # elif len(left_apt_not_significant_list) > 0:
+        #     left_apt = statistics.median(left_apt_not_significant_list)
 
-        if len(right_apt_significant_list) > 0:
-            right_apt = statistics.median(right_apt_significant_list)
-        elif len(right_apt_not_significant_list) > 0:
-            right_apt = statistics.median(right_apt_not_significant_list)
+        if len(right_apt_list) > 0:
+            right_apt = statistics.median(right_apt_list)
+        # elif len(right_apt_not_significant_list) > 0:
+        #     right_apt = statistics.median(right_apt_not_significant_list)
 
         events.anterior_pelvic_tilt_summary.left = left_apt
         events.anterior_pelvic_tilt_summary.right = right_apt
@@ -248,15 +248,15 @@ class AsymmetryProcessorJob(UnitBlockJob):
         if apt_total_count > 0:
             events.anterior_pelvic_tilt_summary.percent_events_asymmetric = round((apt_asym_count / float(apt_total_count)) * 100)
 
-        if len(left_ankle_pitch_significant_list) > 0:
-            left_ankle_pitch = statistics.median(left_ankle_pitch_significant_list)
-        elif len(left_ankle_pitch_not_significant_list) > 0:
-            left_ankle_pitch = statistics.median(left_ankle_pitch_not_significant_list)
+        if len(left_ankle_pitch_list) > 0:
+            left_ankle_pitch = statistics.median(left_ankle_pitch_list)
+        # elif len(left_ankle_pitch_not_significant_list) > 0:
+        #     left_ankle_pitch = statistics.median(left_ankle_pitch_not_significant_list)
 
-        if len(right_ankle_pitch_significant_list) > 0:
-            right_ankle_pitch = statistics.median(right_ankle_pitch_significant_list)
-        elif len(right_ankle_pitch_not_significant_list) > 0:
-            right_ankle_pitch = statistics.median(right_ankle_pitch_not_significant_list)
+        if len(right_ankle_pitch_list) > 0:
+            right_ankle_pitch = statistics.median(right_ankle_pitch_list)
+        # elif len(right_ankle_pitch_not_significant_list) > 0:
+        #     right_ankle_pitch = statistics.median(right_ankle_pitch_not_significant_list)
 
         events.ankle_pitch_summary.left = left_ankle_pitch
         events.ankle_pitch_summary.right = right_ankle_pitch
@@ -271,15 +271,15 @@ class AsymmetryProcessorJob(UnitBlockJob):
             events.ankle_pitch_summary.percent_events_asymmetric = round((ankle_pitch_asym_count / float(ankle_pitch_total_count)) * 100)
 
         # Hip Drop
-        if len(left_hip_drop_significant_list) > 0:
-            left_hip_drop = statistics.median(left_hip_drop_significant_list)
-        elif len(left_hip_drop_not_significant_list) > 0:
-            left_hip_drop = statistics.median(left_hip_drop_not_significant_list)
+        if len(left_hip_drop_list) > 0:
+            left_hip_drop = statistics.median(left_hip_drop_list)
+        # elif len(left_hip_drop_not_significant_list) > 0:
+        #     left_hip_drop = statistics.median(left_hip_drop_not_significant_list)
 
-        if len(right_hip_drop_significant_list) > 0:
-            right_hip_drop = statistics.median(right_hip_drop_significant_list)
-        elif len(right_hip_drop_not_significant_list) > 0:
-            right_hip_drop = statistics.median(right_hip_drop_not_significant_list)
+        if len(right_hip_drop_list) > 0:
+            right_hip_drop = statistics.median(right_hip_drop_list)
+        # elif len(right_hip_drop_not_significant_list) > 0:
+        #     right_hip_drop = statistics.median(right_hip_drop_not_significant_list)
 
         events.hip_drop_summary.left = left_hip_drop
         events.hip_drop_summary.right = right_hip_drop
