@@ -57,6 +57,9 @@
         },
         "version": {
             "type": "string"
+        },
+        "start_time_adjustment": {
+            "type": "number"
         }
     },
     "required": [
