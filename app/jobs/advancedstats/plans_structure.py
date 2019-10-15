@@ -10,8 +10,6 @@ class PlansFactory(object):
         self.end_date = end_date
         self.session_id = session_id
         self.seconds_duration = seconds_duration
-        self.asymmetry_events = None
-        self.movement_pattern = None
         self.latest_plans_version = "4_5"
 
     def get_plans(self):
