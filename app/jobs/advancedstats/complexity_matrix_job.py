@@ -36,7 +36,7 @@ class ComplexityMatrixJob(UnitBlockJob):
                 #     previous_active_block = active_block
                 #
                 # for unit_block_data in ub.get('unitBlocks'):
-
+                cadence_zone = unit_block_data.get('cadence_zone')
                 for n, lf_step in enumerate(unit_block_data.get('stepsLF')):
                     left_step = Step(lf_step, accumulated_grf_lf, 'Left', active_block, unit_block_count, session_position,
                                      session_time_start)
@@ -45,6 +45,7 @@ class ComplexityMatrixJob(UnitBlockJob):
                         accumulated_grf_lf += left_step.peak_grf
                     else:
                         accumulated_grf_lf += 0
+                    left_step.cadence_zone = cadence_zone
                     if left_step.stance_calc == 4:
                         dl_comp_matrix.add_step(left_step)
                     elif left_step.stance_calc == 2:
@@ -58,6 +59,7 @@ class ComplexityMatrixJob(UnitBlockJob):
                         accumulated_grf_rf += right_step.peak_grf
                     else:
                         accumulated_grf_rf += 0
+                    right_step.cadence_zone = cadence_zone
                     if right_step.stance_calc == 4:
                         dl_comp_matrix.add_step(right_step)
                     elif right_step.stance_calc == 2:

@@ -55,6 +55,7 @@ class Step(object):
             self.anterior_pelvic_tilt_rate = 0
             self.ankle_pitch_range = 0
             self.hip_drop = 0
+            self.cadence_zone = None
             
         else:
             time_start = parse_datetime(mongo_step.get('startTime'))
@@ -122,6 +123,7 @@ class Step(object):
             self.anterior_pelvic_tilt_rate = mongo_step.get('anteriorPelvicTiltRate')
             self.ankle_pitch_range = mongo_step.get('anklePitchRange')
             self.hip_drop = mongo_step.get('hipDrop')
+            self.cadence_zone = mongo_step.get('cadence_zone')
 
             # self.land_time = mongo_step.get('landTime')
             self.stance = mongo_step.get('stance')
