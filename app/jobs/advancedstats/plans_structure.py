@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 
 class PlansFactory(object):
-    def __init__(self, plans_api_version, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events, end_date=None):
+    def __init__(self, plans_api_version, environment, user_id, event_date, session_id, seconds_duration, end_date=None):
         self.plans_api_version = plans_api_version
         self.environment = environment
         self.user_id = user_id
@@ -10,42 +10,74 @@ class PlansFactory(object):
         self.end_date = end_date
         self.session_id = session_id
         self.seconds_duration = seconds_duration
-        self.asymmetry_events = asymmetry_events
+        self.asymmetry_events = None
+        self.movement_pattern = None
         self.latest_plans_version = "4_5"
 
     def get_plans(self):
         if self.plans_api_version == "4_4":
-            return Plans_4_4(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration,
-                             self.asymmetry_events)
+            return Plans_4_4(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration)
         elif self.plans_api_version == "4_5":
             return Plans_4_5(self.environment, self.user_id, self.event_date,self.session_id, self.seconds_duration,
-                             self.asymmetry_events, end_date=self.end_date)
+                             end_date=self.end_date)
         else:
-            return Plans_4_3(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration,
-                             self.asymmetry_events)
+            return Plans_4_3(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration)
 
 
 class PlansBase(object):
-    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events):
+    def __init__(self, environment, user_id, event_date, session_id, seconds_duration):
         self.environment = environment
         self.user_id = user_id
         self.event_date = event_date
         self.session_id = session_id
         self.seconds_duration = seconds_duration
-        self.asymmetry_events = asymmetry_events
 
-    def get_mongo_asymmetry_record(self, movement_events):
+    def get_mongo_asymmetry_record(self, asymmetry_events, movement_events):
         pass
+
+    def get_mongo_movement_pattern_record(self, movement_patterns):
+
+        record_out = OrderedDict()
+        record_out['user_id'] = self.user_id
+        record_out['event_date'] = self.event_date
+        record_out['seconds_duration'] = self.seconds_duration
+        record_out['session_id'] = self.session_id
+
+        apt_stats_list = []
+
+        for movement_pattern in movement_patterns:
+            if movement_pattern is not None:
+
+                for movement_pattern_stats in movement_pattern.apt_ankle_pitch_stats:
+
+                    apt_stats = OrderedDict()
+                    apt_stats["side"] = movement_pattern_stats.side
+                    apt_stats["cadence"] = movement_pattern_stats.cadence
+                    apt_stats["elasticity"] = movement_pattern_stats.elasticity
+                    apt_stats["elasticity_t"] = movement_pattern_stats.elasticity_t
+                    apt_stats["elasticity_se"] = movement_pattern_stats.elasticity_se
+                    apt_stats["elasticity_obs"] = movement_pattern_stats.elasticity_obs
+                    apt_stats["elasticity_adf"] = movement_pattern_stats.elasticity_adf
+                    apt_stats["elasticity_adf_critical"] = movement_pattern_stats.elasticity_adf_critical
+
+                    apt_stats_list.append(apt_stats)
+
+        record_out["apt_ankle_pitch_stats"] = apt_stats_list
+
+        return record_out
 
 
 class Plans_4_4(PlansBase):
-    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events):
-        super().__init__(environment, user_id, event_date, session_id, seconds_duration, asymmetry_events)
+    def __init__(self, environment, user_id, event_date, session_id, seconds_duration):
+        super().__init__(environment, user_id, event_date, session_id, seconds_duration)
         self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data'
-        self.body = {
-                'event_date': event_date,
-                "session_id": session_id,
-                "seconds_duration": seconds_duration,
+
+    def get_body(self, asymmetry_events):
+
+        return {
+                'event_date': self.event_date,
+                "session_id": self.session_id,
+                "seconds_duration": self.seconds_duration,
                 "asymmetry": {
                     "left_apt": asymmetry_events.anterior_pelvic_tilt_summary.left,
                     "right_apt": asymmetry_events.anterior_pelvic_tilt_summary.right,
@@ -54,7 +86,7 @@ class Plans_4_4(PlansBase):
                 }
             }
 
-    def get_mongo_asymmetry_record(self, movement_events):
+    def get_mongo_asymmetry_record(self, asymmetry_events, movement_events):
 
         user_id = self.user_id
 
@@ -63,12 +95,12 @@ class Plans_4_4(PlansBase):
         record_out['event_date'] = self.event_date
 
         record_out['session_id'] = self.session_id
-        record_out['left_apt'] = self.asymmetry_events.anterior_pelvic_tilt_summary.left
-        record_out['right_apt'] = self.asymmetry_events.anterior_pelvic_tilt_summary.right
+        record_out['left_apt'] = asymmetry_events.anterior_pelvic_tilt_summary.left
+        record_out['right_apt'] = asymmetry_events.anterior_pelvic_tilt_summary.right
 
-        record_out['symmetric_events'] = self.asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
-        record_out['asymmetric_events'] = self.asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
-        record_out['percent_events_asymmetric'] = self.asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
+        record_out['symmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
+        record_out['asymmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
+        record_out['percent_events_asymmetric'] = asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
         record_out['seconds_duration'] = self.seconds_duration
 
         record_asymmetries = []
@@ -90,47 +122,56 @@ class Plans_4_4(PlansBase):
 
 
 class Plans_4_3(Plans_4_4):
-    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events):
-        super().__init__(environment, user_id, event_date, session_id, seconds_duration, asymmetry_events)
+    def __init__(self, environment, user_id, event_date, session_id, seconds_duration):
+        super().__init__(environment, user_id, event_date, session_id, seconds_duration)
         self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_3/session/three_sensor_data'
-        self.body['user_id'] = user_id
+
+    def get_body(self, asymmetry_events):
+        body = super().get_body(asymmetry_events)
+
+        body['user_id'] = self.user_id
+
+        return body
 
 
 class Plans_4_5(PlansBase):
-    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, asymmetry_events, end_date):
-        super().__init__(environment, user_id, event_date, session_id, seconds_duration, asymmetry_events)
+    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, end_date):
+        super().__init__(environment, user_id, event_date, session_id, seconds_duration)
         self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_5/session/{user_id}/three_sensor_data'
-        self.body = {
-                    'event_date': event_date,
-                    "session_id": session_id,
-                    "seconds_duration": seconds_duration,
-                    "end_date": end_date,
-                    "asymmetry": {
-                        "apt":{
-                            "left": asymmetry_events.anterior_pelvic_tilt_summary.left,
-                            "right": asymmetry_events.anterior_pelvic_tilt_summary.right,
-                            "asymmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events,
-                            "symmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events,
-                            "percent_events_asymmetric": asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
-                            },
-                        "ankle_pitch": {
-                            "left": asymmetry_events.ankle_pitch_summary.left,
-                            "right": asymmetry_events.ankle_pitch_summary.right,
-                            "asymmetric_events": asymmetry_events.ankle_pitch_summary.asymmetric_events,
-                            "symmetric_events": asymmetry_events.ankle_pitch_summary.symmetric_events,
-                            "percent_events_asymmetric": asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
-                            },
-                        "hip_drop": {
-                            "left": asymmetry_events.hip_drop_summary.left,
-                            "right": asymmetry_events.hip_drop_summary.right,
-                            "asymmetric_events": asymmetry_events.hip_drop_summary.asymmetric_events,
-                            "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
-                            "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
+        self.end_date = end_date
+
+    def get_body(self, asymmetry_events):
+            return {
+                        'event_date': self.event_date,
+                        "session_id": self.session_id,
+                        "seconds_duration": self.seconds_duration,
+                        "end_date": self.end_date,
+                        "asymmetry": {
+                            "apt":{
+                                "left": asymmetry_events.anterior_pelvic_tilt_summary.left,
+                                "right": asymmetry_events.anterior_pelvic_tilt_summary.right,
+                                "asymmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events,
+                                "symmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events,
+                                "percent_events_asymmetric": asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
+                                },
+                            "ankle_pitch": {
+                                "left": asymmetry_events.ankle_pitch_summary.left,
+                                "right": asymmetry_events.ankle_pitch_summary.right,
+                                "asymmetric_events": asymmetry_events.ankle_pitch_summary.asymmetric_events,
+                                "symmetric_events": asymmetry_events.ankle_pitch_summary.symmetric_events,
+                                "percent_events_asymmetric": asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
+                                },
+                            "hip_drop": {
+                                "left": asymmetry_events.hip_drop_summary.left,
+                                "right": asymmetry_events.hip_drop_summary.right,
+                                "asymmetric_events": asymmetry_events.hip_drop_summary.asymmetric_events,
+                                "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
+                                "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
+                                }
                             }
                         }
-                    }
 
-    def get_mongo_asymmetry_record(self, movement_events):
+    def get_mongo_asymmetry_record(self, asymmetry_events, movement_events):
 
         record_out = OrderedDict()
         record_out['user_id'] = self.user_id
@@ -142,30 +183,30 @@ class Plans_4_5(PlansBase):
         # asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
 
         anterior_pelivic_tilt = OrderedDict()
-        anterior_pelivic_tilt['left'] = self.asymmetry_events.anterior_pelvic_tilt_summary.left
-        anterior_pelivic_tilt['right'] = self.asymmetry_events.anterior_pelvic_tilt_summary.right
-        anterior_pelivic_tilt['symmetric_events'] = self.asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
-        anterior_pelivic_tilt['asymmetric_events'] = self.asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
+        anterior_pelivic_tilt['left'] = asymmetry_events.anterior_pelvic_tilt_summary.left
+        anterior_pelivic_tilt['right'] = asymmetry_events.anterior_pelvic_tilt_summary.right
+        anterior_pelivic_tilt['symmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
+        anterior_pelivic_tilt['asymmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
         anterior_pelivic_tilt[
-            'percent_events_asymmetric'] = self.asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
+            'percent_events_asymmetric'] = asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
 
         record_out['apt'] = anterior_pelivic_tilt
 
         ankle_pitch = OrderedDict()
-        ankle_pitch['left'] = self.asymmetry_events.ankle_pitch_summary.left
-        ankle_pitch['right'] = self.asymmetry_events.ankle_pitch_summary.right
-        ankle_pitch['symmetric_events'] = self.asymmetry_events.ankle_pitch_summary.symmetric_events
-        ankle_pitch['asymmetric_events'] = self.asymmetry_events.ankle_pitch_summary.asymmetric_events
-        ankle_pitch['percent_events_asymmetric'] = self.asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
+        ankle_pitch['left'] = asymmetry_events.ankle_pitch_summary.left
+        ankle_pitch['right'] = asymmetry_events.ankle_pitch_summary.right
+        ankle_pitch['symmetric_events'] = asymmetry_events.ankle_pitch_summary.symmetric_events
+        ankle_pitch['asymmetric_events'] = asymmetry_events.ankle_pitch_summary.asymmetric_events
+        ankle_pitch['percent_events_asymmetric'] = asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
 
         record_out['ankle_pitch'] = ankle_pitch
 
         hip_drop = OrderedDict()
-        hip_drop['left'] = self.asymmetry_events.hip_drop_summary.left
-        hip_drop['right'] = self.asymmetry_events.hip_drop_summary.right
-        hip_drop['symmetric_events'] = self.asymmetry_events.hip_drop_summary.symmetric_events
-        hip_drop['asymmetric_events'] = self.asymmetry_events.hip_drop_summary.asymmetric_events
-        hip_drop['percent_events_asymmetric'] = self.asymmetry_events.hip_drop_summary.percent_events_asymmetric
+        hip_drop['left'] = asymmetry_events.hip_drop_summary.left
+        hip_drop['right'] = asymmetry_events.hip_drop_summary.right
+        hip_drop['symmetric_events'] = asymmetry_events.hip_drop_summary.symmetric_events
+        hip_drop['asymmetric_events'] = asymmetry_events.hip_drop_summary.asymmetric_events
+        hip_drop['percent_events_asymmetric'] = asymmetry_events.hip_drop_summary.percent_events_asymmetric
 
         record_out['hip_drop'] = hip_drop
 

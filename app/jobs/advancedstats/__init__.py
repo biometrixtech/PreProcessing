@@ -64,17 +64,17 @@ class AdvancedstatsJob(Job):
         plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
 
         plans_factory = PlansFactory(plans_api_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id,
-                                     seconds_duration, asymmetry_events, end_date)
+                                     seconds_duration, end_date)
         plans = plans_factory.get_plans()
 
         response = requests.post(url=plans.endpoint,
-                                 data=json.dumps(plans.body),
+                                 data=json.dumps(plans.get_body(asymmetry_events)),
                                  headers=headers)
 
         if plans_api_version != plans_factory.latest_plans_version:
-            latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id, seconds_duration, asymmetry_events)
+            latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id, seconds_duration)
             latest_plans = latest_plans_factory.get_plans()
-            latest_record_out = latest_plans.body
+            latest_record_out = latest_plans.get_body(asymmetry_events)
             latest_record_out["plans_version"] = plans_factory.latest_plans_version
             latest_record_out["user_id"] = user_id
             latest_mongo_collection = get_mongo_collection('SESSIONASYMMETRYRESERVE')
