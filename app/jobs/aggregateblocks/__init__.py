@@ -84,6 +84,7 @@ class AggregateblocksJob(Job):
         # segment data into blocks
         active_blocks = define_active_blocks(data['active'].values)
         _logger.info("Beginning iteration over {} blocks".format(len(active_blocks)))
+        last_active_index = 0
         for block in active_blocks:
             if block.end_index >= len(data):
                 block.end_index = len(data) - 1
@@ -108,7 +109,6 @@ class AggregateblocksJob(Job):
             record_out = aggregate(block_data, record_out, user_mass, agg_level='active_blocks')
 
             unit_blocks = []
-            last_active_index = 0
             for ub in block.unit_blocks:
                 if ub.end_index >= len(data):
                     ub.end_index = len(data) - 1
@@ -138,6 +138,10 @@ class AggregateblocksJob(Job):
             mongo_collection.replace_one(query, record_out, upsert=True)
 
             _logger.info("Wrote a bock record")
-        # get end_date as last index of last non-walking unit block
-        end_date = format_datetime_from_epoch_time(data['epoch_time'][last_active_index] / 1000)
-        self.datastore.put_metadata({'end_date': end_date})
+        if len(active_blocks) != 0 and last_active_index != 0:
+            # get end_date as last index of last non-walking unit block
+            end_date = format_datetime_from_epoch_time(data['epoch_time'][last_active_index] / 1000)
+            self.datastore.put_metadata({'end_date': end_date})
+        else:
+            self.datastore.put_metadata({'failure': "NO_ACTIVE_DATA"})
+            raise Exception("No active block data")
