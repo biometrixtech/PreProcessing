@@ -27,6 +27,9 @@ class AdvancedstatsJob(Job):
         unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
 
         if len(unit_blocks) > 0:
+
+            active_time_start = unit_blocks[0]['timeStart']
+            active_time_end = unit_blocks[len(unit_blocks) - 1]['timeEnd']
             # # Write out active blocks
             # from .summary_analysis_job import SummaryAnalysisJob
             # SummaryAnalysisJob(self.datastore, unit_blocks).run()
@@ -42,10 +45,8 @@ class AdvancedstatsJob(Job):
             # FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
             from .asymmetry_processor_job import AsymmetryProcessorJob, AsymmetryEvents
-            asymmetry_events = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg).run()
+            asymmetry_events = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, active_time_start, active_time_end).run()
 
-            active_time_start = unit_blocks[0]['timeStart']
-            active_time_end = unit_blocks[len(unit_blocks) - 1]['timeEnd']
             self._write_session_to_plans(asymmetry_events, active_time_start, active_time_end)
 
     def _write_session_to_plans(self, asymmetry_events, active_time_start, active_time_end):
