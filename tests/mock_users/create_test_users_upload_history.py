@@ -148,9 +148,6 @@ if __name__ == '__main__':
 
             reset_users.clear_user(user_id, suffix)
 
-            run_asymmetry = False
-            run_movement_pattern = True
-
             for s in range(0, len(sessions)):
 
                 date = dates[s]
@@ -184,25 +181,25 @@ if __name__ == '__main__':
                 cmj.run()
 
                 job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, active_start, active_end)
-                if run_asymmetry:
-                    movement_events = job._get_movement_asymmetries()
-                    make_symmetrical = symmetrical[s]
-                    if make_symmetrical:
-                        for a in movement_events:
-                            a.anterior_pelvic_tilt.significant = False
-                            a.ankle_pitch.significant = False
 
-                    asymmetry_events = job._get_session_asymmetry_summary(movement_events)
+                movement_events = job._get_movement_asymmetries()
+                make_symmetrical = symmetrical[s]
+                if make_symmetrical:
+                    for a in movement_events:
+                        a.anterior_pelvic_tilt.significant = False
+                        a.ankle_pitch.significant = False
 
-                    job.write_movement_asymmetry(movement_events, asymmetry_events, os.environ["ENVIRONMENT"])
+                asymmetry_events = job._get_session_asymmetry_summary(movement_events)
 
-                    advanced_stats_job = AdvancedstatsJob(ds)
-                    advanced_stats_job._write_session_to_plans(asymmetry_events, unit_blocks[0]["timeStart"], unit_blocks[len(unit_blocks)-1]["timeEnd"])
+                job.write_movement_asymmetry(movement_events, asymmetry_events, os.environ["ENVIRONMENT"])
 
-                if run_movement_pattern:
-                    movement_pattern = job._get_movement_patterns()
+                movement_patterns = job._get_movement_patterns()
 
-                    job.write_movement_pattern(movement_pattern, os.environ["ENVIRONMENT"])
+                job.write_movement_pattern(movement_patterns, os.environ["ENVIRONMENT"])
+
+                advanced_stats_job = AdvancedstatsJob(ds)
+                advanced_stats_job._write_session_to_plans(asymmetry_events, movement_patterns, unit_blocks[0]["timeStart"],
+                                                           unit_blocks[len(unit_blocks) - 1]["timeEnd"])
 
 
 

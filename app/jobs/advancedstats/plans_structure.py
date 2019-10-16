@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from models.movement_pattern import MovementPatternType
 
 
 class PlansFactory(object):
@@ -43,22 +44,21 @@ class PlansBase(object):
 
         apt_stats_list = []
 
-        for movement_pattern in movement_patterns:
-            if movement_pattern is not None:
+        if movement_patterns is not None:
 
-                for movement_pattern_stats in movement_pattern.apt_ankle_pitch_stats:
+            for movement_pattern_stats in movement_patterns.apt_ankle_pitch_stats:
 
-                    apt_stats = OrderedDict()
-                    apt_stats["side"] = movement_pattern_stats.side
-                    apt_stats["cadence"] = movement_pattern_stats.cadence
-                    apt_stats["elasticity"] = movement_pattern_stats.elasticity
-                    apt_stats["elasticity_t"] = movement_pattern_stats.elasticity_t
-                    apt_stats["elasticity_se"] = movement_pattern_stats.elasticity_se
-                    apt_stats["elasticity_obs"] = movement_pattern_stats.elasticity_obs
-                    apt_stats["elasticity_adf"] = movement_pattern_stats.elasticity_adf
-                    apt_stats["elasticity_adf_critical"] = movement_pattern_stats.elasticity_adf_critical
+                apt_stats = OrderedDict()
+                apt_stats["side"] = movement_pattern_stats.side
+                apt_stats["cadence"] = movement_pattern_stats.cadence
+                apt_stats["elasticity"] = movement_pattern_stats.elasticity
+                apt_stats["elasticity_t"] = movement_pattern_stats.elasticity_t
+                apt_stats["elasticity_se"] = movement_pattern_stats.elasticity_se
+                apt_stats["obs"] = movement_pattern_stats.obs
+                apt_stats["adf"] = movement_pattern_stats.adf
+                apt_stats["adf_critical"] = movement_pattern_stats.adf_critical
 
-                    apt_stats_list.append(apt_stats)
+                apt_stats_list.append(apt_stats)
 
         record_out["apt_ankle_pitch_stats"] = apt_stats_list
 
@@ -70,7 +70,7 @@ class Plans_4_4(PlansBase):
         super().__init__(environment, user_id, event_date, session_id, seconds_duration)
         self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_4/session/{user_id}/three_sensor_data'
 
-    def get_body(self, asymmetry_events):
+    def get_body(self, asymmetry_events, movement_patterns):
 
         return {
                 'event_date': self.event_date,
@@ -124,7 +124,7 @@ class Plans_4_3(Plans_4_4):
         super().__init__(environment, user_id, event_date, session_id, seconds_duration)
         self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_3/session/three_sensor_data'
 
-    def get_body(self, asymmetry_events):
+    def get_body(self, asymmetry_events, movement_patterns):
         body = super().get_body(asymmetry_events)
 
         body['user_id'] = self.user_id
@@ -138,36 +138,52 @@ class Plans_4_5(PlansBase):
         self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_5/session/{user_id}/three_sensor_data'
         self.end_date = end_date
 
-    def get_body(self, asymmetry_events):
-            return {
-                        'event_date': self.event_date,
-                        "session_id": self.session_id,
-                        "seconds_duration": self.seconds_duration,
-                        "end_date": self.end_date,
-                        "asymmetry": {
-                            "apt":{
-                                "left": asymmetry_events.anterior_pelvic_tilt_summary.left,
-                                "right": asymmetry_events.anterior_pelvic_tilt_summary.right,
-                                "asymmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events,
-                                "symmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events,
-                                "percent_events_asymmetric": asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
-                                },
-                            "ankle_pitch": {
-                                "left": asymmetry_events.ankle_pitch_summary.left,
-                                "right": asymmetry_events.ankle_pitch_summary.right,
-                                "asymmetric_events": asymmetry_events.ankle_pitch_summary.asymmetric_events,
-                                "symmetric_events": asymmetry_events.ankle_pitch_summary.symmetric_events,
-                                "percent_events_asymmetric": asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
-                                },
-                            "hip_drop": {
-                                "left": asymmetry_events.hip_drop_summary.left,
-                                "right": asymmetry_events.hip_drop_summary.right,
-                                "asymmetric_events": asymmetry_events.hip_drop_summary.asymmetric_events,
-                                "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
-                                "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
+    def get_body(self, asymmetry_events, movement_patterns):
+
+            body = OrderedDict()
+            body["event_date"] = self.event_date
+            body["session_id"] = self.session_id
+            body["seconds_duration"] = self.seconds_duration
+            body["end_date"] = self.end_date
+
+            if asymmetry_events is not None:
+                body['asymmetry'] = {
+                                "apt":{
+                                    "left": asymmetry_events.anterior_pelvic_tilt_summary.left,
+                                    "right": asymmetry_events.anterior_pelvic_tilt_summary.right,
+                                    "asymmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events,
+                                    "symmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events,
+                                    "percent_events_asymmetric": asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
+                                    },
+                                "ankle_pitch": {
+                                    "left": asymmetry_events.ankle_pitch_summary.left,
+                                    "right": asymmetry_events.ankle_pitch_summary.right,
+                                    "asymmetric_events": asymmetry_events.ankle_pitch_summary.asymmetric_events,
+                                    "symmetric_events": asymmetry_events.ankle_pitch_summary.symmetric_events,
+                                    "percent_events_asymmetric": asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
+                                    },
+                                "hip_drop": {
+                                    "left": asymmetry_events.hip_drop_summary.left,
+                                    "right": asymmetry_events.hip_drop_summary.right,
+                                    "asymmetric_events": asymmetry_events.hip_drop_summary.asymmetric_events,
+                                    "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
+                                    "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
+                                    }
+                                }
+            if movement_patterns is not None:
+                body['movement_patterns'] = {
+                                "apt_ankle_pitch":{
+                                    "left": {
+                                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.apt_ankle_pitch),
+                                        "apt_adf": movement_patterns.get_adf(1, MovementPatternType.apt_ankle_pitch)
+                                    },
+                                    "right": {
+                                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.apt_ankle_pitch),
+                                        "apt_adf": movement_patterns.get_adf(2, MovementPatternType.apt_ankle_pitch)
+                                    }
                                 }
                             }
-                        }
+            return body
 
     def get_mongo_asymmetry_record(self, asymmetry_events, movement_events):
 

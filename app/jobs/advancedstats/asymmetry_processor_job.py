@@ -18,7 +18,7 @@ from models.movement_asymmetry import MovementAsymmetry
 from models.unit_block import UnitBlock
 from utils import parse_datetime
 from logic.elasticity_regression import ElasticityRegression
-from models.movement_pattern import MovementPattern, MovementPatternStats
+from models.movement_pattern import MovementPatterns, MovementPatternStats
 
 _logger = logging.getLogger()
 
@@ -100,7 +100,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         movement_patterns = self._get_movement_patterns()
 
-        return asymmetry_events
+        return asymmetry_events, movement_patterns
 
     def _get_session_asymmetry_summaries(self):
         # relative magnitude
@@ -317,7 +317,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
     def _get_movement_patterns(self):
 
-        movement_patterns = []
+        movement_patterns_list = []
 
         elasticity_regression = ElasticityRegression()
 
@@ -325,14 +325,14 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         for keys, mcsl in self.complexity_matrix.items():
 
-            movement_pattern = elasticity_regression.run_regressions(mcsl.left_steps, mcsl.right_steps)
+            movement_patterns = elasticity_regression.run_regressions(mcsl.left_steps, mcsl.right_steps)
 
-            movement_pattern.user_id = user_id
-            movement_pattern.session_id = self.datastore.session_id
+            movement_patterns.user_id = user_id
+            movement_patterns.session_id = self.datastore.session_id
 
-            movement_patterns.append(movement_pattern)
+            movement_patterns_list.append(movement_patterns)
 
-        return movement_patterns
+        return movement_patterns_list[0]
 
     def _get_movement_asymmetries(self):
 
@@ -740,7 +740,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         plans_factory = PlansFactory(plans_api_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration)
         plans = plans_factory.get_plans()
-        record_out = plans.get_mongo_asymmetry_record(movement_events)
+        record_out = plans.get_mongo_asymmetry_record(asymmetry_events, movement_events)
 
         query = {'session_id': self.datastore.session_id, 'user_id': user_id}
         mongo_collection.replace_one(query, record_out, upsert=True)

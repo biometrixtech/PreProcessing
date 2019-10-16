@@ -45,11 +45,11 @@ class AdvancedstatsJob(Job):
             # FatigueProcessorJob(self.datastore, cmj.motion_complexity_single_leg, cmj.motion_complexity_double_leg).run()
 
             from .asymmetry_processor_job import AsymmetryProcessorJob, AsymmetryEvents
-            asymmetry_events = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, active_time_start, active_time_end).run()
+            asymmetry_events, movement_patterns = AsymmetryProcessorJob(self.datastore, unit_blocks, cmj.motion_complexity_single_leg, active_time_start, active_time_end).run()
 
-            self._write_session_to_plans(asymmetry_events, active_time_start, active_time_end)
+            self._write_session_to_plans(asymmetry_events, movement_patterns, active_time_start, active_time_end)
 
-    def _write_session_to_plans(self, asymmetry_events, active_time_start, active_time_end):
+    def _write_session_to_plans(self, asymmetry_events, movement_patterns, active_time_start, active_time_end):
         _service_token = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
         user_id = self.datastore.get_metadatum('user_id')
         event_date = self.datastore.get_metadatum('event_date')
@@ -68,7 +68,7 @@ class AdvancedstatsJob(Job):
         plans = plans_factory.get_plans()
 
         response = requests.post(url=plans.endpoint,
-                                 data=json.dumps(plans.get_body(asymmetry_events)),
+                                 data=json.dumps(plans.get_body(asymmetry_events, movement_patterns)),
                                  headers=headers)
 
         if plans_api_version != plans_factory.latest_plans_version:
