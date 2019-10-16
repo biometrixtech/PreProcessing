@@ -80,9 +80,11 @@ class TimeBlock(object):
 
 class AsymmetryProcessorJob(UnitBlockJob):
 
-    def __init__(self, datastore, unit_blocks, complexity_matrix):
+    def __init__(self, datastore, unit_blocks, complexity_matrix, active_time_start, active_time_end):
         super().__init__(datastore, unit_blocks)
         self.complexity_matrix = complexity_matrix
+        self.active_time_start = active_time_start
+        self.active_time_end = active_time_end
         #self._complexity_matrix_single_leg = complexity_matrix_single_leg
         #self._complexity_matrix_double_leg = complexity_matrix_double_leg
 
@@ -674,10 +676,10 @@ class AsymmetryProcessorJob(UnitBlockJob):
         mongo_collection = get_mongo_collection('ASYMMETRY')
         plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
 
-        end_date = self.datastore.get_metadatum('end_date', None)
+        # end_date = self.datastore.get_metadatum('end_date', None)
         event_date = self.datastore.get_metadatum('event_date', None)
 
-        seconds_duration = (parse_datetime(end_date) - parse_datetime(event_date)).seconds
+        seconds_duration = (parse_datetime(self.active_time_end) - parse_datetime(self.active_time_start)).seconds
 
         user_id = self.datastore.get_metadatum('user_id', None)
 
