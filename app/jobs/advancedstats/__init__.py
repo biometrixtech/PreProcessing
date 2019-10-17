@@ -74,7 +74,7 @@ class AdvancedstatsJob(Job):
         if plans_api_version != plans_factory.latest_plans_version:
             latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, os.environ["ENVIRONMENT"], user_id, event_date, self.datastore.session_id, seconds_duration)
             latest_plans = latest_plans_factory.get_plans()
-            latest_record_out = latest_plans.get_body(asymmetry_events)
+            latest_record_out = latest_plans.get_body(asymmetry_events, movement_patterns)
             latest_record_out["plans_version"] = plans_factory.latest_plans_version
             latest_record_out["user_id"] = user_id
             latest_mongo_collection = get_mongo_collection('SESSIONASYMMETRYRESERVE')
