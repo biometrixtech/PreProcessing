@@ -99,6 +99,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
         self.write_movement_asymmetry(movement_events, asymmetry_events, os.environ["ENVIRONMENT"])
 
         movement_patterns = self._get_movement_patterns()
+        self.write_movement_pattern(movement_patterns, os.environ["ENVIRONMENT"])
 
         return asymmetry_events, movement_patterns
 
