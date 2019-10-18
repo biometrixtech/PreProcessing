@@ -750,7 +750,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
         if plans_api_version != plans_factory.latest_plans_version:
             latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration)
             latest_plans = latest_plans_factory.get_plans()
-            latest_record_out = latest_plans.get_mongo_asymmetry_record(movement_events)
+            latest_record_out = latest_plans.get_mongo_asymmetry_record(asymmetry_events, movement_events)
             latest_record_out["plans_version"] = plans_factory.latest_plans_version
             latest_mongo_collection = get_mongo_collection('ASYMMETRYRESERVE')
             latest_mongo_collection.replace_one(query, latest_record_out, upsert=True)
