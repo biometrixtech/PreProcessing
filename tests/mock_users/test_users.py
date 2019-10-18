@@ -34,7 +34,7 @@ users = [
     # ("ts_pain_long_2@200.com",  '5dd7a148-1c0e-4ddf-a1b1-020a99347069'),
     # ("ts_tread_2@200.com",  '93b7a075-8168-4fad-961f-cfebdee392fc'),
     # ("two_pain_tread_2@200.com",  '84a5e6fd-19f2-44ed-8bbd-ed2c03769ecf'),
-    ("full_fte_long_2@200.com",  '24882bdf-69df-4043-b832-74d6c1f7052c'),
+    #("full_fte_long_2@200.com",  '24882bdf-69df-4043-b832-74d6c1f7052c'),
     # ("full_fte_tread_2@200.com",  '703b5309-78cd-46b1-82ec-45e86b6d71de'),
 
     #production only
@@ -54,7 +54,7 @@ users = [
     # ("ts_pain_long_2@200.com",  '102017ae-3a2e-4477-9cc6-6d1745ba6b3b'),
     # ("ts_tread_2@200.com",  '0676696d-709f-4a59-8301-62e1d3aa130e'),
     # ("two_pain_tread_2@200.com",  '214e0ed9-172c-4d94-8c94-1e34ed9eb141'),
-    # ("full_fte_long_2@200.com",  '4b2f895e-a3b6-43b9-86b5-5cfc26190caa'),
+    ("full_fte_long_2@200.com",  '4b2f895e-a3b6-43b9-86b5-5cfc26190caa'),
     # ("full_fte_tread_2@200.com",  'f0bc5f88-2909-4f88-b839-5fbfcbeb8f0b')
 ]
 
