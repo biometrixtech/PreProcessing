@@ -141,7 +141,7 @@ def _get_local_time(utc_time_string):
     if utc_time_string is not None:
         try:
             local_time = parse_datetime(utc_time_string) + timedelta(minutes=offset)
-            return format_datetime(local_time)
+            return format_datetime(local_time).replace('Z', '')
         except InvalidSchemaException:
             return None
     else:
