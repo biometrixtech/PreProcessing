@@ -113,6 +113,8 @@ def _step_data(data, ranges, mass, sensor):
     """get linear combination of peak_grf and ground contact time
     """
 
+
+    acc_hip_z = filter_data(data.acc_hip_z.values, filt='low', highcut=35)  # remove extreme errors
     steps = []
     # counter = 0
     for range_gc in ranges:
@@ -136,10 +138,10 @@ def _step_data(data, ranges, mass, sensor):
         # accel aggregation
         step_record['totalAccel'] = np.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
-        acc_hip_z = filter_data(data.acc_hip_z.values, filt='low', highcut=35)  # remove extreme errors
-        step_record['peakVerticalAccel'] = np.max(acc_hip_z)
-        step_record['medianVerticalAccel'] = round(np.percentile(acc_hip_z, 50), 2)
-        step_record['peakVerticalAccel95'] = round(np.percentile(acc_hip_z, 95), 2)
+        acc_hip_z_step = acc_hip_z[range_gc[0]:range_gc[1] - 1]
+        step_record['peakVerticalAccel'] = np.max(acc_hip_z_step)
+        step_record['medianVerticalAccel'] = round(np.percentile(acc_hip_z_step, 50), 2)
+        step_record['peakVerticalAccel95'] = round(np.percentile(acc_hip_z_step, 95), 2)
 
         # mph = 1.2
         # grf_sub = data.grf[range_gc[0]:range_gc[1]].values
