@@ -2,9 +2,11 @@ from collections import OrderedDict
 import copy
 import numpy as np
 import pandas as pd
+from scipy.signal import find_peaks
 
+# TODO: start using find_peaks from scipy in all cases
 from utils.detect_peaks import detect_peaks
-from utils import get_ranges
+from utils import get_ranges, filter_data
 
 
 def aggregate(data, record, mass, agg_level):
@@ -134,6 +136,10 @@ def _step_data(data, ranges, mass, sensor):
         # accel aggregation
         step_record['totalAccel'] = np.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
+        acc_hip_z = filter_data(data.acc_hip_z.values, filt='low', highcut=35)  # remove extreme errors
+        step_record['peakVerticalAccel'] = np.max(acc_hip_z)
+        step_record['medianVerticalAccel'] = round(np.percentile(acc_hip_z, 50), 2)
+        step_record['peakVerticalAccel95'] = round(np.percentile(acc_hip_z, 95), 2)
 
         # mph = 1.2
         # grf_sub = data.grf[range_gc[0]:range_gc[1]].values
@@ -168,6 +174,7 @@ def _step_data(data, ranges, mass, sensor):
             apt_range, apt_rate = None, None
             pitch_range, pitch_range_impact_start = None, None
             hip_drop = None
+            knee_valgus = None
         else:
             apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
             if range_gc[0] > 10 and range_gc[1] < len(data) - 30:
@@ -179,12 +186,14 @@ def _step_data(data, ranges, mass, sensor):
                 hip_drop = get_hip_drop_cme(data.loc[range_gc[0] - 3:range_gc[1], "euler_hip_x"].values, sensor)
             else:
                 hip_drop = None
+            knee_valgus = get_knee_valgus_cme(data.loc[range_gc[0]:range_gc[1], f'euler_{sensor.lower()}_y'].values, data.loc[range_gc[0]:range_gc[1], f'acc_{sensor.lower()}_z'].values, sensor)
 
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
         step_record['anklePitchRange'] = pitch_range
         step_record['anklePitchRangeImpactStart'] = pitch_range_impact_start
         step_record['hipDrop'] = hip_drop
+        step_record['kneeValgus'] = knee_valgus
 
         # adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
         # adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
@@ -317,6 +326,35 @@ def get_hip_drop_cme(hip_roll, sensor):
         return None
 
     return hip_drop * 180 / np.pi
+
+
+def get_knee_valgus_cme(ankle_roll, acc_z, sensor):
+    if sensor == 'RF':
+        ankle_roll *= -1
+
+    acc_z = np.abs(acc_z)
+    start_point = np.where(acc_z == np.max(acc_z[:5]))[0][0]  # get the peak accel location at the start of contact
+    max_roll = np.max(ankle_roll[start_point:start_point + 6])  # get peak roll right after peak accel
+    max_point = np.where(ankle_roll == max_roll)[0][0]
+
+    # get local minimas after maxima and pick the smallest of minimas
+    peaks, peak_heights = find_peaks(-ankle_roll[max_point:], height=-30)  # height is in place just so that we get peak_heights back
+    if len(peaks) > 0:
+        min_roll = min(-peak_heights['peak_heights'])
+    else:
+        return 0
+    min_point = np.where(ankle_roll == min_roll)[0][0]
+
+    knee_valgus = max_roll - min_roll
+    contact_duration = min_point - max_point
+
+    # remove knee valgus detection attributed to noise or if roll is increasing
+    if contact_duration <= 2:
+        return 0
+    if knee_valgus <= 1:
+        return 0
+
+    return knee_valgus
 
 
 def _contact_duration_peak_grf(grf, ranges, epoch_time):
