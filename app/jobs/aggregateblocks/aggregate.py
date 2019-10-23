@@ -135,9 +135,9 @@ def _step_data(data, ranges, mass, sensor):
         # accel aggregation
         step_record['totalAccel'] = np.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
-        step_record['peakVerticalAccel'] = round(np.max(step_data['acc_hip_z']), 2)
-        step_record['medianVerticalAccel'] = round(np.percentile(step_data['acc_hip_z'], 50), 2)
-        step_record['peakVerticalAccel95'] = round(np.percentile(step_data['acc_hip_z'], 95), 2)
+        step_record['peakHipVerticalAccel'] = round(np.max(step_data['acc_hip_z']), 2)
+        step_record['medianHipVerticalAccel'] = round(np.percentile(step_data['acc_hip_z'], 50), 2)
+        step_record['peakHipVerticalAccel95'] = round(np.percentile(step_data['acc_hip_z'], 95), 2)
 
         # mph = 1.2
         # grf_sub = data.grf[range_gc[0]:range_gc[1]].values
