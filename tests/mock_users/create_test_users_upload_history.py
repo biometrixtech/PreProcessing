@@ -197,9 +197,9 @@ if __name__ == '__main__':
 
                 job.write_movement_pattern(movement_patterns, os.environ["ENVIRONMENT"])
 
-                # advanced_stats_job = AdvancedstatsJob(ds)
-                # advanced_stats_job._write_session_to_plans(asymmetry_events, movement_patterns, unit_blocks[0]["timeStart"],
-                #                                            unit_blocks[len(unit_blocks) - 1]["timeEnd"])
+                advanced_stats_job = AdvancedstatsJob(ds)
+                advanced_stats_job._write_session_to_plans(asymmetry_events, movement_patterns, unit_blocks[0]["timeStart"],
+                                                           unit_blocks[len(unit_blocks) - 1]["timeEnd"])
 
 
 
