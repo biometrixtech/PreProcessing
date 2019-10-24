@@ -184,7 +184,7 @@ def _step_data(data, ranges, mass, sensor):
                 hip_drop = get_hip_drop_cme(data.loc[range_gc[0] - 3:range_gc[1], "euler_hip_x"].values, sensor)
             else:
                 hip_drop = None
-            knee_valgus = get_knee_valgus_cme(data.loc[range_gc[0]:range_gc[1], f'euler_{sensor.lower()}_y'].values, data.loc[range_gc[0]:range_gc[1], f'acc_{sensor.lower()}_z'].values, sensor)
+            knee_valgus = get_knee_valgus_cme(data.loc[range_gc[0]:range_gc[1], f'euler_{sensor.lower()}_x'].values, data.loc[range_gc[0]:range_gc[1], f'acc_{sensor.lower()}_z'].values, sensor)
 
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
