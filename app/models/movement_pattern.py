@@ -22,6 +22,10 @@ class MovementPatterns(object):
         self.user_id = ""
         self.session_id = ""
         self.apt_ankle_pitch_stats = []
+        self.hip_drop_apt_stats = []
+        self.hip_drop_pva_stats = []
+        self.knee_valgus_hip_drop_stat = []
+        self.knee_valgus_pva_stat = []
 
     def get_elasticity(self, side, movement_pattern_type):
 

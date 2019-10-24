@@ -4,9 +4,9 @@ import json
 import requests
 
 from aws_xray_sdk.core import xray_recorder
-os.environ['ENVIRONMENT'] = 'dev'
+os.environ['ENVIRONMENT'] = 'test'
 xray_recorder.configure(sampling=False)
-xray_recorder.begin_segment(name="dev")
+xray_recorder.begin_segment(name="test")
 
 from utils import format_datetime, parse_datetime
 from datetime import datetime, timedelta
