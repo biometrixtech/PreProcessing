@@ -343,7 +343,7 @@ def get_knee_valgus_cme(ankle_roll, acc_z, sensor):
         return 0
     min_point = np.where(ankle_roll == min_roll)[0][0]
 
-    knee_valgus = max_roll - min_roll
+    knee_valgus = (max_roll - min_roll) * 180 / np.pi
     contact_duration = min_point - max_point
 
     # remove knee valgus detection attributed to noise or if roll is increasing
