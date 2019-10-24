@@ -135,9 +135,9 @@ def _step_data(data, ranges, mass, sensor):
         # accel aggregation
         step_record['totalAccel'] = np.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
-        step_record['peakVerticalAccel'] = round(np.max(step_data['acc_hip_z']), 2)
-        step_record['medianVerticalAccel'] = round(np.percentile(step_data['acc_hip_z'], 50), 2)
-        step_record['peakVerticalAccel95'] = round(np.percentile(step_data['acc_hip_z'], 95), 2)
+        step_record['peakHipVerticalAccel'] = round(np.max(step_data['acc_hip_z']), 2)
+        step_record['medianHipVerticalAccel'] = round(np.percentile(step_data['acc_hip_z'], 50), 2)
+        step_record['peakHipVerticalAccel95'] = round(np.percentile(step_data['acc_hip_z'], 95), 2)
 
         # mph = 1.2
         # grf_sub = data.grf[range_gc[0]:range_gc[1]].values
@@ -184,7 +184,7 @@ def _step_data(data, ranges, mass, sensor):
                 hip_drop = get_hip_drop_cme(data.loc[range_gc[0] - 3:range_gc[1], "euler_hip_x"].values, sensor)
             else:
                 hip_drop = None
-            knee_valgus = get_knee_valgus_cme(data.loc[range_gc[0]:range_gc[1], f'euler_{sensor.lower()}_y'].values, data.loc[range_gc[0]:range_gc[1], f'acc_{sensor.lower()}_z'].values, sensor)
+            knee_valgus = get_knee_valgus_cme(data.loc[range_gc[0]:range_gc[1], f'euler_{sensor.lower()}_x'].values, data.loc[range_gc[0]:range_gc[1], f'acc_{sensor.lower()}_z'].values, sensor)
 
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
@@ -343,7 +343,7 @@ def get_knee_valgus_cme(ankle_roll, acc_z, sensor):
         return 0
     min_point = np.where(ankle_roll == min_roll)[0][0]
 
-    knee_valgus = max_roll - min_roll
+    knee_valgus = (max_roll - min_roll) * 180 / np.pi
     contact_duration = min_point - max_point
 
     # remove knee valgus detection attributed to noise or if roll is increasing
