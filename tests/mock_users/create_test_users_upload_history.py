@@ -111,7 +111,7 @@ if __name__ == '__main__':
                 "958dba09-c338-5118-86a3-d20a559f09c2",
                 #"b6b42d70-b66d-5ff3-a8bc-7047e9f3c993",
                 "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",
-                "b2a95b1b-8d7b-5638-bd69-7299a362c717"
+                #"b2a95b1b-8d7b-5638-bd69-7299a362c717"
             ]
             user_id = u[1]
             dates = [format_datetime(datetime.now()),

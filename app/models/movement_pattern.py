@@ -15,6 +15,10 @@ class MovementPatternStats(object):
 
 class MovementPatternType(Enum):
     apt_ankle_pitch = 0
+    hip_drop_apt = 1
+    hip_drop_pva = 2
+    knee_valgus_hip_drop = 3
+    knee_valgus_pva = 4
 
 
 class MovementPatterns(object):
@@ -24,8 +28,8 @@ class MovementPatterns(object):
         self.apt_ankle_pitch_stats = []
         self.hip_drop_apt_stats = []
         self.hip_drop_pva_stats = []
-        self.knee_valgus_hip_drop_stat = []
-        self.knee_valgus_pva_stat = []
+        self.knee_valgus_hip_drop_stats = []
+        self.knee_valgus_pva_stats = []
 
     def get_elasticity(self, side, movement_pattern_type):
 
@@ -34,6 +38,25 @@ class MovementPatterns(object):
         if movement_pattern_type == MovementPatternType.apt_ankle_pitch:
 
             stats = [s.elasticity for s in self.apt_ankle_pitch_stats if s.side == side and abs(s.elasticity_t) >= 2.0 and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.hip_drop_apt:
+
+            stats = [s.elasticity for s in self.hip_drop_apt_stats if s.side == side and abs(s.elasticity_t) >= 2.0 and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.hip_drop_pva:
+
+            stats = [s.elasticity for s in self.hip_drop_pva_stats if
+                     s.side == side and abs(s.elasticity_t) >= 2.0 and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.knee_valgus_hip_drop:
+
+            stats = [s.elasticity for s in self.knee_valgus_hip_drop_stats if
+                     s.side == side and abs(s.elasticity_t) >= 2.0 and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.knee_valgus_pva:
+
+            stats = [s.elasticity for s in self.knee_valgus_pva_stats if
+                     s.side == side and abs(s.elasticity_t) >= 2.0 and s.obs >= 100]
 
         if len(stats) > 0:
             stats = sorted(stats, key=lambda x: abs(x), reverse=True)
