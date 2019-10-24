@@ -193,51 +193,51 @@ class Plans_4_5(PlansBase):
                                 "apt_ankle_pitch":{
                                     "left": {
                                         "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.apt_ankle_pitch),
-                                        "apt_adf": movement_patterns.get_adf(1, MovementPatternType.apt_ankle_pitch)
+                                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.apt_ankle_pitch)
                                     },
                                     "right": {
                                         "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.apt_ankle_pitch),
-                                        "apt_adf": movement_patterns.get_adf(2, MovementPatternType.apt_ankle_pitch)
+                                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.apt_ankle_pitch)
                                     }
                                 },
                                 "hip_drop_apt": {
                                     "left": {
                                         "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_drop_apt),
-                                        "apt_adf": movement_patterns.get_adf(1, MovementPatternType.hip_drop_apt)
+                                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_drop_apt)
                                     },
                                     "right": {
                                         "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_drop_apt),
-                                        "apt_adf": movement_patterns.get_adf(2, MovementPatternType.hip_drop_apt)
+                                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_drop_apt)
                                     }
                                 },
                                 "hip_drop_pva": {
                                     "left": {
                                         "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_drop_pva),
-                                        "apt_adf": movement_patterns.get_adf(1, MovementPatternType.hip_drop_pva)
+                                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_drop_pva)
                                     },
                                     "right": {
                                         "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_drop_pva),
-                                        "apt_adf": movement_patterns.get_adf(2, MovementPatternType.hip_drop_pva)
+                                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_drop_pva)
                                     }
                                 },
                                 "knee_valgus_hip_drop": {
                                     "left": {
                                         "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.knee_valgus_hip_drop),
-                                        "apt_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_hip_drop)
+                                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_hip_drop)
                                     },
                                     "right": {
                                         "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_hip_drop),
-                                        "apt_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_hip_drop)
+                                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_hip_drop)
                                     }
                                 },
                                 "knee_valgus_pva": {
                                     "left": {
                                         "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.knee_valgus_pva),
-                                        "apt_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_pva)
+                                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_pva)
                                     },
                                     "right": {
                                         "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_pva),
-                                        "apt_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_pva)
+                                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_pva)
                                     }
                                 },
                             }
