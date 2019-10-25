@@ -70,6 +70,9 @@ class Step(object):
             self.time_start = time_start.time().strftime("%H:%M:%S")
             self.time_end = time_end.time().strftime("%H:%M:%S")
 
+            self.step_start_time = time_start
+            self.step_end_time = time_end
+
             self.orientation = orientation
             self.duration = mongo_step.get('duration')
             self.total_grf = mongo_step.get('totalGRF')
@@ -125,13 +128,15 @@ class Step(object):
             # new vars
             self.anterior_pelvic_tilt_range = mongo_step.get('anteriorPelvicTiltRange')
             self.anterior_pelvic_tilt_rate = mongo_step.get('anteriorPelvicTiltRate')
-            self.ankle_pitch_range = mongo_step.get('anklePitchRange')
+            self.ankle_pitch_range = 0
+            self.ankle_pitch = mongo_step.get('anklePitchRange')
             self.hip_drop = mongo_step.get('hipDrop')
             self.cadence_zone = mongo_step.get('cadence_zone')
             self.knee_valgus = mongo_step.get('kneeValgus')
             self.peak_hip_vertical_accel = mongo_step.get('peakHipVerticalAccel')
             self.median_hip_vertical_accel = mongo_step.get('medianHipVerticalAccel')
             self.peak_hip_vertical_accel_95 = mongo_step.get('peakHipVerticalAccel95')
+            self.max_ankle_pitch_time = mongo_step.get('maxAnklePitchTime')
 
             # self.land_time = mongo_step.get('landTime')
             self.stance = mongo_step.get('stance')

@@ -7,6 +7,7 @@ from scipy import stats
 import pandas as pd
 import statistics
 from math import ceil
+import queue
 
 
 from ._unit_block_job import UnitBlockJob
@@ -334,6 +335,25 @@ class AsymmetryProcessorJob(UnitBlockJob):
             movement_patterns_list.append(movement_patterns)
 
         return movement_patterns_list[0]
+
+    # def _update_leg_extensions(self):
+    #
+    #     for left_step in self.complexity_matrix['Single Leg'].left_steps:
+    #         step_start_time = left_step.step_start_time
+    #         step_end_time = left_step.step_end_time
+    #
+    #           if len(right_ankle_pitch_steps) > 0:
+    #             left_step.ankle_pitch_range = right_ankle_pitch_steps[0].ankle_pitch
+    #
+    #     for right_step in self.complexity_matrix['Single Leg'].right_steps:
+    #         step_start_time = right_step.step_start_time
+    #         step_end_time = right_step.step_end_time
+    #
+    #         right_ankle_pitch_steps = [r for r in self.complexity_matrix['Single Leg'].left_steps if r.max_ankle_pitch_time is not None and
+    #                                    step_start_time <= parse_datetime(r.max_ankle_pitch_time) <= step_end_time]
+    #
+    #         if len(right_ankle_pitch_steps) > 0:
+    #             right_step.ankle_pitch_range = right_ankle_pitch_steps[0].ankle_pitch
 
     def _get_movement_asymmetries(self):
 
