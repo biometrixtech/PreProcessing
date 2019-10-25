@@ -156,7 +156,7 @@ def read_file(filename):
     output_pd['static_2'] = output_pd['static_2'].astype(int)
     ms_elapsed = np.ediff1d(timestamp, to_begin=10)
     neg_timestamp = np.where(ms_elapsed < 0)[0]
-    big_jumps = np.where(abs(ms_elapsed) > 1000)[0]
+    big_jumps = np.where(abs(ms_elapsed) > 5 * 60 * 1000)[0]
     if len(neg_timestamp) > 0:
         for i in neg_timestamp:
             if i != len(data) - 1:
