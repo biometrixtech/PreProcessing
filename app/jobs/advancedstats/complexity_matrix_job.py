@@ -2,6 +2,7 @@ from ._unit_block_job import UnitBlockJob
 from models.complexity_matrix import ComplexityMatrix
 from models.step import Step
 from utils import parse_datetime
+from collections import deque
 
 
 class ComplexityMatrixJob(UnitBlockJob):
@@ -25,6 +26,9 @@ class ComplexityMatrixJob(UnitBlockJob):
 
         unit_block_count = 0
 
+        right_queue = deque()
+        left_queue = deque()
+
         for unit_block_data in self._unit_blocks:
 
             if len(unit_block_data) > 0:
@@ -37,6 +41,7 @@ class ComplexityMatrixJob(UnitBlockJob):
                 #
                 # for unit_block_data in ub.get('unitBlocks'):
                 cadence_zone = unit_block_data.get('cadence_zone')
+                # TODO make sure steps are sorted by date time
                 for n, lf_step in enumerate(unit_block_data.get('stepsLF')):
                     left_step = Step(lf_step, accumulated_grf_lf, 'Left', active_block, unit_block_count, session_position,
                                      session_time_start)
@@ -49,11 +54,31 @@ class ComplexityMatrixJob(UnitBlockJob):
                     if left_step.stance_calc == 4:
                         dl_comp_matrix.add_step(left_step)
                     elif left_step.stance_calc == 2:
+                        if left_step.max_ankle_pitch_time is not None:
+                            right_queue.append((left_step.max_ankle_pitch_time, left_step.ankle_pitch))
                         sl_comp_matrix.add_step(left_step)
 
                 for n, rf_step in enumerate(unit_block_data.get('stepsRF')):
                     right_step = Step(rf_step, accumulated_grf_rf, 'Right', active_block, unit_block_count, session_position,
                                       session_time_start)
+
+                    stop_purging = False
+
+                    while not stop_purging:
+                        if len(right_queue) == 0:
+                            stop_purging = True
+                        elif right_step.step_start_time > parse_datetime(right_queue[0][0]):
+                            right_queue.pop()
+                        else:
+                            stop_purging = True
+
+                    if len(right_queue) > 0 and right_step.step_start_time <=  parse_datetime(right_queue[0][0]) <= right_step.step_end_time:
+                        left_ankle_pitch = right_queue.popleft()
+                        right_step.ankle_pitch_range = left_ankle_pitch[1]
+
+                    if right_step.max_ankle_pitch_time is not None:
+                        left_queue.append((right_step.max_ankle_pitch_time, right_step.ankle_pitch))
+
                     right_step.active_block_number = active_block_count
                     if right_step.peak_grf is not None:
                         accumulated_grf_rf += right_step.peak_grf
@@ -64,6 +89,23 @@ class ComplexityMatrixJob(UnitBlockJob):
                         dl_comp_matrix.add_step(right_step)
                     elif right_step.stance_calc == 2:
                         sl_comp_matrix.add_step(right_step)
+
+                for left_step in sl_comp_matrix.cells['Single Leg'].left_steps:
+
+                    stop_purging = False
+
+                    while not stop_purging:
+                        if len(left_queue) == 0:
+                            stop_purging = True
+                        elif left_step.step_start_time > parse_datetime(left_queue[0][0]):
+                            left_queue.pop()
+                        else:
+                            stop_purging = True
+
+                    if len(left_queue) > 0 and left_step.step_start_time <= parse_datetime(left_queue[0][0]) <= left_step.step_end_time:
+                        left_ankle_pitch = left_queue.popleft()
+                        left_step.ankle_pitch_range = left_ankle_pitch[1]
+
                 session_position = session_position + 1
             unit_block_count += 1
 

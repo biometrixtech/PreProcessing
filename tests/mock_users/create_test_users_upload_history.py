@@ -4,9 +4,9 @@ import json
 import requests
 
 from aws_xray_sdk.core import xray_recorder
-os.environ['ENVIRONMENT'] = 'dev'
+os.environ['ENVIRONMENT'] = 'test'
 xray_recorder.configure(sampling=False)
-xray_recorder.begin_segment(name="dev")
+xray_recorder.begin_segment(name="test")
 
 from utils import format_datetime, parse_datetime
 from datetime import datetime, timedelta
@@ -188,6 +188,8 @@ if __name__ == '__main__':
                     for a in movement_events:
                         a.anterior_pelvic_tilt.significant = False
                         a.ankle_pitch.significant = False
+
+                #job._update_leg_extensions()
 
                 asymmetry_events = job._get_session_asymmetry_summary(movement_events)
 
