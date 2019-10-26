@@ -168,17 +168,20 @@ def _step_data(data, ranges, mass, sensor):
         #     step_record['peakGrfPercImpactDuration' + sensor] = None
 
         if any(step_data.loc[:, 'remove'] == 1):  # if the step was marked for removal, do not compute CME
-            print('removed step')
+            # print('removed step')
             apt_range, apt_rate = None, None
-            pitch_range, pitch_range_impact_start = None, None
+            pitch_range, pitch_range_impact_start, max_pitch_time = None, None, None
             hip_drop = None
             knee_valgus = None
         else:
             apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
             if range_gc[0] > 10 and range_gc[1] < len(data) - 30:
-                pitch_range, pitch_range_impact_start = get_pitch_range_cme(data.loc[range_gc[0] - 20:range_gc[1] + 30, f"euler_{sensor.lower()}_y"].values)
+                pitch_start = range_gc[0] - 20
+                pitch_end = range_gc[1] + 30
+                pitch_range, pitch_range_impact_start, max_pitch_time = get_pitch_range_cme(data.loc[pitch_start:pitch_end, f"euler_{sensor.lower()}_y"].values,
+                                                                                            data.loc[pitch_start:pitch_end, "epoch_time"].values)
             else:
-                pitch_range, pitch_range_impact_start = None, None
+                pitch_range, pitch_range_impact_start, max_pitch_time = None, None, None
 
             if range_gc[0] > 3:
                 hip_drop = get_hip_drop_cme(data.loc[range_gc[0] - 3:range_gc[1], "euler_hip_x"].values, sensor)
@@ -190,6 +193,10 @@ def _step_data(data, ranges, mass, sensor):
         step_record['anteriorPelvicTiltRate'] = apt_rate
         step_record['anklePitchRange'] = pitch_range
         step_record['anklePitchRangeImpactStart'] = pitch_range_impact_start
+        if max_pitch_time is not None:
+            step_record['maxAnklePitchTime'] = str(pd.to_datetime(max_pitch_time, unit='ms'))
+        else:
+            step_record['maxAnklePitchTime'] = None
         step_record['hipDrop'] = hip_drop
         step_record['kneeValgus'] = knee_valgus
 
@@ -283,12 +290,13 @@ def get_apt_cme(euler_hip_y, euler_hip_y_diff):
     return range_euler_y, range_rate
 
 
-def get_pitch_range_cme(euler_y_window):
+def get_pitch_range_cme(euler_y_window, epoch_time_window):
     min_pitch = np.min(euler_y_window[:int(len(euler_y_window) / 2)])  # min in the first half
     max_pitch = np.max(euler_y_window[int(len(euler_y_window) / 2):])  # max in the second half
     pitch_impact_start = euler_y_window[20]
     min_point = np.where(euler_y_window == min_pitch)[0][0]
     max_point = np.where(euler_y_window == max_pitch)[0][0]
+    max_pitch_time = epoch_time_window[max_point]
 
     # pitch rom CME
     pitch_range = max_pitch - min_pitch
@@ -298,12 +306,12 @@ def get_pitch_range_cme(euler_y_window):
 
     if pitch_range < 0:
         print('neg pitch range')
-        return None, None
+        return None, None, None
     if (max_point - min_point) < 15:
         print('min and max too close, possible error')
-        return None, None
+        return None, None, None
 
-    return pitch_range * 180 / np.pi, pitch_range_impact_start * 180 / np.pi  # result in degrees
+    return pitch_range * 180 / np.pi, pitch_range_impact_start * 180 / np.pi, max_pitch_time  # result in degrees
 
 
 def get_hip_drop_cme(hip_roll, sensor):
