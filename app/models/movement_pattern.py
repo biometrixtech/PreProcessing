@@ -30,6 +30,7 @@ class MovementPatterns(object):
         self.hip_drop_pva_stats = []
         self.knee_valgus_hip_drop_stats = []
         self.knee_valgus_pva_stats = []
+        self.knee_valgus_apt_stats = []
 
     def get_elasticity(self, side, movement_pattern_type):
 
