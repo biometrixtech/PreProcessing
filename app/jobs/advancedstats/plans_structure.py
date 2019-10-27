@@ -243,6 +243,16 @@ class Plans_4_5(PlansBase):
                                         "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_pva)
                                     }
                                 },
+                                "knee_valgus_apt": {
+                                    "left": {
+                                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.knee_valgus_apt),
+                                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_apt)
+                                    },
+                                    "right": {
+                                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_apt),
+                                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_apt)
+                                    }
+                                },
                             }
             return body
 

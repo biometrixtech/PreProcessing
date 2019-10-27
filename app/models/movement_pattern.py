@@ -19,6 +19,7 @@ class MovementPatternType(Enum):
     hip_drop_pva = 2
     knee_valgus_hip_drop = 3
     knee_valgus_pva = 4
+    knee_valgus_apt = 5
 
 
 class MovementPatterns(object):
@@ -57,6 +58,11 @@ class MovementPatterns(object):
         elif movement_pattern_type == MovementPatternType.knee_valgus_pva:
 
             stats = [s.elasticity for s in self.knee_valgus_pva_stats if
+                     s.side == side and abs(s.elasticity_t) >= 2.0 and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.knee_valgus_apt:
+
+            stats = [s.elasticity for s in self.knee_valgus_apt_stats if
                      s.side == side and abs(s.elasticity_t) >= 2.0 and s.obs >= 100]
 
         if len(stats) > 0:
