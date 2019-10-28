@@ -13,6 +13,7 @@ from scipy.signal import find_peaks
 from .transform_calculation import compute_transform
 from .heading_calculation import heading_foot_finder
 from jobs.driftcorrection.heading_correction import heading_correction
+from jobs.sessionprocess.extract_geometry import extract_geometry
 
 
 def detect_march_and_still(data):
@@ -93,9 +94,18 @@ def is_valid_march(data, start, end):
                 return False
             else:
                 # euler angle checks
-                quats_lf = data_hc[start:end, 5:9]
-                quats_rf = data_hc[start:end, 21:25]
-                if validate_pitch(quats_lf) and validate_pitch(quats_rf):
+                quats_lf = dataHC[start:end, 5:9]
+                quats_hip = dataHC[start:end, 13:17]
+                quats_rf = dataHC[start:end, 21:25]
+                (
+                    euler_lf_x,
+                    euler_lf_y,
+                    euler_hip_x,
+                    euler_hip_y,
+                    euler_rf_x,
+                    euler_rf_y
+                ) = extract_geometry(quats_lf, quats_hip, quats_rf)
+                if validate_pitch(euler_lf_x, euler_lf_y) and validate_pitch(euler_rf_x, euler_rf_y):
                     print(f"PITCH VALIDATED")
                     return True
                 else:
@@ -119,7 +129,7 @@ def get_still_all(data, start):
             start_still_2, end_still_2)
 
 
-def validate_pitch(quats):
+def validate_pitch(euler_x, euler_y):
     """
     Validate:
         - We have pitch change in good range
@@ -127,23 +137,20 @@ def validate_pitch(quats):
         - Motion is mostly in pitch and roll change is minimal
     """
     valid_pitch = False
-    euls = quat_to_euler(
-        quats[:, 0],
-        quats[:, 1],
-        quats[:, 2],
-        quats[:, 3])
-    euler_y = euls[:, 1] * 180 / np.pi
-    euler_x = euls[:400, 0] * 180 / np.pi  # only validate for the first 4s
+
+    euler_x == euler_x[0:400] * 180 / np.pi
+    euler_y *= 180 / np.pi
 
     init_pitch = euler_y[0]
     pitch_diff = euler_y - init_pitch
     peaks, peak_heights = find_peaks(pitch_diff, height=20, distance=50)
     has_good_peaks = len(peaks) >= 3
     if has_good_peaks:
-        # make sure pich change is uni-directional (exclude walking)
-        if np.any(pitch_diff[peaks] >= 75):
-            # exclude march with very high pitch change (e.g. buttkicks) as this introduces error in heading detection
-            return False
+#        # make sure pich change is uni-directional (exclude walking)
+#        if np.any(pitch_diff[peaks] >= 75):
+#            # exclude march with very high pitch change (e.g. buttkicks) as this introduces error in heading detection
+#            return False
+        # make sure there's no walking
         for i in range(1, len(peaks)):
             if np.all(pitch_diff[peaks[i-1]:peaks[i]] > -10):
                 if i >= 2:
@@ -152,7 +159,7 @@ def validate_pitch(quats):
                 break
     if valid_pitch:
         # validate that after heading correction, most of the motion is in pitch
-        if min(euler_x) < -15 or max(euler_x) > 15:
+        if min(euler_x) < -25 or max(euler_x) > 25:
             valid_pitch = False
             print(f"min and max roll: {min(euler_x), max(euler_x)}")
 
