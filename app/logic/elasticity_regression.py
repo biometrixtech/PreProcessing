@@ -61,6 +61,9 @@ class ElasticityRegression(object):
         left_hip_drop_apt_list = self.regress_one_var(1, "apt", "hip_drop", left_df_cadence_20, left_df_cadence_30, left_df_cadence_40)
         right_hip_drop_apt_list = self.regress_one_var(2, "apt", "hip_drop", right_df_cadence_20, right_df_cadence_30, right_df_cadence_40)
 
+        left_knee_valgus_apt_list = self.regress_one_var(1, "apt", "knee_valgus", left_df_cadence_20, left_df_cadence_30, left_df_cadence_40)
+        right_knee_valgus_apt_list = self.regress_one_var(2, "apt", "knee_valgus", right_df_cadence_20, right_df_cadence_30, right_df_cadence_40)
+
         left_hip_drop_pva_list = self.regress_one_var(1, "peak_hip_vertical_accel", "hip_drop", left_df_cadence_20, left_df_cadence_30, left_df_cadence_40)
         right_hip_drop_pva_list = self.regress_one_var(2, "peak_hip_vertical_accel", "hip_drop", right_df_cadence_20, right_df_cadence_30, right_df_cadence_40)
 
@@ -84,6 +87,8 @@ class ElasticityRegression(object):
         movement_patterns.knee_valgus_hip_drop_stats.extend(right_knee_valgus_hip_drop_list)
         movement_patterns.knee_valgus_pva_stats.extend(left_knee_valgus_pva_list)
         movement_patterns.knee_valgus_pva_stats.extend(right_knee_valgus_pva_list)
+        movement_patterns.knee_valgus_apt_stats.extend(left_knee_valgus_apt_list)
+        movement_patterns.knee_valgus_apt_stats.extend(right_knee_valgus_apt_list)
 
         return movement_patterns
 

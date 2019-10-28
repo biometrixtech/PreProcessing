@@ -47,6 +47,7 @@ class PlansBase(object):
         hip_drop_pva_stats_list = []
         knee_valgus_hip_drop_stats_list = []
         knee_valgus_pva_stats_list = []
+        knee_valgus_apt_stats_list = []
 
         if movement_patterns is not None:
             apt_stats_list = self.get_mongo_record_for_stats_collection(movement_patterns.apt_ankle_pitch_stats)
@@ -54,12 +55,14 @@ class PlansBase(object):
             hip_drop_pva_stats_list = self.get_mongo_record_for_stats_collection(movement_patterns.hip_drop_pva_stats)
             knee_valgus_hip_drop_stats_list = self.get_mongo_record_for_stats_collection(movement_patterns.knee_valgus_hip_drop_stats)
             knee_valgus_pva_stats_list = self.get_mongo_record_for_stats_collection(movement_patterns.knee_valgus_pva_stats)
+            knee_valgus_apt_stats_list = self.get_mongo_record_for_stats_collection(movement_patterns.knee_valgus_apt_stats)
 
         record_out["apt_ankle_pitch_stats"] = apt_stats_list
         record_out["hip_drop_apt_stats"] = hip_drop_apt_stats_list
         record_out["hip_drop_pva_stats"] = hip_drop_pva_stats_list
         record_out["knee_valgus_hip_drop_stats"] = knee_valgus_hip_drop_stats_list
         record_out["knee_valgus_pva_stats"] = knee_valgus_pva_stats_list
+        record_out["knee_valgus_apt_stats"] = knee_valgus_apt_stats_list
 
         return record_out
 
@@ -238,6 +241,16 @@ class Plans_4_5(PlansBase):
                                     "right": {
                                         "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_pva),
                                         "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_pva)
+                                    }
+                                },
+                                "knee_valgus_apt": {
+                                    "left": {
+                                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.knee_valgus_apt),
+                                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_apt)
+                                    },
+                                    "right": {
+                                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_apt),
+                                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_apt)
                                     }
                                 },
                             }
