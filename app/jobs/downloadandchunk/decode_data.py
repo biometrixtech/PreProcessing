@@ -69,10 +69,10 @@ def _decode_accel(axl_data, nrows, corrupt_data):
         temp_value = temp_value & int('1fff', 16)  # bitand(tempValue,hex2dec('1fff'));
         temp_value = temp_value << 3  # bitshift(tempValue,3);
         axl[:, i] = np.int16(temp_value)
-    corrupt += 1  # add one so that corrupt would be multiplied by two
-
-    axl_final = axl * corrupt
-    return axl_final
+    for i in range(len(corrupt)):
+        if corrupt[i] == 1:
+            axl[i, :] *= 4
+    return axl
 
 
 def _decode_quat(quat_data, nrows):
