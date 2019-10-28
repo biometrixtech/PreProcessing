@@ -5,6 +5,7 @@ from .exceptions import StillDetectionException, MarchDetectionException
 from utils import get_ranges
 from utils.quaternion_conversions import quat_to_euler
 # from utils.quaternion_operations import quat_conjugate, hamilton_product
+import utils.quaternion_operations as qo
 
 from .body_frame_transformation import body_frame_tran
 
@@ -13,7 +14,6 @@ from scipy.signal import find_peaks
 from .transform_calculation import compute_transform
 from .heading_calculation import heading_foot_finder
 from jobs.driftcorrection.heading_correction import heading_correction
-from jobs.sessionprocess.extract_geometry import extract_geometry
 
 
 def detect_march_and_still(data):
@@ -94,18 +94,9 @@ def is_valid_march(data, start, end):
                 return False
             else:
                 # euler angle checks
-                quats_lf = dataHC[start:end, 5:9]
-                quats_hip = dataHC[start:end, 13:17]
-                quats_rf = dataHC[start:end, 21:25]
-                (
-                    euler_lf_x,
-                    euler_lf_y,
-                    euler_hip_x,
-                    euler_hip_y,
-                    euler_rf_x,
-                    euler_rf_y
-                ) = extract_geometry(quats_lf, quats_hip, quats_rf)
-                if validate_pitch(euler_lf_x, euler_lf_y) and validate_pitch(euler_rf_x, euler_rf_y):
+                quats_lf = data_hc[start:end, 5:9]
+                quats_rf = data_hc[start:end, 21:25]
+                if validate_pitch(quats_lf) and validate_pitch(quats_rf):
                     print(f"PITCH VALIDATED")
                     return True
                 else:
@@ -129,7 +120,7 @@ def get_still_all(data, start):
             start_still_2, end_still_2)
 
 
-def validate_pitch(euler_x, euler_y):
+def validate_pitch(quats):
     """
     Validate:
         - We have pitch change in good range
@@ -137,8 +128,9 @@ def validate_pitch(euler_x, euler_y):
         - Motion is mostly in pitch and roll change is minimal
     """
     valid_pitch = False
+    euler_x, euler_y = extract_geometry(quats)
 
-    euler_x == euler_x[0:400] * 180 / np.pi
+    euler_x = euler_x[0:400] * 180 / np.pi
     euler_y *= 180 / np.pi
 
     init_pitch = euler_y[0]
@@ -146,11 +138,11 @@ def validate_pitch(euler_x, euler_y):
     peaks, peak_heights = find_peaks(pitch_diff, height=20, distance=50)
     has_good_peaks = len(peaks) >= 3
     if has_good_peaks:
-#        # make sure pich change is uni-directional (exclude walking)
-#        if np.any(pitch_diff[peaks] >= 75):
-#            # exclude march with very high pitch change (e.g. buttkicks) as this introduces error in heading detection
-#            return False
-        # make sure there's no walking
+        # # make sure pich change is uni-directional (exclude walking)
+        # if np.any(pitch_diff[peaks] >= 75):
+        #     # exclude march with very high pitch change (e.g. buttkicks) as this introduces error in heading detection
+        #     return False
+        # # make sure there's no walking
         for i in range(1, len(peaks)):
             if np.all(pitch_diff[peaks[i-1]:peaks[i]] > -10):
                 if i >= 2:
@@ -222,3 +214,58 @@ def _detect_still(data, sensor=0):
         if static_count >= 20 or max_diff < .75:
             return start, end
     raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
+
+
+def extract_geometry(quats):
+    """
+    Function to interpret quaternion data geometrically.
+    Explanation given here: https://sites.google.com/a/biometrixtech.com/wiki/home/preprocessing/anatomical/methods-tried/general-math-methods/geometry-extraction
+
+    Args:
+        quats = quaternions
+
+    Returns:
+        adduction: tilt about x axis in radians
+        flexion: tilt about y axis in radians
+    """
+
+    k_v = np.array([0, 0, 0, 1]).reshape(-1, 4)
+    v_k = qo.quat_prod(qo.quat_prod(quats.reshape(-1, 4), k_v),
+                       qo.quat_conj(quats.reshape(-1, 4)))
+    j_v = np.array([0, 0, 1, 0]).reshape(-1, 4)
+    v_j = qo.quat_prod(qo.quat_prod(quats.reshape(-1, 4), j_v),
+                       qo.quat_conj(quats.reshape(-1, 4)))
+    i_v = np.array([0, 1, 0, 0]).reshape(-1, 4)
+    v_i = qo.quat_prod(qo.quat_prod(quats.reshape(-1, 4), i_v),
+                       qo.quat_conj(quats.reshape(-1, 4)))
+    n = len(quats)
+    z_cross = np.zeros((n, 1))
+    z_cross[v_k[:, 3] < 0] = 1
+    
+    flexion = np.arctan2(v_i[:, 3], (np.sqrt(v_i[:, 1] ** 2 + v_i[:, 2] ** 2))) * 180 / np.pi
+    adduction = np.arctan2(v_j[:, 3], np.sqrt(v_j[:, 1]**2 + v_j[:, 2]**2)) * 180 / np.pi
+    
+    for i in range(n - 1):
+        # Left foot
+        if z_cross[i] == 1 and z_cross[i - 1] == 0:
+            # Found a window - search for the values at the boundaries
+            bound2_index = i
+            while z_cross[bound2_index] == 1 and z_cross[bound2_index + 1] == 1 and bound2_index < (len(z_cross) - 2):
+                    bound2_index = bound2_index + 1
+            if flexion[i] < 0:
+                if flexion[i - 1] < flexion[bound2_index + 1]:
+                    mirroring_value = flexion[i - 1]
+                else:
+                    mirroring_value = flexion[bound2_index + 1]
+            else:
+                if flexion[i - 1] > flexion[bound2_index + 1]:
+                    mirroring_value = flexion[i - 1]
+                else:
+                    mirroring_value = flexion[bound2_index + 1]
+            for k in range(i, bound2_index):
+                flexion[k] = mirroring_value - (flexion[k] - mirroring_value)
+
+    flexion = -flexion / 180 * np.pi
+    adduction = adduction / 180 * np.pi
+    
+    return adduction, flexion
