@@ -292,11 +292,11 @@ def get_apt_cme(euler_hip_y, euler_hip_y_diff):
     min_index = np.where(euler_hip_y[minima:max_index] == min(euler_hip_y[minima:max_index]))[0][0] + minima
     range_euler_y = (euler_hip_y[max_index] - euler_hip_y[min_index]) * 180 / np.pi
     if range_euler_y < 0:
-        print('max lower than min')
+        # print('max lower than min')
         return None, None
     duration = max_index - min_index
     if duration <= 0:
-        print('max index before min')
+        # print('max index before min')
         return None, None
     range_rate = range_euler_y / duration * 100
     return range_euler_y, range_rate
@@ -317,10 +317,10 @@ def get_pitch_range_cme(euler_y_window, epoch_time_window):
     pitch_range_impact_start = max_pitch - pitch_impact_start
 
     if pitch_range < 0:
-        print('neg pitch range')
+        # print('neg pitch range')
         return None, None, None
     if (max_point - min_point) < 15:
-        print('min and max too close, possible error')
+        # print('min and max too close, possible error')
         return None, None, None
 
     return pitch_range * 180 / np.pi, pitch_range_impact_start * 180 / np.pi, max_pitch_time  # result in degrees
@@ -338,7 +338,7 @@ def get_hip_drop_cme(hip_roll, sensor):
     contact_duration = max_point - min_point
     
     if contact_duration <= 0:
-        print('max before min')
+        # print('max before min')
         return None
     if hip_drop <= 0:
         return None
@@ -386,7 +386,7 @@ def get_hip_rotation_cme(step, acc_z, yaw_diff, sensor, diff_between_peaks):
     acc_z_next_peak_window = acc_z[next_peak - 3:next_peak + 3]
     end_point = np.where(acc_z_next_peak_window == np.max(acc_z_next_peak_window))[0][0] + next_peak - 3
     yaw_diff_window = yaw_diff[start_point:end_point]
-    yaw_diff_first_window = yaw_diff[start_point:end]
+    yaw_diff_first_window = yaw_diff[start_point:int((end - start) /  2)]
     hip_rot_medial = 0
     hip_rot_lateral = 0
     if sensor == 'LF':
