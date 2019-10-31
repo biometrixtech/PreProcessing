@@ -390,11 +390,11 @@ def get_hip_rotation_cme(step, acc_z, yaw_diff, sensor, diff_between_peaks):
     hip_rot_medial = 0
     hip_rot_lateral = 0
     if sensor == 'LF':
-        hip_rot_medial = np.sum([yaw for yaw in yaw_diff_first_window if yaw > 0])
-        hip_rot_lateral = np.sum([yaw for yaw in yaw_diff_window if yaw < 0])
+        hip_rot_medial = abs(np.sum([yaw for yaw in yaw_diff_first_window if yaw > 0]))
+        hip_rot_lateral = abs(np.sum([yaw for yaw in yaw_diff_window if yaw < 0]))
     else:
-        hip_rot_lateral = np.sum([yaw for yaw in yaw_diff_window if yaw > 0])
-        hip_rot_medial = np.sum([yaw for yaw in yaw_diff_first_window if yaw < 0])
+        hip_rot_lateral = abs(np.sum([yaw for yaw in yaw_diff_window if yaw > 0]))
+        hip_rot_medial = abs(np.sum([yaw for yaw in yaw_diff_first_window if yaw < 0]))
     return hip_rot_medial * 180 / np.pi, hip_rot_lateral * 180 / np.pi
 
 
