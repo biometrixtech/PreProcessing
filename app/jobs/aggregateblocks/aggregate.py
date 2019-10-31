@@ -386,7 +386,7 @@ def get_hip_rotation_cme(step, acc_z, yaw_diff, sensor, diff_between_peaks):
     acc_z_next_peak_window = acc_z[next_peak - 3:next_peak + 3]
     end_point = np.where(acc_z_next_peak_window == np.max(acc_z_next_peak_window))[0][0] + next_peak - 3
     yaw_diff_window = yaw_diff[start_point:end_point]
-    yaw_diff_first_window = yaw_diff[start_point:int((end - start) /  2)]
+    yaw_diff_first_window = yaw_diff[start_point:int((start + end) /  2)]
     hip_rot_medial = 0
     hip_rot_lateral = 0
     if sensor == 'LF':
