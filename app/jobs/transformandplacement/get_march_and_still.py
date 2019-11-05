@@ -5,6 +5,7 @@ from .exceptions import StillDetectionException, MarchDetectionException
 from utils import get_ranges
 from utils.quaternion_conversions import quat_to_euler
 # from utils.quaternion_operations import quat_conjugate, hamilton_product
+import utils.quaternion_operations as qo
 
 from .body_frame_transformation import body_frame_tran
 
@@ -127,23 +128,21 @@ def validate_pitch(quats):
         - Motion is mostly in pitch and roll change is minimal
     """
     valid_pitch = False
-    euls = quat_to_euler(
-        quats[:, 0],
-        quats[:, 1],
-        quats[:, 2],
-        quats[:, 3])
-    euler_y = euls[:, 1] * 180 / np.pi
-    euler_x = euls[:400, 0] * 180 / np.pi  # only validate for the first 4s
+    euler_x, euler_y = extract_geometry(quats)
+
+    euler_x = euler_x[0:400] * 180 / np.pi
+    euler_y *= 180 / np.pi
 
     init_pitch = euler_y[0]
     pitch_diff = euler_y - init_pitch
     peaks, peak_heights = find_peaks(pitch_diff, height=20, distance=50)
     has_good_peaks = len(peaks) >= 3
     if has_good_peaks:
-        # make sure pich change is uni-directional (exclude walking)
-        if np.any(pitch_diff[peaks] >= 75):
-            # exclude march with very high pitch change (e.g. buttkicks) as this introduces error in heading detection
-            return False
+        # # make sure pich change is uni-directional (exclude walking)
+        # if np.any(pitch_diff[peaks] >= 75):
+        #     # exclude march with very high pitch change (e.g. buttkicks) as this introduces error in heading detection
+        #     return False
+        # # make sure there's no walking
         for i in range(1, len(peaks)):
             if np.all(pitch_diff[peaks[i-1]:peaks[i]] > -10):
                 if i >= 2:
@@ -152,7 +151,7 @@ def validate_pitch(quats):
                 break
     if valid_pitch:
         # validate that after heading correction, most of the motion is in pitch
-        if min(euler_x) < -15 or max(euler_x) > 15:
+        if min(euler_x) < -25 or max(euler_x) > 25:
             valid_pitch = False
             print(f"min and max roll: {min(euler_x), max(euler_x)}")
 
@@ -215,3 +214,58 @@ def _detect_still(data, sensor=0):
         if static_count >= 20 or max_diff < .75:
             return start, end
     raise StillDetectionException(f'could not detect still for sensor{sensor}', sensor)
+
+
+def extract_geometry(quats):
+    """
+    Function to interpret quaternion data geometrically.
+    Explanation given here: https://sites.google.com/a/biometrixtech.com/wiki/home/preprocessing/anatomical/methods-tried/general-math-methods/geometry-extraction
+
+    Args:
+        quats = quaternions
+
+    Returns:
+        adduction: tilt about x axis in radians
+        flexion: tilt about y axis in radians
+    """
+
+    k_v = np.array([0, 0, 0, 1]).reshape(-1, 4)
+    v_k = qo.quat_prod(qo.quat_prod(quats.reshape(-1, 4), k_v),
+                       qo.quat_conj(quats.reshape(-1, 4)))
+    j_v = np.array([0, 0, 1, 0]).reshape(-1, 4)
+    v_j = qo.quat_prod(qo.quat_prod(quats.reshape(-1, 4), j_v),
+                       qo.quat_conj(quats.reshape(-1, 4)))
+    i_v = np.array([0, 1, 0, 0]).reshape(-1, 4)
+    v_i = qo.quat_prod(qo.quat_prod(quats.reshape(-1, 4), i_v),
+                       qo.quat_conj(quats.reshape(-1, 4)))
+    n = len(quats)
+    z_cross = np.zeros((n, 1))
+    z_cross[v_k[:, 3] < 0] = 1
+    
+    flexion = np.arctan2(v_i[:, 3], (np.sqrt(v_i[:, 1] ** 2 + v_i[:, 2] ** 2))) * 180 / np.pi
+    adduction = np.arctan2(v_j[:, 3], np.sqrt(v_j[:, 1]**2 + v_j[:, 2]**2)) * 180 / np.pi
+    
+    for i in range(n - 1):
+        # Left foot
+        if z_cross[i] == 1 and z_cross[i - 1] == 0:
+            # Found a window - search for the values at the boundaries
+            bound2_index = i
+            while z_cross[bound2_index] == 1 and z_cross[bound2_index + 1] == 1 and bound2_index < (len(z_cross) - 2):
+                    bound2_index = bound2_index + 1
+            if flexion[i] < 0:
+                if flexion[i - 1] < flexion[bound2_index + 1]:
+                    mirroring_value = flexion[i - 1]
+                else:
+                    mirroring_value = flexion[bound2_index + 1]
+            else:
+                if flexion[i - 1] > flexion[bound2_index + 1]:
+                    mirroring_value = flexion[i - 1]
+                else:
+                    mirroring_value = flexion[bound2_index + 1]
+            for k in range(i, bound2_index):
+                flexion[k] = mirroring_value - (flexion[k] - mirroring_value)
+
+    flexion = -flexion / 180 * np.pi
+    adduction = adduction / 180 * np.pi
+    
+    return adduction, flexion
