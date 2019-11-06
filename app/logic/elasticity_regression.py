@@ -106,18 +106,23 @@ class ElasticityRegression(object):
                     step.hip_drop not in [None, 0] and
                     step.ankle_pitch_range not in [None, 0] and
                     step.anterior_pelvic_tilt_range not in [None, 0]):
-                peak_hip_vertical_accel = log(step.peak_hip_vertical_accel)
-                knee_valgus = log(step.knee_valgus)
-                hip_drop = log(step.hip_drop)
-                ankle_pitch = log(step.ankle_pitch_range)
-                apt = log(step.anterior_pelvic_tilt_range)
+                if (step.peak_hip_vertical_accel > 0 and
+                        step.knee_valgus > 0 and
+                        step.hip_drop > 0 and
+                        step.ankle_pitch_range > 0 and
+                        step.anterior_pelvic_tilt_range >0):
+                    peak_hip_vertical_accel = log(step.peak_hip_vertical_accel)
+                    knee_valgus = log(step.knee_valgus)
+                    hip_drop = log(step.hip_drop)
+                    ankle_pitch = log(step.ankle_pitch_range)
+                    apt = log(step.anterior_pelvic_tilt_range)
 
-                duration = log(step.duration)
-                cadence_zone = step.cadence_zone
+                    duration = log(step.duration)
+                    cadence_zone = step.cadence_zone
 
-                left_step_list = [peak_hip_vertical_accel, knee_valgus, apt, ankle_pitch, hip_drop, duration,
-                                  cadence_zone]
-                step_list.append(left_step_list)
+                    left_step_list = [peak_hip_vertical_accel, knee_valgus, apt, ankle_pitch, hip_drop, duration,
+                                      cadence_zone]
+                    step_list.append(left_step_list)
 
         return step_list
 
@@ -164,13 +169,19 @@ class ElasticityRegression(object):
 
                     step_apt_x = sm.add_constant(step_apt_x)
 
-                    step_model_apt = sm.OLS(endog=step_apt_y, exog=step_apt_x)
-                    step_apt_results = step_model_apt.fit()
+                    try:
+                        step_model_apt = sm.OLS(endog=step_apt_y, exog=step_apt_x)
+                        step_apt_results = step_model_apt.fit()
 
-                    movement_pattern_stats.obs = step_apt_results.nobs
-                    movement_pattern_stats.elasticity = step_apt_results.params.values[1]
-                    movement_pattern_stats.elasticity_t = step_apt_results.tvalues.values[1]
-                    movement_pattern_stats.elasticity_se = step_apt_results.bse.values[1]
+                        movement_pattern_stats.obs = step_apt_results.nobs
+                        movement_pattern_stats.elasticity = step_apt_results.params.values[1]
+                        movement_pattern_stats.elasticity_t = step_apt_results.tvalues.values[1]
+                        movement_pattern_stats.elasticity_se = step_apt_results.bse.values[1]
+                    except ValueError:
+                        movement_pattern_stats.obs = len(step_df)
+                        movement_pattern_stats.elasticity = 0
+                        movement_pattern_stats.elasticity_t = 0
+                        movement_pattern_stats.elasticity_se = 0
                 movement_pattern_stats_list.append(movement_pattern_stats)
             cadence_position += 1
 
