@@ -11,13 +11,16 @@ class PlansFactory(object):
         self.end_date = end_date
         self.session_id = session_id
         self.seconds_duration = seconds_duration
-        self.latest_plans_version = "4_5"
+        self.latest_plans_version = "4_6"
 
     def get_plans(self):
         if self.plans_api_version == "4_4":
             return Plans_4_4(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration)
         elif self.plans_api_version == "4_5":
             return Plans_4_5(self.environment, self.user_id, self.event_date,self.session_id, self.seconds_duration,
+                             end_date=self.end_date)
+        elif self.plans_api_version == "4_6":
+            return Plans_4_6(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration,
                              end_date=self.end_date)
         else:
             return Plans_4_3(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration)
@@ -329,3 +332,9 @@ class Plans_4_5(PlansBase):
         record_out['time_blocks'] = record_asymmetries
 
         return record_out
+
+
+class Plans_4_6(Plans_4_5):
+    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, end_date):
+        super().__init__(environment, user_id, event_date, session_id, seconds_duration, end_date)
+        self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_6/session/{user_id}/three_sensor_data'
