@@ -6,7 +6,7 @@ users = [
     # "tread_a",  # 6fc48b46-23c8-4490-9885-e109ff63c20e
     # "tread_b",  # 4673998d-5206-4275-a048-da5dda6a7342
     #("tread_run@200.com",  "bdb8b194-e748-4197-819b-b356f1fb0629")
-    ("run_a@200.com",  '2b4a1792-42c7-460e-9e4c-98627e72cc6f')
+    ("run_a@200.com",  '2b4a1792-42c7-460e-9e4c-98627e72cc6f'),
     # "sym",  # 7fd0c1d4-61ac-4ce5-9621-16d69501b211
     # "half_sym",  # 7cf2f832-a043-468c-8f61-13d07765d2a2
     # "run_a_2", #5c695e58-0aba-4eec-9af1-fa93970d3132
@@ -22,10 +22,10 @@ users = [
     # "run_a_mazen", #110e14e6-8630-48e8-b75d-0caad447d661
     # "tread_run_2_mazen", #23e93c04-c7cc-40b3-8e34-e43a9cab286a
     #"tread_b_mazen",  # 1569f9bb-6de3-49a9-913c-f69d7d763d25
-    #("nc_long@200.com",  '7bb3e792-41ff-43cb-861e-87cf2bdeeadf'),
-    # ("nc_sore_tread@200.com",  '917e94bc-3f56-4519-8d25-ae54878748f2'),
-    # ("ts_tread@200.com", '18ad5cde-92a8-4cd4-8295-71a91c7d3aac'),
-    # ("ts_pain_long@200.com", 'e602620d-2040-4ecc-87cc-f392d9db5eab'),
+    ("nc_long@200.com",  '7bb3e792-41ff-43cb-861e-87cf2bdeeadf'),
+    ("nc_sore_tread@200.com",  '917e94bc-3f56-4519-8d25-ae54878748f2'),
+    ("ts_tread@200.com", '18ad5cde-92a8-4cd4-8295-71a91c7d3aac'),
+    ("ts_pain_long@200.com", 'e602620d-2040-4ecc-87cc-f392d9db5eab'),
     # ("two_pain_tread@200.com",  '25c38e39-357a-456d-84b7-61547364a2ba'),
     #("full_fte_long@200.com", '024a6807-eef6-4556-b3b8-1c8639dd1758'),
     # ("full_fte_tread@200.com", '33293741-bf30-479e-83e9-bc6b3a1cb7c2'),
