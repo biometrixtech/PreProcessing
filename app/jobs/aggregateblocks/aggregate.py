@@ -378,7 +378,7 @@ def get_knee_valgus_cme(ankle_roll, acc_z, sensor):
 def get_hip_rotation_cme(step, acc_z, yaw_diff, sensor, diff_between_peaks):
     start = step[0]
     end = step[1]
-    acc_z_window = acc_z[start:end]
+    acc_z_window = acc_z[start:int((start + end) /  2)]
     start_point = np.where(acc_z_window == np.max(acc_z_window))[0][0] + start # get the peak accel location at the start of contact
     next_peak = start_point + diff_between_peaks
     if next_peak >= len(acc_z):
