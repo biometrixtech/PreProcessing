@@ -120,9 +120,9 @@ class ElasticityRegression(object):
                     duration = log(step.duration)
                     cadence_zone = step.cadence_zone
 
-                    left_step_list = [peak_hip_vertical_accel, knee_valgus, apt, ankle_pitch, hip_drop, duration,
+                    variable_step_list = [peak_hip_vertical_accel, knee_valgus, apt, ankle_pitch, hip_drop, duration,
                                       cadence_zone]
-                    step_list.append(left_step_list)
+                    step_list.append(variable_step_list)
 
         return step_list
 
@@ -134,8 +134,6 @@ class ElasticityRegression(object):
         for step_df in [df_cadence_20, df_cadence_30, df_cadence_40]:
 
             movement_pattern_stats = MovementPatternStats(side, cadence[cadence_position])
-            left_apt_list = []
-            left_hip_drop_list = []
 
             if len(step_df) > 0:
                 # if len(step_df) > 1000:
@@ -151,32 +149,32 @@ class ElasticityRegression(object):
                     movement_pattern_stats.elasticity_t = 0
                     movement_pattern_stats.elasticity_se = 0
                 else:
-                    step_apt = step_df[[x, y]].copy()
-                    step_apt = self.remove_outliers(step_apt, x)
-                    step_apt = self.remove_outliers(step_apt, y)
+                    step_elasticity = step_df[[x, y]].copy()
+                    step_elasticity = self.remove_outliers(step_elasticity, x)
+                    step_elasticity = self.remove_outliers(step_elasticity, y)
 
-                    step_apt_x = step_apt[[x]].copy()
-                    step_apt_y = step_apt[[y]].copy()
+                    step_elasticity_x = step_elasticity[[x]].copy()
+                    step_elasticity_y = step_elasticity[[y]].copy()
 
                     # use core values to ensure drift/trend is not removed with outliers
                     try:
-                        adf_apt_results = adfuller(step_df[y].values)
-                        movement_pattern_stats.adf = adf_apt_results[0]
-                        movement_pattern_stats.adf_critical = adf_apt_results[4]['5%']
+                        adf_results = adfuller(step_df[y].values)
+                        movement_pattern_stats.adf = adf_results[0]
+                        movement_pattern_stats.adf_critical = adf_results[4]['5%']
                     except ValueError:
                         movement_pattern_stats.adf = 1
                         movement_pattern_stats.adf_critical = 0
 
-                    step_apt_x = sm.add_constant(step_apt_x)
+                    step_elasticity_x = sm.add_constant(step_elasticity_x)
 
                     try:
-                        step_model_apt = sm.OLS(endog=step_apt_y, exog=step_apt_x)
-                        step_apt_results = step_model_apt.fit()
+                        step_model = sm.OLS(endog=step_elasticity_y, exog=step_elasticity_x)
+                        step_results = step_model.fit()
 
-                        movement_pattern_stats.obs = step_apt_results.nobs
-                        movement_pattern_stats.elasticity = step_apt_results.params.values[1]
-                        movement_pattern_stats.elasticity_t = step_apt_results.tvalues.values[1]
-                        movement_pattern_stats.elasticity_se = step_apt_results.bse.values[1]
+                        movement_pattern_stats.obs = step_results.nobs
+                        movement_pattern_stats.elasticity = step_results.params.values[1]
+                        movement_pattern_stats.elasticity_t = step_results.tvalues.values[1]
+                        movement_pattern_stats.elasticity_se = step_results.bse.values[1]
                     except ValueError:
                         movement_pattern_stats.obs = len(step_df)
                         movement_pattern_stats.elasticity = 0
