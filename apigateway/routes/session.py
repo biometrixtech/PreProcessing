@@ -146,5 +146,6 @@ def handle_session_patch(session_id):
     if 'end_date' in request.json and session['session_status'] != 'CREATE_COMPLETE':
         del request.json['end_date']
 
-    session = Session(session_id).patch(request.json)
+    if len(request.json) > 0:
+        session = Session(session_id).patch(request.json)
     return {'session': session}
