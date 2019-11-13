@@ -88,7 +88,7 @@ def trigger_sfn(session_id, version):
         name=execution_name,
         input=json.dumps({
             "Meta": {"ExecutionName": execution_name},
-            "SourceEvent": {"SessionId": session_id, "SensorDataFileVersion": version}
+            "SourceEvent": {"SessionId": session_id, "SensorDataFileVersion": version, "EventType": "Session"}
         })
     )
 

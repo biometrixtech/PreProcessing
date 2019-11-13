@@ -322,7 +322,23 @@ Resources:
                             "Resource": "${LambdaJobNames.Arn}",
                             "InputPath": "$.SourceEvent.SessionId",
                             "ResultPath": "$._BatchJobNames",
-                            "Next": "UpdateStatus0"
+                            "Next": "JobChoice"
+                        },
+                        "JobChoice": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                  "Variable": "$.SourceEvent.EventType",
+                                  "StringEquals": "Nightly",
+                                  "Next": "SessionProcess1"
+                                },
+                                {
+                                  "Variable": "$.SourceEvent.EventType",
+                                  "StringEquals": "Session",
+                                  "Next": "UpdateStatus0"
+                                }
+                            ],
+                            "Default": "ExceptionStop"
                         },
                         "UpdateStatus0": {
                             "Type": "Task",
