@@ -239,6 +239,7 @@ Resources:
                             'aggregateblocks1',
                             'cleanup',
                             'downloadandchunk',
+                            'nightlyprocess',
                             'scoring',
                             'scoring1',
                             'sessionprocess',
@@ -330,7 +331,7 @@ Resources:
                                 {
                                   "Variable": "$.SourceEvent.EventType",
                                   "StringEquals": "Nightly",
-                                  "Next": "SessionProcess1"
+                                  "Next": "NightlyProcess"
                                 },
                                 {
                                   "Variable": "$.SourceEvent.EventType",
@@ -339,6 +340,37 @@ Resources:
                                 }
                             ],
                             "Default": "ExceptionStop"
+                        },
+                        "NightlyProcess": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::batch:submitJob.sync",
+                            "Parameters": {
+                                "JobDefinition": "${BatchJobDefinition}",
+                                "JobName.$": "$._BatchJobNames.nightlyprocess",
+                                "JobQueue": "arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/preprocessing-${Environment}-compute",
+                                "Parameters": {
+                                    "Job": "nightlyprocess"
+                                },
+                                "ContainerOverrides": {
+                                    "Memory": 4096,
+                                    "Vcpus": 2,
+                                    "Environment": [
+                                        { "Name": "SESSION_ID", "Value.$": "$.SourceEvent.EventType" }
+                                    ]
+                                },
+                                "RetryStrategy": {
+                                    "Attempts": 2
+                                }
+                           },
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [ "States.ALL" ],
+                                    "Next": "ExceptionStop",
+                                    "ResultPath": "$._ExceptionOutput"
+                                }
+                            ],
+                           "ResultPath": "$.TaskResult",
+                           "End": true
                         },
                         "UpdateStatus0": {
                             "Type": "Task",

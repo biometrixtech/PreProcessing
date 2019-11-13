@@ -221,13 +221,15 @@ Resources:
                                     "Job", "downloadandchunk"
                                 ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "transformandplacement" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "driftcorrection" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "sessionprocess" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "sessionprocess1" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "scoring" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "scoring1" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "aggregateblocks" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "aggregateblocks1" ],
-                                [ ".", ".", ".", ".", ".", ".", ".", "advancedstats" ]
+                                [ ".", ".", ".", ".", ".", ".", ".", "advancedstats" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "nightlyprocess" ]
                             ],
                             "period": 60,
                             "stacked": true,
@@ -257,13 +259,15 @@ Resources:
                                     "Job", "downloadandchunk"
                                 ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "transformandplacement" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "driftcorrection" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "sessionprocess" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "sessionprocess1" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "scoring" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "scoring1" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "aggregateblocks" ],
                                 [ ".", ".", ".", ".", ".", ".", ".", "aggregateblocks1" ],
-                                [ ".", ".", ".", ".", ".", ".", ".", "advancedstats" ]
+                                [ ".", ".", ".", ".", ".", ".", ".", "advancedstats" ],
+                                [ ".", ".", ".", ".", ".", ".", ".", "nightlyprocess" ]
                             ],
                             "period": 60,
                             "stacked": true,
@@ -403,13 +407,15 @@ Resources:
                                 ],
                                 [ ".", ".", ".", ".", "Job", "downloadandchunk" ],
                                 [ ".", ".", ".", ".", ".", "transformandplacement" ],
+                                [ ".", ".", ".", ".", ".", "driftcorrection" ],
                                 [ ".", ".", ".", ".", ".", "sessionprocess" ],
                                 [ ".", ".", ".", ".", ".", "sessionprocess1" ],
                                 [ ".", ".", ".", ".", ".", "scoring" ],
                                 [ ".", ".", ".", ".", ".", "scoring1" ],
                                 [ ".", ".", ".", ".", ".", "aggregateblocks" ],
                                 [ ".", ".", ".", ".", ".", "aggregateblocks1" ],
-                                [ ".", ".", ".", ".", ".", "advancedstats" ]
+                                [ ".", ".", ".", ".", ".", "advancedstats" ],
+                                [ ".", ".", ".", ".", ".", "nightlyprocess" ]
                             ],
                             "period": 60,
                             "stat": "Average",
@@ -433,13 +439,15 @@ Resources:
                                 ],
                                 [ ".", ".", ".", ".", ".", "downloadandchunk" ],
                                 [ ".", ".", ".", ".", ".", "transformandplacement" ],
+                                [ ".", ".", ".", ".", ".", "driftcorrection" ],
                                 [ ".", ".", ".", ".", ".", "sessionprocess" ],
                                 [ ".", ".", ".", ".", ".", "sessionprocess1" ],
                                 [ ".", ".", ".", ".", ".", "scoring" ],
                                 [ ".", ".", ".", ".", ".", "scoring1" ],
                                 [ ".", ".", ".", ".", ".", "aggregateblocks" ],
                                 [ ".", ".", ".", ".", ".", "aggregateblocks1" ],
-                                [ ".", ".", ".", ".", ".", "advancedstats" ]
+                                [ ".", ".", ".", ".", ".", "advancedstats" ],
+                                [ ".", ".", ".", ".", ".", "nightlyprocess" ]
                             ],
                             "period": 60,
                             "stat": "Average",

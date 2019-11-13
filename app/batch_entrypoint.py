@@ -134,6 +134,9 @@ def main(script):
         from jobs.cleanup import CleanupJob
         CleanupJob(datastore).run()
 
+    elif script == 'nightlyprocess':
+        pass
+
     else:
         raise Exception("Unknown batchjob '{}'".format(script))
 
