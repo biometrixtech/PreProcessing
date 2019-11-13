@@ -102,6 +102,7 @@ Mappings:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
         Infrastructure: { Commit: "fba0b4cc4b55dc377ae003ba907ed552660a579c" }
 
+
 Metadata:
     "AWS::CloudFormation::Interface":
         ParameterGroups:
@@ -394,3 +395,96 @@ Resources:
             } ] }
             TimeoutInMinutes: 30
         Condition: "CreateApigateway"
+
+
+##########################################################################################################
+##  DAILY SCHEDULER
+##########################################################################################################
+
+    DailySchedulerExecutionRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "lambda.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+              - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
+            Policies:
+              - PolicyName: "default"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "states:StartExecution"
+                        Effect: "Allow"
+                        Resource: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.StateMachineArn" ] }
+            RoleName: { "Fn::Sub": "preprocessing-${Environment}-dailyscheduler-${AWS::Region}" }
+
+    DailySchedulerLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                ZipFile: |
+                    import datetime, boto3, os, json, time
+                    _logs_client = boto3.client('logs')
+                    def handler(_, __):
+                        now = int(datetime.datetime.utcnow().timestamp())
+                        execution_name = '{}-{}'.format("nightly_process", int(time.time()))
+                        _logs_client.create_log_stream(
+                            logGroupName=os.environ['LOG_GROUP_NAME'],
+                            logStreamName=execution_name
+                        )
+                        _logs_client.put_log_events(
+                            logGroupName=os.environ['LOG_GROUP_NAME'],
+                            logStreamName=execution_name,
+                            logEvents=[{'timestamp': now * 1000, 'message': 'SFN Execution triggered'}]
+                        )
+                        boto3.client('stepfunctions').start_execution(
+                            stateMachineArn=os.environ['STATE_MACHINE_ARN'],
+                            name=execution_name,
+                            input=json.dumps({
+                                "Meta": {"ExecutionName": execution_name},
+                                "SourceEvent": {"SessionId": None, "SensorDataFileVersion": None, "EventType": "Nightly"}
+                            })
+                        )
+
+
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: 'Environment' }
+                    STATE_MACHINE_ARN: { "Fn::GetAtt": [ "PipelineCluster", "Outputs.StateMachineArn" ] }
+                    LOG_GROUP_NAME: { "Fn::Sub": "/biometrix/preprocessing/${Environment}" }
+            Handler: "index.handler"
+            MemorySize: "256"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "DailySchedulerExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "preprocessing-${Environment}-dailyscheduler" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "preprocessing-${Environment}-dailyscheduler" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: 'preprocessing' }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: 'ingest' }
+
+    DailySchedulerScheduledRule:
+        Type: "AWS::Events::Rule"
+        Properties:
+            Description: "ScheduledRule"
+            ScheduleExpression: "cron(30 5 * * ? *)"  # 5:30am UTC every day
+            State: "ENABLED"
+            Targets:
+              - Arn: { "Fn::GetAtt": [ "DailySchedulerLambda", "Arn" ] }
+                Id: "target"
+
+    DailySchedulerInvokePermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            FunctionName: { "Fn::GetAtt": [ "DailySchedulerLambda", "Arn" ] }
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: { "Fn::GetAtt": [ "DailySchedulerScheduledRule", "Arn" ] }
