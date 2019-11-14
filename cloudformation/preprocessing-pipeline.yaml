@@ -891,6 +891,7 @@ Resources:
                                             "Resource": "arn:aws:states:::sns:publish",
                                             "Parameters": {
                                                 "TopicArn": "${SnsFailureTopic}",
+                                                "Subject": "Failed to Process File",
                                                 "Message.$": "$.SourceEvent.SessionId",
                                                 "MessageAttributes": {
                                                     "session_id": {
