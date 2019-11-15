@@ -4,8 +4,9 @@ import decimal
 import json
 import os
 import time
+import requests
 
-from fathomapi.comms.service import Service
+# from fathomapi.comms.service import Service
 
 logs_client = boto3.client('logs')
 
@@ -15,6 +16,7 @@ HARDWARE_API_VERSION = '2_0'
 SERVICE_TOKEN = None
 
 def handler(event, _):
+    global SERVICE_TOKEN
     print(json.dumps(event))
     for record in event['Records']:
         if record['eventName'] == 'REMOVE':
@@ -37,9 +39,13 @@ def handler(event, _):
 
         if 'user_id' in changes and 'user_id' in new_object and new_object['user_id'] != '---':
             print('Loading data from users service')
-            # if SERVICE_TOKEN is None:
-            #     SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
-            user = Service('users', USERS_API_VERSION).call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
+            if SERVICE_TOKEN is None:
+                SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
+            headers = {'Content-Type': 'application/json',
+                       'Authorization': SERVICE_TOKEN}
+            user = requests.get(url=f"https://apis.{os.environ['ENVIRONMENT']}.fathomai.com/users/{USERS_API_VERSION}/user/{new_object['user_id']}",
+                                headers=headers).json().get('user', None)
+            # user = Service('users', USERS_API_VERSION).call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
             if user is not None:
                 try:
                     user_mass = user['biometric_data']['mass']['kg']
@@ -51,7 +57,13 @@ def handler(event, _):
 
         if 'accessory_id' in changes:
             print('Loading data from hardware service')
-            accessory = Service('hardware', HARDWARE_API_VERSION).call_apigateway_sync('GET', f"accessory/{new_object['accessory_id']}").get('accessory', None)
+            if SERVICE_TOKEN is None:
+                SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
+            headers = {'Content-Type': 'application/json',
+                       'Authorization': SERVICE_TOKEN}
+            accessory = requests.get(url=f"https://apis.{os.environ['ENVIRONMENT']}.fathomai.com/hardware/{HARDWARE_API_VERSION}/accessory/{new_object['accessory_id']}",
+                                     headers=headers).json().get('accessory', None)
+            # accessory = Service('hardware', HARDWARE_API_VERSION).call_apigateway_sync('GET', f"accessory/{new_object['accessory_id']}").get('accessory', None)
             if accessory is not None:
                 if 'user_id' in new_object and new_object['user_id'] != '---':
                     print("user_id already exists, do not need to update!")
@@ -154,15 +166,21 @@ def parse_datetime(date_input):
 
 
 def _notify_user(user_id):
-    # if SERVICE_TOKEN is None:
-    #     SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
-    users_service = Service('users', USERS_API_VERSION)
+    global SERVICE_TOKEN
+    if SERVICE_TOKEN is None:
+        SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
+    headers = {'Content-Type': 'application/json',
+               'Authorization': SERVICE_TOKEN}
     body = {"message": "Your FathomPRO run has started uploading!",
             "call_to_action": "VIEW_PLAN",
             "expire_in": 15 * 60}  # expire in 15 mins
-    users_service.call_apigateway_async(method='POST',
-                                        endpoint=f'/user/{user_id}/notify',
-                                        body=body)
+    response = requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/users/{USERS_API_VERSION}/user/{user_id}/notify',
+                             data=json.dumps(body),
+                             headers=headers)
+    # users_service = Service('users', USERS_API_VERSION)
+    # users_service.call_apigateway_async(method='POST',
+    #                                     endpoint=f'/user/{user_id}/notify',
+    #                                     body=body)
 
 
 def invoke_lambda_sync(function_name, version, payload=None):
