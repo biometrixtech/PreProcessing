@@ -10,6 +10,10 @@ from fathomapi.comms.service import Service
 logs_client = boto3.client('logs')
 
 
+USERS_API_VERSION = '2_4'
+HARDWARE_API_VERSION = '2_0'
+SERVICE_TOKEN = None
+
 def handler(event, _):
     print(json.dumps(event))
     for record in event['Records']:
@@ -22,13 +26,20 @@ def handler(event, _):
         changes = {k: (old_object.get(k, None), new_object.get(k, None)) for k, _ in
                    set(new_object.items()).symmetric_difference(set(old_object.items()))}
 
+        if 'session_status' in changes and changes['session_status'][1] == 'UPLOAD_IN_PROGRESS':
+            print('UPLOAD STARTED')
+            if 'user_id' in new_object and new_object['user_id'] != "---":
+                _notify_user(new_object['user_id'])
+
         if 'session_status' in changes and changes['session_status'][1] == 'UPLOAD_COMPLETE':
             print('Beginning SFN execution')
             trigger_sfn(new_object['id'], new_object.get('version', '2.3'))
 
         if 'user_id' in changes and 'user_id' in new_object and new_object['user_id'] != '---':
             print('Loading data from users service')
-            user = Service('users', '2_3').call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
+            # if SERVICE_TOKEN is None:
+            #     SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
+            user = Service('users', USERS_API_VERSION).call_apigateway_sync('GET', f"user/{new_object['user_id']}").get('user', None)
             if user is not None:
                 try:
                     user_mass = user['biometric_data']['mass']['kg']
@@ -40,7 +51,7 @@ def handler(event, _):
 
         if 'accessory_id' in changes:
             print('Loading data from hardware service')
-            accessory = Service('hardware', '2_0').call_apigateway_sync('GET', f"accessory/{new_object['accessory_id']}").get('accessory', None)
+            accessory = Service('hardware', HARDWARE_API_VERSION).call_apigateway_sync('GET', f"accessory/{new_object['accessory_id']}").get('accessory', None)
             if accessory is not None:
                 if 'user_id' in new_object and new_object['user_id'] != '---':
                     print("user_id already exists, do not need to update!")
@@ -140,6 +151,27 @@ def parse_datetime(date_input):
         except ValueError:
             pass
     raise ValueError('date_time must be in ISO8601 format')
+
+
+def _notify_user(user_id):
+    # if SERVICE_TOKEN is None:
+    #     SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
+    users_service = Service('users', USERS_API_VERSION)
+    body = {"message": "Your FathomPRO run has started uploading!",
+            "call_to_action": "VIEW_PLAN",
+            "expire_in": 15 * 60}  # expire in 15 mins
+    users_service.call_apigateway_async(method='POST',
+                                        endpoint=f'/user/{user_id}/notify',
+                                        body=body)
+
+
+def invoke_lambda_sync(function_name, version, payload=None):
+    _lambda_client = boto3.client('lambda')
+    res = _lambda_client.invoke(
+        FunctionName=f'{function_name}:{version}',
+        Payload=json.dumps(payload or {}),
+    )
+    return json.loads(res['Payload'].read())
 
 
 if __name__ == '__main__':
