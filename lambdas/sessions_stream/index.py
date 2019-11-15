@@ -15,6 +15,7 @@ USERS_API_VERSION = '2_4'
 HARDWARE_API_VERSION = '2_0'
 SERVICE_TOKEN = None
 
+
 def handler(event, _):
     global SERVICE_TOKEN
     print(json.dumps(event))
@@ -28,20 +29,20 @@ def handler(event, _):
         changes = {k: (old_object.get(k, None), new_object.get(k, None)) for k, _ in
                    set(new_object.items()).symmetric_difference(set(old_object.items()))}
 
-        if 'session_status' in changes and changes['session_status'][1] == 'UPLOAD_IN_PROGRESS':
-            print('UPLOAD STARTED')
-            if 'user_id' in new_object and new_object['user_id'] != "---":
-                _notify_user(new_object['user_id'])
-
-        if 'session_status' in changes and changes['session_status'][1] == 'UPLOAD_COMPLETE':
-            print('Beginning SFN execution')
-            trigger_sfn(new_object['id'], new_object.get('version', '2.3'))
+        if 'session_status' in changes:
+            if changes['session_status'][1] == 'UPLOAD_COMPLETE':
+                print('Beginning SFN execution')
+                trigger_sfn(new_object['id'], new_object.get('version', '2.3'))
+            elif changes['session_status'][1] in ['UPLOAD_IN_PROGRESS', 'PROCESSING_COMPLETE', 'PROCESSING_FAILED']:
+                if 'user_id' in new_object and new_object['user_id'] != "---":
+                    _notify_user(new_object)
 
         if 'user_id' in changes and 'user_id' in new_object and new_object['user_id'] != '---':
             print('Loading data from users service')
             if SERVICE_TOKEN is None:
                 SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
             headers = {'Content-Type': 'application/json',
+                       'User-Agent': 'Biometrix/Preprocessing Ingest-Sessions',
                        'Authorization': SERVICE_TOKEN}
             user = requests.get(url=f"https://apis.{os.environ['ENVIRONMENT']}.fathomai.com/users/{USERS_API_VERSION}/user/{new_object['user_id']}",
                                 headers=headers).json().get('user', None)
@@ -60,6 +61,7 @@ def handler(event, _):
             if SERVICE_TOKEN is None:
                 SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
             headers = {'Content-Type': 'application/json',
+                       'User-Agent': 'Biometrix/Preprocessing Ingest-Sessions',
                        'Authorization': SERVICE_TOKEN}
             accessory = requests.get(url=f"https://apis.{os.environ['ENVIRONMENT']}.fathomai.com/hardware/{HARDWARE_API_VERSION}/accessory/{new_object['accessory_id']}",
                                      headers=headers).json().get('accessory', None)
@@ -165,25 +167,46 @@ def parse_datetime(date_input):
     raise ValueError('date_time must be in ISO8601 format')
 
 
-def _notify_user(user_id):
+def _notify_user(session):
+    session_id = session['id']
+    user_id = session['user_id']
+    status = session['session_status']
     global SERVICE_TOKEN
     if SERVICE_TOKEN is None:
         SERVICE_TOKEN = invoke_lambda_sync(f'users-{os.environ["ENVIRONMENT"]}-apigateway-serviceauth', '2_0')['token']
     headers = {'Content-Type': 'application/json',
+               'User-Agent': 'Biometrix/Preprocessing Ingest-Sessions',
                'Authorization': SERVICE_TOKEN}
-    body = {"message": "Your FathomPRO run has started uploading!",
-            "call_to_action": "VIEW_PLAN",
-            "expire_in": 15 * 60}  # expire in 15 mins
-    response = requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/users/{USERS_API_VERSION}/user/{user_id}/notify',
-                             data=json.dumps(body),
-                             headers=headers)
-    # users_service = Service('users', USERS_API_VERSION)
-    # users_service.call_apigateway_async(method='POST',
-    #                                     endpoint=f'/user/{user_id}/notify',
-    #                                     body=body)
+    body = {}
+    notify = False
+    if status == 'UPLOAD_IN_PROGRESS':
+        notify = True
+        print('UPLOAD STARTED')
+        body = {"message": f"Your FathomPRO is uploading now!",
+                "call_to_action": "VIEW_PLAN",
+                "expire_in": 15 * 60}  # expire in 15 mins
+    elif status == 'PROCESSING_FAILED':
+        print('PROCESSING FAILED')
+        if session.get('failure') in ['HEADING_DETECTION', 'STILL_DETECTION', 'MARCH_DETECTION', 'NO_MARCH_DETECTION_DATA']:
+            notify = True
+            print('CALIBRATION')
+            body = {"message": f"Your FathomPRO run has failed processing! session_id: {session_id}",
+                    "call_to_action": "VIEW_PLAN",
+                    "expire_in": 15 * 60}  # expire in 15 mins
+    elif status == 'PROCESSING_COMPLETE':
+        notify = True
+        print('PROCESSING COMPLETED')
+        body = {"message": f"Data from your FathomPRO run is available now! session_id: {session_id}",
+                "call_to_action": "VIEW_PLAN",
+                "expire_in": 15 * 60}  # expire in 15 mins
+    if notify:
+        requests.post(url=f'https://apis.{os.environ["ENVIRONMENT"]}.fathomai.com/users/{USERS_API_VERSION}/user/{user_id}/notify',
+                      data=json.dumps(body),
+                      headers=headers)
 
 
 def invoke_lambda_sync(function_name, version, payload=None):
+    print("Retrieving service token")
     _lambda_client = boto3.client('lambda')
     res = _lambda_client.invoke(
         FunctionName=f'{function_name}:{version}',
