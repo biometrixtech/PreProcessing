@@ -7,6 +7,7 @@ from scipy import stats
 import pandas as pd
 import statistics
 from math import ceil
+import queue
 
 
 from ._unit_block_job import UnitBlockJob
@@ -17,6 +18,8 @@ from models.loading_asymmetry_summary import LoadingAsymmetrySummary
 from models.movement_asymmetry import MovementAsymmetry
 from models.unit_block import UnitBlock
 from utils import parse_datetime
+from logic.elasticity_regression import ElasticityRegression
+from models.movement_pattern import MovementPatterns, MovementPatternStats
 
 _logger = logging.getLogger()
 
@@ -95,7 +98,11 @@ class AsymmetryProcessorJob(UnitBlockJob):
         movement_events = self._get_movement_asymmetries()
         asymmetry_events = self._get_session_asymmetry_summary(movement_events)
         self.write_movement_asymmetry(movement_events, asymmetry_events, os.environ["ENVIRONMENT"])
-        return asymmetry_events
+
+        movement_patterns = self._get_movement_patterns()
+        self.write_movement_pattern(movement_patterns, os.environ["ENVIRONMENT"])
+
+        return asymmetry_events, movement_patterns
 
     def _get_session_asymmetry_summaries(self):
         # relative magnitude
@@ -309,6 +316,44 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         #return left_apt, right_apt
         return events
+
+    def _get_movement_patterns(self):
+
+        movement_patterns_list = []
+
+        elasticity_regression = ElasticityRegression()
+
+        user_id = self.datastore.get_metadatum('user_id', None)
+
+        for keys, mcsl in self.complexity_matrix.items():
+
+            movement_patterns = elasticity_regression.run_regressions(mcsl.left_steps, mcsl.right_steps)
+
+            movement_patterns.user_id = user_id
+            movement_patterns.session_id = self.datastore.session_id
+
+            movement_patterns_list.append(movement_patterns)
+
+        return movement_patterns_list[0]
+
+    # def _update_leg_extensions(self):
+    #
+    #     for left_step in self.complexity_matrix['Single Leg'].left_steps:
+    #         step_start_time = left_step.step_start_time
+    #         step_end_time = left_step.step_end_time
+    #
+    #           if len(right_ankle_pitch_steps) > 0:
+    #             left_step.ankle_pitch_range = right_ankle_pitch_steps[0].ankle_pitch
+    #
+    #     for right_step in self.complexity_matrix['Single Leg'].right_steps:
+    #         step_start_time = right_step.step_start_time
+    #         step_end_time = right_step.step_end_time
+    #
+    #         right_ankle_pitch_steps = [r for r in self.complexity_matrix['Single Leg'].left_steps if r.max_ankle_pitch_time is not None and
+    #                                    step_start_time <= parse_datetime(r.max_ankle_pitch_time) <= step_end_time]
+    #
+    #         if len(right_ankle_pitch_steps) > 0:
+    #             right_step.ankle_pitch_range = right_ankle_pitch_steps[0].ankle_pitch
 
     def _get_movement_asymmetries(self):
 
@@ -671,6 +716,37 @@ class AsymmetryProcessorJob(UnitBlockJob):
             self.datastore.put_data('relmagnitudeasymmetry', df)
             self.datastore.copy_to_s3('relmagnitudeasymmetry', 'advanced-stats', '_'.join([self.event_date, self.user_id]) + "/rel_magnitude_asymmetry.csv")
 
+    def write_movement_pattern(self, movement_pattern, environment):
+
+        mongo_collection = get_mongo_collection('MOVEMENTPATTERN')
+        plans_api_version = self.datastore.get_metadatum('plans_api_version', '4_4')
+
+        # end_date = self.datastore.get_metadatum('end_date', None)
+        event_date = self.datastore.get_metadatum('event_date', None)
+
+        seconds_duration = (parse_datetime(self.active_time_end) - parse_datetime(self.active_time_start)).seconds
+
+        user_id = self.datastore.get_metadatum('user_id', None)
+
+        plans_factory = PlansFactory(plans_api_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration)
+        plans = plans_factory.get_plans()
+        record_out = plans.get_mongo_movement_pattern_record(movement_pattern)
+
+        query = {'session_id': self.datastore.session_id, 'user_id': user_id}
+        mongo_collection.replace_one(query, record_out, upsert=True)
+
+        _logger.info("Wrote movement pattern record for " + self.datastore.session_id)
+
+        if plans_api_version != plans_factory.latest_plans_version:
+            latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration)
+            latest_plans = latest_plans_factory.get_plans()
+            latest_record_out = latest_plans.get_mongo_movement_pattern_record(movement_pattern)
+            latest_record_out["plans_version"] = plans_factory.latest_plans_version
+            latest_mongo_collection = get_mongo_collection('MOVEMENTPATTERNRESERVE')
+            latest_mongo_collection.replace_one(query, latest_record_out, upsert=True)
+
+            _logger.info("Wrote movement pattern reserve record for " + self.datastore.session_id)
+
     def write_movement_asymmetry(self, movement_events, asymmetry_events, environment):
 
         mongo_collection = get_mongo_collection('ASYMMETRY')
@@ -683,9 +759,9 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         user_id = self.datastore.get_metadatum('user_id', None)
 
-        plans_factory = PlansFactory(plans_api_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration, asymmetry_events)
+        plans_factory = PlansFactory(plans_api_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration)
         plans = plans_factory.get_plans()
-        record_out = plans.get_mongo_asymmetry_record(movement_events)
+        record_out = plans.get_mongo_asymmetry_record(asymmetry_events, movement_events)
 
         query = {'session_id': self.datastore.session_id, 'user_id': user_id}
         mongo_collection.replace_one(query, record_out, upsert=True)
@@ -693,9 +769,9 @@ class AsymmetryProcessorJob(UnitBlockJob):
         _logger.info("Wrote asymmetry record for " + self.datastore.session_id)
 
         if plans_api_version != plans_factory.latest_plans_version:
-            latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration, asymmetry_events)
+            latest_plans_factory = PlansFactory(plans_factory.latest_plans_version, environment, user_id, event_date, self.datastore.session_id, seconds_duration)
             latest_plans = latest_plans_factory.get_plans()
-            latest_record_out = latest_plans.get_mongo_asymmetry_record(movement_events)
+            latest_record_out = latest_plans.get_mongo_asymmetry_record(asymmetry_events, movement_events)
             latest_record_out["plans_version"] = plans_factory.latest_plans_version
             latest_mongo_collection = get_mongo_collection('ASYMMETRYRESERVE')
             latest_mongo_collection.replace_one(query, latest_record_out, upsert=True)

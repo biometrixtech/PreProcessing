@@ -11,6 +11,8 @@ load_parameters([
             'MONGO_COLLECTION_ACTIVEBLOCKS',
             'MONGO_COLLECTION_ASYMMETRY',
             'MONGO_COLLECTION_ASYMMETRYRESERVE',
+            'MONGO_COLLECTION_MOVEMENTPATTERN',
+            'MONGO_COLLECTION_MOVEMENTPATTERNRESERVE',
             'MONGO_COLLECTION_SESSIONASYMMETRYRESERVE',
         ], 'mongo')
 from config import get_mongo_collection
