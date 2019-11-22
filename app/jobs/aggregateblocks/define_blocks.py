@@ -48,7 +48,6 @@ def define_cadence_zone(data):
         if len(peaks) > 10:
             cadence = _get_cadence(peaks)
             peaks += br[0]
-            all_cadence[peaks] = cadence
             start_index = 10
             initial_cadence = int(np.nanmean(cadence[:start_index]))
             current_zone = _get_cadence_zone(initial_cadence)
@@ -67,6 +66,9 @@ def define_cadence_zone(data):
                         current_zone = _get_cadence_zone(cadence[i])
                         cadence_zone[last_updated_index:peaks[i]] = current_zone.value
                         last_updated_index = peaks[i]
+            r_l_peaks, r_l_cadence = interpolate_cadence(peaks, cadence)
+            all_cadence[r_l_peaks] = r_l_cadence
+
     data['cadence_zone'] = cadence_zone
     data['cadence'] = all_cadence
 
@@ -95,3 +97,10 @@ def _get_cadence(peaks):
     cadence[-1] = cadence[-2]
 
     return cadence
+
+def interpolate_cadence(peaks, cadence):
+    x = [int((peaks[i-1] + peaks[i]) / 2) for i in range(1, len(peaks))]
+    x.extend(peaks.tolist())
+    x = sorted(x)
+    y = np.interp(x, xp=peaks, fp=cadence)
+    return x, y

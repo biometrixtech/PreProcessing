@@ -63,9 +63,9 @@ if __name__ == '__main__':
             sessions = [
                 "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
                 "f93e004d-7dd0-56b3-bb22-353750586f5e",
-                "7b6c7bba-3250-5d45-949f-1998ff88800d",
-                "8331f565-08af-564b-8ae9-f847b17fa851",
-                "c7bcaf5e-f4a0-525d-aca9-c9c449f2a39e",
+                #"7b6c7bba-3250-5d45-949f-1998ff88800d",
+                #"8331f565-08af-564b-8ae9-f847b17fa851",
+                #"c7bcaf5e-f4a0-525d-aca9-c9c449f2a39e",
                 "2f26eee8-455a-5678-a384-ed5a14c6e54a",
                 "398ad5bf-3792-5b63-b07f-60a1e6bda875",
                 "07b9b744-3e85-563d-b69a-822148673f58"
@@ -76,9 +76,9 @@ if __name__ == '__main__':
                      format_datetime(datetime.now() - timedelta(days=4)),
                      format_datetime(datetime.now() - timedelta(days=6)),
                      format_datetime(datetime.now() - timedelta(days=8)),
-                     format_datetime(datetime.now() - timedelta(days=10)),
-                     format_datetime(datetime.now() - timedelta(days=12)),
-                     format_datetime(datetime.now() - timedelta(days=14))
+                     #format_datetime(datetime.now() - timedelta(days=10)),
+                     #format_datetime(datetime.now() - timedelta(days=12)),
+                     #format_datetime(datetime.now() - timedelta(days=14))
                      ]
 
             symmetrical = [False, False, False, False, False, False, False, False]
@@ -111,7 +111,7 @@ if __name__ == '__main__':
                 "958dba09-c338-5118-86a3-d20a559f09c2",
                 #"b6b42d70-b66d-5ff3-a8bc-7047e9f3c993",
                 "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",
-                "b2a95b1b-8d7b-5638-bd69-7299a362c717"
+                #"b2a95b1b-8d7b-5638-bd69-7299a362c717"
             ]
             user_id = u[1]
             dates = [format_datetime(datetime.now()),
@@ -169,8 +169,8 @@ if __name__ == '__main__':
 
                 seconds_duration = (parse_datetime(active_end) - parse_datetime(active_start)).seconds
 
-                unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
                 unit_blocks = [b for b in unit_blocks if b["cadence_zone"] is not None and b["cadence_zone"] != 10]
+                unit_blocks = sorted(unit_blocks, key=lambda ub: ub['timeStart'])
 
                 session_time_start = parse_datetime(date)
                 session_time_end = format_datetime(session_time_start + timedelta(seconds=seconds_duration))
@@ -180,7 +180,8 @@ if __name__ == '__main__':
                 cmj = ComplexityMatrixJob(ds, unit_blocks)
                 cmj.run()
 
-                job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg)
+                job = AsymmetryProcessorJob(ds, unit_blocks, cmj.motion_complexity_single_leg, active_start, active_end)
+
                 movement_events = job._get_movement_asymmetries()
                 make_symmetrical = symmetrical[s]
                 if make_symmetrical:
@@ -188,12 +189,20 @@ if __name__ == '__main__':
                         a.anterior_pelvic_tilt.significant = False
                         a.ankle_pitch.significant = False
 
+                #job._update_leg_extensions()
+
                 asymmetry_events = job._get_session_asymmetry_summary(movement_events)
 
                 job.write_movement_asymmetry(movement_events, asymmetry_events, os.environ["ENVIRONMENT"])
 
+                movement_patterns = job._get_movement_patterns()
+
+                job.write_movement_pattern(movement_patterns, os.environ["ENVIRONMENT"])
+
                 advanced_stats_job = AdvancedstatsJob(ds)
-                advanced_stats_job._write_session_to_plans(asymmetry_events)
+                advanced_stats_job._write_session_to_plans(asymmetry_events, movement_patterns, unit_blocks[0]["timeStart"],
+                                                           unit_blocks[len(unit_blocks) - 1]["timeEnd"])
+
 
 
 

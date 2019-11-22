@@ -8,6 +8,7 @@
 
 /app/*
 !/app/jobs
+!/app/logic
 !/app/models
 !/app/utils
 !/app/*.py

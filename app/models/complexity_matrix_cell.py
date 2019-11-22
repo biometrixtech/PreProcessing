@@ -162,8 +162,11 @@ class ComplexityMatrixCell(object):
 
     def add_step(self, step):
         if step.orientation == "Left":
+
             self.left_steps.append(step)
+
         else:
+
             self.right_steps.append(step)
 
     def get_decay_parameters(self):

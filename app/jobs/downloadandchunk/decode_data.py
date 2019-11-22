@@ -36,29 +36,28 @@ def _decode_timestamp(timestamp_data, nrows):
 
 
 # magn magnitude and corrupt enum calc
-def _decode_magn(magn_data, nrow):
-    magn_temp = magn_data
+def _get_static_flag(flag, nrow):
+    flag_temp = flag
+    static = (flag_temp & 8 ) / 8
+    return static.reshape(-1, 1)
+
+
+def _get_corrupt_flag(flag, nrow):
     shift = [3] * nrow
-    magn_magnitude = magn_temp >> shift  # shift to right by 3
-    magn_magnitude = magn_magnitude * 32  # multiply by 32 to calculate magnitude in mGauss
-
-    # corrupt_enum = magn_temp & 7
-    corrupt_enum = magn_temp / 8  # corrupt indicator changed
-    # return np.concatenate((magn_magnitude.reshape(-1, 1),
-    #                        corrupt_enum.reshape(-1, 1)), axis=1)
-    return corrupt_enum.reshape(-1, 1)
-
+    flag_temp = flag >> shift  # shift to right by 3
+    corrupt = (flag_temp & 10)
+    return corrupt.reshape(-1, 1)
 
 # AXL temporary value for the axl.5 bytes are used to
 # represent the 3 axes components of the accelerometer
-def _decode_accel(axl_data, nrows):
+def _decode_accel(axl_data, nrows, corrupt_data):
+    corrupt = _get_corrupt_flag(corrupt_data, nrows) / 2
     axl_temp = 0
     for i in range(5):
         temp = axl_data[:, i]
         shift = [8 * (4 - i)] * nrows
         shifted = temp << shift
         axl_temp = axl_temp + shifted
-
     # Each AXL axis value is truncated from 16 bits to 13 bits. Therefore, the AXL temp
     # value must be shifted down by 26, 13 and 0 bits respectively for the 1st,
     # 2nd and 3rd axes. Then each axes value must be shifted up by 3 bits in
@@ -70,6 +69,9 @@ def _decode_accel(axl_data, nrows):
         temp_value = temp_value & int('1fff', 16)  # bitand(tempValue,hex2dec('1fff'));
         temp_value = temp_value << 3  # bitshift(tempValue,3);
         axl[:, i] = np.int16(temp_value)
+    for i in range(len(corrupt)):
+        if corrupt[i] == 1:
+            axl[i, :] *= 4
     return axl
 
 
@@ -132,14 +134,14 @@ def read_file(filename):
     output = np.concatenate((
         timestamp,
         # corrupt,
-        _decode_magn(data[:, 7], nrows),
-        _decode_accel(data[:, 8:13], nrows),  # / 1000 * 9.80665,
+        _get_static_flag(data[:, 7], nrows),
+        _decode_accel(data[:, 8:13], nrows, data[:, 7]),  # / 1000 * 9.80665,
         _decode_quat(data[:, 13:18], nrows),
-        _decode_magn(data[:, 18], nrows),
-        _decode_accel(data[:, 19:24], nrows),  # / 1000 * 9.80665,
+        _get_static_flag(data[:, 18], nrows),
+        _decode_accel(data[:, 19:24], nrows, data[:, 18]),  # / 1000 * 9.80665,
         _decode_quat(data[:, 24:29], nrows),
-        _decode_magn(data[:, 29], nrows),
-        _decode_accel(data[:, 30:35], nrows),  # / 1000 * 9.80665,
+        _get_static_flag(data[:, 29], nrows),
+        _decode_accel(data[:, 30:35], nrows, data[:, 29]),  # / 1000 * 9.80665,
         _decode_quat(data[:, 35:40], nrows),
     ), axis=1)
 
@@ -154,7 +156,7 @@ def read_file(filename):
     output_pd['static_2'] = output_pd['static_2'].astype(int)
     ms_elapsed = np.ediff1d(timestamp, to_begin=10)
     neg_timestamp = np.where(ms_elapsed < 0)[0]
-    big_jumps = np.where(abs(ms_elapsed) > 1000)[0]
+    big_jumps = np.where(abs(ms_elapsed) > 5 * 60 * 1000)[0]
     if len(neg_timestamp) > 0:
         for i in neg_timestamp:
             if i != len(data) - 1:
@@ -167,3 +169,4 @@ def read_file(filename):
     # output_pd.reset_index(drop=True, inplace=True)
     
     return output_pd, timestamp_error
+
