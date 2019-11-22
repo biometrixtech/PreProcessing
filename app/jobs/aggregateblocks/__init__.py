@@ -8,7 +8,7 @@ from ..job import Job
 from config import get_mongo_collection
 from .aggregate import aggregate
 from .define_blocks import define_active_blocks, define_cadence_zone
-from utils import format_datetime_from_epoch_time
+from utils import format_datetime_from_epoch_time, filter_data
 
 
 _logger = logging.getLogger()
@@ -24,11 +24,16 @@ _input_columns = [
     'grf_lf',
     'grf_rf',
     'total_accel',
+    'acc_lf_z',
+    'acc_hip_z',
+    'acc_rf_z',
+    'euler_lf_x',
     'euler_lf_y',
     'euler_hip_x',
     'euler_hip_y',
+    'euler_hip_z',
+    'euler_rf_x',
     'euler_rf_y',
-    'acc_hip_z',
     'stance',
     'remove',
     'change_of_direction'
@@ -77,7 +82,8 @@ class AggregateblocksJob(Job):
         data['rf_only_grf'] = data['grf'].fillna(value=np.nan) * rf_ground
         # accel
         data['total_accel'] = data['total_accel'] * active_ind
-        data['change_of_direction']  = data['change_of_direction'] * data['active']
+        data['change_of_direction'] = data['change_of_direction'] * data['active']
+        data['acc_hip_z'] = filter_data(data.acc_hip_z.values, filt='low', highcut=35)
 
         # get cadence zones
         define_cadence_zone(data)
@@ -130,7 +136,6 @@ class AggregateblocksJob(Job):
                     unit_blocks.append(unit_block_record)
                 if ub.cadence_zone > 10:
                     last_active_index = ub.end_index
-
 
             record_out['unitBlocks'] = unit_blocks
 

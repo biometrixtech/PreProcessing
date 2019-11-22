@@ -2,9 +2,11 @@ from collections import OrderedDict
 import copy
 import numpy as np
 import pandas as pd
+from scipy.signal import find_peaks
 
+# TODO: start using find_peaks from scipy in all cases
 from utils.detect_peaks import detect_peaks
-from utils import get_ranges
+from utils import get_ranges, filter_data
 
 
 def aggregate(data, record, mass, agg_level):
@@ -110,9 +112,11 @@ def aggregate(data, record, mass, agg_level):
 def _step_data(data, ranges, mass, sensor):
     """get linear combination of peak_grf and ground contact time
     """
-
     steps = []
     # counter = 0
+    diff_between_peaks = 40
+    yaw_diff = np.ediff1d(data.euler_hip_z.values, to_begin=0)
+    acc_z = data.acc_hip_z.values
     for range_gc in ranges:
         step_record = OrderedDict()
         step_data = data.loc[range_gc[0]:range_gc[1] - 1, :]
@@ -134,6 +138,9 @@ def _step_data(data, ranges, mass, sensor):
         # accel aggregation
         step_record['totalAccel'] = np.nansum(step_data['total_accel'])
         step_record['totalAccelAvg'] = _peak_accel(step_data['total_accel'].values, mph=5., mpd=1, steps=True)
+        step_record['peakHipVerticalAccel'] = round(np.max(step_data['acc_hip_z']), 2)
+        step_record['medianHipVerticalAccel'] = round(np.percentile(step_data['acc_hip_z'], 50), 2)
+        step_record['peakHipVerticalAccel95'] = round(np.percentile(step_data['acc_hip_z'], 95), 2)
 
         # mph = 1.2
         # grf_sub = data.grf[range_gc[0]:range_gc[1]].values
@@ -164,27 +171,46 @@ def _step_data(data, ranges, mass, sensor):
         #     step_record['peakGrfPercImpactDuration' + sensor] = None
 
         if any(step_data.loc[:, 'remove'] == 1):  # if the step was marked for removal, do not compute CME
-            print('removed step')
+            # print('removed step')
             apt_range, apt_rate = None, None
-            pitch_range, pitch_range_impact_start = None, None
+            pitch_range, pitch_range_impact_start, max_pitch_time = None, None, None
             hip_drop = None
+            knee_valgus = None
+            hip_rot_medial = None
+            hip_rot_lateral = None
         else:
             apt_range, apt_rate = get_apt_cme(step_data.euler_hip_y.values, step_data.euler_hip_y_diff.values)
             if range_gc[0] > 10 and range_gc[1] < len(data) - 30:
-                pitch_range, pitch_range_impact_start = get_pitch_range_cme(data.loc[range_gc[0] - 20:range_gc[1] + 30, f"euler_{sensor.lower()}_y"].values)
+                pitch_start = range_gc[0] - 20
+                pitch_end = range_gc[1] + 30
+                pitch_range, pitch_range_impact_start, max_pitch_time = get_pitch_range_cme(data.loc[pitch_start:pitch_end, f"euler_{sensor.lower()}_y"].values,
+                                                                                            data.loc[pitch_start:pitch_end, "epoch_time"].values)
             else:
-                pitch_range, pitch_range_impact_start = None, None
+                pitch_range, pitch_range_impact_start, max_pitch_time = None, None, None
 
             if range_gc[0] > 3:
                 hip_drop = get_hip_drop_cme(data.loc[range_gc[0] - 3:range_gc[1], "euler_hip_x"].values, sensor)
             else:
                 hip_drop = None
+            knee_valgus = get_knee_valgus_cme(data.loc[range_gc[0]:range_gc[1], f'euler_{sensor.lower()}_x'].values, data.loc[range_gc[0]:range_gc[1], f'acc_{sensor.lower()}_z'].values, sensor)
+            # hip rotation
+            cadence_step = np.max(data.cadence.values[max([range_gc[0]-5, 0]):range_gc[1]])
+            if cadence_step > 0:
+                diff_between_peaks = int(100 / cadence_step * 60)
+            hip_rot_medial, hip_rot_lateral = get_hip_rotation_cme(range_gc, acc_z, yaw_diff, sensor, diff_between_peaks)
 
         step_record['anteriorPelvicTiltRange'] = apt_range
         step_record['anteriorPelvicTiltRate'] = apt_rate
         step_record['anklePitchRange'] = pitch_range
         step_record['anklePitchRangeImpactStart'] = pitch_range_impact_start
+        if max_pitch_time is not None:
+            step_record['maxAnklePitchTime'] = str(pd.to_datetime(max_pitch_time, unit='ms'))
+        else:
+            step_record['maxAnklePitchTime'] = None
         step_record['hipDrop'] = hip_drop
+        step_record['kneeValgus'] = knee_valgus
+        step_record['hipMedialRotation'] = hip_rot_medial
+        step_record['hipLateralRotation'] = hip_rot_lateral
 
         # adduc_rom = np.nanmean(step_data['adduc_range_of_motion_' + sensor.lower()])
         # adduc_motion_covered_abs = np.nanmean(step_data['adduc_motion_covered_abs_' + sensor.lower()])
@@ -266,22 +292,23 @@ def get_apt_cme(euler_hip_y, euler_hip_y_diff):
     min_index = np.where(euler_hip_y[minima:max_index] == min(euler_hip_y[minima:max_index]))[0][0] + minima
     range_euler_y = (euler_hip_y[max_index] - euler_hip_y[min_index]) * 180 / np.pi
     if range_euler_y < 0:
-        print('max lower than min')
+        # print('max lower than min')
         return None, None
     duration = max_index - min_index
     if duration <= 0:
-        print('max index before min')
+        # print('max index before min')
         return None, None
     range_rate = range_euler_y / duration * 100
     return range_euler_y, range_rate
 
 
-def get_pitch_range_cme(euler_y_window):
+def get_pitch_range_cme(euler_y_window, epoch_time_window):
     min_pitch = np.min(euler_y_window[:int(len(euler_y_window) / 2)])  # min in the first half
     max_pitch = np.max(euler_y_window[int(len(euler_y_window) / 2):])  # max in the second half
     pitch_impact_start = euler_y_window[20]
     min_point = np.where(euler_y_window == min_pitch)[0][0]
     max_point = np.where(euler_y_window == max_pitch)[0][0]
+    max_pitch_time = epoch_time_window[max_point]
 
     # pitch rom CME
     pitch_range = max_pitch - min_pitch
@@ -290,13 +317,13 @@ def get_pitch_range_cme(euler_y_window):
     pitch_range_impact_start = max_pitch - pitch_impact_start
 
     if pitch_range < 0:
-        print('neg pitch range')
-        return None, None
+        # print('neg pitch range')
+        return None, None, None
     if (max_point - min_point) < 15:
-        print('min and max too close, possible error')
-        return None, None
+        # print('min and max too close, possible error')
+        return None, None, None
 
-    return pitch_range * 180 / np.pi, pitch_range_impact_start * 180 / np.pi  # result in degrees
+    return pitch_range * 180 / np.pi, pitch_range_impact_start * 180 / np.pi, max_pitch_time  # result in degrees
 
 
 def get_hip_drop_cme(hip_roll, sensor):
@@ -311,12 +338,64 @@ def get_hip_drop_cme(hip_roll, sensor):
     contact_duration = max_point - min_point
     
     if contact_duration <= 0:
-        print('max before min')
+        # print('max before min')
         return None
     if hip_drop <= 0:
         return None
 
     return hip_drop * 180 / np.pi
+
+
+def get_knee_valgus_cme(ankle_roll, acc_z, sensor):
+    if sensor == 'RF':
+        ankle_roll *= -1
+
+    acc_z = np.abs(acc_z)
+    start_point = np.where(acc_z == np.max(acc_z[:5]))[0][0]  # get the peak accel location at the start of contact
+    max_roll = np.max(ankle_roll[start_point:start_point + 6])  # get peak roll right after peak accel
+    max_point = np.where(ankle_roll == max_roll)[0][0]
+
+    # get local minimas after maxima and pick the smallest of minimas
+    peaks, peak_heights = find_peaks(-ankle_roll[max_point:], height=-30)  # height is in place just so that we get peak_heights back
+    if len(peaks) > 0:
+        min_roll = min(-peak_heights['peak_heights'])
+    else:
+        return 0
+    min_point = np.where(ankle_roll == min_roll)[0][0]
+
+    knee_valgus = (max_roll - min_roll) * 180 / np.pi
+    contact_duration = min_point - max_point
+
+    # remove knee valgus detection attributed to noise or if roll is increasing
+    if contact_duration <= 2:
+        return 0
+    if knee_valgus <= 1:
+        return 0
+
+    return knee_valgus
+
+
+def get_hip_rotation_cme(step, acc_z, yaw_diff, sensor, diff_between_peaks):
+    start = step[0]
+    end = step[1]
+    acc_z_window = acc_z[start:int((start + end) /  2)]
+    start_point = np.where(acc_z_window == np.max(acc_z_window))[0][0] + start # get the peak accel location at the start of contact
+    next_peak = start_point + diff_between_peaks
+    if next_peak >= len(acc_z):
+        return None, None
+    acc_z_next_peak_window = acc_z[next_peak - 3:next_peak + 3]
+    end_point = np.where(acc_z_next_peak_window == np.max(acc_z_next_peak_window))[0][0] + next_peak - 3
+    yaw_diff_window = yaw_diff[start_point:end_point]
+    yaw_diff_first_window = yaw_diff[start_point:int((start + end) /  2)]
+    hip_rot_medial = 0
+    hip_rot_lateral = 0
+    if sensor == 'LF':
+        hip_rot_medial = abs(np.sum([yaw for yaw in yaw_diff_first_window if yaw > 0]))
+        hip_rot_lateral = abs(np.sum([yaw for yaw in yaw_diff_window if yaw < 0]))
+    else:
+        hip_rot_lateral = abs(np.sum([yaw for yaw in yaw_diff_window if yaw > 0]))
+        hip_rot_medial = abs(np.sum([yaw for yaw in yaw_diff_first_window if yaw < 0]))
+    return hip_rot_medial * 180 / np.pi, hip_rot_lateral * 180 / np.pi
 
 
 def _contact_duration_peak_grf(grf, ranges, epoch_time):

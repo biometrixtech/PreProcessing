@@ -16,7 +16,7 @@ HARDWARE_API_VERSION = '2_0'
 @app.route('/<uuid:user_id>/status', methods=['POST'])
 @require.authenticated.any
 @xray_recorder.capture('routes.user.get_status')
-def handle_get_upload_status(user_id):
+def handle_get_upload_status(user_id, principal_id=None):
     # user_id = principal_id
     accessory_id = request.json.get('accessory_id', None)
     accessory = _get_accessory(accessory_id)
@@ -34,6 +34,28 @@ def handle_get_upload_status(user_id):
         cleaned_sessions_list.append(cleaned_session)
     cleaned_sessions_list = [session for session in cleaned_sessions_list if session['status'] != "CREATE_ATTEMPT_FAILED"]
     return {"sessions": cleaned_sessions_list, "accessory": accessory}
+
+
+@app.route('/<uuid:user_id>/sessions_today', methods=['POST'])
+@require.authenticated.any
+@xray_recorder.capture('routes.user.get_session_today')
+def handle_get_session_today(user_id, principal_id=None):
+    offset = _get_offset()
+    current_time = datetime.now()
+    current_local_time = current_time + timedelta(minutes=offset)
+    # Get all sessions for the user
+    sessions = list(Session.get_many(user_id=user_id,
+                                     index='user_id-event_date'))
+    # subset to get relevant dates
+    sessions = [s for s in sessions if s['event_date'] > format_datetime(current_time - timedelta(days=1))]
+    cleaned_sessions_list = []
+    for session in sessions:
+        cleaned_session = _get_cleaned_session(session)
+        cleaned_sessions_list.append(cleaned_session)
+    cleaned_sessions_list = [session for session in cleaned_sessions_list if session['status'] != "CREATE_ATTEMPT_FAILED" and
+                             session['event_date'].split('T')[0] == format_datetime(current_local_time).split('T')[0] and
+                             parse_datetime(session['event_date']).hour >= 3]
+    return {"sessions": cleaned_sessions_list}
 
 
 @app.route('/<uuid:user_id>/last_session', methods=['GET'])
