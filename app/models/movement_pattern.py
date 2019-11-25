@@ -79,10 +79,28 @@ class MovementPatterns(object):
 
             stats = [s.adf for s in self.apt_ankle_pitch_stats if s.side == side and s.adf <= s.adf_critical and s.obs >= 100]
 
+        elif movement_pattern_type == MovementPatternType.hip_drop_apt:
+
+            stats = [s.adf for s in self.hip_drop_apt_stats if s.side == side and s.adf <= s.adf_critical and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.hip_drop_pva:
+
+            stats = [s.adf for s in self.hip_drop_pva_stats if s.side == side and s.adf <= s.adf_critical and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.knee_valgus_hip_drop:
+
+            stats = [s.adf for s in self.knee_valgus_hip_drop_stats if s.side == side and s.adf <= s.adf_critical and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.knee_valgus_pva:
+
+            stats = [s.adf for s in self.knee_valgus_pva_stats if s.side == side and s.adf <= s.adf_critical and s.obs >= 100]
+
+        elif movement_pattern_type == MovementPatternType.knee_valgus_apt:
+
+            stats = [s.adf for s in self.knee_valgus_apt_stats if s.side == side and s.adf <= s.adf_critical and s.obs >= 100]
+
         if len(stats) > 0:
             stats = sorted(stats, key=lambda x: x)
             return stats[0]
         else:
             return 0.0
-
-
