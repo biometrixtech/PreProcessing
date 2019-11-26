@@ -311,20 +311,6 @@ class Plans_4_6(PlansBase):
                     "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
                     "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
                 },
-                "knee_valgus": {
-                    "left": asymmetry_events.knee_valgus_summary.left,
-                    "right": asymmetry_events.knee_valgus_summary.right,
-                    "asymmetric_events": asymmetry_events.knee_valgus_summary.asymmetric_events,
-                    "symmetric_events": asymmetry_events.knee_valgus_summary.symmetric_events,
-                    "percent_events_asymmetric": asymmetry_events.knee_valgus_summary.percent_events_asymmetric
-                },
-                "hip_rotation": {
-                    "left": asymmetry_events.hip_rotation_summary.left,
-                    "right": asymmetry_events.hip_rotation_summary.right,
-                    "asymmetric_events": asymmetry_events.hip_rotation_summary.asymmetric_events,
-                    "symmetric_events": asymmetry_events.hip_rotation_summary.symmetric_events,
-                    "percent_events_asymmetric": asymmetry_events.hip_rotation_summary.percent_events_asymmetric
-                }
             }
         if movement_patterns is not None:
             body['movement_patterns'] = {
@@ -386,26 +372,6 @@ class Plans_4_6(PlansBase):
                     "right": {
                         "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_apt),
                         "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_apt)
-                    }
-                },
-                "hip_rotation_ankle_pitch": {
-                    "left": {
-                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_rotation_ankle_pitch),
-                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_rotation_ankle_pitch)
-                    },
-                    "right": {
-                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_rotation_ankle_pitch),
-                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_rotation_ankle_pitch)
-                    }
-                },
-                "hip_rotation_apt": {
-                    "left": {
-                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_rotation_apt),
-                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_rotation_apt)
-                    },
-                    "right": {
-                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_rotation_apt),
-                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_rotation_apt)
                     }
                 },
             }
@@ -521,7 +487,7 @@ class Plans_4_6(PlansBase):
 class Plans_4_7(PlansBase):
     def __init__(self, environment, user_id, event_date, session_id, seconds_duration, end_date):
         super().__init__(environment, user_id, event_date, session_id, seconds_duration)
-        self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_6/session/{user_id}/three_sensor_data'
+        self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_7/session/{user_id}/three_sensor_data'
         self.end_date = end_date
 
     def get_body(self, asymmetry_events, movement_patterns):
