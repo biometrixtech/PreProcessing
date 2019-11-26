@@ -62,6 +62,8 @@ class AsymmetryEvents(object):
         self.anterior_pelvic_tilt_summary = AsymmetrySummary()
         self.ankle_pitch_summary = AsymmetrySummary()
         self.hip_drop_summary = AsymmetrySummary()
+        self.knee_valgus_summary = AsymmetrySummary()
+        self.hip_rotation_summary = AsymmetrySummary()
 
 
 class TimeBlockAsymmetry(object):
@@ -79,6 +81,8 @@ class TimeBlock(object):
         self.anterior_pelvic_tilt = TimeBlockAsymmetry()
         self.ankle_pitch = TimeBlockAsymmetry()
         self.hip_drop = TimeBlockAsymmetry()
+        self.knee_valgus = TimeBlockAsymmetry()
+        self.hip_rotation = TimeBlockAsymmetry()
 
 
 class AsymmetryProcessorJob(UnitBlockJob):
@@ -187,12 +191,24 @@ class AsymmetryProcessorJob(UnitBlockJob):
         right_hip_drop = 0
         hip_drop_sym_count = 0
         hip_drop_asym_count = 0
+        left_knee_valgus = 0
+        right_knee_valgus = 0
+        knee_valgus_sym_count = 0
+        knee_valgus_asym_count = 0
+        left_hip_rotation = 0
+        right_hip_rotation = 0
+        hip_rotation_sym_count = 0
+        hip_rotation_asym_count = 0
         left_ankle_pitch_list = []
         right_ankle_pitch_list = []
         left_apt_list = []
         right_apt_list = []
         left_hip_drop_list = []
         right_hip_drop_list = []
+        left_knee_valgus_list = []
+        right_knee_valgus_list = []
+        left_hip_rotation_list = []
+        right_hip_rotation_list = []
 
         # left_ankle_pitch_not_significant_list = []
         # right_ankle_pitch_not_significant_list = []
@@ -232,6 +248,27 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     hip_drop_sym_count += 1
                     left_hip_drop_list.append(m.hip_drop.left)
                     right_hip_drop_list.append(m.hip_drop.right)
+
+            if m.knee_valgus.significant:
+                left_knee_valgus_list.append(m.knee_valgus.left)
+                right_knee_valgus_list.append(m.knee_valgus.right)
+                if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
+                    knee_valgus_asym_count += 1
+            else:
+                if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
+                    knee_valgus_sym_count += 1
+                    left_knee_valgus_list.append(m.knee_valgus.left)
+                    right_knee_valgus_list.append(m.knee_valgus.right)
+            if m.hip_rotation.significant:
+                left_hip_rotation_list.append(m.hip_rotation.left)
+                right_hip_rotation_list.append(m.hip_rotation.right)
+                if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
+                    hip_rotation_asym_count += 1
+            else:
+                if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
+                    hip_rotation_sym_count += 1
+                    left_hip_rotation_list.append(m.hip_rotation.left)
+                    right_hip_rotation_list.append(m.hip_rotation.right)
 
         events = AsymmetryEvents()
 
@@ -302,6 +339,51 @@ class AsymmetryProcessorJob(UnitBlockJob):
         if hip_drop_total_count > 0:
             events.hip_drop_summary.percent_events_asymmetric = round((hip_drop_asym_count / float(hip_drop_total_count)) * 100)
 
+        # Knee Valgus
+        if len(left_knee_valgus_list) > 0:
+            left_knee_valgus = statistics.median(left_knee_valgus_list)
+        # elif len(left_knee_valgus_not_significant_list) > 0:
+        #     left_knee_valgus = statistics.median(left_knee_valgus_not_significant_list)
+
+        if len(right_knee_valgus_list) > 0:
+            right_knee_valgus = statistics.median(right_knee_valgus_list)
+        # elif len(right_knee_valgus_not_significant_list) > 0:
+        #     right_knee_valgus = statistics.median(right_knee_valgus_not_significant_list)
+
+        events.knee_valgus_summary.left = left_knee_valgus
+        events.knee_valgus_summary.right = right_knee_valgus
+        events.knee_valgus_summary.symmetric_events = knee_valgus_sym_count
+        events.knee_valgus_summary.asymmetric_events = knee_valgus_asym_count
+
+        knee_valgus_total_count = knee_valgus_asym_count + knee_valgus_sym_count
+
+        events.knee_valgus_summary.percent_events_asymmetric = 0
+
+        if knee_valgus_total_count > 0:
+            events.knee_valgus_summary.percent_events_asymmetric = round((knee_valgus_asym_count / float(knee_valgus_total_count)) * 100)
+
+        # Hip Rotation
+        if len(left_hip_rotation_list) > 0:
+            left_hip_rotation = statistics.median(left_hip_rotation_list)
+        # elif len(left_hip_rotation_not_significant_list) > 0:
+        #     left_hip_rotation = statistics.median(left_hip_rotation_not_significant_list)
+
+        if len(right_hip_rotation_list) > 0:
+            right_hip_rotation = statistics.median(right_hip_rotation_list)
+        # elif len(right_hip_rotation_not_significant_list) > 0:
+        #     right_hip_rotation = statistics.median(right_hip_rotation_not_significant_list)
+
+        events.hip_rotation_summary.left = left_hip_rotation
+        events.hip_rotation_summary.right = right_hip_rotation
+        events.hip_rotation_summary.symmetric_events = hip_rotation_sym_count
+        events.hip_rotation_summary.asymmetric_events = hip_rotation_asym_count
+
+        hip_rotation_total_count = hip_rotation_asym_count + hip_rotation_sym_count
+
+        events.hip_rotation_summary.percent_events_asymmetric = 0
+
+        if hip_rotation_total_count > 0:
+            events.hip_rotation_summary.percent_events_asymmetric = round((hip_rotation_asym_count / float(hip_rotation_total_count)) * 100)
         # left_significant_events = [l.left for l in movement_asymmetries if l.significant]
         # right_significant_events = [r.right for r in movement_asymmetries if r.significant]
         #
@@ -464,6 +546,21 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.hip_drop.left = hip_drop_event.left_median
                         time_block_obj.hip_drop.right = hip_drop_event.right_median
                         time_block_obj.hip_drop.significant = hip_drop_event.significant
+
+                    knee_valgus_event = self._get_steps_f_test("knee_valgus", l_step_blocks, r_step_blocks, time_block)
+
+                    if knee_valgus_event is not None:
+                        time_block_obj.knee_valgus.left = knee_valgus_event.left_median
+                        time_block_obj.knee_valgus.right = knee_valgus_event.right_median
+                        time_block_obj.knee_valgus.significant = knee_valgus_event.significant
+
+                    hip_rotation_event = self._get_steps_f_test("hip_rotation", l_step_blocks, r_step_blocks, time_block)
+
+                    if hip_rotation_event is not None:
+                        time_block_obj.hip_rotation.left = hip_rotation_event.left_median
+                        time_block_obj.hip_rotation.right = hip_rotation_event.right_median
+                        time_block_obj.hip_rotation.significant = hip_rotation_event.significant
+
 
                     # if apt_event is None:
                     #     apt_event = AsymmetryDistribution()

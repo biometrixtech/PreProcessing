@@ -77,6 +77,12 @@ class ElasticityRegression(object):
         right_knee_valgus_pva_list = self.regress_one_var(2, "peak_hip_vertical_accel", "knee_valgus", right_df_cadence_20,
                                                        right_df_cadence_30, right_df_cadence_40)
 
+        left_hip_rotation_ankle_pitch_list = self.regress_one_var(1, "ankle_pitch", "hip_rotation", left_df_cadence_20, left_df_cadence_30, left_df_cadence_40)
+        right_hip_rotation_ankle_pitch_list = self.regress_one_var(2, "ankle_pitch", "hip_rotation", right_df_cadence_20, right_df_cadence_30, right_df_cadence_40)
+
+        left_hip_rotation_apt_list = self.regress_one_var(1, "apt", "hip_rotation", left_df_cadence_20, left_df_cadence_30, left_df_cadence_40)
+        right_hip_rotation_apt_list = self.regress_one_var(2, "apt", "hip_rotation", right_df_cadence_20, right_df_cadence_30, right_df_cadence_40)
+
         movement_patterns.apt_ankle_pitch_stats.extend(left_apt_ankle_pitch_list)
         movement_patterns.apt_ankle_pitch_stats.extend(right_apt_ankle_pitch_list)
         movement_patterns.hip_drop_apt_stats.extend(left_hip_drop_apt_list)
@@ -89,6 +95,10 @@ class ElasticityRegression(object):
         movement_patterns.knee_valgus_pva_stats.extend(right_knee_valgus_pva_list)
         movement_patterns.knee_valgus_apt_stats.extend(left_knee_valgus_apt_list)
         movement_patterns.knee_valgus_apt_stats.extend(right_knee_valgus_apt_list)
+        movement_patterns.hip_rotation_ankle_pitch_stats.extend(left_hip_rotation_ankle_pitch_list)
+        movement_patterns.hip_rotation_ankle_pitch_stats.extend(right_hip_rotation_ankle_pitch_list)
+        movement_patterns.hip_rotation_apt_stats.extend(left_hip_rotation_apt_list)
+        movement_patterns.hip_rotation_apt_stats.extend(right_hip_rotation_apt_list)
 
         return movement_patterns
 
@@ -105,23 +115,26 @@ class ElasticityRegression(object):
                     step.knee_valgus not in [None, 0] and
                     step.hip_drop not in [None, 0] and
                     step.ankle_pitch_range not in [None, 0] and
-                    step.anterior_pelvic_tilt_range not in [None, 0]):
+                    step.anterior_pelvic_tilt_range not in [None, 0] and
+                    step.hip_rotation not in [None, 0]):
                 if (step.peak_hip_vertical_accel > 0 and
                         step.knee_valgus > 0 and
                         step.hip_drop > 0 and
                         step.ankle_pitch_range > 0 and
-                        step.anterior_pelvic_tilt_range >0):
+                        step.anterior_pelvic_tilt_range > 0 and
+                        step.hip_rotation > 0):
                     peak_hip_vertical_accel = log(step.peak_hip_vertical_accel)
                     knee_valgus = log(step.knee_valgus)
                     hip_drop = log(step.hip_drop)
                     ankle_pitch = log(step.ankle_pitch_range)
                     apt = log(step.anterior_pelvic_tilt_range)
+                    hip_rotation = log(step.hip_rotation)
 
                     duration = log(step.duration)
                     cadence_zone = step.cadence_zone
 
-                    variable_step_list = [peak_hip_vertical_accel, knee_valgus, apt, ankle_pitch, hip_drop, duration,
-                                      cadence_zone]
+                    variable_step_list = [peak_hip_vertical_accel, knee_valgus, apt, ankle_pitch, hip_drop, hip_rotation
+                                          duration, cadence_zone]
                     step_list.append(variable_step_list)
 
         return step_list

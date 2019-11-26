@@ -307,6 +307,20 @@ class Plans_4_6(PlansBase):
                     "asymmetric_events": asymmetry_events.hip_drop_summary.asymmetric_events,
                     "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
                     "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
+                },
+                "knee_valgus": {
+                    "left": asymmetry_events.knee_valgus_summary.left,
+                    "right": asymmetry_events.knee_valgus_summary.right,
+                    "asymmetric_events": asymmetry_events.knee_valgus_summary.asymmetric_events,
+                    "symmetric_events": asymmetry_events.knee_valgus_summary.symmetric_events,
+                    "percent_events_asymmetric": asymmetry_events.knee_valgus_summary.percent_events_asymmetric
+                },
+                "hip_rotation": {
+                    "left": asymmetry_events.hip_rotation_summary.left,
+                    "right": asymmetry_events.hip_rotation_summary.right,
+                    "asymmetric_events": asymmetry_events.hip_rotation_summary.asymmetric_events,
+                    "symmetric_events": asymmetry_events.hip_rotation_summary.symmetric_events,
+                    "percent_events_asymmetric": asymmetry_events.hip_rotation_summary.percent_events_asymmetric
                 }
             }
         if movement_patterns is not None:
@@ -371,6 +385,26 @@ class Plans_4_6(PlansBase):
                         "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_apt)
                     }
                 },
+                "hip_rotation_ankle_pitch": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_rotation_ankle_pitch),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_rotation_ankle_pitch)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_rotation_ankle_pitch),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_rotation_ankle_pitch)
+                    }
+                },
+                "hip_rotation_apt": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_rotation_apt),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_rotation_apt)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_rotation_apt),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_rotation_apt)
+                    }
+                },
             }
         return body
 
@@ -413,6 +447,24 @@ class Plans_4_6(PlansBase):
 
         record_out['hip_drop'] = hip_drop
 
+        knee_valgus = OrderedDict()
+        knee_valgus['left'] = asymmetry_events.knee_valgus_summary.left
+        knee_valgus['right'] = asymmetry_events.knee_valgus_summary.right
+        knee_valgus['symmetric_events'] = asymmetry_events.knee_valgus_summary.symmetric_events
+        knee_valgus['asymmetric_events'] = asymmetry_events.knee_valgus_summary.asymmetric_events
+        knee_valgus['percent_events_asymmetric'] = asymmetry_events.knee_valgus_summary.percent_events_asymmetric
+
+        record_out['knee_valgus'] = knee_valgus
+
+        hip_rotation = OrderedDict()
+        hip_rotation['left'] = asymmetry_events.hip_rotation_summary.left
+        hip_rotation['right'] = asymmetry_events.hip_rotation_summary.right
+        hip_rotation['symmetric_events'] = asymmetry_events.hip_rotation_summary.symmetric_events
+        hip_rotation['asymmetric_events'] = asymmetry_events.hip_rotation_summary.asymmetric_events
+        hip_rotation['percent_events_asymmetric'] = asymmetry_events.hip_rotation_summary.percent_events_asymmetric
+
+        record_out['hip_rotation'] = hip_rotation
+
         record_asymmetries = []
 
         for m in movement_events:
@@ -441,6 +493,20 @@ class Plans_4_6(PlansBase):
             hip_drop_time_block['significant'] = m.hip_drop.significant
 
             event_record['hip_drop'] = hip_drop_time_block
+
+            knee_valgus_time_block = OrderedDict()
+            knee_valgus_time_block['left'] = m.knee_valgus.left
+            knee_valgus_time_block['right'] = m.knee_valgus.right
+            knee_valgus_time_block['significant'] = m.knee_valgus.significant
+
+            event_record['knee_valgus'] = knee_valgus_time_block
+
+            hip_rotation_time_block = OrderedDict()
+            hip_rotation_time_block['left'] = m.hip_rotation.left
+            hip_rotation_time_block['right'] = m.hip_rotation.right
+            hip_rotation_time_block['significant'] = m.hip_rotation.significant
+
+            event_record['hip_rotation'] = hip_rotation_time_block
 
             record_asymmetries.append(event_record)
 
