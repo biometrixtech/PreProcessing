@@ -4,9 +4,9 @@ import json
 import requests
 
 from aws_xray_sdk.core import xray_recorder
-os.environ['ENVIRONMENT'] = 'test'
+os.environ['ENVIRONMENT'] = 'dev'
 xray_recorder.configure(sampling=False)
-xray_recorder.begin_segment(name="test")
+xray_recorder.begin_segment(name="dev")
 
 from utils import format_datetime, parse_datetime
 from datetime import datetime, timedelta
@@ -159,6 +159,7 @@ if __name__ == '__main__':
                 active_end = None
 
                 for a in active_blocks:
+                #a = active_blocks[0]
                     if active_start is None:
                         active_start = a["timeStart"]
                     if active_end is None:

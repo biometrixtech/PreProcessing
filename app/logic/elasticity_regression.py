@@ -3,6 +3,7 @@ from math import log
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller
 from models.movement_pattern import MovementPatterns, MovementPatternStats
+import numpy as np
 
 
 class ElasticityRegression(object):
@@ -16,6 +17,12 @@ class ElasticityRegression(object):
         #df = df.drop(df.index[stdev_df.index])
         df = df.drop([column_name + "_stdev"], axis=1)
         return df
+
+    # def remove_nones(self, df, column_name):
+    #     #indexes = df[df[column_name] ].index
+    #     #df.drop(indexes, inplace=True)
+    #     df = df.dropna(df[column_name], inplace=True)
+    #     return df
 
     def run_regressions(self, left_steps, right_steps):
 
@@ -34,7 +41,8 @@ class ElasticityRegression(object):
 
         right_list = self.get_variables_from_steps(right_steps)
 
-        columns_list = ['peak_hip_vertical_accel', 'knee_valgus', 'apt', 'ankle_pitch', 'hip_drop', 'duration', 'cadence_zone']
+        columns_list = ['peak_hip_vertical_accel', 'knee_valgus', 'apt', 'ankle_pitch', 'hip_drop', 'hip_rotation',
+                        'duration', 'cadence_zone']
 
         left_df = pd.DataFrame(left_list, columns=columns_list)
         right_df = pd.DataFrame(right_list, columns=columns_list)
@@ -112,28 +120,34 @@ class ElasticityRegression(object):
                 step.knee_valgus = step.knee_valgus + 1
 
             if (step.peak_hip_vertical_accel not in [None, 0] and
-                    step.knee_valgus not in [None, 0] and
+                    #step.knee_valgus not in [None, 0] and
                     step.hip_drop not in [None, 0] and
                     step.ankle_pitch_range not in [None, 0] and
-                    step.anterior_pelvic_tilt_range not in [None, 0] and
-                    step.hip_rotation not in [None, 0]):
+                    step.anterior_pelvic_tilt_range not in [None, 0] #and step.hip_rotation not in [None, 0]
+                    ):
                 if (step.peak_hip_vertical_accel > 0 and
-                        step.knee_valgus > 0 and
+                        #step.knee_valgus > 0 and
                         step.hip_drop > 0 and
                         step.ankle_pitch_range > 0 and
-                        step.anterior_pelvic_tilt_range > 0 and
-                        step.hip_rotation > 0):
+                        step.anterior_pelvic_tilt_range > 0 #and step.hip_rotation > 0
+                        ):
                     peak_hip_vertical_accel = log(step.peak_hip_vertical_accel)
-                    knee_valgus = log(step.knee_valgus)
                     hip_drop = log(step.hip_drop)
                     ankle_pitch = log(step.ankle_pitch_range)
                     apt = log(step.anterior_pelvic_tilt_range)
-                    hip_rotation = log(step.hip_rotation)
+                    if step.knee_valgus is not None and step.knee_valgus > 0:
+                        knee_valgus = log(step.knee_valgus)
+                    else:
+                        knee_valgus = np.nan
+                    if step.hip_rotation is not None and step.hip_rotation > 0:
+                        hip_rotation = log(step.hip_rotation)
+                    else:
+                        hip_rotation = np.nan
 
                     duration = log(step.duration)
                     cadence_zone = step.cadence_zone
 
-                    variable_step_list = [peak_hip_vertical_accel, knee_valgus, apt, ankle_pitch, hip_drop, hip_rotation
+                    variable_step_list = [peak_hip_vertical_accel, knee_valgus, apt, ankle_pitch, hip_drop, hip_rotation,
                                           duration, cadence_zone]
                     step_list.append(variable_step_list)
 
@@ -163,37 +177,48 @@ class ElasticityRegression(object):
                     movement_pattern_stats.elasticity_se = 0
                 else:
                     step_elasticity = step_df[[x, y]].copy()
-                    step_elasticity = self.remove_outliers(step_elasticity, x)
-                    step_elasticity = self.remove_outliers(step_elasticity, y)
+                    step_elasticity.dropna(inplace=True)
+                    #step_elasticity = self.remove_nones(step_elasticity, y)
+                    if len(step_elasticity) > 0:
+                        step_elasticity = self.remove_outliers(step_elasticity, x)
+                        step_elasticity = self.remove_outliers(step_elasticity, y)
 
-                    step_elasticity_x = step_elasticity[[x]].copy()
-                    step_elasticity_y = step_elasticity[[y]].copy()
+                        step_elasticity_x = step_elasticity[[x]].copy()
+                        step_elasticity_y = step_elasticity[[y]].copy()
 
-                    # use core values to ensure drift/trend is not removed with outliers
-                    try:
-                        adf_results = adfuller(step_df[y].values)
-                        movement_pattern_stats.adf = adf_results[0]
-                        movement_pattern_stats.adf_critical = adf_results[4]['5%']
-                    except ValueError:
+                        # use core values to ensure drift/trend is not removed with outliers
+                        try:
+                            adf_results = adfuller(step_df[y].values)
+                            movement_pattern_stats.adf = adf_results[0]
+                            movement_pattern_stats.adf_critical = adf_results[4]['5%']
+                        except ValueError:
+                            movement_pattern_stats.adf = 1
+                            movement_pattern_stats.adf_critical = 0
+
+                        step_elasticity_x = sm.add_constant(step_elasticity_x)
+
+                        try:
+                            step_model = sm.OLS(endog=step_elasticity_y, exog=step_elasticity_x)
+                            step_results = step_model.fit()
+
+                            movement_pattern_stats.obs = step_results.nobs
+                            movement_pattern_stats.elasticity = step_results.params.values[1]
+                            movement_pattern_stats.elasticity_t = step_results.tvalues.values[1]
+                            movement_pattern_stats.elasticity_se = step_results.bse.values[1]
+                        except ValueError:
+                            movement_pattern_stats.obs = len(step_df)
+                            movement_pattern_stats.elasticity = 0
+                            movement_pattern_stats.elasticity_t = 0
+                            movement_pattern_stats.elasticity_se = 0
+                    else:
                         movement_pattern_stats.adf = 1
                         movement_pattern_stats.adf_critical = 0
-
-                    step_elasticity_x = sm.add_constant(step_elasticity_x)
-
-                    try:
-                        step_model = sm.OLS(endog=step_elasticity_y, exog=step_elasticity_x)
-                        step_results = step_model.fit()
-
-                        movement_pattern_stats.obs = step_results.nobs
-                        movement_pattern_stats.elasticity = step_results.params.values[1]
-                        movement_pattern_stats.elasticity_t = step_results.tvalues.values[1]
-                        movement_pattern_stats.elasticity_se = step_results.bse.values[1]
-                    except ValueError:
-                        movement_pattern_stats.obs = len(step_df)
+                        movement_pattern_stats.obs = 0
                         movement_pattern_stats.elasticity = 0
                         movement_pattern_stats.elasticity_t = 0
                         movement_pattern_stats.elasticity_se = 0
-                movement_pattern_stats_list.append(movement_pattern_stats)
+                    movement_pattern_stats_list.append(movement_pattern_stats)
+
             cadence_position += 1
 
         return movement_pattern_stats_list
