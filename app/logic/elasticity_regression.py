@@ -169,7 +169,7 @@ class ElasticityRegression(object):
 
                 # check to make sure we don't have a column of the same value (like what happens with knee valgus)
                 if step_df[[x]].nunique()[0] == 1 or step_df[[y]].nunique()[0] == 1:
-                    movement_pattern_stats.adf = 1
+                    movement_pattern_stats.adf = -1
                     movement_pattern_stats.adf_critical = 0
                     movement_pattern_stats.obs = len(step_df)
                     movement_pattern_stats.elasticity = 0
@@ -188,11 +188,11 @@ class ElasticityRegression(object):
 
                         # use core values to ensure drift/trend is not removed with outliers
                         try:
-                            adf_results = adfuller(step_df[y].values)
+                            adf_results = adfuller(step_elasticity_y[y])
                             movement_pattern_stats.adf = adf_results[0]
                             movement_pattern_stats.adf_critical = adf_results[4]['5%']
                         except ValueError:
-                            movement_pattern_stats.adf = 1
+                            movement_pattern_stats.adf = -1
                             movement_pattern_stats.adf_critical = 0
 
                         step_elasticity_x = sm.add_constant(step_elasticity_x)
@@ -211,7 +211,7 @@ class ElasticityRegression(object):
                             movement_pattern_stats.elasticity_t = 0
                             movement_pattern_stats.elasticity_se = 0
                     else:
-                        movement_pattern_stats.adf = 1
+                        movement_pattern_stats.adf = -1
                         movement_pattern_stats.adf_critical = 0
                         movement_pattern_stats.obs = 0
                         movement_pattern_stats.elasticity = 0
