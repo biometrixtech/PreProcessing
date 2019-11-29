@@ -178,7 +178,7 @@ class ElasticityRegression(object):
                 else:
                     step_elasticity = step_df[[x, y]].copy()
                     step_elasticity.dropna(inplace=True)
-                    #step_elasticity = self.remove_nones(step_elasticity, y)
+
                     if len(step_elasticity) > 0:
                         step_elasticity = self.remove_outliers(step_elasticity, x)
                         step_elasticity = self.remove_outliers(step_elasticity, y)
@@ -210,6 +210,7 @@ class ElasticityRegression(object):
                             movement_pattern_stats.elasticity = 0
                             movement_pattern_stats.elasticity_t = 0
                             movement_pattern_stats.elasticity_se = 0
+
                     else:
                         movement_pattern_stats.adf = -1
                         movement_pattern_stats.adf_critical = 0
