@@ -43,8 +43,8 @@ users = [
 
     #dev
     ("run_a@200.com", '2b4a1792-42c7-460e-9e4c-98627e72cc6f'),
-    ("nc_long@200.com",  '7ac23cc0-2c04-4b33-b3d4-cfebbcc787ef'),
-    ("nc_sore_tread@200.com",  'a8359749-5c2f-48f2-aeec-40d2a9285d8d'),
+    # ("nc_long@200.com",  '7ac23cc0-2c04-4b33-b3d4-cfebbcc787ef'),
+    # ("nc_sore_tread@200.com",  'a8359749-5c2f-48f2-aeec-40d2a9285d8d'),
     # ("ts_tread@200.com", 'ae511bd4-7d41-4a62-9913-e617bf424632'),
     #("ts_pain_long@200.com", '92eb7de1-709f-4af5-8b3f-d0973d5b8a43'),
     # ("two_pain_tread@200.com",  '87a42219-aafa-4d82-a598-143ed5440140'),
