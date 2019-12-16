@@ -41,7 +41,9 @@ def define_cadence_zone(data):
     block_ranges = get_ranges(data.active.values, 1)
     cadence_zone = np.zeros(len(data))
     all_cadence = np.zeros(len(data))
-    euler_y = filter_data(data.euler_lf_y.values, filt='band', highcut=35) * 180 / np.pi
+    euler_y = data.euler_lf_y.values
+    euler_y[np.where(np.isnan(euler_y))[0]] = 0
+    euler_y = filter_data(euler_y, filt='band', highcut=35) * 180 / np.pi
     for br in block_ranges:
         euler_y_block = euler_y[br[0]: br[1]]
         peaks, peak_heights = find_peaks(euler_y_block, height=20, distance=30)
