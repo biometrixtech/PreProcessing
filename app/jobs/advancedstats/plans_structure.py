@@ -152,7 +152,7 @@ class Plans_4_3(Plans_4_4):
         self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_3/session/three_sensor_data'
 
     def get_body(self, asymmetry_events, movement_patterns):
-        body = super().get_body(asymmetry_events)
+        body = super().get_body(asymmetry_events, movement_patterns)
 
         body['user_id'] = self.user_id
 
