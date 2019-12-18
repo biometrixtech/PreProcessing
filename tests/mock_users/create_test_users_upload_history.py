@@ -4,9 +4,9 @@ import json
 import requests
 
 from aws_xray_sdk.core import xray_recorder
-os.environ['ENVIRONMENT'] = 'dev'
+os.environ['ENVIRONMENT'] = 'test'
 xray_recorder.configure(sampling=False)
-xray_recorder.begin_segment(name="dev")
+xray_recorder.begin_segment(name="test")
 
 from utils import format_datetime, parse_datetime
 from datetime import datetime, timedelta
@@ -200,9 +200,9 @@ if __name__ == '__main__':
 
                 job.write_movement_pattern(movement_patterns, os.environ["ENVIRONMENT"])
 
-                advanced_stats_job = AdvancedstatsJob(ds)
-                advanced_stats_job._write_session_to_plans(asymmetry_events, movement_patterns, unit_blocks[0]["timeStart"],
-                                                           unit_blocks[len(unit_blocks) - 1]["timeEnd"])
+                # advanced_stats_job = AdvancedstatsJob(ds)
+                # advanced_stats_job._write_session_to_plans(asymmetry_events, movement_patterns, unit_blocks[0]["timeStart"],
+                #                                            unit_blocks[len(unit_blocks) - 1]["timeEnd"])
 
 
 
