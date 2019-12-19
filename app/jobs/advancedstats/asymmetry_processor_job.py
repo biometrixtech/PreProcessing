@@ -453,7 +453,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.anterior_pelvic_tilt.significant = apt_event.significant
 
                     ankle_pitch_event = self._get_steps_f_test("ankle_pitch_range", l_step_blocks,
-                                                                              r_step_blocks, time_block, threshold=1.03)
+                                                                              r_step_blocks, time_block, threshold=1.03, zero_difference_threshold=.03)
                     if ankle_pitch_event is not None:
                         time_block_obj.ankle_pitch.left = ankle_pitch_event.left_median
                         time_block_obj.ankle_pitch.right = ankle_pitch_event.right_median
@@ -506,7 +506,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
         return events
 
     @staticmethod
-    def _get_steps_f_test(attribute, step_list_x, step_list_y, time_block, threshold=1.15):
+    def _get_steps_f_test(attribute, step_list_x, step_list_y, time_block, threshold=1.15, zero_difference_threshold=.15):
         value_list_x = []
         value_list_y = []
         for item in step_list_x:
@@ -525,11 +525,11 @@ class AsymmetryProcessorJob(UnitBlockJob):
                 if len(value_list_x) > 0:
                     left_median = statistics.median(value_list_x)
                 else:
-                    left_median = 0
+                    left_median = None
                 if len(value_list_y) > 0:
                     right_median = statistics.median(value_list_y)
                 else:
-                    right_median = 0
+                    right_median = None
 
                 all_values = []
                 all_values.extend(step_list_x)
@@ -558,9 +558,10 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     elif right_median > left_median > 0:
                         if right_median / left_median > threshold:
                             dist.significant = True
-                    #ignore if one is zero
-                    # elif (left_median == 0 or right_median == 0) and left_median != right_median:
-                    #         dist.significant = True
+                    # ignore if one is zero
+                    elif (left_median == 0 or right_median == 0) and left_median != right_median:
+                        if abs(left_median) - abs(right_median) >= zero_difference_threshold:
+                            dist.significant = True
                     dist.left_min = min(value_list_x)
                     dist.left_max = max(value_list_x)
                     dist.right_min = min(value_list_y)
