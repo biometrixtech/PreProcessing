@@ -32,13 +32,16 @@ def handle_session_create(principal_id=None):
     xray_recorder.current_subsegment().put_annotation('accessory_id', principal_id)
 
     body = request.json
+    try:
+        current_server_time = datetime.datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000)
+    except:
+        current_server_time = datetime.datetime.now()
 
     if body['event_date'] == 'ERROR':  # problem getting event date, set server time
-        try:
-            event_date = datetime.datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        except:
-            event_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        event_date = current_server_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         body['event_date'] = event_date
+    elif abs(current_server_time - parse_datetime(body['event_date'])) > datetime.timedelta(minutes=5):
+        body['event_date'] = current_server_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
     if 'accessory_id' not in body:
         body['accessory_id'] = principal_id
@@ -140,11 +143,18 @@ def handle_session_patch(session_id):
             # https://app.asana.com/0/654140198477919/673983533272813
             return {'message': 'Currently at status {}, cannot change to {}'.format(session['session_status'], request.json['session_status'])}, 200
             # raise InvalidSchemaException('Transition from {} to {} is not allowed'.format(session.session_status, request.json['session_status']))
+    try:
+        current_server_time = datetime.datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000)
+    except:
+        current_server_time = datetime.datetime.now()
     if 'set_end_date' in request.json:
-        request.json['end_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        request.json['end_date'] = current_server_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         del request.json['set_end_date']
-    if 'end_date' in request.json and session['session_status'] != 'CREATE_COMPLETE':
-        del request.json['end_date']
+    if 'end_date' in request.json:
+        if session['session_status'] != 'CREATE_COMPLETE':
+            del request.json['end_date']
+        elif abs(current_server_time - parse_datetime(request.json['end_date'])) > datetime.timedelta(minutes=5):
+                request.json['end_date'] = current_server_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if len(request.json) > 0:
         session = Session(session_id).patch(request.json)
