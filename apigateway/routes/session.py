@@ -40,7 +40,7 @@ def handle_session_create(principal_id=None):
     if body['event_date'] == 'ERROR':  # problem getting event date, set server time
         event_date = current_server_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         body['event_date'] = event_date
-    elif abs(current_server_time - parse_datetime(body['event_date'])) > datetime.timedelta(minutes=5):
+    elif parse_datetime(body['event_date']) - current_server_time > datetime.timedelta(minutes=5):
         body['event_date'] = current_server_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
     if 'accessory_id' not in body:
