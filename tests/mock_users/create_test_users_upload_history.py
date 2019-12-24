@@ -60,16 +60,16 @@ if __name__ == '__main__':
 
         elif u[0] in ["two_pain@200.com"]:
             sessions = [
-                "f78a9e26-6003-5ac7-8590-3ae4a421dac7",
-                "f93e004d-7dd0-56b3-bb22-353750586f5e",
+                "f78a9e26-6003-5ac7-8590-3ae4a421dac7",#
+                "f93e004d-7dd0-56b3-bb22-353750586f5e",#
                 # "7b6c7bba-3250-5d45-949f-1998ff88800d",
                 # "8331f565-08af-564b-8ae9-f847b17fa851",
                 # "c7bcaf5e-f4a0-525d-aca9-c9c449f2a39e",
-                "2f26eee8-455a-5678-a384-ed5a14c6e54a",
-                "398ad5bf-3792-5b63-b07f-60a1e6bda875",
-                "07b9b744-3e85-563d-b69a-822148673f58",
-                "958dba09-c338-5118-86a3-d20a559f09c2",
-                "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",
+                "2f26eee8-455a-5678-a384-ed5a14c6e54a",#
+                "7bbff8e0-189a-5643-93bc-9730e0fdcd20",#
+                "39f243c2-6baf-5558-a2df-4f051f88c06f",#
+                "958dba09-c338-5118-86a3-d20a559f09c2",#
+                "c14f1728-b4f5-5fb4-845c-9dc830b3e9bf",#
             ]
             user_id = u[1]
             dates = [format_datetime(datetime.now()),
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
             symmetrical = [False, False, False, False, False, False, False, False]
 
-        elif u[0] in ["run_a@200.com","run_a_2@200.com","run_a_mazen@200.com", "run_a_3@200.com"]:
+        elif u[0] in ["run_a@200.com","run_a_2@200.com","run_a_mazen@200.com", "run_a_3@200.com", "nc_sore_tread_3@200.com"]:
             sessions = [
                 "7bbff8e0-189a-5643-93bc-9730e0fdcd20",
                 "39f243c2-6baf-5558-a2df-4f051f88c06f"
