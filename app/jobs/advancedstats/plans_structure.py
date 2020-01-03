@@ -11,7 +11,7 @@ class PlansFactory(object):
         self.end_date = end_date
         self.session_id = session_id
         self.seconds_duration = seconds_duration
-        self.latest_plans_version = "4_6"
+        self.latest_plans_version = "4_7"
 
     def get_plans(self):
         if self.plans_api_version == "4_4":
@@ -21,6 +21,9 @@ class PlansFactory(object):
                              end_date=self.end_date)
         elif self.plans_api_version == "4_6":
             return Plans_4_6(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration,
+                             end_date=self.end_date)
+        elif self.plans_api_version == "4_7":
+            return Plans_4_7(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration,
                              end_date=self.end_date)
         else:
             return Plans_4_3(self.environment, self.user_id, self.event_date, self.session_id, self.seconds_duration)
@@ -307,7 +310,7 @@ class Plans_4_6(PlansBase):
                     "asymmetric_events": asymmetry_events.hip_drop_summary.asymmetric_events,
                     "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
                     "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
-                }
+                },
             }
         if movement_patterns is not None:
             body['movement_patterns'] = {
@@ -413,6 +416,24 @@ class Plans_4_6(PlansBase):
 
         record_out['hip_drop'] = hip_drop
 
+        knee_valgus = OrderedDict()
+        knee_valgus['left'] = asymmetry_events.knee_valgus_summary.left
+        knee_valgus['right'] = asymmetry_events.knee_valgus_summary.right
+        knee_valgus['symmetric_events'] = asymmetry_events.knee_valgus_summary.symmetric_events
+        knee_valgus['asymmetric_events'] = asymmetry_events.knee_valgus_summary.asymmetric_events
+        knee_valgus['percent_events_asymmetric'] = asymmetry_events.knee_valgus_summary.percent_events_asymmetric
+
+        record_out['knee_valgus'] = knee_valgus
+
+        hip_rotation = OrderedDict()
+        hip_rotation['left'] = asymmetry_events.hip_rotation_summary.left
+        hip_rotation['right'] = asymmetry_events.hip_rotation_summary.right
+        hip_rotation['symmetric_events'] = asymmetry_events.hip_rotation_summary.symmetric_events
+        hip_rotation['asymmetric_events'] = asymmetry_events.hip_rotation_summary.asymmetric_events
+        hip_rotation['percent_events_asymmetric'] = asymmetry_events.hip_rotation_summary.percent_events_asymmetric
+
+        record_out['hip_rotation'] = hip_rotation
+
         record_asymmetries = []
 
         for m in movement_events:
@@ -441,6 +462,264 @@ class Plans_4_6(PlansBase):
             hip_drop_time_block['significant'] = m.hip_drop.significant
 
             event_record['hip_drop'] = hip_drop_time_block
+
+            knee_valgus_time_block = OrderedDict()
+            knee_valgus_time_block['left'] = m.knee_valgus.left
+            knee_valgus_time_block['right'] = m.knee_valgus.right
+            knee_valgus_time_block['significant'] = m.knee_valgus.significant
+
+            event_record['knee_valgus'] = knee_valgus_time_block
+
+            hip_rotation_time_block = OrderedDict()
+            hip_rotation_time_block['left'] = m.hip_rotation.left
+            hip_rotation_time_block['right'] = m.hip_rotation.right
+            hip_rotation_time_block['significant'] = m.hip_rotation.significant
+
+            event_record['hip_rotation'] = hip_rotation_time_block
+
+            record_asymmetries.append(event_record)
+
+        record_out['time_blocks'] = record_asymmetries
+
+        return record_out
+
+
+class Plans_4_7(PlansBase):
+    def __init__(self, environment, user_id, event_date, session_id, seconds_duration, end_date):
+        super().__init__(environment, user_id, event_date, session_id, seconds_duration)
+        self.endpoint = f'https://apis.{self.environment}.fathomai.com/plans/4_7/session/{user_id}/three_sensor_data'
+        self.end_date = end_date
+
+    def get_body(self, asymmetry_events, movement_patterns):
+
+        body = OrderedDict()
+        body["event_date"] = self.event_date
+        body["session_id"] = self.session_id
+        body["seconds_duration"] = self.seconds_duration
+        body["end_date"] = self.end_date
+
+        if asymmetry_events is not None:
+            body['asymmetry'] = {
+                "apt": {
+                    "left": asymmetry_events.anterior_pelvic_tilt_summary.left,
+                    "right": asymmetry_events.anterior_pelvic_tilt_summary.right,
+                    "asymmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events,
+                    "symmetric_events": asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events,
+                    "percent_events_asymmetric": asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
+                },
+                "ankle_pitch": {
+                    "left": asymmetry_events.ankle_pitch_summary.left,
+                    "right": asymmetry_events.ankle_pitch_summary.right,
+                    "asymmetric_events": asymmetry_events.ankle_pitch_summary.asymmetric_events,
+                    "symmetric_events": asymmetry_events.ankle_pitch_summary.symmetric_events,
+                    "percent_events_asymmetric": asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
+                },
+                "hip_drop": {
+                    "left": asymmetry_events.hip_drop_summary.left,
+                    "right": asymmetry_events.hip_drop_summary.right,
+                    "asymmetric_events": asymmetry_events.hip_drop_summary.asymmetric_events,
+                    "symmetric_events": asymmetry_events.hip_drop_summary.symmetric_events,
+                    "percent_events_asymmetric": asymmetry_events.hip_drop_summary.percent_events_asymmetric
+                },
+                "knee_valgus": {
+                    "left": asymmetry_events.knee_valgus_summary.left,
+                    "right": asymmetry_events.knee_valgus_summary.right,
+                    "asymmetric_events": asymmetry_events.knee_valgus_summary.asymmetric_events,
+                    "symmetric_events": asymmetry_events.knee_valgus_summary.symmetric_events,
+                    "percent_events_asymmetric": asymmetry_events.knee_valgus_summary.percent_events_asymmetric
+                },
+                "hip_rotation": {
+                    "left": asymmetry_events.hip_rotation_summary.left,
+                    "right": asymmetry_events.hip_rotation_summary.right,
+                    "asymmetric_events": asymmetry_events.hip_rotation_summary.asymmetric_events,
+                    "symmetric_events": asymmetry_events.hip_rotation_summary.symmetric_events,
+                    "percent_events_asymmetric": asymmetry_events.hip_rotation_summary.percent_events_asymmetric
+                }
+            }
+        if movement_patterns is not None:
+            body['movement_patterns'] = {
+                "apt_ankle_pitch": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.apt_ankle_pitch),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.apt_ankle_pitch)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.apt_ankle_pitch),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.apt_ankle_pitch)
+                    }
+                },
+                "hip_drop_apt": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_drop_apt),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_drop_apt)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_drop_apt),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_drop_apt)
+                    }
+                },
+                "hip_drop_pva": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_drop_pva),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_drop_pva)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_drop_pva),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_drop_pva)
+                    }
+                },
+                "knee_valgus_hip_drop": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.knee_valgus_hip_drop),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_hip_drop)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_hip_drop),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_hip_drop)
+                    }
+                },
+                "knee_valgus_pva": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.knee_valgus_pva),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_pva)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_pva),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_pva)
+                    }
+                },
+                "knee_valgus_apt": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.knee_valgus_apt),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.knee_valgus_apt)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.knee_valgus_apt),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.knee_valgus_apt)
+                    }
+                },
+                "hip_rotation_ankle_pitch": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_rotation_ankle_pitch),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_rotation_ankle_pitch)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_rotation_ankle_pitch),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_rotation_ankle_pitch)
+                    }
+                },
+                "hip_rotation_apt": {
+                    "left": {
+                        "elasticity": movement_patterns.get_elasticity(1, MovementPatternType.hip_rotation_apt),
+                        "y_adf": movement_patterns.get_adf(1, MovementPatternType.hip_rotation_apt)
+                    },
+                    "right": {
+                        "elasticity": movement_patterns.get_elasticity(2, MovementPatternType.hip_rotation_apt),
+                        "y_adf": movement_patterns.get_adf(2, MovementPatternType.hip_rotation_apt)
+                    }
+                },
+            }
+        return body
+
+    def get_mongo_asymmetry_record(self, asymmetry_events, movement_events):
+
+        record_out = OrderedDict()
+        record_out['user_id'] = self.user_id
+        record_out['event_date'] = self.event_date
+        record_out['seconds_duration'] = self.seconds_duration
+        record_out['session_id'] = self.session_id
+
+        # sym_count = [m for m in movement_events if not m.significant and (m.left_median > 0 or m.right_median > 0)]
+        # asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
+
+        anterior_pelivic_tilt = OrderedDict()
+        anterior_pelivic_tilt['left'] = asymmetry_events.anterior_pelvic_tilt_summary.left
+        anterior_pelivic_tilt['right'] = asymmetry_events.anterior_pelvic_tilt_summary.right
+        anterior_pelivic_tilt['symmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
+        anterior_pelivic_tilt['asymmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
+        anterior_pelivic_tilt[
+            'percent_events_asymmetric'] = asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
+
+        record_out['apt'] = anterior_pelivic_tilt
+
+        ankle_pitch = OrderedDict()
+        ankle_pitch['left'] = asymmetry_events.ankle_pitch_summary.left
+        ankle_pitch['right'] = asymmetry_events.ankle_pitch_summary.right
+        ankle_pitch['symmetric_events'] = asymmetry_events.ankle_pitch_summary.symmetric_events
+        ankle_pitch['asymmetric_events'] = asymmetry_events.ankle_pitch_summary.asymmetric_events
+        ankle_pitch['percent_events_asymmetric'] = asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
+
+        record_out['ankle_pitch'] = ankle_pitch
+
+        hip_drop = OrderedDict()
+        hip_drop['left'] = asymmetry_events.hip_drop_summary.left
+        hip_drop['right'] = asymmetry_events.hip_drop_summary.right
+        hip_drop['symmetric_events'] = asymmetry_events.hip_drop_summary.symmetric_events
+        hip_drop['asymmetric_events'] = asymmetry_events.hip_drop_summary.asymmetric_events
+        hip_drop['percent_events_asymmetric'] = asymmetry_events.hip_drop_summary.percent_events_asymmetric
+
+        record_out['hip_drop'] = hip_drop
+
+        knee_valgus = OrderedDict()
+        knee_valgus['left'] = asymmetry_events.knee_valgus_summary.left
+        knee_valgus['right'] = asymmetry_events.knee_valgus_summary.right
+        knee_valgus['symmetric_events'] = asymmetry_events.knee_valgus_summary.symmetric_events
+        knee_valgus['asymmetric_events'] = asymmetry_events.knee_valgus_summary.asymmetric_events
+        knee_valgus['percent_events_asymmetric'] = asymmetry_events.knee_valgus_summary.percent_events_asymmetric
+
+        record_out['knee_valgus'] = knee_valgus
+
+        hip_rotation = OrderedDict()
+        hip_rotation['left'] = asymmetry_events.hip_rotation_summary.left
+        hip_rotation['right'] = asymmetry_events.hip_rotation_summary.right
+        hip_rotation['symmetric_events'] = asymmetry_events.hip_rotation_summary.symmetric_events
+        hip_rotation['asymmetric_events'] = asymmetry_events.hip_rotation_summary.asymmetric_events
+        hip_rotation['percent_events_asymmetric'] = asymmetry_events.hip_rotation_summary.percent_events_asymmetric
+
+        record_out['hip_rotation'] = hip_rotation
+
+        record_asymmetries = []
+
+        for m in movement_events:
+            event_record = OrderedDict()
+            event_record['time_block'] = m.time_block
+            event_record['start_time'] = m.start_time
+            event_record['end_time'] = m.end_time
+
+            apt_time_block = OrderedDict()
+            apt_time_block['left'] = m.anterior_pelvic_tilt.left
+            apt_time_block['right'] = m.anterior_pelvic_tilt.right
+            apt_time_block['significant'] = m.anterior_pelvic_tilt.significant
+
+            event_record['apt'] = apt_time_block
+
+            ankle_pitch_time_block = OrderedDict()
+            ankle_pitch_time_block['left'] = m.ankle_pitch.left
+            ankle_pitch_time_block['right'] = m.ankle_pitch.right
+            ankle_pitch_time_block['significant'] = m.ankle_pitch.significant
+
+            event_record['ankle_pitch'] = ankle_pitch_time_block
+
+            hip_drop_time_block = OrderedDict()
+            hip_drop_time_block['left'] = m.hip_drop.left
+            hip_drop_time_block['right'] = m.hip_drop.right
+            hip_drop_time_block['significant'] = m.hip_drop.significant
+
+            event_record['hip_drop'] = hip_drop_time_block
+
+            knee_valgus_time_block = OrderedDict()
+            knee_valgus_time_block['left'] = m.knee_valgus.left
+            knee_valgus_time_block['right'] = m.knee_valgus.right
+            knee_valgus_time_block['significant'] = m.knee_valgus.significant
+
+            event_record['knee_valgus'] = knee_valgus_time_block
+
+            hip_rotation_time_block = OrderedDict()
+            hip_rotation_time_block['left'] = m.hip_rotation.left
+            hip_rotation_time_block['right'] = m.hip_rotation.right
+            hip_rotation_time_block['significant'] = m.hip_rotation.significant
+
+            event_record['hip_rotation'] = hip_rotation_time_block
 
             record_asymmetries.append(event_record)
 
