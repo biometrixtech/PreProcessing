@@ -62,6 +62,8 @@ class AsymmetryEvents(object):
         self.anterior_pelvic_tilt_summary = AsymmetrySummary()
         self.ankle_pitch_summary = AsymmetrySummary()
         self.hip_drop_summary = AsymmetrySummary()
+        self.knee_valgus_summary = AsymmetrySummary()
+        self.hip_rotation_summary = AsymmetrySummary()
 
 
 class TimeBlockAsymmetry(object):
@@ -79,6 +81,8 @@ class TimeBlock(object):
         self.anterior_pelvic_tilt = TimeBlockAsymmetry()
         self.ankle_pitch = TimeBlockAsymmetry()
         self.hip_drop = TimeBlockAsymmetry()
+        self.knee_valgus = TimeBlockAsymmetry()
+        self.hip_rotation = TimeBlockAsymmetry()
 
 
 class AsymmetryProcessorJob(UnitBlockJob):
@@ -119,60 +123,6 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         return self._get_variable_asymmetry_summaries(var_list)
 
-    # def _get_loading_asymmetries(self):
-    #     events = []
-    #     for stance, complexity_matrix in [('Single Leg', self._complexity_matrix_single_leg), ('Double Leg', self._complexity_matrix_double_leg)]:
-    #         for keys, mcsl in complexity_matrix.items():
-    #             events.append(self._get_loading_asymmetry(
-    #                 "total_grf",
-    #                 mcsl,
-    #                 mcsl.complexity_level,
-    #                 mcsl.cma_level,
-    #                 mcsl.grf_level,
-    #                 stance))
-    #
-    #     return events
-    #
-    # @staticmethod
-    # def _get_loading_asymmetry(attribute, complexity_matrix_cell, complexity_level, cma_level, grf_level, stance):
-    #
-    #     asym = LoadingAsymmetry(complexity_level, cma_level, grf_level, stance)
-    #     asym.variable = attribute
-    #     asym.total_left_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.left_steps)
-    #     asym.total_right_sum = complexity_matrix_cell.get_steps_sum(attribute, complexity_matrix_cell.right_steps)
-    #     asym.total_left_right_sum = asym.total_left_sum + asym.total_right_sum
-    #
-    #     if len(complexity_matrix_cell.left_steps) == 0 or len(complexity_matrix_cell.right_steps) == 0:
-    #         asym.training_asymmetry = asym.total_left_sum - asym.total_right_sum
-    #     else:
-    #         asym.kinematic_asymmetry = asym.total_left_sum - asym.total_right_sum
-    #     asym.total_asymmetry = asym.training_asymmetry + asym.kinematic_asymmetry
-    #     if asym.total_left_right_sum > 0:
-    #         asym.total_percent_asymmetry = (asym.total_asymmetry / asym.total_left_right_sum) * 100
-    #
-    #     asym.left_step_count = complexity_matrix_cell.left_step_count
-    #     asym.right_step_count = complexity_matrix_cell.right_step_count
-    #     asym.total_steps = asym.left_step_count + asym.right_step_count
-    #     asym.step_asymmetry = asym.left_step_count - asym.right_step_count
-    #     if asym.total_steps > 0:
-    #         asym.step_count_percent_asymmetry = (asym.step_asymmetry / float(asym.total_steps)) * 100
-    #
-    #     asym.ground_contact_time_left = complexity_matrix_cell.left_duration
-    #     asym.ground_contact_time_right = complexity_matrix_cell.right_duration
-    #     asym.total_ground_contact_time = asym.ground_contact_time_left + asym.ground_contact_time_right
-    #     asym.ground_contact_time_asymmetry = asym.ground_contact_time_left - asym.ground_contact_time_right
-    #     if asym.total_ground_contact_time > 0:
-    #         asym.ground_contact_time_percent_asymmetry = (asym.ground_contact_time_asymmetry / float(
-    #             asym.total_ground_contact_time)) * 100
-    #
-    #     asym.left_avg_accumulated_grf_sec = complexity_matrix_cell.left_avg_accumulated_grf_sec
-    #     asym.right_avg_accumulated_grf_sec = complexity_matrix_cell.right_avg_accumulated_grf_sec
-    #     asym.accumulated_grf_sec_asymmetry = asym.left_avg_accumulated_grf_sec - asym.right_avg_accumulated_grf_sec
-    #     if asym.right_avg_accumulated_grf_sec > 0:
-    #         asym.accumulated_grf_sec_percent_asymmetry = (asym.left_avg_accumulated_grf_sec /
-    #                                                       float(asym.right_avg_accumulated_grf_sec)) * 100
-    #
-    #     return asym
     def _get_session_asymmetry_summary(self, movement_asymmetries):
 
         left_apt = 0
@@ -187,12 +137,24 @@ class AsymmetryProcessorJob(UnitBlockJob):
         right_hip_drop = 0
         hip_drop_sym_count = 0
         hip_drop_asym_count = 0
+        left_knee_valgus = 0
+        right_knee_valgus = 0
+        knee_valgus_sym_count = 0
+        knee_valgus_asym_count = 0
+        left_hip_rotation = 0
+        right_hip_rotation = 0
+        hip_rotation_sym_count = 0
+        hip_rotation_asym_count = 0
         left_ankle_pitch_list = []
         right_ankle_pitch_list = []
         left_apt_list = []
         right_apt_list = []
         left_hip_drop_list = []
         right_hip_drop_list = []
+        left_knee_valgus_list = []
+        right_knee_valgus_list = []
+        left_hip_rotation_list = []
+        right_hip_rotation_list = []
 
         # left_ankle_pitch_not_significant_list = []
         # right_ankle_pitch_not_significant_list = []
@@ -212,6 +174,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     apt_sym_count += 1
                     left_apt_list.append(m.anterior_pelvic_tilt.left)
                     right_apt_list.append(m.anterior_pelvic_tilt.right)
+
             if m.ankle_pitch.significant:
                 left_ankle_pitch_list.append(m.ankle_pitch.left)
                 right_ankle_pitch_list.append(m.ankle_pitch.right)
@@ -222,6 +185,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     ankle_pitch_sym_count += 1
                     left_ankle_pitch_list.append(m.ankle_pitch.left)
                     right_ankle_pitch_list.append(m.ankle_pitch.right)
+
             if m.hip_drop.significant:
                 left_hip_drop_list.append(m.hip_drop.left)
                 right_hip_drop_list.append(m.hip_drop.right)
@@ -233,17 +197,36 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     left_hip_drop_list.append(m.hip_drop.left)
                     right_hip_drop_list.append(m.hip_drop.right)
 
+            if m.knee_valgus.significant:
+                left_knee_valgus_list.append(m.knee_valgus.left)
+                right_knee_valgus_list.append(m.knee_valgus.right)
+                if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
+                    knee_valgus_asym_count += 1
+            else:
+                if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
+                    knee_valgus_sym_count += 1
+                    left_knee_valgus_list.append(m.knee_valgus.left)
+                    right_knee_valgus_list.append(m.knee_valgus.right)
+
+            if m.hip_rotation.significant:
+                left_hip_rotation_list.append(m.hip_rotation.left)
+                right_hip_rotation_list.append(m.hip_rotation.right)
+                if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
+                    hip_rotation_asym_count += 1
+            else:
+                if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
+                    hip_rotation_sym_count += 1
+                    left_hip_rotation_list.append(m.hip_rotation.left)
+                    right_hip_rotation_list.append(m.hip_rotation.right)
+
         events = AsymmetryEvents()
 
+        # apt
         if len(left_apt_list) > 0:
             left_apt = statistics.median(left_apt_list)
-        # elif len(left_apt_not_significant_list) > 0:
-        #     left_apt = statistics.median(left_apt_not_significant_list)
 
         if len(right_apt_list) > 0:
             right_apt = statistics.median(right_apt_list)
-        # elif len(right_apt_not_significant_list) > 0:
-        #     right_apt = statistics.median(right_apt_not_significant_list)
 
         events.anterior_pelvic_tilt_summary.left = left_apt
         events.anterior_pelvic_tilt_summary.right = right_apt
@@ -257,15 +240,12 @@ class AsymmetryProcessorJob(UnitBlockJob):
         if apt_total_count > 0:
             events.anterior_pelvic_tilt_summary.percent_events_asymmetric = round((apt_asym_count / float(apt_total_count)) * 100)
 
+        # ankle pitch
         if len(left_ankle_pitch_list) > 0:
             left_ankle_pitch = statistics.median(left_ankle_pitch_list)
-        # elif len(left_ankle_pitch_not_significant_list) > 0:
-        #     left_ankle_pitch = statistics.median(left_ankle_pitch_not_significant_list)
 
         if len(right_ankle_pitch_list) > 0:
             right_ankle_pitch = statistics.median(right_ankle_pitch_list)
-        # elif len(right_ankle_pitch_not_significant_list) > 0:
-        #     right_ankle_pitch = statistics.median(right_ankle_pitch_not_significant_list)
 
         events.ankle_pitch_summary.left = left_ankle_pitch
         events.ankle_pitch_summary.right = right_ankle_pitch
@@ -282,13 +262,9 @@ class AsymmetryProcessorJob(UnitBlockJob):
         # Hip Drop
         if len(left_hip_drop_list) > 0:
             left_hip_drop = statistics.median(left_hip_drop_list)
-        # elif len(left_hip_drop_not_significant_list) > 0:
-        #     left_hip_drop = statistics.median(left_hip_drop_not_significant_list)
 
         if len(right_hip_drop_list) > 0:
             right_hip_drop = statistics.median(right_hip_drop_list)
-        # elif len(right_hip_drop_not_significant_list) > 0:
-        #     right_hip_drop = statistics.median(right_hip_drop_not_significant_list)
 
         events.hip_drop_summary.left = left_hip_drop
         events.hip_drop_summary.right = right_hip_drop
@@ -302,19 +278,44 @@ class AsymmetryProcessorJob(UnitBlockJob):
         if hip_drop_total_count > 0:
             events.hip_drop_summary.percent_events_asymmetric = round((hip_drop_asym_count / float(hip_drop_total_count)) * 100)
 
-        # left_significant_events = [l.left for l in movement_asymmetries if l.significant]
-        # right_significant_events = [r.right for r in movement_asymmetries if r.significant]
-        #
-        # left_apt = 0
-        # right_apt = 0
-        #
-        # if len(left_significant_events) > 0:
-        #     left_apt = sum(left_significant_events)
-        #
-        # if len(right_significant_events) > 0:
-        #     right_apt = sum(right_significant_events)
+        # Knee Valgus
+        if len(left_knee_valgus_list) > 0:
+            left_knee_valgus = statistics.median(left_knee_valgus_list)
 
-        #return left_apt, right_apt
+        if len(right_knee_valgus_list) > 0:
+            right_knee_valgus = statistics.median(right_knee_valgus_list)
+
+        events.knee_valgus_summary.left = left_knee_valgus
+        events.knee_valgus_summary.right = right_knee_valgus
+        events.knee_valgus_summary.symmetric_events = knee_valgus_sym_count
+        events.knee_valgus_summary.asymmetric_events = knee_valgus_asym_count
+
+        knee_valgus_total_count = knee_valgus_asym_count + knee_valgus_sym_count
+
+        events.knee_valgus_summary.percent_events_asymmetric = 0
+
+        if knee_valgus_total_count > 0:
+            events.knee_valgus_summary.percent_events_asymmetric = round((knee_valgus_asym_count / float(knee_valgus_total_count)) * 100)
+
+        # Hip Rotation
+        if len(left_hip_rotation_list) > 0:
+            left_hip_rotation = statistics.median(left_hip_rotation_list)
+
+        if len(right_hip_rotation_list) > 0:
+            right_hip_rotation = statistics.median(right_hip_rotation_list)
+
+        events.hip_rotation_summary.left = left_hip_rotation
+        events.hip_rotation_summary.right = right_hip_rotation
+        events.hip_rotation_summary.symmetric_events = hip_rotation_sym_count
+        events.hip_rotation_summary.asymmetric_events = hip_rotation_asym_count
+
+        hip_rotation_total_count = hip_rotation_asym_count + hip_rotation_sym_count
+
+        events.hip_rotation_summary.percent_events_asymmetric = 0
+
+        if hip_rotation_total_count > 0:
+            events.hip_rotation_summary.percent_events_asymmetric = round((hip_rotation_asym_count / float(hip_rotation_total_count)) * 100)
+
         return events
 
     def _get_movement_patterns(self):
@@ -452,7 +453,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.anterior_pelvic_tilt.significant = apt_event.significant
 
                     ankle_pitch_event = self._get_steps_f_test("ankle_pitch_range", l_step_blocks,
-                                                                              r_step_blocks, time_block, threshold=1.03)
+                                                                              r_step_blocks, time_block, threshold=1.03, zero_difference_threshold=.03)
                     if ankle_pitch_event is not None:
                         time_block_obj.ankle_pitch.left = ankle_pitch_event.left_median
                         time_block_obj.ankle_pitch.right = ankle_pitch_event.right_median
@@ -464,6 +465,21 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.hip_drop.left = hip_drop_event.left_median
                         time_block_obj.hip_drop.right = hip_drop_event.right_median
                         time_block_obj.hip_drop.significant = hip_drop_event.significant
+
+                    knee_valgus_event = self._get_steps_f_test("knee_valgus", l_step_blocks, r_step_blocks, time_block)
+
+                    if knee_valgus_event is not None:
+                        time_block_obj.knee_valgus.left = knee_valgus_event.left_median
+                        time_block_obj.knee_valgus.right = knee_valgus_event.right_median
+                        time_block_obj.knee_valgus.significant = knee_valgus_event.significant
+
+                    hip_rotation_event = self._get_steps_f_test("hip_rotation", l_step_blocks, r_step_blocks, time_block)
+
+                    if hip_rotation_event is not None:
+                        time_block_obj.hip_rotation.left = hip_rotation_event.left_median
+                        time_block_obj.hip_rotation.right = hip_rotation_event.right_median
+                        time_block_obj.hip_rotation.significant = hip_rotation_event.significant
+
 
                     # if apt_event is None:
                     #     apt_event = AsymmetryDistribution()
@@ -490,7 +506,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
         return events
 
     @staticmethod
-    def _get_steps_f_test(attribute, step_list_x, step_list_y, time_block, threshold=1.15):
+    def _get_steps_f_test(attribute, step_list_x, step_list_y, time_block, threshold=1.15, zero_difference_threshold=.15):
         value_list_x = []
         value_list_y = []
         for item in step_list_x:
@@ -509,11 +525,11 @@ class AsymmetryProcessorJob(UnitBlockJob):
                 if len(value_list_x) > 0:
                     left_median = statistics.median(value_list_x)
                 else:
-                    left_median = 0
+                    left_median = None
                 if len(value_list_y) > 0:
                     right_median = statistics.median(value_list_y)
                 else:
-                    right_median = 0
+                    right_median = None
 
                 all_values = []
                 all_values.extend(step_list_x)
@@ -542,9 +558,10 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     elif right_median > left_median > 0:
                         if right_median / left_median > threshold:
                             dist.significant = True
-                    #ignore if one is zero
-                    # elif (left_median == 0 or right_median == 0) and left_median != right_median:
-                    #         dist.significant = True
+                    # ignore if one is zero
+                    elif (left_median == 0 or right_median == 0) and left_median != right_median:
+                        if abs(left_median - right_median) >= zero_difference_threshold:
+                            dist.significant = True
                     dist.left_min = min(value_list_x)
                     dist.left_max = max(value_list_x)
                     dist.right_min = min(value_list_y)
@@ -777,59 +794,6 @@ class AsymmetryProcessorJob(UnitBlockJob):
             latest_mongo_collection.replace_one(query, latest_record_out, upsert=True)
 
             _logger.info("Wrote asymmetryReserve record for " + self.datastore.session_id)
-
-        # record_out = OrderedDict()
-        # record_out['user_id'] = user_id
-        # record_out['event_date'] = event_date
-        # record_out['seconds_duration'] = seconds_duration
-        # record_out['session_id'] = self.datastore.session_id
-        #
-        # # sym_count = [m for m in movement_events if not m.significant and (m.left_median > 0 or m.right_median > 0)]
-        # # asym_count = [m for m in movement_events if m.significant and (m.left_median > 0 or m.right_median > 0)]
-        #
-        # anterior_pelivic_tilt = OrderedDict()
-        # anterior_pelivic_tilt['left'] = asymmetry_events.anterior_pelvic_tilt_summary.left
-        # anterior_pelivic_tilt['right'] = asymmetry_events.anterior_pelvic_tilt_summary.right
-        # anterior_pelivic_tilt['symmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.symmetric_events
-        # anterior_pelivic_tilt['asymmetric_events'] = asymmetry_events.anterior_pelvic_tilt_summary.asymmetric_events
-        # anterior_pelivic_tilt['percent_events_asymmetric'] = asymmetry_events.anterior_pelvic_tilt_summary.percent_events_asymmetric
-        #
-        # record_out['apt'] = anterior_pelivic_tilt
-        #
-        # ankle_pitch = OrderedDict()
-        # ankle_pitch['left'] = asymmetry_events.ankle_pitch_summary.left
-        # ankle_pitch['right'] = asymmetry_events.ankle_pitch_summary.right
-        # ankle_pitch['symmetric_events'] = asymmetry_events.ankle_pitch_summary.symmetric_events
-        # ankle_pitch['asymmetric_events'] = asymmetry_events.ankle_pitch_summary.asymmetric_events
-        # ankle_pitch['percent_events_asymmetric'] = asymmetry_events.ankle_pitch_summary.percent_events_asymmetric
-        #
-        # record_out['ankle_pitch'] = ankle_pitch
-        #
-        # record_asymmetries = []
-        #
-        # for m in movement_events:
-        #     event_record = OrderedDict()
-        #     event_record['time_block'] = m.time_block
-        #     event_record['start_time'] = m.start_time
-        #     event_record['end_time'] = m.end_time
-        #
-        #     apt_time_block = OrderedDict()
-        #     apt_time_block['left'] = m.anterior_pelvic_tilt.left
-        #     apt_time_block['right'] = m.anterior_pelvic_tilt.right
-        #     apt_time_block['significant'] = m.anterior_pelvic_tilt.significant
-        #
-        #     event_record['apt'] = apt_time_block
-        #
-        #     ankle_pitch_time_block = OrderedDict()
-        #     ankle_pitch_time_block['left'] = m.ankle_pitch.left
-        #     ankle_pitch_time_block['right'] = m.ankle_pitch.right
-        #     ankle_pitch_time_block['significant'] = m.ankle_pitch.significant
-        #
-        #     event_record['ankle_pitch'] = ankle_pitch_time_block
-        #
-        #     record_asymmetries.append(event_record)
-        #
-        # record_out['time_blocks'] = record_asymmetries
 
     def _write_loading_movement_asymmetry(self, loading_events, movement_events):
         df = pd.DataFrame()
