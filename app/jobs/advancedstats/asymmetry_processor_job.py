@@ -560,7 +560,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                             dist.significant = True
                     # ignore if one is zero
                     elif (left_median == 0 or right_median == 0) and left_median != right_median:
-                        if abs(left_median) - abs(right_median) >= zero_difference_threshold:
+                        if abs(left_median - right_median) >= zero_difference_threshold:
                             dist.significant = True
                     dist.left_min = min(value_list_x)
                     dist.left_max = max(value_list_x)
