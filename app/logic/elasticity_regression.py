@@ -11,8 +11,7 @@ class ElasticityRegression(object):
         pass
 
     def remove_outliers(self, df, column_name):
-        df[column_name + "_stdev"] = (df[column_name] - df[column_name].mean()) / df[
-            column_name].std(ddof=0)
+        df[column_name + "_stdev"] = (df[column_name] - df[column_name].mean()) / df[column_name].std(ddof=0)
         df = df[abs(df[column_name + '_stdev']) <= 1.5]
         #df = df.drop(df.index[stdev_df.index])
         df = df.drop([column_name + "_stdev"], axis=1)
@@ -118,6 +117,18 @@ class ElasticityRegression(object):
 
             if step.knee_valgus is not None:
                 step.knee_valgus = step.knee_valgus + 1
+
+            if step.anterior_pelvic_tilt_range is not None:
+                step.anterior_pelvic_tilt_range = step.anterior_pelvic_tilt_range + 1
+
+            if step.hip_drop is not None:
+                step.hip_drop = step.hip_drop + 1
+
+            if step.ankle_pitch_range is not None:
+                step.ankle_pitch_range = step.ankle_pitch_range + 1
+
+            if step.hip_rotation is not None:
+                step.hip_rotation = step.hip_rotation + 1
 
             if (step.peak_hip_vertical_accel not in [None, 0] and
                     #step.knee_valgus not in [None, 0] and
