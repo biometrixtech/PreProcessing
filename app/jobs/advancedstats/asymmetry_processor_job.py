@@ -166,64 +166,74 @@ class AsymmetryProcessorJob(UnitBlockJob):
 
         for m in movement_asymmetries:
             if not m.anterior_pelvic_tilt.is_blank:
+                left_apt_list.append(m.anterior_pelvic_tilt.left)
+                right_apt_list.append(m.anterior_pelvic_tilt.right)
                 if m.anterior_pelvic_tilt.significant:
-                    left_apt_list.append(m.anterior_pelvic_tilt.left)
-                    right_apt_list.append(m.anterior_pelvic_tilt.right)
-                    if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
-                        apt_asym_count += 1
+                    # left_apt_list.append(m.anterior_pelvic_tilt.left)
+                    # right_apt_list.append(m.anterior_pelvic_tilt.right)
+                    # if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
+                    apt_asym_count += 1
                 else:
-                    if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
-                        apt_sym_count += 1
-                        left_apt_list.append(m.anterior_pelvic_tilt.left)
-                        right_apt_list.append(m.anterior_pelvic_tilt.right)
+                    # if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
+                    apt_sym_count += 1
+                    # left_apt_list.append(m.anterior_pelvic_tilt.left)
+                    # right_apt_list.append(m.anterior_pelvic_tilt.right)
 
             if not m.ankle_pitch.is_blank:
+                left_ankle_pitch_list.append(m.ankle_pitch.left)
+                right_ankle_pitch_list.append(m.ankle_pitch.right)
                 if m.ankle_pitch.significant:
-                    left_ankle_pitch_list.append(m.ankle_pitch.left)
-                    right_ankle_pitch_list.append(m.ankle_pitch.right)
-                    if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
-                        ankle_pitch_asym_count += 1
+                    # left_ankle_pitch_list.append(m.ankle_pitch.left)
+                    # right_ankle_pitch_list.append(m.ankle_pitch.right)
+                    # if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
+                    ankle_pitch_asym_count += 1
                 else:
-                    if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
-                        ankle_pitch_sym_count += 1
-                        left_ankle_pitch_list.append(m.ankle_pitch.left)
-                        right_ankle_pitch_list.append(m.ankle_pitch.right)
+                    # if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
+                    ankle_pitch_sym_count += 1
+                    # left_ankle_pitch_list.append(m.ankle_pitch.left)
+                    # right_ankle_pitch_list.append(m.ankle_pitch.right)
 
             if not m.hip_drop.is_blank:
+                left_hip_drop_list.append(m.hip_drop.left)
+                right_hip_drop_list.append(m.hip_drop.right)
                 if m.hip_drop.significant:
-                    left_hip_drop_list.append(m.hip_drop.left)
-                    right_hip_drop_list.append(m.hip_drop.right)
-                    if m.hip_drop.left > 0 or m.hip_drop.right > 0:
-                        hip_drop_asym_count += 1
+                    # left_hip_drop_list.append(m.hip_drop.left)
+                    # right_hip_drop_list.append(m.hip_drop.right)
+                    # if m.hip_drop.left > 0 or m.hip_drop.right > 0:
+                    hip_drop_asym_count += 1
                 else:
-                    if m.hip_drop.left > 0 or m.hip_drop.right > 0:
-                        hip_drop_sym_count += 1
-                        left_hip_drop_list.append(m.hip_drop.left)
-                        right_hip_drop_list.append(m.hip_drop.right)
+                    # if m.hip_drop.left > 0 or m.hip_drop.right > 0:
+                    hip_drop_sym_count += 1
+                    # left_hip_drop_list.append(m.hip_drop.left)
+                    # right_hip_drop_list.append(m.hip_drop.right)
 
             if not m.knee_valgus.is_blank:
+                left_knee_valgus_list.append(m.knee_valgus.left)
+                right_knee_valgus_list.append(m.knee_valgus.right)
                 if m.knee_valgus.significant:
-                    left_knee_valgus_list.append(m.knee_valgus.left)
-                    right_knee_valgus_list.append(m.knee_valgus.right)
-                    if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
-                        knee_valgus_asym_count += 1
+                    # left_knee_valgus_list.append(m.knee_valgus.left)
+                    # right_knee_valgus_list.append(m.knee_valgus.right)
+                    # if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
+                    knee_valgus_asym_count += 1
                 else:
-                    if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
-                        knee_valgus_sym_count += 1
-                        left_knee_valgus_list.append(m.knee_valgus.left)
-                        right_knee_valgus_list.append(m.knee_valgus.right)
+                    # if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
+                    knee_valgus_sym_count += 1
+                    # left_knee_valgus_list.append(m.knee_valgus.left)
+                    # right_knee_valgus_list.append(m.knee_valgus.right)
 
             if not m.hip_rotation.is_blank:
+                left_hip_rotation_list.append(m.hip_rotation.left)
+                right_hip_rotation_list.append(m.hip_rotation.right)
                 if m.hip_rotation.significant:
-                    left_hip_rotation_list.append(m.hip_rotation.left)
-                    right_hip_rotation_list.append(m.hip_rotation.right)
-                    if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
-                        hip_rotation_asym_count += 1
+                    # left_hip_rotation_list.append(m.hip_rotation.left)
+                    # right_hip_rotation_list.append(m.hip_rotation.right)
+                    # if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
+                    hip_rotation_asym_count += 1
                 else:
-                    if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
-                        hip_rotation_sym_count += 1
-                        left_hip_rotation_list.append(m.hip_rotation.left)
-                        right_hip_rotation_list.append(m.hip_rotation.right)
+                    # if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
+                    hip_rotation_sym_count += 1
+                    # left_hip_rotation_list.append(m.hip_rotation.left)
+                    # right_hip_rotation_list.append(m.hip_rotation.right)
 
         events = AsymmetryEvents()
 
