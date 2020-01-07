@@ -5,6 +5,7 @@ import logging
 from config import get_mongo_collection
 from scipy import stats
 import pandas as pd
+import numpy as np
 import statistics
 from math import ceil
 import queue
@@ -542,7 +543,12 @@ class AsymmetryProcessorJob(UnitBlockJob):
             try:
                 value_list_x.sort()
                 value_list_y.sort()
-                r, p = stats.kruskal(value_list_x, value_list_y)
+                unique_left = np.unique(value_list_x)
+                unique_right = np.unique(value_list_y)
+                if len(unique_left) == 1 and len(unique_right) == 1 and unique_left[0] == unique_right[0]:
+                    r, p = None, 1
+                else:
+                    r, p = stats.kruskal(value_list_x, value_list_y)
                 if len(value_list_x) > 0:
                     left_median = statistics.median(value_list_x)
                 else:
