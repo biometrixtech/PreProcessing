@@ -138,13 +138,13 @@ def validate_pitch(quats):
     peaks, peak_heights = find_peaks(pitch_diff, height=20, distance=50)
     has_good_peaks = len(peaks) >= 3
     if has_good_peaks:
-        # # make sure pich change is uni-directional (exclude walking)
+        # # make sure pitch change is uni-directional (exclude walking)
         # if np.any(pitch_diff[peaks] >= 75):
         #     # exclude march with very high pitch change (e.g. buttkicks) as this introduces error in heading detection
         #     return False
         # # make sure there's no walking
         for i in range(1, len(peaks)):
-            if np.all(pitch_diff[peaks[i-1]:peaks[i]] > -10):
+            if np.all(pitch_diff[peaks[i-1]:peaks[i]] > -10) and np.any(pitch_diff[peaks[i - 1]:peaks[i]] < 15):
                 if i >= 2:
                     valid_pitch = True
             else:
