@@ -277,9 +277,20 @@ def _step_data(data, ranges, mass, sensor):
             if isinstance(value, float):
                 step_record[key] = round(value, 2)
         step_record['stance'] = [2.]
-        steps.append(step_record)
+        if not is_bad_step(data.loc[range_gc[0]:range_gc[1], f"euler_{sensor.lower()}_y"].values):
+            steps.append(step_record)
 
     return steps
+
+
+def is_bad_step(euler_y_window):
+    min_pitch = np.min(euler_y_window)
+    max_pitch = np.max(euler_y_window)
+    min_point = np.where(euler_y_window == min_pitch)[0][0]
+    max_point = np.where(euler_y_window == max_pitch)[0][0]
+    if max_point < min_point:  # pitch is not increasing
+        return True
+    return False
 
 
 def get_apt_cme(euler_hip_y, euler_hip_y_diff):
@@ -378,17 +389,17 @@ def get_knee_valgus_cme(ankle_roll, acc_z, sensor):
 def get_hip_rotation_cme(step, acc_z, yaw_diff, sensor, diff_between_peaks):
     start = step[0]
     end = step[1]
-    acc_z_window = acc_z[start:int((start + end) /  2)]
-    start_point = np.where(acc_z_window == np.max(acc_z_window))[0][0] + start # get the peak accel location at the start of contact
+    acc_z_window = acc_z[start:int((start + end) / 2)]
+    start_point = np.where(acc_z_window == np.max(acc_z_window))[0][0] + start  # get the peak accel location at the start of contact
     next_peak = start_point + diff_between_peaks
     if next_peak >= len(acc_z):
         return None, None
     acc_z_next_peak_window = acc_z[next_peak - 3:next_peak + 3]
     end_point = np.where(acc_z_next_peak_window == np.max(acc_z_next_peak_window))[0][0] + next_peak - 3
     yaw_diff_window = yaw_diff[start_point:end_point]
-    yaw_diff_first_window = yaw_diff[start_point:int((start + end) /  2)]
-    hip_rot_medial = 0
-    hip_rot_lateral = 0
+    yaw_diff_first_window = yaw_diff[start_point:int((start + end) / 2)]
+    # hip_rot_medial = 0
+    # hip_rot_lateral = 0
     if sensor == 'LF':
         hip_rot_medial = abs(np.sum([yaw for yaw in yaw_diff_first_window if yaw > 0]))
         hip_rot_lateral = abs(np.sum([yaw for yaw in yaw_diff_window if yaw < 0]))
