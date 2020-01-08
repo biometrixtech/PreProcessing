@@ -5,6 +5,7 @@ import logging
 from config import get_mongo_collection
 from scipy import stats
 import pandas as pd
+import numpy as np
 import statistics
 from math import ceil
 import queue
@@ -71,6 +72,7 @@ class TimeBlockAsymmetry(object):
         self.left = 0
         self.right = 0
         self.significant = False
+        self.is_blank = True
 
 
 class TimeBlock(object):
@@ -164,60 +166,75 @@ class AsymmetryProcessorJob(UnitBlockJob):
         # right_hip_drop_not_significant_list = []
 
         for m in movement_asymmetries:
-            if m.anterior_pelvic_tilt.significant:
+            if not m.anterior_pelvic_tilt.is_blank:
                 left_apt_list.append(m.anterior_pelvic_tilt.left)
                 right_apt_list.append(m.anterior_pelvic_tilt.right)
-                if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
+                if m.anterior_pelvic_tilt.significant:
+                    # left_apt_list.append(m.anterior_pelvic_tilt.left)
+                    # right_apt_list.append(m.anterior_pelvic_tilt.right)
+                    # if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
                     apt_asym_count += 1
-            else:
-                if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
+                else:
+                    # if m.anterior_pelvic_tilt.left > 0 or m.anterior_pelvic_tilt.right > 0:
                     apt_sym_count += 1
-                    left_apt_list.append(m.anterior_pelvic_tilt.left)
-                    right_apt_list.append(m.anterior_pelvic_tilt.right)
+                    # left_apt_list.append(m.anterior_pelvic_tilt.left)
+                    # right_apt_list.append(m.anterior_pelvic_tilt.right)
 
-            if m.ankle_pitch.significant:
+            if not m.ankle_pitch.is_blank:
                 left_ankle_pitch_list.append(m.ankle_pitch.left)
                 right_ankle_pitch_list.append(m.ankle_pitch.right)
-                if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
+                if m.ankle_pitch.significant:
+                    # left_ankle_pitch_list.append(m.ankle_pitch.left)
+                    # right_ankle_pitch_list.append(m.ankle_pitch.right)
+                    # if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
                     ankle_pitch_asym_count += 1
-            else:
-                if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
+                else:
+                    # if m.ankle_pitch.left > 0 or m.ankle_pitch.right > 0:
                     ankle_pitch_sym_count += 1
-                    left_ankle_pitch_list.append(m.ankle_pitch.left)
-                    right_ankle_pitch_list.append(m.ankle_pitch.right)
+                    # left_ankle_pitch_list.append(m.ankle_pitch.left)
+                    # right_ankle_pitch_list.append(m.ankle_pitch.right)
 
-            if m.hip_drop.significant:
+            if not m.hip_drop.is_blank:
                 left_hip_drop_list.append(m.hip_drop.left)
                 right_hip_drop_list.append(m.hip_drop.right)
-                if m.hip_drop.left > 0 or m.hip_drop.right > 0:
+                if m.hip_drop.significant:
+                    # left_hip_drop_list.append(m.hip_drop.left)
+                    # right_hip_drop_list.append(m.hip_drop.right)
+                    # if m.hip_drop.left > 0 or m.hip_drop.right > 0:
                     hip_drop_asym_count += 1
-            else:
-                if m.hip_drop.left > 0 or m.hip_drop.right > 0:
+                else:
+                    # if m.hip_drop.left > 0 or m.hip_drop.right > 0:
                     hip_drop_sym_count += 1
-                    left_hip_drop_list.append(m.hip_drop.left)
-                    right_hip_drop_list.append(m.hip_drop.right)
+                    # left_hip_drop_list.append(m.hip_drop.left)
+                    # right_hip_drop_list.append(m.hip_drop.right)
 
-            if m.knee_valgus.significant:
+            if not m.knee_valgus.is_blank:
                 left_knee_valgus_list.append(m.knee_valgus.left)
                 right_knee_valgus_list.append(m.knee_valgus.right)
-                if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
+                if m.knee_valgus.significant:
+                    # left_knee_valgus_list.append(m.knee_valgus.left)
+                    # right_knee_valgus_list.append(m.knee_valgus.right)
+                    # if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
                     knee_valgus_asym_count += 1
-            else:
-                if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
+                else:
+                    # if m.knee_valgus.left > 0 or m.knee_valgus.right > 0:
                     knee_valgus_sym_count += 1
-                    left_knee_valgus_list.append(m.knee_valgus.left)
-                    right_knee_valgus_list.append(m.knee_valgus.right)
+                    # left_knee_valgus_list.append(m.knee_valgus.left)
+                    # right_knee_valgus_list.append(m.knee_valgus.right)
 
-            if m.hip_rotation.significant:
+            if not m.hip_rotation.is_blank:
                 left_hip_rotation_list.append(m.hip_rotation.left)
                 right_hip_rotation_list.append(m.hip_rotation.right)
-                if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
+                if m.hip_rotation.significant:
+                    # left_hip_rotation_list.append(m.hip_rotation.left)
+                    # right_hip_rotation_list.append(m.hip_rotation.right)
+                    # if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
                     hip_rotation_asym_count += 1
-            else:
-                if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
+                else:
+                    # if m.hip_rotation.left > 0 or m.hip_rotation.right > 0:
                     hip_rotation_sym_count += 1
-                    left_hip_rotation_list.append(m.hip_rotation.left)
-                    right_hip_rotation_list.append(m.hip_rotation.right)
+                    # left_hip_rotation_list.append(m.hip_rotation.left)
+                    # right_hip_rotation_list.append(m.hip_rotation.right)
 
         events = AsymmetryEvents()
 
@@ -419,6 +436,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     for g in range(0, gap_intervals):
                         #gap_event = AsymmetryDistribution()
                         gap_event = TimeBlock()
+                        gap_event.is_blank = True
 
                         gap_end_time = min(last_unit_block_time + ((g + 1) * seconds), block_start_time)
                         gap_event.start_time = last_unit_block_time + (g * seconds)
@@ -441,8 +459,8 @@ class AsymmetryProcessorJob(UnitBlockJob):
                     time_block_obj.time_block = time_block
                     time_block_obj.start_time = block_start_time
                     time_block_obj.end_time = block_end_time
-                    time_block_obj.anterior_pelvic_tilt = TimeBlockAsymmetry()
-                    time_block_obj.ankle_pitch = TimeBlockAsymmetry()
+                    #time_block_obj.anterior_pelvic_tilt = TimeBlockAsymmetry()
+                    #time_block_obj.ankle_pitch = TimeBlockAsymmetry()
 
                     apt_event = self._get_steps_f_test("anterior_pelvic_tilt_range", l_step_blocks,
                                                                               r_step_blocks, time_block)
@@ -451,6 +469,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.anterior_pelvic_tilt.left = apt_event.left_median
                         time_block_obj.anterior_pelvic_tilt.right = apt_event.right_median
                         time_block_obj.anterior_pelvic_tilt.significant = apt_event.significant
+                        time_block_obj.anterior_pelvic_tilt.is_blank = False
 
                     ankle_pitch_event = self._get_steps_f_test("ankle_pitch_range", l_step_blocks,
                                                                               r_step_blocks, time_block, threshold=1.03, zero_difference_threshold=.03)
@@ -458,6 +477,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.ankle_pitch.left = ankle_pitch_event.left_median
                         time_block_obj.ankle_pitch.right = ankle_pitch_event.right_median
                         time_block_obj.ankle_pitch.significant = ankle_pitch_event.significant
+                        time_block_obj.ankle_pitch.is_blank = False
 
                     hip_drop_event = self._get_steps_f_test("hip_drop", l_step_blocks, r_step_blocks, time_block)
 
@@ -465,6 +485,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.hip_drop.left = hip_drop_event.left_median
                         time_block_obj.hip_drop.right = hip_drop_event.right_median
                         time_block_obj.hip_drop.significant = hip_drop_event.significant
+                        time_block_obj.hip_drop.is_blank = False
 
                     knee_valgus_event = self._get_steps_f_test("knee_valgus", l_step_blocks, r_step_blocks, time_block)
 
@@ -472,6 +493,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.knee_valgus.left = knee_valgus_event.left_median
                         time_block_obj.knee_valgus.right = knee_valgus_event.right_median
                         time_block_obj.knee_valgus.significant = knee_valgus_event.significant
+                        time_block_obj.knee_valgus.is_blank = False
 
                     hip_rotation_event = self._get_steps_f_test("hip_rotation", l_step_blocks, r_step_blocks, time_block)
 
@@ -479,7 +501,7 @@ class AsymmetryProcessorJob(UnitBlockJob):
                         time_block_obj.hip_rotation.left = hip_rotation_event.left_median
                         time_block_obj.hip_rotation.right = hip_rotation_event.right_median
                         time_block_obj.hip_rotation.significant = hip_rotation_event.significant
-
+                        time_block_obj.hip_rotation.is_blank = False
 
                     # if apt_event is None:
                     #     apt_event = AsymmetryDistribution()
@@ -521,7 +543,12 @@ class AsymmetryProcessorJob(UnitBlockJob):
             try:
                 value_list_x.sort()
                 value_list_y.sort()
-                r, p = stats.kruskal(value_list_x, value_list_y)
+                unique_left = np.unique(value_list_x)
+                unique_right = np.unique(value_list_y)
+                if len(unique_left) == 1 and len(unique_right) == 1 and unique_left[0] == unique_right[0]:
+                    r, p = None, 1
+                else:
+                    r, p = stats.kruskal(value_list_x, value_list_y)
                 if len(value_list_x) > 0:
                     left_median = statistics.median(value_list_x)
                 else:
